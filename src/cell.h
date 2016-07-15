@@ -61,6 +61,11 @@ struct pcell {
   int progeny[8];
 };
 
+struct entry_jsw {
+  int *i;
+  float *d;
+};
+
 /* Structure to store the data of a single cell. */
 struct cell {
 
@@ -102,6 +107,9 @@ struct cell {
 
   /* Pointers for the sorted indices. */
   struct entry *sort, *gsort;
+
+  struct entry_jsw sort_jsw;
+
   unsigned int sorted, gsorted;
 
   /* Pointers to the next level of cells. */
