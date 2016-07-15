@@ -208,7 +208,7 @@ void runner_do_sort_ascending(struct entry *sort, int N) {
   }
 }
 
-void runner_do_sort_ascending_jsw(struct entry_jsw *sort, int N) {
+void runner_do_sort_ascending_jsw(float *sort_d, int *sort_i, int N) {
 
   struct {
     short int lo, hi;
@@ -231,31 +231,31 @@ void runner_do_sort_ascending_jsw(struct entry_jsw *sort, int N) {
       for (i = lo; i < hi; i++) {
         imin = i;
         for (j = i + 1; j <= hi; j++)
-          if (sort->d[j] < sort->d[imin]) imin = j;
+          if (sort_d[j] < sort_d[imin]) imin = j;
         if (imin != i) {
-          temp_d = sort->d[imin];
-          temp_i = sort->i[imin];
-          sort->d[imin] = sort->d[i];
-          sort->i[imin] = sort->i[i];
-          sort->d[i] = temp_d;
-          sort->i[i] = temp_i;
+          temp_d = sort_d[imin];
+          temp_i = sort_i[imin];
+          sort_d[imin] = sort_d[i];
+          sort_i[imin] = sort_i[i];
+          sort_d[i] = temp_d;
+          sort_i[i] = temp_i;
         }
       }
     } else {
-      pivot = sort->d[(lo + hi) / 2];
+      pivot = sort_d[(lo + hi) / 2];
       i = lo;
       j = hi;
       while (i <= j) {
-        while (sort->d[i] < pivot) i++;
-        while (sort->d[j] > pivot) j--;
+        while (sort_d[i] < pivot) i++;
+        while (sort_d[j] > pivot) j--;
         if (i <= j) {
           if (i < j) {
-            temp_d = sort->d[i];
-            temp_i = sort->i[i];
-            sort->d[i] = sort->d[j];
-            sort->i[i] = sort->i[j];
-            sort->d[j] = temp_d;
-            sort->i[j] = temp_i;
+            temp_d = sort_d[i];
+            temp_i = sort_i[i];
+            sort_d[i] = sort_d[j];
+            sort_i[i] = sort_i[j];
+            sort_d[j] = temp_d;
+            sort_i[j] = temp_i;
           }
           i += 1;
           j -= 1;
@@ -576,7 +576,7 @@ void runner_do_sort_jsw(struct runner *r, struct cell *c, int flags, int clock) 
       if (flags & (1 << j)) {
         sort->d[j * (count + 1) + count] = FLT_MAX;
         sort->i[j * (count + 1) + count] = 0;
-        //runner_do_sort_ascending_jsw(&sort[j * (count + 1)], count);
+        runner_do_sort_ascending_jsw(&sort->d[j * (count + 1)], &sort->i[j * (count + 1)], count);
         c->sorted |= (1 << j);
       }
   }
