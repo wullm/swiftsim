@@ -45,5 +45,6 @@ void pairs_n2(double *dim, struct part *restrict parts, int N, int periodic);
 
 double random_uniform(double a, double b);
 void shuffle_particles(struct part *parts, const int count);
+void generate_random_positions(struct cell *c);
 
 #endif /* SWIFT_TOOL_H */

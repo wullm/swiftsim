@@ -500,3 +500,22 @@ void shuffle_particles(struct part *parts, const int count) {
   } else
     error("Array not big enough to shuffle!");
 }
+
+/**
+ * @brief Generate a random set of particle positions for a cell
+ */
+void generate_random_positions(struct cell *c) {
+  struct part *part = c->parts;
+  for (size_t i = 0; i < c->count; ++i) {
+    part->x[0] =
+        c->loc[0] +
+        c->h[0] * random_uniform(0., 1.);
+    part->x[1] =
+        c->loc[1] +
+        c->h[1] * random_uniform(0., 1.);
+    part->x[2] =
+        c->loc[2] +
+        c->h[2] * random_uniform(0., 1.);
+    ++part;
+  }
+}
