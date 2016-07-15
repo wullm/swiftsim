@@ -127,6 +127,31 @@ void dump_particle_fields(char *fileName, struct cell *cj) {
   fclose(file);
 }
 
+/**
+ * @brief Dump all the particles to a file
+ */
+void dump_particle_fields_new_sort(char *fileName, struct cell *cj) {
+
+  FILE *file = fopen(fileName, "w");
+
+  /* Write header */
+  fprintf(file,
+          "# %4s %10s %10s %10s %10s %10s\n",
+          "ID", "pos_x", "pos_y", "pos_z", "sort_i", "sort_d");
+  
+  /* Print each sorted distance along each sort direction. */
+  for (size_t sid = 0; sid < 13; sid++) {
+    fprintf(file,"# SID: %4zu\n",sid);
+    for (size_t pjd = 0; pjd < cj->count; pjd++) {
+      fprintf(
+          file,
+          "%6llu %10f %10f %10f %10d %10f\n",
+          cj->parts[pjd].id, cj->parts[pjd].x[0], cj->parts[pjd].x[1],
+          cj->parts[pjd].x[2], cj->sort_jsw.i[sid*(cj->count + 1) + pjd], cj->sort_jsw.d[sid*(cj->count + 1) + pjd]);
+    }
+  }
+  fclose(file);
+}
 /* And go... */
 int main(int argc, char *argv[]) {
   size_t runs = 0, particles = 0;
@@ -228,7 +253,7 @@ int main(int argc, char *argv[]) {
     const ticks tic = getticks();
 
     /* Run the sort */
-    runner_do_sort(NULL, cell, 0x1FFF, 0);
+    runner_do_sort_jsw(NULL, cell, 0x1FFF, 0);
 
     const ticks toc = getticks();
     time += toc - tic;
@@ -238,7 +263,7 @@ int main(int argc, char *argv[]) {
   /* Dump contents of cell */
   sprintf(outputFileName, "swift_dosort_new%s.dat",
               outputFileNameExtension);
-  dump_particle_fields(outputFileName,cell);
+  dump_particle_fields_new_sort(outputFileName,cell);
   
   /* Output timing */
   message("New SWIFT sort took       : %15lli ticks.", time / runs);
