@@ -208,6 +208,85 @@ void runner_do_sort_ascending(struct entry *sort, int N) {
   }
 }
 
+void runner_do_sort_ascending_jsw(struct entry_jsw *sort, int N) {
+
+  struct {
+    short int lo, hi;
+  } qstack[10];
+  int qpos, i, j, lo, hi, imin;
+  //struct entry temp;
+  float temp_d;
+  int temp_i;
+  float pivot;
+
+  /* Sort parts in cell_i in decreasing order with quicksort */
+  qstack[0].lo = 0;
+  qstack[0].hi = N - 1;
+  qpos = 0;
+  while (qpos >= 0) {
+    lo = qstack[qpos].lo;
+    hi = qstack[qpos].hi;
+    qpos -= 1;
+    if (hi - lo < 15) {
+      for (i = lo; i < hi; i++) {
+        imin = i;
+        for (j = i + 1; j <= hi; j++)
+          if (sort->d[j] < sort->d[imin]) imin = j;
+        if (imin != i) {
+          temp_d = sort->d[imin];
+          temp_i = sort->i[imin];
+          sort->d[imin] = sort->d[i];
+          sort->i[imin] = sort->i[i];
+          sort->d[i] = temp_d;
+          sort->i[i] = temp_i;
+        }
+      }
+    } else {
+      pivot = sort->d[(lo + hi) / 2];
+      i = lo;
+      j = hi;
+      while (i <= j) {
+        while (sort->d[i] < pivot) i++;
+        while (sort->d[j] > pivot) j--;
+        if (i <= j) {
+          if (i < j) {
+            temp_d = sort->d[i];
+            temp_i = sort->i[i];
+            sort->d[i] = sort->d[j];
+            sort->i[i] = sort->i[j];
+            sort->d[j] = temp_d;
+            sort->i[j] = temp_i;
+          }
+          i += 1;
+          j -= 1;
+        }
+      }
+      if (j > (lo + hi) / 2) {
+        if (lo < j) {
+          qpos += 1;
+          qstack[qpos].lo = lo;
+          qstack[qpos].hi = j;
+        }
+        if (i < hi) {
+          qpos += 1;
+          qstack[qpos].lo = i;
+          qstack[qpos].hi = hi;
+        }
+      } else {
+        if (i < hi) {
+          qpos += 1;
+          qstack[qpos].lo = i;
+          qstack[qpos].hi = hi;
+        }
+        if (lo < j) {
+          qpos += 1;
+          qstack[qpos].lo = lo;
+          qstack[qpos].hi = j;
+        }
+      }
+    }
+  }
+}
 /**
  * @brief Sort the particles in the given cell along all cardinal directions.
  *
@@ -362,6 +441,161 @@ void runner_do_sort(struct runner *r, struct cell *c, int flags, int clock) {
   if (clock) TIMER_TOC(timer_dosort);
 }
 
+void runner_do_sort_jsw(struct runner *r, struct cell *c, int flags, int clock) {
+
+  //struct entry *finger;
+  float *finger_d;
+  int *finger_i;
+  //struct entry *fingers[8];
+  float *fingers_d[8];
+  int *fingers_i[8];
+  struct part *parts = c->parts;
+  //struct entry *sort;
+  struct entry_jsw *sort;
+  int j, k, count = c->count;
+  int i, ind, off[8], inds[8], temp_i, missing;
+  float buff[8];
+  double px[3];
+
+  TIMER_TIC
+
+  /* Clean-up the flags, i.e. filter out what's already been sorted. */
+  flags &= ~c->sorted;
+  if (flags == 0) return;
+
+  /* start by allocating the entry arrays. */
+  if (c->sort == NULL || c->sortsize < count) {
+    if (c->sort != NULL) free(c->sort);
+    c->sortsize = count * 1.1;
+    if ((c->sort_jsw.i = (int *)malloc(sizeof(int) *
+                                       (c->sortsize + 1) * 13)) == NULL)
+      error("Failed to allocate sort index memory.");
+    if ((c->sort_jsw.d = (float *)malloc(sizeof(float) *
+                                          (c->sortsize + 1) * 13)) == NULL) {
+      error("Failed to allocate sort distance memory.");
+    }
+  }
+  sort = &(c->sort_jsw);
+
+  /* Does this cell have any progeny? */
+  if (c->split) {
+
+    /* Fill in the gaps within the progeny. */
+    for (k = 0; k < 8; k++) {
+      if (c->progeny[k] == NULL) continue;
+      missing = flags & ~c->progeny[k]->sorted;
+      if (missing) runner_do_sort_jsw(r, c->progeny[k], missing, 0);
+    }
+
+    /* Loop over the 13 different sort arrays. */
+    for (j = 0; j < 13; j++) {
+
+      /* Has this sort array been flagged? */
+      if (!(flags & (1 << j))) continue;
+
+      /* Init the particle index offsets. */
+      for (off[0] = 0, k = 1; k < 8; k++)
+        if (c->progeny[k - 1] != NULL)
+          off[k] = off[k - 1] + c->progeny[k - 1]->count;
+        else
+          off[k] = off[k - 1];
+
+      /* Init the entries and indices. */
+      for (k = 0; k < 8; k++) {
+        inds[k] = k;
+        if (c->progeny[k] != NULL && c->progeny[k]->count > 0) {
+          fingers_d[k] = &c->progeny[k]->sort_jsw.d[j * (c->progeny[k]->count + 1)];
+          buff[k] = *(fingers_d[k]);
+          off[k] = off[k];
+        } else
+          buff[k] = FLT_MAX;
+      }
+
+      /* Sort the buffer. */
+      for (i = 0; i < 7; i++)
+        for (k = i + 1; k < 8; k++)
+          if (buff[inds[k]] < buff[inds[i]]) {
+            temp_i = inds[i];
+            inds[i] = inds[k];
+            inds[k] = temp_i;
+          }
+
+      /* For each entry in the new sort list. */
+      finger_i = &sort->i[j * (count + 1)];
+      finger_d = &sort->d[j * (count + 1)];
+      for (ind = 0; ind < count; ind++) {
+
+        /* Copy the minimum into the new sort array. */
+        finger_d[ind] = buff[inds[0]];
+        finger_i[ind] = *(fingers_i[inds[0]]) + off[inds[0]];
+
+        /* Update the buffer. */
+        fingers_i[inds[0]] += 1;
+        fingers_d[inds[0]] += 1;
+        buff[inds[0]] = *(fingers_d[inds[0]]);
+
+        /* Find the smallest entry. */
+        for (k = 1; k < 8 && buff[inds[k]] < buff[inds[k - 1]]; k++) {
+          temp_i = inds[k - 1];
+          inds[k - 1] = inds[k];
+          inds[k] = temp_i;
+        }
+
+      } /* Merge. */
+
+      /* Add a sentinel. */
+      sort->d[j * (count + 1) + count] = FLT_MAX;
+      sort->i[j * (count + 1) + count] = 0;
+
+      /* Mark as sorted. */
+      c->sorted |= (1 << j);
+
+    } /* loop over sort arrays. */
+
+  } /* progeny? */
+
+  /* Otherwise, just sort. */
+  else {
+
+    /* Fill the sort array. */
+    for (k = 0; k < count; k++) {
+      px[0] = parts[k].x[0];
+      px[1] = parts[k].x[1];
+      px[2] = parts[k].x[2];
+      for (j = 0; j < 13; j++)
+        if (flags & (1 << j)) {
+          sort->i[j * (count + 1) + k] = k;
+          sort->d[j * (count + 1) + k] = px[0] * runner_shift[j][0] +
+                                         px[1] * runner_shift[j][1] +
+                                         px[2] * runner_shift[j][2];
+        }
+    }
+
+    /* Add the sentinel and sort. */
+    for (j = 0; j < 13; j++)
+      if (flags & (1 << j)) {
+        sort->d[j * (count + 1) + count] = FLT_MAX;
+        sort->i[j * (count + 1) + count] = 0;
+        //runner_do_sort_ascending_jsw(&sort[j * (count + 1)], count);
+        c->sorted |= (1 << j);
+      }
+  }
+
+#ifdef SWIFT_DEBUG_CHECKS
+  /* Verify the sorting. */
+  for (j = 0; j < 13; j++) {
+    if (!(flags & (1 << j))) continue;
+    finger = &sort[j * (count + 1)];
+    for (k = 1; k < count; k++) {
+      if (finger[k].d < finger[k - 1].d)
+        error("Sorting failed, ascending array.");
+      if (finger[k].i >= count) error("Sorting failed, indices borked.");
+    }
+  }
+#endif
+
+  if (clock) TIMER_TOC(timer_dosort);
+}
 /**
  * @brief Initialize the particles before the density calculation
  *
