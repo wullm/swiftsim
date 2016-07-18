@@ -152,6 +152,30 @@ void dump_particle_fields_new_sort(char *fileName, struct cell *cj) {
   }
   fclose(file);
 }
+
+void check_sorting(const struct cell *c, int flags) {
+
+  float *finger_d;
+  int *finger_i;
+  int *sort_i = c->sort_jsw.i;
+  float *sort_d = c->sort_jsw.d;
+  int count = c->count;
+  
+  /* Clean-up the flags, i.e. filter out what's already been sorted. */
+  flags &= ~c->sorted;
+
+  for (int i = 0; i < 13; i++) {
+    if (!(flags & (1 << i))) continue;
+    finger_d = &sort_d[i * (count + 1)];
+    finger_i = &sort_i[i * (count + 1)];
+    for (int k = 1; k < count; k++) {
+      if (finger_d[k] < finger_d[k - 1])
+        error("Sorting failed, ascending array.");
+      if (finger_i[k] >= count) error("Sorting failed, indices borked.");
+    }
+  }
+}
+
 /* And go... */
 int main(int argc, char *argv[]) {
   size_t runs = 0, particles = 0;
@@ -268,6 +292,8 @@ int main(int argc, char *argv[]) {
   /* Output timing */
   message("New SWIFT sort took       : %15lli ticks.", time / runs);
 
+  check_sorting(cell,0x1FFF);
+
   /* Now perform the original version for accuracy tests */
   
   /* Re-seed RNG */
@@ -302,6 +328,7 @@ int main(int argc, char *argv[]) {
   /* Output timing */
   message("Original SWIFT sort took  : %15lli ticks.", time / runs);
 
+  check_sorting(cell,0x1FFF);
   /* Clean things to make the sanitizer happy ... */
   clean_up(cell);
 
