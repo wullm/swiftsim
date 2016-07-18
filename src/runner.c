@@ -443,15 +443,13 @@ void runner_do_sort(struct runner *r, struct cell *c, int flags, int clock) {
 
 void runner_do_sort_jsw(struct runner *r, struct cell *c, int flags, int clock) {
 
-  //struct entry *finger;
   float *finger_d;
   int *finger_i;
-  //struct entry *fingers[8];
   float *fingers_d[8];
   int *fingers_i[8];
   struct part *parts = c->parts;
-  //struct entry *sort;
-  struct entry_jsw *sort;
+  int *sort_i;
+  float *sort_d;
   int j, k, count = c->count;
   int i, ind, off[8], inds[8], temp_i, missing;
   float buff[8];
@@ -475,7 +473,8 @@ void runner_do_sort_jsw(struct runner *r, struct cell *c, int flags, int clock) 
       error("Failed to allocate sort distance memory.");
     }
   }
-  sort = &(c->sort_jsw);
+  sort_i = c->sort_jsw.i;
+  sort_d = c->sort_jsw.d;
 
   /* Does this cell have any progeny? */
   if (c->split) {
@@ -521,8 +520,8 @@ void runner_do_sort_jsw(struct runner *r, struct cell *c, int flags, int clock) 
           }
 
       /* For each entry in the new sort list. */
-      finger_i = &sort->i[j * (count + 1)];
-      finger_d = &sort->d[j * (count + 1)];
+      finger_i = &sort_i[j * (count + 1)];
+      finger_d = &sort_d[j * (count + 1)];
       for (ind = 0; ind < count; ind++) {
 
         /* Copy the minimum into the new sort array. */
@@ -544,8 +543,8 @@ void runner_do_sort_jsw(struct runner *r, struct cell *c, int flags, int clock) 
       } /* Merge. */
 
       /* Add a sentinel. */
-      sort->d[j * (count + 1) + count] = FLT_MAX;
-      sort->i[j * (count + 1) + count] = 0;
+      sort_d[j * (count + 1) + count] = FLT_MAX;
+      sort_i[j * (count + 1) + count] = 0;
 
       /* Mark as sorted. */
       c->sorted |= (1 << j);
@@ -564,19 +563,19 @@ void runner_do_sort_jsw(struct runner *r, struct cell *c, int flags, int clock) 
       px[2] = parts[k].x[2];
       for (j = 0; j < 13; j++)
         if (flags & (1 << j)) {
-          sort->i[j * (count + 1) + k] = k;
-          sort->d[j * (count + 1) + k] = px[0] * runner_shift[j][0] +
-                                         px[1] * runner_shift[j][1] +
-                                         px[2] * runner_shift[j][2];
+          sort_i[j * (count + 1) + k] = k;
+          sort_d[j * (count + 1) + k] = px[0] * runner_shift[j][0] +
+                                        px[1] * runner_shift[j][1] +
+                                        px[2] * runner_shift[j][2];
         }
     }
 
     /* Add the sentinel and sort. */
     for (j = 0; j < 13; j++)
       if (flags & (1 << j)) {
-        sort->d[j * (count + 1) + count] = FLT_MAX;
-        sort->i[j * (count + 1) + count] = 0;
-        runner_do_sort_ascending_jsw(&sort->d[j * (count + 1)], &sort->i[j * (count + 1)], count);
+        sort_d[j * (count + 1) + count] = FLT_MAX;
+        sort_i[j * (count + 1) + count] = 0;
+        runner_do_sort_ascending_jsw(&sort_d[j * (count + 1)], &sort_i[j * (count + 1)], count);
         c->sorted |= (1 << j);
       }
   }
@@ -585,11 +584,12 @@ void runner_do_sort_jsw(struct runner *r, struct cell *c, int flags, int clock) 
   /* Verify the sorting. */
   for (j = 0; j < 13; j++) {
     if (!(flags & (1 << j))) continue;
-    finger = &sort[j * (count + 1)];
+    finger_d = &sort_d[j * (count + 1)];
+    finger_i = &sort_i[j * (count + 1)];
     for (k = 1; k < count; k++) {
-      if (finger[k].d < finger[k - 1].d)
+      if (finger_d[k] < finger_d[k - 1])
         error("Sorting failed, ascending array.");
-      if (finger[k].i >= count) error("Sorting failed, indices borked.");
+      if (finger_i[k] >= count) error("Sorting failed, indices borked.");
     }
   }
 #endif
