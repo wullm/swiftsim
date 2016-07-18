@@ -465,13 +465,12 @@ void runner_do_sort_jsw(struct runner *r, struct cell *c, int flags, int clock) 
   if (c->sort == NULL || c->sortsize < count) {
     if (c->sort != NULL) free(c->sort);
     c->sortsize = count * 1.1;
-    if ((c->sort_jsw.i = (int *)malloc(sizeof(int) *
-                                       (c->sortsize + 1) * 13)) == NULL)
+    if (posix_memalign((void **)&c->sort_jsw.i, VEC_SIZE * sizeof(int), sizeof(int) *
+                                       (c->sortsize + 1) * 13) != 0)
       error("Failed to allocate sort index memory.");
-    if ((c->sort_jsw.d = (float *)malloc(sizeof(float) *
-                                          (c->sortsize + 1) * 13)) == NULL) {
+    if (posix_memalign((void **)&c->sort_jsw.d, VEC_SIZE * sizeof(float), sizeof(float) *
+                                          (c->sortsize + 1) * 13) != 0)
       error("Failed to allocate sort distance memory.");
-    }
   }
   sort_i = c->sort_jsw.i;
   sort_d = c->sort_jsw.d;
