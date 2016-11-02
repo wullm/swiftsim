@@ -3087,6 +3087,8 @@ void engine_init(struct engine *e, struct space *s,
       if (numa_available() >= 0) {
         if (nodeID == 0) message("prefer NUMA-distant CPUs");
 
+        message("Number of NUMA nodes: %d",numa_max_node());
+
         /* Get list of numa nodes of all available cores. */
         int *nodes = malloc(nr_affinity_cores * sizeof(int));
         int nnodes = 0;
