@@ -30,6 +30,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <numa.h>
 
 /* MPI headers. */
 #ifdef WITH_MPI
@@ -53,6 +54,9 @@
 #include "runner.h"
 #include "threadpool.h"
 #include "tools.h"
+
+extern int number_of_particlesBytes;
+static int number_of_extra_particlesBytes;
 
 /* Split size. */
 int space_splitsize = space_splitsize_default;
@@ -300,7 +304,7 @@ void space_regrid(struct space *s, int verbose) {
         space_rebuild_recycle(s, &s->cells_top[k]);
         if (s->cells_top[k].sort != NULL) free(s->cells_top[k].sort);
       }
-      free(s->cells_top);
+      numa_free(s->cells_top,s->nr_cells * sizeof(struct cell));
       s->maxdepth = 0;
     }
 
@@ -314,9 +318,13 @@ void space_regrid(struct space *s, int verbose) {
 
     /* Allocate the highest level of cells. */
     s->tot_cells = s->nr_cells = cdim[0] * cdim[1] * cdim[2];
-    if (posix_memalign((void *)&s->cells_top, cell_align,
-                       s->nr_cells * sizeof(struct cell)) != 0)
-      error("Failed to allocate cells.");
+    //if (posix_memalign((void *)&s->cells_top, cell_align,
+    //                   s->nr_cells * sizeof(struct cell)) != 0)
+    //  error("Failed to allocate cells.");
+    
+    s->cells_top = numa_alloc_interleaved(s->nr_cells * sizeof(struct cell));
+    if(s->cells_top == NULL) error("Error while NUMA allocating memory for top level cells");
+
     bzero(s->cells_top, s->nr_cells * sizeof(struct cell));
     for (int k = 0; k < s->nr_cells; k++)
       if (lock_init(&s->cells_top[k].lock) != 0)
@@ -1609,9 +1617,12 @@ struct cell *space_getcell(struct space *s) {
 
   /* Is the buffer empty? */
   if (s->cells_sub == NULL) {
-    if (posix_memalign((void *)&s->cells_sub, cell_align,
-                       space_cellallocchunk * sizeof(struct cell)) != 0)
-      error("Failed to allocate more cells.");
+    //if (posix_memalign((void *)&s->cells_sub, cell_align,
+    //                   space_cellallocchunk * sizeof(struct cell)) != 0)
+    //  error("Failed to allocate more cells.");
+
+    s->cells_sub = numa_alloc_interleaved(space_cellallocchunk * sizeof(struct cell));
+    if(s->cells_sub == NULL) error("Error while NUMA allocating memory for sub cells");
 
     /* Zero everything for good measure */
     bzero(s->cells_sub, space_cellallocchunk * sizeof(struct cell));
@@ -1844,9 +1855,14 @@ void space_init(struct space *s, const struct swift_params *params,
 
   /* Allocate the extra parts array. */
   if (Npart > 0) {
-    if (posix_memalign((void *)&s->xparts, xpart_align,
-                       Npart * sizeof(struct xpart)) != 0)
-      error("Failed to allocate xparts.");
+    //if (posix_memalign((void *)&s->xparts, xpart_align,
+    //                   Npart * sizeof(struct xpart)) != 0)
+    //  error("Failed to allocate xparts.");
+   
+    number_of_extra_particlesBytes = Npart * sizeof(struct xpart); 
+    s->xparts = numa_alloc_interleaved(Npart * sizeof(struct xpart));
+    if(s->xparts == NULL) error("Error while NUMA allocating memory for extra particles");
+
     bzero(s->xparts, Npart * sizeof(struct xpart));
   }
 
@@ -1879,8 +1895,8 @@ void space_link_cleanup(struct space *s) {
 void space_clean(struct space *s) {
 
   for (int i = 0; i < s->nr_cells; ++i) cell_clean(&s->cells_top[i]);
-  free(s->cells_top);
-  free(s->parts);
-  free(s->xparts);
+  numa_free(s->cells_top,s->nr_cells * sizeof(struct cell));
+  numa_free(s->parts,number_of_particlesBytes);
+  numa_free(s->xparts,number_of_extra_particlesBytes);
   free(s->gparts);
 }
