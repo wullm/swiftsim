@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <numa.h>
 
 /* MPI headers. */
 #ifdef WITH_MPI
@@ -870,14 +871,17 @@ void scheduler_reset(struct scheduler *s, int size) {
   if (size > s->size) {
 
     /* Free existing task lists if necessary. */
-    if (s->tasks != NULL) free(s->tasks);
+    if (s->tasks != NULL) numa_free(s->tasks,size * sizeof(struct task));
     if (s->tasks_ind != NULL) free(s->tasks_ind);
     if (s->tid_active != NULL) free(s->tid_active);
 
     /* Allocate the new lists. */
-    if (posix_memalign((void *)&s->tasks, task_align,
-                       size * sizeof(struct task)) != 0)
-      error("Failed to allocate task array.");
+    //if (posix_memalign((void *)&s->tasks, task_align,
+    //                   size * sizeof(struct task)) != 0)
+    //  error("Failed to allocate task array.");
+
+    s->tasks = numa_alloc_interleaved(size * sizeof(struct task));
+    if(s->tasks == NULL) error("Error while NUMA allocating memory for task array.");
 
     if ((s->tasks_ind = (int *)malloc(sizeof(int) * size)) == NULL)
       error("Failed to allocate task lists.");
@@ -1467,7 +1471,7 @@ void scheduler_print_tasks(const struct scheduler *s, const char *fileName) {
  */
 void scheduler_clean(struct scheduler *s) {
 
-  free(s->tasks);
+  numa_free(s->tasks,s->nr_tasks * sizeof(struct task));
   free(s->tasks_ind);
   free(s->unlocks);
   free(s->unlock_ind);
