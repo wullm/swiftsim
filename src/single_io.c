@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <numa.h>
 
 /* This object's header. */
 #include "single_io.h"
@@ -46,6 +47,8 @@
 #include "kernel_hydro.h"
 #include "part.h"
 #include "units.h"
+
+int number_of_particlesBytes = 0;
 
 /*-----------------------------------------------------------------------------
  * Routines reading an IC file
@@ -440,9 +443,14 @@ void read_ic_single(char* fileName, const struct UnitSystem* internal_units,
 
   /* Allocate memory to store SPH particles */
   *Ngas = N[0];
-  if (posix_memalign((void*)parts, part_align, *Ngas * sizeof(struct part)) !=
-      0)
-    error("Error while allocating memory for SPH particles");
+  //if (posix_memalign((void*)parts, part_align, *Ngas * sizeof(struct part)) !=
+  //    0)
+  //  error("Error while allocating memory for SPH particles");
+
+  number_of_particlesBytes = *Ngas * sizeof(struct part);
+  *parts = numa_alloc_interleaved(*Ngas * sizeof(struct part));
+  if(*parts == NULL) error("Error while NUMA allocating memory for SPH particles");
+
   bzero(*parts, *Ngas * sizeof(struct part));
 
   /* Allocate memory to store all particles */
@@ -451,6 +459,10 @@ void read_ic_single(char* fileName, const struct UnitSystem* internal_units,
   if (posix_memalign((void*)gparts, gpart_align,
                      *Ngparts * sizeof(struct gpart)) != 0)
     error("Error while allocating memory for gravity particles");
+  
+  //*gparts = numa_alloc_interleaved(*Ngparts * sizeof(struct gpart));
+  //if(*gparts == NULL) error("Error while NUMA allocating memory for gravity particles");
+  
   bzero(*gparts, *Ngparts * sizeof(struct gpart));
 
   /* message("Allocated %8.2f MB for particles.", *N * sizeof(struct part) /
