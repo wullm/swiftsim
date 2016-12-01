@@ -871,7 +871,7 @@ void scheduler_reset(struct scheduler *s, int size) {
   if (size > s->size) {
 
     /* Free existing task lists if necessary. */
-    if (s->tasks != NULL) numa_free(s->tasks,size * sizeof(struct task));
+    if (s->tasks != NULL) numa_free(s->tasks, s->size * sizeof(struct task));
     if (s->tasks_ind != NULL) free(s->tasks_ind);
     if (s->tid_active != NULL) free(s->tid_active);
 
@@ -1471,7 +1471,7 @@ void scheduler_print_tasks(const struct scheduler *s, const char *fileName) {
  */
 void scheduler_clean(struct scheduler *s) {
 
-  numa_free(s->tasks,s->nr_tasks * sizeof(struct task));
+  numa_free(s->tasks,s->size * sizeof(struct task));
   free(s->tasks_ind);
   free(s->unlocks);
   free(s->unlock_ind);
