@@ -32,6 +32,7 @@
  * Physics, 2012, Volume 231, Issue 3, pp. 759-794.
  */
 
+#include "../config.h"
 #include "cooling_struct.h"
 
 /**
@@ -51,6 +52,18 @@ struct xpart {
 
   /*! Additional data used to record cooling information */
   struct cooling_xpart_data cooling_data;
+
+#ifdef SWIFT_STREAMING_IO
+  /*! For logging, last values of these quantities recorded. */
+  struct {
+    double x[3];
+    float v[3];
+    float a_hydro[3];
+    float h;
+    float u;
+    float rho;
+  } last_logged;
+#endif
 
 } SWIFT_STRUCT_ALIGN;
 
