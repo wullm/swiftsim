@@ -22,6 +22,9 @@
 /* Some standard headers. */
 #include <stdlib.h>
 
+/* Config parameters. */
+#include "../config.h"
+
 /* Gravity particle. */
 struct gpart {
 
@@ -52,6 +55,16 @@ struct gpart {
 
   /* Particle time of end of time-step. */
   int ti_end;
+
+#ifdef SWIFT_STREAMING_IO
+  /*! For logging, last values of these quantities recorded. */
+  struct {
+    double x[3];
+    float v_full[3];
+    float a_grav[3];
+    float epsilon;
+  } last_logged;
+#endif
 
 } SWIFT_STRUCT_ALIGN;
 
