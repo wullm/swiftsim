@@ -200,6 +200,18 @@ if test "$enable_debugging_checks" = "yes"; then
    AC_DEFINE([SWIFT_DEBUG_CHECKS],1,[Enable expensive debugging])
 fi
 
+# Check if streaming-io is enabled/disabled.
+AC_ARG_ENABLE([streaming-io],
+   [AS_HELP_STRING([--enable-streaming-io],
+     [Enable streaming of particle data to disk @<:@yes/no@:>@]
+   )],
+   [enable_streaming_io="$enableval"],
+   [enable_streaming_io="yes"]
+)
+if test "$enable_streaming_io" = "yes"; then
+   AC_DEFINE([SWIFT_STREAMING_IO],1,[Enable streaming IO])
+fi
+
 # Define HAVE_POSIX_MEMALIGN if it works.
 AX_FUNC_POSIX_MEMALIGN
 
@@ -823,6 +835,7 @@ AC_MSG_RESULT([
    External potential : $with_potential
    Task debugging     : $enable_task_debugging
    Debugging checks   : $enable_debugging_checks
+   Streaming IO       : $enable_streaming_io
 ])
 
 # Make sure the latest git revision string gets included
