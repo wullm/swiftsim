@@ -210,6 +210,20 @@ struct engine {
 
   /* The (parsed) parameter file */
   const struct swift_params *parameter_file;
+  
+#ifdef SWIFT_STREAMING_IO
+  /* Dump file for streaming IO. */
+  struct dump dump;
+  
+  /* Default mask of values to dump. */
+  unsigned int logger_default_mask;
+  
+  /* Base filename for index files. */
+  char streaming_io_index_pattern[PARSER_MAX_LINE_SIZE];
+  
+  /* How often to drop an index file? */
+  size_t streaming_io_index_rate;
+#endif
 };
 
 /* Function prototypes. */
