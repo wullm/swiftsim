@@ -63,6 +63,7 @@ struct gpart {
     float v_full[3];
     float a_grav[3];
     float epsilon;
+    int t_x, t_v, t_a, t_epsilon;
   } last_logged;
 #endif
 

@@ -62,6 +62,7 @@ struct xpart {
     float h;
     float u;
     float rho;
+    int t_x, t_v, t_a, t_h, t_u, t_rho;
   } last_logged;
 #endif
 
