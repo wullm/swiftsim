@@ -156,8 +156,8 @@ void logger_log_part(struct part *p, unsigned int mask, size_t *offset,
 
   /* Particle density as a single float. */
   if (mask & logger_mask_rho) {
-#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || \
-    defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || defined(MINIMAL_SPH) || \
+    defined(DEFAULT_SPH)
     memcpy(buff, &p->rho, sizeof(float));
 #elif defined(GIZMO_SPH)
     memcpy(buff, &p->primitives.rho, sizeof(float));
@@ -169,8 +169,8 @@ void logger_log_part(struct part *p, unsigned int mask, size_t *offset,
 
   /* Particle constants, which is a bit more complicated. */
   if (mask & logger_mask_consts) {
-#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || \
-    defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || defined(MINIMAL_SPH) || \
+    defined(DEFAULT_SPH)
     memcpy(buff, &p->mass, sizeof(float));
 #elif defined(GIZMO_SPH)
     memcpy(buff, &p->conserved.mass, sizeof(float));
@@ -345,8 +345,8 @@ int logger_read_part(struct part *p, size_t *offset, const char *buff) {
 
   /* Particle density as a single float. */
   if (mask & logger_mask_rho) {
-#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || \
-    defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || defined(MINIMAL_SPH) || \
+    defined(DEFAULT_SPH)
     memcpy(&p->rho, buff, sizeof(float));
 #elif defined(GIZMO_SPH)
     memcpy(&p->primitives.rho, buff, sizeof(float));
@@ -358,8 +358,8 @@ int logger_read_part(struct part *p, size_t *offset, const char *buff) {
 
   /* Particle constants, which is a bit more complicated. */
   if (mask & logger_mask_consts) {
-#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || \
-    defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || defined(MINIMAL_SPH) || \
+    defined(DEFAULT_SPH)
     memcpy(&p->mass, buff, sizeof(float));
 #elif defined(GIZMO_SPH)
     memcpy(&p->conserved.mass, buff, sizeof(float));
