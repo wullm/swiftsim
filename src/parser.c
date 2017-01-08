@@ -397,6 +397,37 @@ int parser_get_param_int(const struct swift_params *params, const char *name) {
 }
 
 /**
+ * @brief Retrieve integer parameter of type size_t from structure.
+ *
+ * @param params Structure that holds the parameters
+ * @param name Name of the parameter to be found
+ * @return Value of the parameter found
+ */
+size_t parser_get_param_size_t(const struct swift_params *params, const char *name) {
+
+  char str[PARSER_MAX_LINE_SIZE];
+  size_t retParam = 0;
+
+  for (int i = 0; i < params->paramCount; i++) {
+    if (!strcmp(name, params->data[i].name)) {
+      /* Check that exactly one number is parsed. */
+      if (sscanf(params->data[i].value, "%zd%s", &retParam, str) != 1) {
+        error(
+            "Tried parsing int '%s' but found '%s' with illegal integer "
+            "characters '%s'.",
+            params->data[i].name, params->data[i].value, str);
+      }
+
+      return retParam;
+    }
+  }
+
+  error("Cannot find '%s' in the structure, in file '%s'.", name,
+        params->fileName);
+  return 0;
+}
+
+/**
  * @brief Retrieve char parameter from structure.
  *
  * @param params Structure that holds the parameters
@@ -528,6 +559,37 @@ int parser_get_opt_param_int(const struct swift_params *params,
     if (!strcmp(name, params->data[i].name)) {
       /* Check that exactly one number is parsed. */
       if (sscanf(params->data[i].value, "%d%s", &retParam, str) != 1) {
+        error(
+            "Tried parsing int '%s' but found '%s' with illegal integer "
+            "characters '%s'.",
+            params->data[i].name, params->data[i].value, str);
+      }
+
+      return retParam;
+    }
+  }
+
+  return def;
+}
+
+/**
+ * @brief Retrieve optional size_t parameter from structure.
+ *
+ * @param params Structure that holds the parameters
+ * @param name Name of the parameter to be found
+ * @param def Default value of the parameter of not found.
+ * @return Value of the parameter found
+ */
+size_t parser_get_opt_param_size_t(const struct swift_params *params,
+                             const char *name, size_t def) {
+
+  char str[PARSER_MAX_LINE_SIZE];
+  size_t retParam = 0;
+
+  for (int i = 0; i < params->paramCount; i++) {
+    if (!strcmp(name, params->data[i].name)) {
+      /* Check that exactly one number is parsed. */
+      if (sscanf(params->data[i].value, "%zd%s", &retParam, str) != 1) {
         error(
             "Tried parsing int '%s' but found '%s' with illegal integer "
             "characters '%s'.",

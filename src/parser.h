@@ -58,6 +58,8 @@ void parser_write_params_to_file(const struct swift_params *params,
 
 char parser_get_param_char(const struct swift_params *params, const char *name);
 int parser_get_param_int(const struct swift_params *params, const char *name);
+size_t parser_get_param_size_t(const struct swift_params *params,
+                               const char *name);
 float parser_get_param_float(const struct swift_params *params,
                              const char *name);
 double parser_get_param_double(const struct swift_params *params,
@@ -69,6 +71,8 @@ char parser_get_opt_param_char(const struct swift_params *params,
                                const char *name, char def);
 int parser_get_opt_param_int(const struct swift_params *params,
                              const char *name, int def);
+size_t parser_get_opt_param_size_t(const struct swift_params *params,
+                                   const char *name, size_t def);
 float parser_get_opt_param_float(const struct swift_params *params,
                                  const char *name, float def);
 double parser_get_opt_param_double(const struct swift_params *params,
