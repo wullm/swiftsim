@@ -134,11 +134,17 @@ void logger_log_part(struct part *p, unsigned int mask, size_t *offset,
     buff += 3 * sizeof(float);
   }
 
-#if defined(GADGET2_SPH)
-
   /* Particle internal energy as a single float. */
   if (mask & logger_mask_u) {
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH)
     memcpy(buff, &p->entropy, sizeof(float));
+#elif defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
+    memcpy(buff, &p->u, sizeof(float));
+#elif defined(GIZMO_SPH)
+    memcpy(buff, &p->conserved.energy, sizeof(float));
+#else
+    error("Don't know how to export internal energy for this scheme.");
+#endif
     buff += sizeof(float);
   }
 
@@ -150,19 +156,31 @@ void logger_log_part(struct part *p, unsigned int mask, size_t *offset,
 
   /* Particle density as a single float. */
   if (mask & logger_mask_rho) {
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || \
+    defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
     memcpy(buff, &p->rho, sizeof(float));
+#elif defined(GIZMO_SPH)
+    memcpy(buff, &p->primitives.rho, sizeof(float));
+#else
+    error("Don't know how to export internal energy for this scheme.");
+#endif
     buff += sizeof(float);
   }
 
   /* Particle constants, which is a bit more complicated. */
-  if (mask & logger_mask_rho) {
+  if (mask & logger_mask_consts) {
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || \
+    defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
     memcpy(buff, &p->mass, sizeof(float));
+#elif defined(GIZMO_SPH)
+    memcpy(buff, &p->conserved.mass, sizeof(float));
+#else
+    error("Don't know how to export mass for this scheme.");
+#endif
     buff += sizeof(float);
     memcpy(buff, &p->id, sizeof(long long));
     buff += sizeof(long long);
   }
-
-#endif
 
   /* Update the log message offset. */
   *offset = offset_new;
@@ -226,7 +244,7 @@ void logger_log_gpart(struct gpart *p, unsigned int mask, size_t *offset,
   }
 
   /* Particle constants, which is a bit more complicated. */
-  if (mask & logger_mask_rho) {
+  if (mask & logger_mask_consts) {
     memcpy(buff, &p->mass, sizeof(float));
     buff += sizeof(float);
     memcpy(buff, &p->id_or_neg_offset, sizeof(long long));
@@ -305,11 +323,17 @@ int logger_read_part(struct part *p, size_t *offset, const char *buff) {
     buff += 3 * sizeof(float);
   }
 
-#if defined(GADGET2_SPH)
-
   /* Particle internal energy as a single float. */
   if (mask & logger_mask_u) {
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH)
     memcpy(&p->entropy, buff, sizeof(float));
+#elif defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
+    memcpy(&p->u, buff, sizeof(float));
+#elif defined(GIZMO_SPH)
+    memcpy(&p->conserved.energy, buff, sizeof(float));
+#else
+    error("Don't know how to import internal energy for this scheme.");
+#endif
     buff += sizeof(float);
   }
 
@@ -321,19 +345,31 @@ int logger_read_part(struct part *p, size_t *offset, const char *buff) {
 
   /* Particle density as a single float. */
   if (mask & logger_mask_rho) {
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || \
+    defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
     memcpy(&p->rho, buff, sizeof(float));
+#elif defined(GIZMO_SPH)
+    memcpy(&p->primitives.rho, buff, sizeof(float));
+#else
+    error("Don't know how to import density for this scheme.");
+#endif
     buff += sizeof(float);
   }
 
   /* Particle constants, which is a bit more complicated. */
-  if (mask & logger_mask_rho) {
+  if (mask & logger_mask_consts) {
+#if defined(GADGET2_SPH) || defined(HOPKINS_PE_SPH) || \
+    defined(MINIMAL_SPH) || defined(DEFAULT_SPH)
     memcpy(&p->mass, buff, sizeof(float));
+#elif defined(GIZMO_SPH)
+    memcpy(&p->conserved.mass, buff, sizeof(float));
+#else
+    error("Don't know how to import density for this scheme.");
+#endif
     buff += sizeof(float);
     memcpy(&p->id, buff, sizeof(long long));
     buff += sizeof(long long);
   }
-
-#endif
 
   /* Finally, return the mask of the values we just read. */
   return mask;
@@ -395,7 +431,7 @@ int logger_read_gpart(struct gpart *p, size_t *offset, const char *buff) {
   }
 
   /* Particle constants, which is a bit more complicated. */
-  if (mask & logger_mask_rho) {
+  if (mask & logger_mask_consts) {
     memcpy(&p->mass, buff, sizeof(float));
     buff += sizeof(float);
     memcpy(&p->id_or_neg_offset, buff, sizeof(long long));
