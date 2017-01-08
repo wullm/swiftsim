@@ -403,7 +403,8 @@ int parser_get_param_int(const struct swift_params *params, const char *name) {
  * @param name Name of the parameter to be found
  * @return Value of the parameter found
  */
-size_t parser_get_param_size_t(const struct swift_params *params, const char *name) {
+size_t parser_get_param_size_t(const struct swift_params *params,
+                               const char *name) {
 
   char str[PARSER_MAX_LINE_SIZE];
   size_t retParam = 0;
@@ -581,7 +582,7 @@ int parser_get_opt_param_int(const struct swift_params *params,
  * @return Value of the parameter found
  */
 size_t parser_get_opt_param_size_t(const struct swift_params *params,
-                             const char *name, size_t def) {
+                                   const char *name, size_t def) {
 
   char str[PARSER_MAX_LINE_SIZE];
   size_t retParam = 0;

@@ -3442,28 +3442,29 @@ void engine_init(struct engine *e, struct space *s,
   while (e->barrier_running || e->barrier_launch)
     if (pthread_cond_wait(&e->barrier_cond, &e->barrier_mutex) != 0)
       error("Error while waiting for runner threads to get in place.");
-      
-  /* Init the streaming io dump. */
+
+/* Init the streaming io dump. */
 #ifdef SWIFT_STREAMING_IO
   /* Check if a dump file was specified or not. */
   char dump_filename_raw[PARSER_MAX_LINE_SIZE];
   parser_get_opt_param_string(params, "streaming_log_filename",
                               dump_filename_raw, "");
   if (dump_filename_raw[0]) {
-  
+
     /* Parse the default dump file size. */
-    size_t dump_buff_size = parser_get_opt_param_size_t(params,
-    "streaming_log_buff_bytes", 1024 * 1024 * 1024 * 10);
-    
+    size_t dump_buff_size = parser_get_opt_param_size_t(
+        params, "streaming_log_buff_bytes", 1024 * 1024 * 1024 * 10);
+
     /* Parse and store the index file name and rate. */
-    
+
     /* Parse and store the default mask. */
-  
+
     /* Get the filename for this MPI rank. */
     char dump_filename[PARSER_MAX_LINE_SIZE];
     sprintf(dump_filename, dump_filename_raw, e->nodeID);
     dump_init(&e.dump, dump_filename, dump_buff_size;
-#endif  /* SWIFT_STREAMING_IO */
+  }
+#endif /* SWIFT_STREAMING_IO */
 }
 
 /**
