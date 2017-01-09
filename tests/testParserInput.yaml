@@ -16,4 +16,14 @@ Simulation:
 IO:
   #Input file
   ic_file:            ic_file.ini
+  
+Booleans:
+ true:                true
+ false:               false
+ yes:                 yes
+ no:                  no
+ 1:                   1
+ 0:                   0
+ True:                TRUE
+ False:               FALSE
 ...

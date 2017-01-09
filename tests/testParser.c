@@ -70,5 +70,15 @@ int main(int argc, char *argv[]) {
   assert(kernel == 4);
   assert(optional == 1);
 
+  /* Test parsing boolean values. */
+  assert(parser_get_param_bool(&param_file, "Booleans:true"));
+  assert(parser_get_param_bool(&param_file, "Booleans:True"));
+  assert(parser_get_param_bool(&param_file, "Booleans:yes"));
+  assert(parser_get_param_bool(&param_file, "Booleans:1"));
+  assert(!parser_get_param_bool(&param_file, "Booleans:false"));
+  assert(!parser_get_param_bool(&param_file, "Booleans:False"));
+  assert(!parser_get_param_bool(&param_file, "Booleans:no"));
+  assert(!parser_get_param_bool(&param_file, "Booleans:0"));
+
   return 0;
 }

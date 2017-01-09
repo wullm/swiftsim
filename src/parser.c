@@ -397,6 +397,40 @@ int parser_get_param_int(const struct swift_params *params, const char *name) {
 }
 
 /**
+ * @brief Retrieve boolean parameter from structure.
+ *
+ * @param params Structure that holds the parameters
+ * @param name Name of the parameter to be found
+ * @return Value of the parameter found
+ */
+int parser_get_param_bool(const struct swift_params *params, const char *name) {
+
+  for (int i = 0; i < params->paramCount; i++) {
+    if (!strcmp(name, params->data[i].name)) {
+      if (!strcasecmp(params->data[i].value, "true") ||
+          !strcasecmp(params->data[i].value, "yes") ||
+          !strcasecmp(params->data[i].value, "1")) {
+        return 1;
+      } else if (!strcasecmp(params->data[i].value, "false") ||
+                 !strcasecmp(params->data[i].value, "no") ||
+                 !strcasecmp(params->data[i].value, "0")) {
+        return 0;
+      } else {
+        error(
+            "Could not parse boolean value '%s', expected one of "
+            "[true|false|yes|no|1|0] but got '%s'.",
+            params->data[i].name, params->data[i].value);
+        return 0;
+      }
+    }
+  }
+
+  error("Cannot find '%s' in the structure, in file '%s'.", name,
+        params->fileName);
+  return 0;
+}
+
+/**
  * @brief Retrieve integer parameter of type size_t from structure.
  *
  * @param params Structure that holds the parameters
@@ -567,6 +601,39 @@ int parser_get_opt_param_int(const struct swift_params *params,
       }
 
       return retParam;
+    }
+  }
+
+  return def;
+}
+
+/**
+ * @brief Retrieve boolean parameter from structure.
+ *
+ * @param params Structure that holds the parameters
+ * @param name Name of the parameter to be found
+ * @return Value of the parameter found
+ */
+int parser_get_opt_param_bool(const struct swift_params *params,
+                              const char *name, int def) {
+
+  for (int i = 0; i < params->paramCount; i++) {
+    if (!strcmp(name, params->data[i].name)) {
+      if (!strcasecmp(params->data[i].value, "true") ||
+          !strcasecmp(params->data[i].value, "yes") ||
+          !strcasecmp(params->data[i].value, "1")) {
+        return 1;
+      } else if (!strcasecmp(params->data[i].value, "false") ||
+                 !strcasecmp(params->data[i].value, "no") ||
+                 !strcasecmp(params->data[i].value, "0")) {
+        return 0;
+      } else {
+        error(
+            "Could not parse boolean value '%s', expected one of "
+            "[true|false|yes|no|1|0] but got '%s'.",
+            params->data[i].name, params->data[i].value);
+        return 0;
+      }
     }
   }
 
