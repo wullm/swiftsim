@@ -3462,7 +3462,7 @@ void engine_init(struct engine *e, struct space *s,
     /* Get the filename for this MPI rank. */
     char dump_filename[PARSER_MAX_LINE_SIZE];
     sprintf(dump_filename, dump_filename_raw, e->nodeID);
-    dump_init(&e.dump, dump_filename, dump_buff_size;
+    dump_init(&e.streaming_io.dump, dump_filename, dump_buff_size);
   }
 #endif /* SWIFT_STREAMING_IO */
 }
