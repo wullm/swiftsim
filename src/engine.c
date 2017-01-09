@@ -55,6 +55,7 @@
 #include "debug.h"
 #include "error.h"
 #include "hydro.h"
+#include "logger.h"
 #include "minmax.h"
 #include "parallel_io.h"
 #include "part.h"
@@ -3447,22 +3448,42 @@ void engine_init(struct engine *e, struct space *s,
 #ifdef SWIFT_STREAMING_IO
   /* Check if a dump file was specified or not. */
   char dump_filename_raw[PARSER_MAX_LINE_SIZE];
-  parser_get_opt_param_string(params, "streaming_log_filename",
+  parser_get_opt_param_string(params, "StreamingIO:log_filename",
                               dump_filename_raw, "");
   if (dump_filename_raw[0]) {
-
-    /* Parse the default dump file size. */
-    size_t dump_buff_size = parser_get_opt_param_size_t(
-        params, "streaming_log_buff_bytes", 1024 * 1024 * 1024 * 10);
-
-    /* Parse and store the index file name and rate. */
-
-    /* Parse and store the default mask. */
 
     /* Get the filename for this MPI rank. */
     char dump_filename[PARSER_MAX_LINE_SIZE];
     sprintf(dump_filename, dump_filename_raw, e->nodeID);
-    dump_init(&e.streaming_io.dump, dump_filename, dump_buff_size);
+
+    /* Parse the default dump file size. */
+    size_t dump_buff_size = parser_get_opt_param_size_t(
+        params, "StreamingIO:log_buff_bytes", 1024LL * 1024 * 1024 * 10);
+
+    /* Create the dump. */
+    dump_init(&e->streaming_io.dump, dump_filename, dump_buff_size);
+
+    /* Parse and store the index file name and rate. */
+    strcat(dump_filename_raw, "_%.16e.index");
+    parser_get_opt_param_string(params, "StreamingIO:index_filename",
+                                e->streaming_io.index_pattern,
+                                dump_filename_raw);
+
+    /* Parse and store the default mask. */
+    e->streaming_io.logger_default_mask = 0;
+    if (parser_get_opt_param_bool(params, "StreamingIO:log_position", 1))
+      e->streaming_io.logger_default_mask |= logger_mask_x;
+    if (parser_get_opt_param_bool(params, "StreamingIO:log_velocity", 1))
+      e->streaming_io.logger_default_mask |= logger_mask_v;
+    if (parser_get_opt_param_bool(params, "StreamingIO:log_energy", 1))
+      e->streaming_io.logger_default_mask |= logger_mask_u;
+    if (parser_get_opt_param_bool(params, "StreamingIO:log_smoothing_length",
+                                  1))
+      e->streaming_io.logger_default_mask |= logger_mask_h;
+    if (parser_get_opt_param_bool(params, "StreamingIO:log_density", 1))
+      e->streaming_io.logger_default_mask |= logger_mask_rho;
+    if (parser_get_opt_param_bool(params, "StreamingIO:log_constant_vals", 1))
+      e->streaming_io.logger_default_mask |= logger_mask_consts;
   }
 #endif /* SWIFT_STREAMING_IO */
 }

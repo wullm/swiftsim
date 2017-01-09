@@ -39,6 +39,7 @@
 /* Includes. */
 #include "clocks.h"
 #include "cooling_struct.h"
+#include "dump.h"
 #include "parser.h"
 #include "partition.h"
 #include "potential.h"
@@ -213,17 +214,17 @@ struct engine {
 
 #ifdef SWIFT_STREAMING_IO
   struct {
-  /* Dump file for streaming IO. */
-  struct dump dump;
+    /* Dump file for streaming IO. */
+    struct dump dump;
 
-  /* Default mask of values to dump. */
-  unsigned int logger_default_mask;
+    /* Default mask of values to dump. */
+    unsigned int logger_default_mask;
 
-  /* Base filename for index files. */
-  char index_pattern[PARSER_MAX_LINE_SIZE];
+    /* Base filename for index files. */
+    char index_pattern[PARSER_MAX_LINE_SIZE];
 
-  /* How often to drop an index file? */
-  size_t index_rate;
+    /* How often to drop an index file? */
+    size_t index_rate;
   } streaming_io;
 #endif
 };
