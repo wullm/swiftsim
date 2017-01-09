@@ -42,14 +42,13 @@
  *   0   | x      | 24   | The particle position, in absolute coordinates,
  *       |        |      | stored as three doubles.
  *   1   | v      | 12   | Particle velocity, stored as three floats.
- *   2   | a      | 12   | Particle acceleration, stored as three floats.
- *   3   | u      | 4    | Particle internal energy (or entropy, if Gadget-SPH
+ *   2   | u      | 4    | Particle internal energy (or entropy, if Gadget-SPH
  *       |        |      | is used), stored as a single float.
- *   4   | h      | 4    | Particle smoothing length (or epsilon, if a gpart),
+ *   3   | h      | 4    | Particle smoothing length (or epsilon, if a gpart),
  *       |        |      | stored as a single float.
- *   5   | rho    | 4    | Particle density, stored as a single float.
- *   6   | consts | 12   | Particle constants, i.e. mass and ID.
- *   7   | time   | 8    | Timestamp, not associated with a particle, just
+ *   4   | rho    | 4    | Particle density, stored as a single float.
+ *   5   | consts | 12   | Particle constants, i.e. mass and ID.
+ *   6   | time   | 8    | Timestamp, not associated with a particle, just
  *       |        |      | marks the transitions from one timestep to another.
  *
  * There is no distinction between gravity and SPH particles.
@@ -64,12 +63,11 @@
 /* Some constants. */
 #define logger_mask_x 1
 #define logger_mask_v 2
-#define logger_mask_a 4
-#define logger_mask_u 8
-#define logger_mask_h 16
-#define logger_mask_rho 32
-#define logger_mask_consts 64
-#define logger_mask_timestamp 128
+#define logger_mask_u 4
+#define logger_mask_h 8
+#define logger_mask_rho 16
+#define logger_mask_consts 32
+#define logger_mask_timestamp 64
 
 /* Function prototypes. */
 int logger_size(unsigned int mask);

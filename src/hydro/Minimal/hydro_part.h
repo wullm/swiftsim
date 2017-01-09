@@ -58,11 +58,10 @@ struct xpart {
   struct {
     double x[3];
     float v[3];
-    float a_hydro[3];
     float h;
     float u;
     float rho;
-    int t_x, t_v, t_a, t_h, t_u, t_rho;
+    int t_x, t_v, t_h, t_u, t_rho;
   } last_logged;
 #endif
 

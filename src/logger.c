@@ -65,9 +65,6 @@ int logger_size(unsigned int mask) {
     /* Particle velocity as three floats. */
     if (mask & logger_mask_v) size += 3 * sizeof(float);
 
-    /* Particle accelleration as three floats. */
-    if (mask & logger_mask_a) size += 3 * sizeof(float);
-
     /* Particle internal energy as a single float. */
     if (mask & logger_mask_u) size += sizeof(float);
 
@@ -125,12 +122,6 @@ void logger_log_part(struct part *p, unsigned int mask, size_t *offset,
   /* Particle velocity as three floats. */
   if (mask & logger_mask_v) {
     memcpy(buff, p->v, 3 * sizeof(float));
-    buff += 3 * sizeof(float);
-  }
-
-  /* Particle accelleration as three floats. */
-  if (mask & logger_mask_a) {
-    memcpy(buff, p->a_hydro, 3 * sizeof(float));
     buff += 3 * sizeof(float);
   }
 
@@ -231,12 +222,6 @@ void logger_log_gpart(struct gpart *p, unsigned int mask, size_t *offset,
     buff += 3 * sizeof(float);
   }
 
-  /* Particle accelleration as three floats. */
-  if (mask & logger_mask_a) {
-    memcpy(buff, p->a_grav, 3 * sizeof(float));
-    buff += 3 * sizeof(float);
-  }
-
   /* Particle smoothing length as a single float. */
   if (mask & logger_mask_h) {
     memcpy(buff, &p->epsilon, sizeof(float));
@@ -314,12 +299,6 @@ int logger_read_part(struct part *p, size_t *offset, const char *buff) {
   /* Particle velocity as three floats. */
   if (mask & logger_mask_v) {
     memcpy(p->v, buff, 3 * sizeof(float));
-    buff += 3 * sizeof(float);
-  }
-
-  /* Particle accelleration as three floats. */
-  if (mask & logger_mask_a) {
-    memcpy(p->a_hydro, buff, 3 * sizeof(float));
     buff += 3 * sizeof(float);
   }
 
@@ -415,12 +394,6 @@ int logger_read_gpart(struct gpart *p, size_t *offset, const char *buff) {
   /* Particle velocity as three floats. */
   if (mask & logger_mask_v) {
     memcpy(p->v_full, buff, 3 * sizeof(float));
-    buff += 3 * sizeof(float);
-  }
-
-  /* Particle accelleration as three floats. */
-  if (mask & logger_mask_a) {
-    memcpy(p->a_grav, buff, 3 * sizeof(float));
     buff += 3 * sizeof(float);
   }
 
