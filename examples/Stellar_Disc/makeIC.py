@@ -1,0 +1,157 @@
+###############################################################################
+ # This file is part of SWIFT.
+ # Copyright (c) 2017 Stefan Arridge (stefan.arridge@durham.ac.uk)
+
+ # This program is free software: you can redistribute it and/or modify
+ # it under the terms of the GNU Lesser General Public License as published
+ # by the Free Software Foundation, either version 3 of the License, or
+ # (at your option) any later version.
+ # 
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+ # 
+ # You should have received a copy of the GNU Lesser General Public License
+ # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ # 
+ ##############################################################################
+
+import sys
+import numpy
+import math
+import random
+import numpy as np
+import h5py as h5
+
+# Generates N star particles in the x-y plane with circular velocities
+# usage: python makeIC.py 1000: generate 1000 particles
+
+# Some constants
+
+OMEGA = 0.3 # Cosmological matter fraction at z = 0
+PARSEC_IN_CGS = 3.0856776e18
+KM_PER_SEC_IN_CGS = 1.0e5
+CONST_G_CGS = 6.672e-8
+h = 0.67777 # hubble parameter
+gamma = 5./3.
+eta = 1.2349
+
+# First set unit velocity and then the circular velocity parameter for the isothermal potential
+const_unit_velocity_in_cgs = 1.e5 #kms^-1
+
+v_c = 200.
+v_c_cgs = v_c * const_unit_velocity_in_cgs
+
+# Now we use this to get the virial mass and virial radius, which we will set to be the unit mass and radius
+
+# Find H_0, the inverse Hubble time, in cgs
+
+H_0_cgs = 100. * h * KM_PER_SEC_IN_CGS / (1.0e6 * PARSEC_IN_CGS)
+
+# From this we can find the virial radius, the radius within which the average density of the halo is
+# 200. * the mean matter density
+
+r_vir_cgs = v_c_cgs / (10. * H_0_cgs * np.sqrt(OMEGA))
+
+# Now get the virial mass
+
+M_vir_cgs = r_vir_cgs * v_c_cgs**2 / CONST_G_CGS
+
+# Now set the unit length and mass
+
+const_unit_mass_in_cgs = M_vir_cgs
+const_unit_length_in_cgs = r_vir_cgs
+
+print "UnitMass_in_cgs:     ", const_unit_mass_in_cgs 
+print "UnitLength_in_cgs:   ", const_unit_length_in_cgs
+print "UnitVelocity_in_cgs: ", const_unit_velocity_in_cgs
+
+#derived quantities
+const_unit_time_in_cgs = (const_unit_length_in_cgs / const_unit_velocity_in_cgs)
+print "UnitTime_in_cgs:     ", const_unit_time_in_cgs
+const_G                = ((CONST_G_CGS*const_unit_mass_in_cgs*const_unit_time_in_cgs*const_unit_time_in_cgs/(const_unit_length_in_cgs*const_unit_length_in_cgs*const_unit_length_in_cgs)))
+print 'G=', const_G
+
+# Parameters
+periodic= 1            # 1 For periodic box
+boxSize = 4.          
+G       = const_G 
+N       = int(sys.argv[1])  # Number of particles
+
+# Create the file
+filename = "Stellar_Disc.hdf5"
+file = h5.File(filename, 'w')
+
+#Units
+grp = file.create_group("/Units")
+grp.attrs["Unit length in cgs (U_L)"] = const_unit_length_in_cgs
+grp.attrs["Unit mass in cgs (U_M)"] = const_unit_mass_in_cgs 
+grp.attrs["Unit time in cgs (U_t)"] = const_unit_length_in_cgs / const_unit_velocity_in_cgs
+grp.attrs["Unit current in cgs (U_I)"] = 1.
+grp.attrs["Unit temperature in cgs (U_T)"] = 1.
+
+
+# Runtime parameters
+grp = file.create_group("/RuntimePars")
+grp.attrs["PeriodicBoundariesOn"] = periodic
+
+# set seed for random number
+np.random.seed(1234)
+
+#Positions
+#Uniform distribution in radius
+radius = np.random.rand(N)
+phi = 2.*math.pi*np.random.rand(N)
+coords      = np.zeros((N, 3))
+coords[:,0] = radius *  np.cos(phi)
+coords[:,1] = radius *  np.sin(phi)
+
+#shift to centre of box
+coords += np.full((N,3),boxSize/2.)
+
+#now give particle's velocities
+#set angular momentum vector to be parallel to z-axis
+v = np.zeros((N,3))
+omega = np.zeros((N,3))
+for i in range(N):
+    omega[i,2] = v_c/radius[i]
+    v[i,:] = np.cross(omega[i,:],(coords[i,:]-boxSize/2.))
+    
+# Header
+grp = file.create_group("/Header")
+grp.attrs["BoxSize"] = boxSize
+grp.attrs["NumPart_Total"] =  [0 ,0, 0, 0, N, 0]
+grp.attrs["NumPart_Total_HighWord"] = [0, 0, 0, 0, 0, 0]
+grp.attrs["NumPart_ThisFile"] = [ 0, 0, 0, 0, N, 0]
+grp.attrs["Time"] = 0.0
+grp.attrs["NumFilesPerSnapshot"] = 1
+grp.attrs["MassTable"] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+grp.attrs["Flag_Entropy_ICs"] = [0, 0, 0, 0, 0, 0]
+grp.attrs["Dimension"] = 3
+
+# Particle group
+grp = file.create_group("/PartType4")
+
+ds = grp.create_dataset('Coordinates', (N, 3), 'd')
+ds[()] = coords
+coords = np.zeros(1)
+
+ds = grp.create_dataset('Velocities', (N, 3), 'f')
+ds[()] = v
+v = np.zeros(1)
+
+# All particles of equal mass
+mass = 1. / N
+m = np.full((N,),mass)
+ds = grp.create_dataset('Masses', (N, ), 'f')
+ds[()] = m
+m = np.zeros(1)
+
+
+# Particle IDs
+ids = 1 + np.linspace(0, N, N, endpoint=False, dtype='L')
+ds = grp.create_dataset('ParticleIDs', (N, ), 'L')
+ds[()] = ids
+
+file.close()
