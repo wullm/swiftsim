@@ -36,6 +36,7 @@
 #include "part.h"
 #include "task.h"
 #include "timeline.h"
+#include "stragglers.h"
 
 /* Avoid cyclic inclusions */
 struct engine;
@@ -295,6 +296,12 @@ struct cell {
 
   /*! The maximal depth of this cell and its progenies */
   char maxdepth;
+
+  /*! The number of stragglers in this cell */
+  int straggler_count;
+
+  /*! Pointer to the linked list of stragglers */
+  struct straggler_link* straggler_next;
 
 } SWIFT_STRUCT_ALIGN;
 

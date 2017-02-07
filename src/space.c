@@ -2513,6 +2513,9 @@ void space_init(struct space *s, const struct swift_params *params,
   /* Init the space lock. */
   if (lock_init(&s->lock) != 0) error("Failed to create space spin-lock.");
 
+  /* Initialise empty stragglers array */
+  stragglers_init(s->stragglers);
+
   /* Build the cells and the tasks. */
   if (!dry_run) space_regrid(s, verbose);
 }
@@ -2568,4 +2571,6 @@ void space_clean(struct space *s) {
   free(s->xparts);
   free(s->gparts);
   free(s->sparts);
+
+  stragglers_clean(s->stragglers);
 }

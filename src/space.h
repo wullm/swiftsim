@@ -34,7 +34,7 @@
 #include "lock.h"
 #include "parser.h"
 #include "part.h"
-#include "space.h"
+#include "stragglers.h"
 
 /* Some constants. */
 #define space_cellallocchunk 1000
@@ -150,6 +150,8 @@ struct space {
   size_t nr_sparts_foreign, size_sparts_foreign;
 
 #endif
+
+  struct stragglers* stragglers;
 };
 
 /* function prototypes. */
