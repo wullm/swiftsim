@@ -1074,6 +1074,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
  */
 void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
 
+  
   const struct engine *e = r->e;
   const integertime_t ti_current = e->ti_current;
   const int count = c->count;
@@ -1085,6 +1086,8 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
   struct spart *restrict sparts = c->sparts;
 
   TIMER_TIC;
+  if (c->straggler_count > 0)
+    message("This cell contains %d stars\n",c->straggler_count);
 
   int updated = 0, g_updated = 0, s_updated = 0;
   integertime_t ti_end_min = max_nr_timesteps, ti_end_max = 0;

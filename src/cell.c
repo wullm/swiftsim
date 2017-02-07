@@ -1366,3 +1366,28 @@ void cell_check_timesteps(struct cell *c) {
   }
 #endif
 }
+
+void cell_add_star(struct cell* c,struct stragglers* stragglers){
+  
+  struct spart s;
+  s.id = 10000;
+  s.x[0] = c->loc[0];
+  s.x[1] = c->loc[1];
+  s.x[2] = c->loc[2];
+  s.v[0] = 0.f;
+  s.v[1] = 0.f;
+  s.v[2] = 0.f;
+  s.time_bin = 43;
+  s.gpart = NULL;
+
+  struct spart* banana = stragglers_add(stragglers,&s);
+
+  struct straggler_link* new_link = malloc(sizeof(struct straggler_link));
+
+  new_link->star = banana;
+  new_link->next = c->straggler_next;
+
+  c->straggler_next = new_link;
+
+  c->straggler_count++;
+}

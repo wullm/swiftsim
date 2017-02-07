@@ -340,5 +340,5 @@ int cell_unskip_tasks(struct cell *c, struct scheduler *s);
 void cell_set_super(struct cell *c, struct cell *super);
 void cell_drift(struct cell *c, const struct engine *e);
 void cell_check_timesteps(struct cell *c);
-
+void cell_add_star(struct cell *c,struct stragglers* stragglers);
 #endif /* SWIFT_CELL_H */

@@ -2513,6 +2513,8 @@ void space_init(struct space *s, const struct swift_params *params,
   /* Init the space lock. */
   if (lock_init(&s->lock) != 0) error("Failed to create space spin-lock.");
 
+  s->stragglers = malloc(sizeof(struct stragglers));
+
   /* Initialise empty stragglers array */
   stragglers_init(s->stragglers);
 
