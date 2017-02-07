@@ -3083,6 +3083,8 @@ void engine_step(struct engine *e) {
   TIMER_TOC2(timer_step);
 
   cell_add_star(&e->s->cells_top[0],e->s->stragglers);
+  cell_add_star(&e->s->cells_top[0],e->s->stragglers);
+  cell_add_star(&e->s->cells_top[1],e->s->stragglers);
 
   clocks_gettime(&time2);
 
