@@ -1255,6 +1255,7 @@ void cell_drift(struct cell *c, const struct engine *e) {
   struct xpart *const xparts = c->xparts;
   struct gpart *const gparts = c->gparts;
   struct spart *const sparts = c->sparts;
+  struct straggler_link *link = c->straggler_next;
 
   /* Drift from the last time the cell was drifted to the current time */
   const double dt = (ti_current - ti_old) * timeBase;
@@ -1326,6 +1327,20 @@ void cell_drift(struct cell *c, const struct engine *e) {
       drift_spart(sp, dt, timeBase, ti_old, ti_current);
 
       /* Note: no need to compute dx_max as all spart have a gpart */
+    }
+
+    /* Loop over all the stragglers in the cell */
+    const size_t nr_stragglers = c->straggler_count;
+    for (size_t k = 0; k < nr_stragglers; k++) {
+
+      /* Get a handle on the straggler. */
+      struct spart *const sp = link->star;
+
+      /* Drift... */
+      drift_spart(sp, dt, timeBase, ti_old, ti_current);
+
+      /* Get pointer to next straggler link */
+      link = link->next;
     }
 
     /* Now, get the maximal particle motion from its square */

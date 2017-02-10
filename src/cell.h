@@ -303,6 +303,9 @@ struct cell {
   /*! Pointer to the linked list of stragglers */
   struct straggler_link* straggler_next;
 
+  /*! Number of stragglers updated in this cell. */
+  int stragglers_updated;
+
 } SWIFT_STRUCT_ALIGN;
 
 /* Convert cell location to ID. */
