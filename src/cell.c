@@ -1339,6 +1339,8 @@ void cell_drift(struct cell *c, const struct engine *e) {
       /* Drift... */
       drift_spart(sp, dt, timeBase, ti_old, ti_current);
 
+      if (sp->id < 10010)
+	printf("Particle's ID = %lld \n Particle's position is (%g,%g,%g)\n",sp->id,sp->x[0],sp->x[1],sp->x[2]);
       /* Get pointer to next straggler link */
       link = link->next;
     }
@@ -1385,11 +1387,11 @@ void cell_check_timesteps(struct cell *c) {
 void cell_add_star(struct cell* c,struct stragglers* stragglers){
   
   struct spart s;
-  s.id = 10000;
+  s.id = 10000 + stragglers->count;
   s.x[0] = c->loc[0];
   s.x[1] = c->loc[1];
   s.x[2] = c->loc[2];
-  s.v[0] = 0.f;
+  s.v[0] = 1.f;
   s.v[1] = 0.f;
   s.v[2] = 0.f;
   s.time_bin = 43;

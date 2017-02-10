@@ -848,11 +848,11 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
   struct xpart *restrict xparts = c->xparts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
-  struct straggler_link *link = c->straggler_next;
+  //struct straggler_link *link = c->straggler_next;
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
-  const int straggler_count = c->straggler_count;
+  //const int straggler_count = c->straggler_count;
   const integertime_t ti_current = e->ti_current;
   const double timeBase = e->timeBase;
 
@@ -949,33 +949,33 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
   }
 
   /* Loop over the stragglers in this cell. */
-    for (int k = 0; k < straggler_count; k++) {
+   /*  for (int k = 0; k < straggler_count; k++) { */
 
-      /* Get a handle on the straggler. */
-      struct spart *restrict sp = link->star;
+/*       /\* Get a handle on the straggler. *\/ */
+/*       struct spart *restrict sp = link->star; */
 
-      /* If particle needs to be kicked */
-      if (spart_is_active(sp, e)) {
+/*       /\* If particle needs to be kicked *\/ */
+/*       if (spart_is_active(sp, e)) { */
 
-        const integertime_t ti_step = get_integer_timestep(sp->time_bin);
-        const integertime_t ti_begin =
-            get_integer_time_begin(ti_current, sp->time_bin);
+/*         const integertime_t ti_step = get_integer_timestep(sp->time_bin); */
+/*         const integertime_t ti_begin = */
+/*             get_integer_time_begin(ti_current, sp->time_bin); */
 
-#ifdef SWIFT_DEBUG_CHECKS
-        const integertime_t ti_end =
-            get_integer_time_end(ti_current, sp->time_bin);
+/* #ifdef SWIFT_DEBUG_CHECKS */
+/*         const integertime_t ti_end = */
+/*             get_integer_time_end(ti_current, sp->time_bin); */
 
-        if (ti_end - ti_begin != ti_step) error("Particle in wrong time-bin");
-#endif
+/*         if (ti_end - ti_begin != ti_step) error("Particle in wrong time-bin"); */
+/* #endif */
 
-        /* do the kick */
-        kick_spart(sp, ti_begin, ti_begin + ti_step / 2, timeBase);
-      }
+/*         /\* do the kick *\/ */
+/*         kick_spart(sp, ti_begin, ti_begin + ti_step / 2, timeBase); */
+/*       } */
  
-    /* Get the pointer to the next link */
+/*     /\* Get the pointer to the next link *\/ */
 
-    link = link->next;
-  }
+/*     link = link->next; */
+/*   } */
 
   if (timer) TIMER_TOC(timer_kick1);
 }
@@ -997,12 +997,12 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
-  const int straggler_count = c->straggler_count;
+  //const int straggler_count = c->straggler_count;
   struct part *restrict parts = c->parts;
   struct xpart *restrict xparts = c->xparts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
-  struct straggler_link *link = c->straggler_next;
+  //struct straggler_link *link = c->straggler_next;
 
   TIMER_TIC;
 
@@ -1095,31 +1095,31 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
     }
 
     /* Loop over the stragglers in this cell. */
-   for (int k = 0; k < straggler_count; k++) {
+   /* for (int k = 0; k < straggler_count; k++) { */
 
-      /* Get a handle on the part. */
-      struct spart *restrict sp = link->star;
+/*       /\* Get a handle on the part. *\/ */
+/*       struct spart *restrict sp = link->star; */
 
-      /* If particle needs to be kicked */
-      if (spart_is_active(sp, e)) {
+/*       /\* If particle needs to be kicked *\/ */
+/*       if (spart_is_active(sp, e)) { */
 
-        const integertime_t ti_step = get_integer_timestep(sp->time_bin);
-        const integertime_t ti_begin =
-            get_integer_time_begin(ti_current, sp->time_bin);
+/*         const integertime_t ti_step = get_integer_timestep(sp->time_bin); */
+/*         const integertime_t ti_begin = */
+/*             get_integer_time_begin(ti_current, sp->time_bin); */
 
-#ifdef SWIFT_DEBUG_CHECKS
-        if (ti_begin + ti_step != ti_current)
-          error("Particle in wrong time-bin");
-#endif
+/* #ifdef SWIFT_DEBUG_CHECKS */
+/*         if (ti_begin + ti_step != ti_current) */
+/*           error("Particle in wrong time-bin"); */
+/* #endif */
 
-        /* Finish the time-step with a second half-kick */
-        kick_spart(sp, ti_begin + ti_step / 2, ti_begin + ti_step, timeBase);
+/*         /\* Finish the time-step with a second half-kick *\/ */
+/*         kick_spart(sp, ti_begin + ti_step / 2, ti_begin + ti_step, timeBase); */
 
-        /* Prepare the values to be drifted */
-        star_reset_predicted_values(sp);
-      }
-      link = link->next;
-   }
+/*         /\* Prepare the values to be drifted *\/ */
+/*         star_reset_predicted_values(sp); */
+/*       } */
+/*       link = link->next; */
+/*    } */
   }
   if (timer) TIMER_TOC(timer_kick2);
 }
@@ -1313,7 +1313,7 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
 
         /* Update particle */
         sp->time_bin = get_time_bin(ti_new_step);
-        sp->gpart->time_bin = get_time_bin(ti_new_step);
+        //sp->gpart->time_bin = get_time_bin(ti_new_step);
 
         /* Number of updated stragglers */
         stragglers_updated++;
