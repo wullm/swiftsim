@@ -1119,9 +1119,10 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
         star_reset_predicted_values(sp);
       }
       link = link->next;
+   }
+  }
   if (timer) TIMER_TOC(timer_kick2);
 }
-
 /**
  * @brief Computes the next time-step of all active particles in this cell
  * and update the cell's statistics.
