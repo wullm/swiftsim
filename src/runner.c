@@ -161,7 +161,9 @@ void runner_do_sourceterms(struct runner *r, struct cell *c, int timer) {
 void runner_do_grav_external(struct runner *r, struct cell *c, int timer) {
 
   struct gpart *restrict gparts = c->gparts;
+  struct gpart_straggler_link *glink = c->gpart_straggler_next;
   const int gcount = c->gcount;
+  const int straggler_gcount = c->straggler_gcount;
   const struct engine *e = r->e;
   const struct external_potential *potential = e->external_potential;
   const struct phys_const *constants = e->physical_constants;
@@ -188,6 +190,21 @@ void runner_do_grav_external(struct runner *r, struct cell *c, int timer) {
       if (gpart_is_active(gp, e)) {
         external_gravity_acceleration(time, potential, constants, gp);
       }
+    }
+
+    /* Loop over the gpart stragglers in this cell. */
+    for (int i = 0; i < straggler_gcount; i++) {
+
+      /* Get a direct pointer on the part. */
+      struct gpart *restrict gp = glink->gp;
+
+      /* Is this part within the time step? */
+      if (gpart_is_active(gp, e)) {
+        external_gravity_acceleration(time, potential, constants, gp);
+      }
+
+      /* Get pointer to next glink */
+      glink = glink->next;
     }
   }
 
@@ -848,12 +865,13 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
   struct xpart *restrict xparts = c->xparts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
-  //struct spart_straggler_link *slink = c->straggler_next;
+  struct gpart_straggler_link *glink = c->gpart_straggler_next;
+  struct spart_straggler_link *slink = c->spart_straggler_next;
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
-  //const int straggler_scount = c->straggler_scount;
-  //const int straggler_gcount = c->straggler_gcount;
+  const int straggler_scount = c->straggler_scount;
+  const int straggler_gcount = c->straggler_gcount;
   const integertime_t ti_current = e->ti_current;
   const double timeBase = e->timeBase;
 
@@ -947,37 +965,64 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
         kick_spart(sp, ti_begin, ti_begin + ti_step / 2, timeBase);
       }
     }
-  }
+
+   /* Loop over the gpart stragglers in this cell. */
+    for (int k = 0; k < straggler_gcount; k++) {
+
+      /* Get a handle on the part. */
+      struct gpart *restrict gp = glink->gp;
+
+      /* If the g-particle has no counterpart and needs to be kicked */
+      if (gp->type == swift_type_dark_matter && gpart_is_active(gp, e)) {
+
+        const integertime_t ti_step = get_integer_timestep(gp->time_bin);
+        const integertime_t ti_begin =
+            get_integer_time_begin(ti_current, gp->time_bin);
+
+#ifdef SWIFT_DEBUG_CHECKS
+        const integertime_t ti_end =
+            get_integer_time_end(ti_current, gp->time_bin);
+
+        if (ti_end - ti_begin != ti_step) error("Particle in wrong time-bin");
+#endif
+
+        /* do the kick */
+        kick_gpart(gp, ti_begin, ti_begin + ti_step / 2, timeBase);
+      }
+     
+      /* Get a pointer to the next glink */
+      glink = glink->next;
+    }
 
   /* Loop over the stragglers in this cell. */
-   /*  for (int k = 0; k < straggler_count; k++) { */
+    for (int k = 0; k < straggler_scount; k++) {
 
-/*       /\* Get a handle on the straggler. *\/ */
-/*       struct spart *restrict sp = link->star; */
+      /* Get a handle on the spart. */
+      struct spart *restrict sp = slink->sp;
 
-/*       /\* If particle needs to be kicked *\/ */
-/*       if (spart_is_active(sp, e)) { */
+      /* If particle needs to be kicked */
+      if (spart_is_active(sp, e)) {
 
-/*         const integertime_t ti_step = get_integer_timestep(sp->time_bin); */
-/*         const integertime_t ti_begin = */
-/*             get_integer_time_begin(ti_current, sp->time_bin); */
+        const integertime_t ti_step = get_integer_timestep(sp->time_bin);
+        const integertime_t ti_begin =
+            get_integer_time_begin(ti_current, sp->time_bin);
 
-/* #ifdef SWIFT_DEBUG_CHECKS */
-/*         const integertime_t ti_end = */
-/*             get_integer_time_end(ti_current, sp->time_bin); */
+#ifdef SWIFT_DEBUG_CHECKS
+        const integertime_t ti_end =
+            get_integer_time_end(ti_current, sp->time_bin);
 
-/*         if (ti_end - ti_begin != ti_step) error("Particle in wrong time-bin"); */
-/* #endif */
+        if (ti_end - ti_begin != ti_step) error("Particle in wrong time-bin");
+#endif
 
-/*         /\* do the kick *\/ */
-/*         kick_spart(sp, ti_begin, ti_begin + ti_step / 2, timeBase); */
-/*       } */
+        /* do the kick */
+        kick_spart(sp, ti_begin, ti_begin + ti_step / 2, timeBase);
+      }
  
-/*     /\* Get the pointer to the next link *\/ */
+    /* Get the pointer to the next link */
 
-/*     link = link->next; */
-/*   } */
-
+    slink = slink->next;
+    }
+  }
   if (timer) TIMER_TOC(timer_kick1);
 }
 
@@ -998,12 +1043,14 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
-  //const int straggler_count = c->straggler_count;
+  const int straggler_gcount = c->straggler_gcount;
+  const int straggler_scount = c->straggler_scount;
   struct part *restrict parts = c->parts;
   struct xpart *restrict xparts = c->xparts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
-  //struct straggler_link *link = c->straggler_next;
+  struct gpart_straggler_link *glink = c->gpart_straggler_next;
+  struct spart_straggler_link *slink = c->spart_straggler_next;
 
   TIMER_TIC;
 
@@ -1094,33 +1141,58 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
         star_reset_predicted_values(sp);
       }
     }
+    /* Loop over the gpart stragglers in this cell. */
+    for (int k = 0; k < straggler_gcount; k++) {
 
-    /* Loop over the stragglers in this cell. */
-   /* for (int k = 0; k < straggler_count; k++) { */
+      /* Get a handle on the gpart. */
+      struct gpart *restrict gp = glink->gp;
 
-/*       /\* Get a handle on the part. *\/ */
-/*       struct spart *restrict sp = link->star; */
+      /* If the g-particle has no counterpart and needs to be kicked */
+      if (gp->type == swift_type_dark_matter && gpart_is_active(gp, e)) {
 
-/*       /\* If particle needs to be kicked *\/ */
-/*       if (spart_is_active(sp, e)) { */
+        const integertime_t ti_step = get_integer_timestep(gp->time_bin);
+        const integertime_t ti_begin =
+            get_integer_time_begin(ti_current, gp->time_bin);
 
-/*         const integertime_t ti_step = get_integer_timestep(sp->time_bin); */
-/*         const integertime_t ti_begin = */
-/*             get_integer_time_begin(ti_current, sp->time_bin); */
+#ifdef SWIFT_DEBUG_CHECKS
+        if (ti_begin + ti_step != ti_current)
+          error("Particle in wrong time-bin");
+#endif
 
-/* #ifdef SWIFT_DEBUG_CHECKS */
-/*         if (ti_begin + ti_step != ti_current) */
-/*           error("Particle in wrong time-bin"); */
-/* #endif */
+        /* Finish the time-step with a second half-kick */
+        kick_gpart(gp, ti_begin + ti_step / 2, ti_begin + ti_step, timeBase);
+      }
+     
+      /* Get a pointer to the next glink */
+      glink = glink->next;
+    }
 
-/*         /\* Finish the time-step with a second half-kick *\/ */
-/*         kick_spart(sp, ti_begin + ti_step / 2, ti_begin + ti_step, timeBase); */
+    /* Loop over the spart stragglers in this cell. */
+   for (int k = 0; k < straggler_scount; k++) {
 
-/*         /\* Prepare the values to be drifted *\/ */
-/*         star_reset_predicted_values(sp); */
-/*       } */
-/*       link = link->next; */
-/*    } */
+      /* Get a handle on the part. */
+      struct spart *restrict sp = slink->sp;
+
+      /* If particle needs to be kicked */
+      if (spart_is_active(sp, e)) {
+
+        const integertime_t ti_step = get_integer_timestep(sp->time_bin);
+        const integertime_t ti_begin =
+            get_integer_time_begin(ti_current, sp->time_bin);
+
+#ifdef SWIFT_DEBUG_CHECKS
+        if (ti_begin + ti_step != ti_current)
+          error("Particle in wrong time-bin");
+#endif
+
+        /* Finish the time-step with a second half-kick */
+        kick_spart(sp, ti_begin + ti_step / 2, ti_begin + ti_step, timeBase);
+
+        /* Prepare the values to be drifted */
+        star_reset_predicted_values(sp);
+      }
+      slink = slink->next;
+   }
   }
   if (timer) TIMER_TOC(timer_kick2);
 }
