@@ -34,7 +34,7 @@
 #include "tools.h"
 void stragglers_init(struct stragglers* s){
 
-  s->size = 1000;
+  s->size = 10;
   s->scount = 0;
   s->gcount = 0;
   s->sparts = malloc(s->size*sizeof(struct spart));

@@ -994,7 +994,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
       glink = glink->next;
     }
 
-  /* Loop over the stragglers in this cell. */
+  /* Loop over the spart stragglers in this cell. */
     for (int k = 0; k < straggler_scount; k++) {
 
       /* Get a handle on the spart. */
@@ -1013,7 +1013,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
         if (ti_end - ti_begin != ti_step) error("Particle in wrong time-bin");
 #endif
-
+     
         /* do the kick */
         kick_spart(sp, ti_begin, ti_begin + ti_step / 2, timeBase);
       }
@@ -1222,11 +1222,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
   struct spart_straggler_link *slink = c->spart_straggler_next;
 
   TIMER_TIC;
-  if (c->straggler_scount > 0)
-    message("This cell contains %d sparts\n",c->straggler_scount);
-
-  if (c->straggler_gcount > 0)
-    message("This cell contains %d gparts\n",c->straggler_gcount);
 
   int updated = 0, g_updated = 0, s_updated = 0, gpart_stragglers_updated = 0, spart_stragglers_updated = 0;
   integertime_t ti_end_min = max_nr_timesteps, ti_end_max = 0;

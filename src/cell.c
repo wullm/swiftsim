@@ -1354,10 +1354,12 @@ void cell_drift(struct cell *c, const struct engine *e) {
       /* Drift... */
       drift_spart(sp, dt, timeBase, ti_old, ti_current);
 
-      if (sp->id < 10010){
-	printf("Particle's ID = %lld \n Particle's position is (%g,%g,%g)\n",sp->id,sp->x[0],sp->x[1],sp->x[2]);
-	printf("Corresponding gpart position is (%g,%g,%g) \n",sp->gpart->x[0],sp->gpart->x[1],sp->gpart->x[2]);
+      if (sp->id == 10000){
+	message("Particle's ID = %lld \n Particle's position is (%g,%g,%g)\n",sp->id,sp->x[0],sp->x[1],sp->x[2]);
+       	message("Particle's ID = %lld \n Particle's velocity is (%g,%g,%g)\n",sp->id,sp->v[0],sp->v[1],sp->v[2]);
+	message("Particle's ID = %lld \n Particle's acceleration is (%g,%g,%g)\n",sp->id,sp->gpart->a_grav[0],sp->gpart->a_grav[1],sp->gpart->a_grav[2]);
       }
+
       /* Get pointer to next spart straggler link */
       slink = slink->next;
     }
@@ -1403,6 +1405,8 @@ void cell_check_timesteps(struct cell *c) {
 
 void cell_add_star(struct cell* c,struct stragglers* stragglers){
   
+  /* First create gpart */
+
   struct gpart gp;
   gp.x[0] = c->loc[0];
   gp.x[1] = c->loc[1];
@@ -1410,7 +1414,21 @@ void cell_add_star(struct cell* c,struct stragglers* stragglers){
   gp.v_full[0] = 1.f;
   gp.v_full[1] = 0.f;
   gp.v_full[2] = 0.f;
+  gp.a_grav[0] = 0.f;
+  gp.a_grav[1] = 0.f;
+  gp.a_grav[2] = 0.f;
   gp.time_bin = 43;
+
+  struct gpart* gpart_pointer = stragglers_add_gpart(stragglers,&gp);
+
+  struct gpart_straggler_link* new_glink = malloc(sizeof(struct gpart_straggler_link));
+
+  new_glink->gp = gpart_pointer;
+  new_glink->next = c->gpart_straggler_next;
+  c->gpart_straggler_next = new_glink;
+  c->straggler_gcount++;
+
+  /* Then create spart which links to this gpart */
 
   struct spart sp;
   sp.id = 10000 + stragglers->scount;
@@ -1421,18 +1439,15 @@ void cell_add_star(struct cell* c,struct stragglers* stragglers){
   sp.v[1] = 0.f;
   sp.v[2] = 0.f;
   sp.time_bin = 43;
-  sp.gpart = &gp;
+  sp.gpart = gpart_pointer;
 
-  struct gpart* gpart_pointer = stragglers_add_gpart(stragglers,&gp);
+  
   struct spart* spart_pointer = stragglers_add_spart(stragglers,&sp);
 
-  struct gpart_straggler_link* new_glink = malloc(sizeof(struct gpart_straggler_link));
+  
   struct spart_straggler_link* new_slink = malloc(sizeof(struct spart_straggler_link));
 
-  new_glink->gp = gpart_pointer;
-  new_glink->next = c->gpart_straggler_next;
-  c->gpart_straggler_next = new_glink;
-  c->straggler_gcount++;
+  
 
   new_slink->sp = spart_pointer;
   new_slink->next = c->spart_straggler_next;
