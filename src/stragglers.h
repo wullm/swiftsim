@@ -2,18 +2,26 @@
 #define SWIFT_STRAGGLERS_H
 
 struct stragglers{
-struct spart* stars;
-int count;
-int size;
+  struct spart* sparts;
+  struct gpart* gparts;
+  int scount; //Current number of sparts
+  int gcount; //Current number of gparts
+  int size;
 };
 
-struct straggler_link{
-  struct spart* star;
-  struct straggler_link* next;
+struct spart_straggler_link{
+  struct spart* sp;
+  struct spart_straggler_link* next;
 };
+
+struct gpart_straggler_link{
+  struct gpart* gp;
+  struct gpart_straggler_link* next;
+};
+
 
 void stragglers_init(struct stragglers* s);
 void stragglers_clean(struct stragglers* s);
-struct spart* stragglers_add(struct stragglers* s,struct spart* st);
-
+struct spart* stragglers_add_spart(struct stragglers* s, struct spart* sp);
+struct gpart* stragglers_add_gpart(struct stragglers* s, struct gpart* gp); 
 #endif /* SWIFT_STRAGGLERS_H */

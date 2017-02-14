@@ -297,14 +297,23 @@ struct cell {
   /*! The maximal depth of this cell and its progenies */
   char maxdepth;
 
-  /*! The number of stragglers in this cell */
-  int straggler_count;
+  /*! The number of straggler star particles in this cell */
+  int straggler_scount;
 
-  /*! Pointer to the linked list of stragglers */
-  struct straggler_link* straggler_next;
+  /*! The number of straggler gparts in this cell */
+  int straggler_gcount;
 
-  /*! Number of stragglers updated in this cell. */
-  int stragglers_updated;
+  /*! Pointer to the linked list of spart stragglers */
+  struct spart_straggler_link* spart_straggler_next;
+
+  /*! Pointer to the linked list of gpart stragglers */
+  struct gpart_straggler_link* gpart_straggler_next;
+
+  /*! Number of spart stragglers updated in this cell. */
+  int spart_stragglers_updated;
+
+  /*! Number of gpart stragglers updated in this cell. */
+  int gpart_stragglers_updated;
 
 } SWIFT_STRUCT_ALIGN;
 

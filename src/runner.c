@@ -848,11 +848,12 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
   struct xpart *restrict xparts = c->xparts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
-  //struct straggler_link *link = c->straggler_next;
+  //struct spart_straggler_link *slink = c->straggler_next;
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
-  //const int straggler_count = c->straggler_count;
+  //const int straggler_scount = c->straggler_scount;
+  //const int straggler_gcount = c->straggler_gcount;
   const integertime_t ti_current = e->ti_current;
   const double timeBase = e->timeBase;
 
@@ -1139,18 +1140,23 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
-  const int straggler_count = c->straggler_count;
+  const int straggler_scount = c->straggler_scount;
+  const int straggler_gcount = c->straggler_gcount;
   struct part *restrict parts = c->parts;
   struct xpart *restrict xparts = c->xparts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
-  struct straggler_link *link = c->straggler_next;
+  struct gpart_straggler_link *glink = c->gpart_straggler_next;
+  struct spart_straggler_link *slink = c->spart_straggler_next;
 
   TIMER_TIC;
-  if (c->straggler_count > 0)
-    message("This cell contains %d stars\n",c->straggler_count);
+  if (c->straggler_scount > 0)
+    message("This cell contains %d sparts\n",c->straggler_scount);
 
-  int updated = 0, g_updated = 0, s_updated = 0, stragglers_updated = 0;
+  if (c->straggler_gcount > 0)
+    message("This cell contains %d gparts\n",c->straggler_gcount);
+
+  int updated = 0, g_updated = 0, s_updated = 0, gpart_stragglers_updated = 0, spart_stragglers_updated = 0;
   integertime_t ti_end_min = max_nr_timesteps, ti_end_max = 0;
 
   /* No children? */
@@ -1291,11 +1297,56 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
       }
     }
 
-    /* Loop over the stragglers in this cell. */
-    for (int k = 0; k < straggler_count; k++) {
+    /* Loop over the gpart stragglers in this cell. */
+    for (int k = 0; k < straggler_gcount; k++) {
+
+      /* Get a handle on the gpart. */
+      struct gpart *restrict gp = glink->gp;
+     
+      /* If the g-particle has no counterpart */
+      if (gp->type == swift_type_dark_matter) {
+      
+	/* need to be updated ? */
+	if (gpart_is_active(gp, e)) {
+
+#ifdef SWIFT_DEBUG_CHECKS
+        /* Current end of time-step */
+        const integertime_t ti_end =
+            get_integer_time_end(ti_current, gp->time_bin);
+
+        if (ti_end != ti_current)
+          error("Computing time-step of rogue particle.");
+#endif
+        /* Get new time-step */
+        const integertime_t ti_new_step = get_gpart_timestep(gp, e);
+
+        /* Update particle */
+        gp->time_bin = get_time_bin(ti_new_step);
+
+        /* Number of updated gpart stragglers */
+        gpart_stragglers_updated++;
+
+        /* What is the next sync-point ? */
+        ti_end_min = min(ti_current + ti_new_step, ti_end_min);
+        ti_end_max = max(ti_current + ti_new_step, ti_end_max);
+
+      } else { /*straggler particle is inactive */
+
+        const integertime_t ti_end =
+            get_integer_time_end(ti_current, gp->time_bin);
+
+        /* What is the next sync-point ? */
+        ti_end_min = min(ti_end, ti_end_min);
+        ti_end_max = max(ti_end, ti_end_max);
+	}
+      }
+    }
+
+    /* Loop over the spart stragglers in this cell. */
+    for (int k = 0; k < straggler_scount; k++) {
 
       /* Get a handle on the part. */
-      struct spart *restrict sp = link->star;
+      struct spart *restrict sp = slink->sp;
 
       /* need to be updated ? */
       if (spart_is_active(sp, e)) {
@@ -1313,16 +1364,17 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
 
         /* Update particle */
         sp->time_bin = get_time_bin(ti_new_step);
-        //sp->gpart->time_bin = get_time_bin(ti_new_step);
+        sp->gpart->time_bin = get_time_bin(ti_new_step);
 
         /* Number of updated stragglers */
-        stragglers_updated++;
+        spart_stragglers_updated++;
+	gpart_stragglers_updated++;
 
         /* What is the next sync-point ? */
         ti_end_min = min(ti_current + ti_new_step, ti_end_min);
         ti_end_max = max(ti_current + ti_new_step, ti_end_max);
 
-      } else { /*straggler particle is inactive */
+      } else { /*spart straggler particle is inactive */
 
         const integertime_t ti_end =
             get_integer_time_end(ti_current, sp->time_bin);
@@ -1346,7 +1398,8 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
         updated += cp->updated;
         g_updated += cp->g_updated;
         s_updated += cp->s_updated;
-	stragglers_updated += cp->stragglers_updated;
+	gpart_stragglers_updated += cp->gpart_stragglers_updated;
+	spart_stragglers_updated += cp->spart_stragglers_updated;
         ti_end_min = min(cp->ti_end_min, ti_end_min);
         ti_end_max = max(cp->ti_end_max, ti_end_max);
       }
@@ -1356,7 +1409,8 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
   c->updated = updated;
   c->g_updated = g_updated;
   c->s_updated = s_updated;
-  c->stragglers_updated = stragglers_updated;
+  c->gpart_stragglers_updated = gpart_stragglers_updated;
+  c->spart_stragglers_updated = spart_stragglers_updated;
   c->ti_end_min = ti_end_min;
   c->ti_end_max = ti_end_max;
 

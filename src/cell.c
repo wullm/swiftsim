@@ -1255,7 +1255,8 @@ void cell_drift(struct cell *c, const struct engine *e) {
   struct xpart *const xparts = c->xparts;
   struct gpart *const gparts = c->gparts;
   struct spart *const sparts = c->sparts;
-  struct straggler_link *link = c->straggler_next;
+  struct gpart_straggler_link *glink = c->gpart_straggler_next;
+  struct spart_straggler_link *slink = c->spart_straggler_next;
 
   /* Drift from the last time the cell was drifted to the current time */
   const double dt = (ti_current - ti_old) * timeBase;
@@ -1329,20 +1330,36 @@ void cell_drift(struct cell *c, const struct engine *e) {
       /* Note: no need to compute dx_max as all spart have a gpart */
     }
 
-    /* Loop over all the stragglers in the cell */
-    const size_t nr_stragglers = c->straggler_count;
-    for (size_t k = 0; k < nr_stragglers; k++) {
+    /* Loop over all the gpart stragglers in the cell*/
+    const size_t nr_gpart_stragglers = c->straggler_gcount;
+    for (size_t k = 0; k < nr_gpart_stragglers; k++) {
 
-      /* Get a handle on the straggler. */
-      struct spart *const sp = link->star;
+      /* Get a handle on the star particle. */
+      struct gpart *const gp = glink->gp;
+
+      /* Drift... */
+      drift_gpart(gp, dt, timeBase, ti_old, ti_current);
+
+      /* Get pointer to next gpart straggler link */
+      glink = glink->next;
+    }
+
+    /* Loop over all the spart stragglers in the cell */
+    const size_t nr_spart_stragglers = c->straggler_scount;
+    for (size_t k = 0; k < nr_spart_stragglers; k++) {
+
+      /* Get a handle on the star particle. */
+      struct spart *const sp = slink->sp;
 
       /* Drift... */
       drift_spart(sp, dt, timeBase, ti_old, ti_current);
 
-      if (sp->id < 10010)
+      if (sp->id < 10010){
 	printf("Particle's ID = %lld \n Particle's position is (%g,%g,%g)\n",sp->id,sp->x[0],sp->x[1],sp->x[2]);
-      /* Get pointer to next straggler link */
-      link = link->next;
+	printf("Corresponding gpart position is (%g,%g,%g) \n",sp->gpart->x[0],sp->gpart->x[1],sp->gpart->x[2]);
+      }
+      /* Get pointer to next spart straggler link */
+      slink = slink->next;
     }
 
     /* Now, get the maximal particle motion from its square */
@@ -1386,25 +1403,39 @@ void cell_check_timesteps(struct cell *c) {
 
 void cell_add_star(struct cell* c,struct stragglers* stragglers){
   
-  struct spart s;
-  s.id = 10000 + stragglers->count;
-  s.x[0] = c->loc[0];
-  s.x[1] = c->loc[1];
-  s.x[2] = c->loc[2];
-  s.v[0] = 1.f;
-  s.v[1] = 0.f;
-  s.v[2] = 0.f;
-  s.time_bin = 43;
-  s.gpart = NULL;
+  struct gpart gp;
+  gp.x[0] = c->loc[0];
+  gp.x[1] = c->loc[1];
+  gp.x[2] = c->loc[2];
+  gp.v_full[0] = 1.f;
+  gp.v_full[1] = 0.f;
+  gp.v_full[2] = 0.f;
+  gp.time_bin = 43;
 
-  struct spart* banana = stragglers_add(stragglers,&s);
+  struct spart sp;
+  sp.id = 10000 + stragglers->scount;
+  sp.x[0] = c->loc[0];
+  sp.x[1] = c->loc[1];
+  sp.x[2] = c->loc[2];
+  sp.v[0] = 1.f;
+  sp.v[1] = 0.f;
+  sp.v[2] = 0.f;
+  sp.time_bin = 43;
+  sp.gpart = &gp;
 
-  struct straggler_link* new_link = malloc(sizeof(struct straggler_link));
+  struct gpart* gpart_pointer = stragglers_add_gpart(stragglers,&gp);
+  struct spart* spart_pointer = stragglers_add_spart(stragglers,&sp);
 
-  new_link->star = banana;
-  new_link->next = c->straggler_next;
+  struct gpart_straggler_link* new_glink = malloc(sizeof(struct gpart_straggler_link));
+  struct spart_straggler_link* new_slink = malloc(sizeof(struct spart_straggler_link));
 
-  c->straggler_next = new_link;
+  new_glink->gp = gpart_pointer;
+  new_glink->next = c->gpart_straggler_next;
+  c->gpart_straggler_next = new_glink;
+  c->straggler_gcount++;
 
-  c->straggler_count++;
+  new_slink->sp = spart_pointer;
+  new_slink->next = c->spart_straggler_next;
+  c->spart_straggler_next = new_slink;
+  c->straggler_scount++;
 }

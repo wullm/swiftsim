@@ -35,22 +35,39 @@
 void stragglers_init(struct stragglers* s){
 
   s->size = 1000;
-  s->count = 0;
-  s->stars = malloc(s->size*sizeof(struct spart));
+  s->scount = 0;
+  s->gcount = 0;
+  s->sparts = malloc(s->size*sizeof(struct spart));
+  s->gparts = malloc(s->size*sizeof(struct gpart));
+  
 }
 
 void stragglers_clean(struct stragglers* s){
   
-  free(s->stars);
+  free(s->sparts);
+  free(s->gparts);
+  
 }
 
-struct spart* stragglers_add(struct stragglers* s,struct spart* st){
+struct spart* stragglers_add_spart(struct stragglers* s,struct spart* sp){
 
-  if (s->count == s->size)
+  if (s->scount == s->size)
     error("Not anough space for another star particle!");
 
-  s->stars[s->count] = *st;
-  s->count++;
+  s->sparts[s->scount] = *sp;
+  s->scount++;
   
-  return &s->stars[s->count-1];
+  return &s->sparts[s->scount-1];
 }
+
+struct gpart* stragglers_add_gpart(struct stragglers* s,struct gpart* gp){
+
+  if (s->gcount == s->size)
+    error("Not anough space for another star particle!");
+
+  s->gparts[s->gcount] = *gp;
+  s->gcount++;
+  
+  return &s->gparts[s->gcount-1];
+}
+
