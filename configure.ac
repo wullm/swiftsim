@@ -774,6 +774,26 @@ case "$with_potential" in
    ;;
 esac
 
+#  External potential
+AC_ARG_WITH([star-formation],
+   [AS_HELP_STRING([--with-star-formation=<model>],
+      [star formation @<:@none, dens-thresh default: none@:>@]
+   )],
+   [with_star_formation="$withval"],
+   [with_star_formation="none"]
+)
+case "$with_star_formation" in
+   none)
+      AC_DEFINE([STAR_FORMATION_NONE], [1], [No star formation])
+   ;; 
+   dens-thresh)
+      AC_DEFINE([STAR_FORMATION_DENS_THRESH], [1], [Stars are formed above some density threshold])
+   ;; 
+   *)
+      AC_MSG_ERROR([Unknown star formation model: $with_star_formation])
+   ;;
+esac
+
 
 
 # Check for git, needed for revision stamps.
@@ -821,6 +841,7 @@ AC_MSG_RESULT([
    Riemann solver     : $with_riemann
    Cooling function   : $with_cooling
    External potential : $with_potential
+   SF Model           : $with_star_formation
    Task debugging     : $enable_task_debugging
    Debugging checks   : $enable_debugging_checks
 ])
