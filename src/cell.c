@@ -1255,8 +1255,10 @@ void cell_drift(struct cell *c, const struct engine *e) {
   struct xpart *const xparts = c->xparts;
   struct gpart *const gparts = c->gparts;
   struct spart *const sparts = c->sparts;
-  struct gpart_straggler_link *glink = c->gpart_straggler_next;
-  struct spart_straggler_link *slink = c->spart_straggler_next;
+  struct straggler_link *link = c->straggler_next;
+  struct x_straggler_link *xlink = c->x_straggler_next;
+  struct g_straggler_link *glink = c->g_straggler_next;
+  struct s_straggler_link *slink = c->s_straggler_next;
 
   /* Drift from the last time the cell was drifted to the current time */
   const double dt = (ti_current - ti_old) * timeBase;
@@ -1330,7 +1332,7 @@ void cell_drift(struct cell *c, const struct engine *e) {
       /* Note: no need to compute dx_max as all spart have a gpart */
     }
 
-    /* Loop over all the gpart stragglers in the cell*/
+    /* Loop over all the straggler gparts in the cell*/
     const size_t nr_gpart_stragglers = c->straggler_gcount;
     for (size_t k = 0; k < nr_gpart_stragglers; k++) {
 
@@ -1340,9 +1342,42 @@ void cell_drift(struct cell *c, const struct engine *e) {
       /* Drift... */
       drift_gpart(gp, dt, timeBase, ti_old, ti_current);
 
+       /* Compute (square of) motion since last cell construction */
+      const float dx2 = gp->x_diff[0] * gp->x_diff[0] +
+                        gp->x_diff[1] * gp->x_diff[1] +
+                        gp->x_diff[2] * gp->x_diff[2];
+      dx2_max = (dx2_max > dx2) ? dx2_max : dx2;
+
       /* Get pointer to next gpart straggler link */
       glink = glink->next;
     }
+
+    /* Loop over all the straggler parts in the cell */
+    const size_t nr_straggler_parts = c->straggler_count;
+
+    for (size_t k = 0; k < nr_straggler_parts; k++) {
+
+      /* Get a handle on the part. */
+      struct part *const p = link->p;
+      struct xpart *const xp = xlink->xp;
+
+      /* Drift... */
+      drift_part(p, xp, dt, timeBase, ti_old, ti_current);
+
+      /* Compute (square of) motion since last cell construction */
+      const float dx2 = xp->x_diff[0] * xp->x_diff[0] +
+                        xp->x_diff[1] * xp->x_diff[1] +
+                        xp->x_diff[2] * xp->x_diff[2];
+      dx2_max = (dx2_max > dx2) ? dx2_max : dx2;
+
+      /* Maximal smoothing length */
+      h_max = (h_max > p->h) ? h_max : p->h;
+
+      /* Get pointer to the next link */
+      link = link->next;
+      xlink = xlink->next;
+    }
+
 
     /* Loop over all the spart stragglers in the cell */
     const size_t nr_spart_stragglers = c->straggler_scount;
@@ -1353,12 +1388,6 @@ void cell_drift(struct cell *c, const struct engine *e) {
 
       /* Drift... */
       drift_spart(sp, dt, timeBase, ti_old, ti_current);
-
-      if (sp->id == 10000){
-	message("Particle's ID = %lld \n Particle's position is (%g,%g,%g)\n",sp->id,sp->x[0],sp->x[1],sp->x[2]);
-       	message("Particle's ID = %lld \n Particle's velocity is (%g,%g,%g)\n",sp->id,sp->v[0],sp->v[1],sp->v[2]);
-	message("Particle's ID = %lld \n Particle's acceleration is (%g,%g,%g)\n",sp->id,sp->gpart->a_grav[0],sp->gpart->a_grav[1],sp->gpart->a_grav[2]);
-      }
 
       /* Get pointer to next spart straggler link */
       slink = slink->next;
@@ -1421,11 +1450,11 @@ void cell_add_star(struct cell* c,struct stragglers* stragglers){
 
   struct gpart* gpart_pointer = stragglers_add_gpart(stragglers,&gp);
 
-  struct gpart_straggler_link* new_glink = malloc(sizeof(struct gpart_straggler_link));
+  struct g_straggler_link* new_glink = malloc(sizeof(struct g_straggler_link));
 
   new_glink->gp = gpart_pointer;
-  new_glink->next = c->gpart_straggler_next;
-  c->gpart_straggler_next = new_glink;
+  new_glink->next = c->g_straggler_next;
+  c->g_straggler_next = new_glink;
   c->straggler_gcount++;
 
   /* Then create spart which links to this gpart */
@@ -1443,14 +1472,11 @@ void cell_add_star(struct cell* c,struct stragglers* stragglers){
 
   
   struct spart* spart_pointer = stragglers_add_spart(stragglers,&sp);
-
   
-  struct spart_straggler_link* new_slink = malloc(sizeof(struct spart_straggler_link));
-
-  
+  struct s_straggler_link* new_slink = malloc(sizeof(struct s_straggler_link));
 
   new_slink->sp = spart_pointer;
-  new_slink->next = c->spart_straggler_next;
-  c->spart_straggler_next = new_slink;
+  new_slink->next = c->s_straggler_next;
+  c->s_straggler_next = new_slink;
   c->straggler_scount++;
 }

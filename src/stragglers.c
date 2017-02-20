@@ -34,36 +34,41 @@
 #include "tools.h"
 void stragglers_init(struct stragglers* s){
 
-  s->size = 10;
+  s->size = 1000;
+  s->count=0;
   s->scount = 0;
   s->gcount = 0;
-  s->sparts = malloc(s->size*sizeof(struct spart));
+  s->parts = malloc(s->size*sizeof(struct part));
   s->gparts = malloc(s->size*sizeof(struct gpart));
+  s->sparts = malloc(s->size*sizeof(struct spart));
+  s->xparts = malloc(s->size*sizeof(struct xpart));
+  
   
 }
 
 void stragglers_clean(struct stragglers* s){
-  
-  free(s->sparts);
+
+  free(s->parts);
   free(s->gparts);
-  
+  free(s->sparts);
+  free(s->xparts);
 }
 
-struct spart* stragglers_add_spart(struct stragglers* s,struct spart* sp){
+struct part* stragglers_add_part(struct stragglers* s,struct part* p){
 
-  if (s->scount == s->size)
-    error("Not anough space for another star particle!");
+  if (s->count == s->size)
+    error("Not anough space for another straggler part!");
 
-  s->sparts[s->scount] = *sp;
-  s->scount++;
+  s->parts[s->count] = *p;
+  s->count++;
   
-  return &s->sparts[s->scount-1];
+  return &s->parts[s->count-1];
 }
 
 struct gpart* stragglers_add_gpart(struct stragglers* s,struct gpart* gp){
 
   if (s->gcount == s->size)
-    error("Not anough space for another star particle!");
+    error("Not anough space for another straggler gpart!");
 
   s->gparts[s->gcount] = *gp;
   s->gcount++;
@@ -71,3 +76,25 @@ struct gpart* stragglers_add_gpart(struct stragglers* s,struct gpart* gp){
   return &s->gparts[s->gcount-1];
 }
 
+struct spart* stragglers_add_spart(struct stragglers* s,struct spart* sp){
+
+  if (s->scount == s->size)
+    error("Not anough space for another straggler spart!");
+
+  s->sparts[s->scount] = *sp;
+  s->scount++;
+  
+  return &s->sparts[s->scount-1];
+}
+
+
+struct xpart* stragglers_add_xpart(struct stragglers* s,struct xpart* xp){
+
+  if (s->xcount == s->size)
+    error("Not anough space for another straggler xpart!");
+
+  s->xparts[s->xcount] = *xp;
+  s->xcount++;
+  
+  return &s->xparts[s->xcount-1];
+}

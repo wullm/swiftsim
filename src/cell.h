@@ -297,23 +297,38 @@ struct cell {
   /*! The maximal depth of this cell and its progenies */
   char maxdepth;
 
-  /*! The number of straggler star particles in this cell */
-  int straggler_scount;
+  /*! The number of straggler parts in this cell */
+  int straggler_count;
 
   /*! The number of straggler gparts in this cell */
   int straggler_gcount;
 
-  /*! Pointer to the linked list of spart stragglers */
-  struct spart_straggler_link* spart_straggler_next;
+  /*! The number of straggler sparts in this cell */
+  int straggler_scount;
 
-  /*! Pointer to the linked list of gpart stragglers */
-  struct gpart_straggler_link* gpart_straggler_next;
+  /*! The number of straggler xparts in this cell */
+  int straggler_xcount;
 
-  /*! Number of spart stragglers updated in this cell. */
-  int spart_stragglers_updated;
+  /*! Pointer to the linked list of straggler parts */
+  struct straggler_link* straggler_next;
 
-  /*! Number of gpart stragglers updated in this cell. */
-  int gpart_stragglers_updated;
+  /*! Pointer to the linked list of straggler gparts */
+  struct g_straggler_link* g_straggler_next;
+
+  /*! Pointer to the linked list of straggler sparts */
+  struct s_straggler_link* s_straggler_next;
+
+  /*! Pointer to the linked list of straggler xparts */
+  struct x_straggler_link* x_straggler_next;
+
+  /*! Number of straggler parts updated in this cell. */
+  int stragglers_updated;
+
+  /*! Number of straggler gparts updated in this cell. */
+  int g_stragglers_updated;
+
+  /*! Number of straggler sparts updated in this cell. */
+  int s_stragglers_updated;
 
 } SWIFT_STRUCT_ALIGN;
 
