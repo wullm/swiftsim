@@ -297,34 +297,19 @@ struct cell {
   /*! The maximal depth of this cell and its progenies */
   char maxdepth;
 
-  /*! The number of straggler parts in this cell */
-  int straggler_count;
-
   /*! The number of straggler gparts in this cell */
   int straggler_gcount;
 
   /*! The number of straggler sparts in this cell */
   int straggler_scount;
 
-  /*! The number of straggler xparts in this cell */
-  int straggler_xcount;
-
-  /*! Pointer to the linked list of straggler parts */
-  struct straggler_link* straggler_next;
-
-  /*! Pointer to the linked list of straggler gparts */
+   /*! Pointer to the linked list of straggler gparts */
   struct g_straggler_link* g_straggler_next;
 
   /*! Pointer to the linked list of straggler sparts */
   struct s_straggler_link* s_straggler_next;
 
-  /*! Pointer to the linked list of straggler xparts */
-  struct x_straggler_link* x_straggler_next;
-
-  /*! Number of straggler parts updated in this cell. */
-  int stragglers_updated;
-
-  /*! Number of straggler gparts updated in this cell. */
+   /*! Number of straggler gparts updated in this cell. */
   int g_stragglers_updated;
 
   /*! Number of straggler sparts updated in this cell. */

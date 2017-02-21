@@ -223,11 +223,7 @@ void runner_do_cooling(struct runner *r, struct cell *c, int timer) {
 
   struct part *restrict parts = c->parts;
   struct xpart *restrict xparts = c->xparts;
-  struct straggler_link* link = c->straggler_next;
-  struct x_straggler_link* xlink = c->x_straggler_next;
   const int count = c->count;
-  const int straggler_count = c->straggler_count;
-  const int straggler_xcount = c->straggler_xcount;
   const struct engine *e = r->e;
   const struct cooling_function_data *cooling_func = e->cooling_func;
   const struct phys_const *constants = e->physical_constants;
@@ -258,34 +254,6 @@ void runner_do_cooling(struct runner *r, struct cell *c, int timer) {
         const double dt = get_timestep(p->time_bin, timeBase);
         cooling_cool_part(constants, us, cooling_func, p, xp, dt);
       }
-    }
-
-    /* Loop over the straggler parts in this cell. */
-    
-    /* Check if we have the same number of straggler parts and straggler xparts. If we don't, there is
-       something wrong */
-    if (straggler_count != straggler_xcount)
-      error("Cell has %d straggler parts and %d straggler xparts",straggler_count,straggler_xcount);
-
-    /* Otherwise, continue */
-
-    /* Loop over the straggler parts in this cell. */
-    for (int i = 0; i < straggler_count; i++) {
-
-      /* Get a direct pointer on the part. */
-      struct part *restrict p = link->p;
-      struct xpart *restrict xp = xlink->xp;
-
-      if (part_is_active(p, e)) {
-
-        /* Let's cool ! */
-        const double dt = get_timestep(p->time_bin, timeBase);
-        cooling_cool_part(constants, us, cooling_func, p, xp, dt);
-      }
-
-      /* Get a pointer to the next link */
-      link = link->next;
-      xlink = xlink->next;
     }
     
   }
@@ -536,8 +504,10 @@ void runner_do_init(struct runner *r, struct cell *c, int timer) {
 
   struct part *restrict parts = c->parts;
   struct gpart *restrict gparts = c->gparts;
+  struct g_straggler_link* glink = c->g_straggler_next;
   const int count = c->count;
   const int gcount = c->gcount;
+  const int straggler_gcount = c->straggler_gcount;
   const struct engine *e = r->e;
 
   TIMER_TIC;
@@ -575,6 +545,22 @@ void runner_do_init(struct runner *r, struct cell *c, int timer) {
         /* Get ready for a density calculation */
         gravity_init_gpart(gp);
       }
+    }
+
+    /* Loop over the straggler gparts in this cell. */
+    for (int i = 0; i < straggler_gcount; i++) {
+
+      /* Get a direct pointer on the part. */
+      struct gpart *restrict gp = glink->gp;
+
+      if (gpart_is_active(gp, e)) {
+
+        /* Get ready for a density calculation */
+        gravity_init_gpart(gp);
+      }
+
+      /* Get a pointer to the next glink */
+      glink = glink->next;
     }
   }
 
@@ -902,15 +888,11 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
   struct xpart *restrict xparts = c->xparts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
-  struct straggler_link *link = c->straggler_next;
-  struct x_straggler_link *xlink = c->x_straggler_next;
   struct g_straggler_link *glink = c->g_straggler_next;
   struct s_straggler_link *slink = c->s_straggler_next;
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
-  const int straggler_count = c->straggler_count;
-  const int straggler_xcount = c->straggler_xcount;
   const int straggler_gcount = c->straggler_gcount;
   const int straggler_scount = c->straggler_scount;
   const integertime_t ti_current = e->ti_current;
@@ -1007,40 +989,6 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
       }
     }
 
-    /* Loop over the straggler parts in this cell. */
-
-    /* Check if we have the same number of straggler parts and straggler xparts. If we don't, there is
-       something wrong */
-    if (straggler_count != straggler_xcount)
-      error("Cell has %d straggler parts and %d straggler xparts",straggler_count,straggler_xcount);
-
-    /* Otherwise, continue */
-    
-    for (int k = 0; k < straggler_count; k++) {
-
-      /* Get a handle on the part. */
-      struct part *restrict p = link->p;
-      struct xpart *restrict xp = xlink->xp;
-      const integertime_t ti_step = get_integer_timestep(p->time_bin);
-      const integertime_t ti_begin =
-          get_integer_time_begin(ti_current, p->time_bin);
-
-#ifdef SWIFT_DEBUG_CHECKS
-        const integertime_t ti_end =
-            get_integer_time_end(ti_current, p->time_bin);
-
-        if (ti_end - ti_begin != ti_step) error("Particle in wrong time-bin");
-#endif
-
-      /* do the kick */
-	kick_part(p, xp, ti_begin, ti_begin + ti_step / 2, timeBase);
-     
-      /* Get a pointer to the next link */
-      link = link->next;
-      xlink = xlink->next;
-    }
-
-
    /* Loop over the straggler gparts in this cell. */
     for (int k = 0; k < straggler_gcount; k++) {
 
@@ -1118,16 +1066,12 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
-  const int straggler_count = c->straggler_count;
-  const int straggler_xcount = c->straggler_xcount;
   const int straggler_gcount = c->straggler_gcount;
   const int straggler_scount = c->straggler_scount;
   struct part *restrict parts = c->parts;
   struct xpart *restrict xparts = c->xparts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
-  struct straggler_link *link = c->straggler_next;
-  struct x_straggler_link *xlink = c->x_straggler_next;
   struct g_straggler_link *glink = c->g_straggler_next;
   struct s_straggler_link *slink = c->s_straggler_next;
 
@@ -1221,41 +1165,6 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
       }
     }
 
-    /* Loop over the straggler parts in this cell. */
-
-    /* Check if we have the same number of straggler parts and straggler xparts. If we don't, there is
-       something wrong */
-
-    if (straggler_count != straggler_xcount)
-      error("Cell has %d straggler parts and %d straggler xparts",straggler_count,straggler_xcount);
-
-    /* Otherwise, continue */
-
-    for (int k = 0; k < straggler_count; k++) {
-
-      /* Get a handle on the part. */
-      struct part *restrict p = link->p;
-      struct xpart *restrict xp = xlink->xp;
-      const integertime_t ti_step = get_integer_timestep(p->time_bin);
-      const integertime_t ti_begin =
-          get_integer_time_begin(ti_current, p->time_bin);
-
-#ifdef SWIFT_DEBUG_CHECKS
-      if (ti_begin + ti_step != ti_current)
-        error("Particle in wrong time-bin");
-#endif
-
-      /* Finish the time-step with a second half-kick */
-      kick_part(p, xp, ti_begin + ti_step / 2, ti_begin + ti_step, timeBase);
-     
-      /* Prepare the values to be drifted */
-      hydro_reset_predicted_values(p, xp);
-
-      /* Get a pointer to the next link */
-      link = link->next;
-      xlink = xlink->next;
-    }
-
     /* Loop over the straggler gparts in this cell. */
     for (int k = 0; k < straggler_gcount; k++) {
 
@@ -1327,22 +1236,18 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
-  const int straggler_count = c->straggler_count;
-  const int straggler_xcount = c->straggler_xcount;
   const int straggler_gcount = c->straggler_gcount;
   const int straggler_scount = c->straggler_scount;
   struct part *restrict parts = c->parts;
   struct xpart *restrict xparts = c->xparts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
-  struct straggler_link *link = c->straggler_next;
-  struct x_straggler_link *xlink = c->x_straggler_next;
   struct g_straggler_link *glink = c->g_straggler_next;
   struct s_straggler_link *slink = c->s_straggler_next;
 
   TIMER_TIC;
 
-  int updated = 0, g_updated = 0, s_updated = 0, stragglers_updated = 0, g_stragglers_updated = 0, s_stragglers_updated = 0;
+  int updated = 0, g_updated = 0, s_updated = 0, g_stragglers_updated = 0, s_stragglers_updated = 0;
   integertime_t ti_end_min = max_nr_timesteps, ti_end_max = 0;
 
   /* No children? */
@@ -1483,65 +1388,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
       }
     }
 
-    /* Loop over the straggler parts in this cell. */
-
-    /* Check if we have the same number of straggler parts and straggler xparts. If we don't, there is
-       something wrong */
-
-      if (straggler_count != straggler_xcount)
-	error("Cell has %d straggler parts and %d straggler xparts",straggler_count,straggler_xcount);
-
-    /* Otherwise, continue */
-    for (int k = 0; k < straggler_count; k++) {
-
-      /* Get a handle on the part. */
-      struct part *restrict p = link->p;
-      struct xpart *restrict xp = xlink->xp;
-
-      /* If particle needs updating */
-      if (part_is_active(p, e)) {
-
-#ifdef SWIFT_DEBUG_CHECKS
-        /* Current end of time-step */
-        const integertime_t ti_end =
-            get_integer_time_end(ti_current, p->time_bin);
-
-        if (ti_end != ti_current)
-          error("Computing time-step of rogue particle.");
-#endif
-
-        /* Get new time-step */
-        const integertime_t ti_new_step = get_part_timestep(p, xp, e);
-
-        /* Update particle */
-        p->time_bin = get_time_bin(ti_new_step);
-        if (p->gpart != NULL) p->gpart->time_bin = get_time_bin(ti_new_step);
-
-        /* Number of updated particles */
-        stragglers_updated++;
-        if (p->gpart != NULL) g_stragglers_updated++;
-
-        /* What is the next sync-point ? */
-        ti_end_min = min(ti_current + ti_new_step, ti_end_min);
-        ti_end_max = max(ti_current + ti_new_step, ti_end_max);
-      }
-
-      else { /* part is inactive */
-
-        const integertime_t ti_end =
-            get_integer_time_end(ti_current, p->time_bin);
-
-        /* What is the next sync-point ? */
-        ti_end_min = min(ti_end, ti_end_min);
-        ti_end_max = max(ti_end, ti_end_max);
-      }
-
-      /* Get pointer to the next link */
-      link = link->next;
-      xlink = xlink->next;
-    }
-
-
     /* Loop over the gpart stragglers in this cell. */
     for (int k = 0; k < straggler_gcount; k++) {
 
@@ -1649,7 +1495,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
         updated += cp->updated;
         g_updated += cp->g_updated;
         s_updated += cp->s_updated;
-	stragglers_updated += cp->stragglers_updated;
 	g_stragglers_updated += cp->g_stragglers_updated;
 	s_stragglers_updated += cp->s_stragglers_updated;
         ti_end_min = min(cp->ti_end_min, ti_end_min);
@@ -1661,7 +1506,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
   c->updated = updated;
   c->g_updated = g_updated;
   c->s_updated = s_updated;
-  c->stragglers_updated = stragglers_updated;
   c->g_stragglers_updated = g_stragglers_updated;
   c->s_stragglers_updated = s_stragglers_updated;
   c->ti_end_min = ti_end_min;
@@ -1684,9 +1528,13 @@ void runner_do_end_force(struct runner *r, struct cell *c, int timer) {
   const int count = c->count;
   const int gcount = c->gcount;
   const int scount = c->scount;
+  const int straggler_gcount = c->straggler_gcount;
+  const int straggler_scount = c->straggler_scount;
   struct part *restrict parts = c->parts;
   struct gpart *restrict gparts = c->gparts;
   struct spart *restrict sparts = c->sparts;
+  struct g_straggler_link *glink = c->g_straggler_next;
+  struct s_straggler_link *slink = c->s_straggler_next;
   const double const_G = e->physical_constants->const_newton_G;
 
   TIMER_TIC;
@@ -1737,6 +1585,37 @@ void runner_do_end_force(struct runner *r, struct cell *c, int timer) {
         star_end_force(sp);
         gravity_end_force(sp->gpart, const_G);
       }
+    }
+
+    /* Loop over the straggler gparts in this cell. */
+    for (int k = 0; k < straggler_gcount; k++) {
+
+      /* Get a handle on the gpart. */
+      struct gpart *restrict gp = glink->gp;
+
+      if (gp->type == swift_type_dark_matter) {
+        if (gpart_is_active(gp, e)) gravity_end_force(gp, const_G);
+      }
+
+      /* Get a pointer to the next glink */
+      glink = glink->next;
+    }
+
+    /* Loop over the staggler sparts in this cell. */
+    for (int k = 0; k < straggler_scount; k++) {
+
+      /* Get a handle on the part. */
+      struct spart *restrict sp = slink->sp;
+
+      if (spart_is_active(sp, e)) {
+
+        /* First, finish the force loop */
+        star_end_force(sp);
+        gravity_end_force(sp->gpart, const_G);
+      }
+
+      /* Get a pointer to the next slink */
+      slink = slink->next;
     }
   }
 

@@ -35,34 +35,16 @@
 void stragglers_init(struct stragglers* s){
 
   s->size = 1000;
-  s->count=0;
   s->scount = 0;
   s->gcount = 0;
-  s->parts = malloc(s->size*sizeof(struct part));
   s->gparts = malloc(s->size*sizeof(struct gpart));
-  s->sparts = malloc(s->size*sizeof(struct spart));
-  s->xparts = malloc(s->size*sizeof(struct xpart));
-  
-  
+  s->sparts = malloc(s->size*sizeof(struct spart));  
 }
 
 void stragglers_clean(struct stragglers* s){
 
-  free(s->parts);
   free(s->gparts);
   free(s->sparts);
-  free(s->xparts);
-}
-
-struct part* stragglers_add_part(struct stragglers* s,struct part* p){
-
-  if (s->count == s->size)
-    error("Not anough space for another straggler part!");
-
-  s->parts[s->count] = *p;
-  s->count++;
-  
-  return &s->parts[s->count-1];
 }
 
 struct gpart* stragglers_add_gpart(struct stragglers* s,struct gpart* gp){
@@ -87,14 +69,3 @@ struct spart* stragglers_add_spart(struct stragglers* s,struct spart* sp){
   return &s->sparts[s->scount-1];
 }
 
-
-struct xpart* stragglers_add_xpart(struct stragglers* s,struct xpart* xp){
-
-  if (s->xcount == s->size)
-    error("Not anough space for another straggler xpart!");
-
-  s->xparts[s->xcount] = *xp;
-  s->xcount++;
-  
-  return &s->xparts[s->xcount-1];
-}

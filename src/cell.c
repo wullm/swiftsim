@@ -1255,8 +1255,6 @@ void cell_drift_particles(struct cell *c, const struct engine *e) {
   struct xpart *const xparts = c->xparts;
   struct gpart *const gparts = c->gparts;
   struct spart *const sparts = c->sparts;
-  struct straggler_link *link = c->straggler_next;
-  struct x_straggler_link *xlink = c->x_straggler_next;
   struct g_straggler_link *glink = c->g_straggler_next;
   struct s_straggler_link *slink = c->s_straggler_next;
 
@@ -1352,34 +1350,7 @@ void cell_drift_particles(struct cell *c, const struct engine *e) {
       glink = glink->next;
     }
 
-    /* Loop over all the straggler parts in the cell */
-    const size_t nr_straggler_parts = c->straggler_count;
-
-    for (size_t k = 0; k < nr_straggler_parts; k++) {
-
-      /* Get a handle on the part. */
-      struct part *const p = link->p;
-      struct xpart *const xp = xlink->xp;
-
-      /* Drift... */
-      drift_part(p, xp, dt, timeBase, ti_old, ti_current);
-
-      /* Compute (square of) motion since last cell construction */
-      const float dx2 = xp->x_diff[0] * xp->x_diff[0] +
-                        xp->x_diff[1] * xp->x_diff[1] +
-                        xp->x_diff[2] * xp->x_diff[2];
-      dx2_max = (dx2_max > dx2) ? dx2_max : dx2;
-
-      /* Maximal smoothing length */
-      h_max = (h_max > p->h) ? h_max : p->h;
-
-      /* Get pointer to the next link */
-      link = link->next;
-      xlink = xlink->next;
-    }
-
-
-    /* Loop over all the spart stragglers in the cell */
+    /* Loop over all the straggler sparts in the cell */
     const size_t nr_spart_stragglers = c->straggler_scount;
     for (size_t k = 0; k < nr_spart_stragglers; k++) {
 
