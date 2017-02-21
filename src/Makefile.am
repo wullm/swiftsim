@@ -45,7 +45,7 @@ include_HEADERS = space.h runner.h queue.h task.h lock.h cell.h part.h const.h \
     physical_constants.h physical_constants_cgs.h potential.h version.h \
     hydro_properties.h riemann.h threadpool.h cooling.h cooling_struct.h sourceterms.h \
     sourceterms_struct.h statistics.h memswap.h cache.h runner_doiact_vec.h profiler.h \
-    dump.h logger.h active.h timeline.h stragglers.h 
+    dump.h logger.h active.h timeline.h stragglers.h star_formation.h
 
 # Common source files
 AM_SOURCES = space.c runner.c queue.c task.c cell.c engine.c \
@@ -55,7 +55,7 @@ AM_SOURCES = space.c runner.c queue.c task.c cell.c engine.c \
     physical_constants.c potential.c hydro_properties.c \
     runner_doiact_fft.c threadpool.c cooling.c sourceterms.c \
     statistics.c runner_doiact_vec.c profiler.c dump.c logger.c \
-    stragglers.c
+    stragglers.c star_formation.c
 
 # Include files for distribution, not installation.
 nobase_noinst_HEADERS = align.h approx_math.h atomic.h cycle.h error.h inline.h kernel_hydro.h kernel_gravity.h \
@@ -87,6 +87,7 @@ nobase_noinst_HEADERS = align.h approx_math.h atomic.h cycle.h error.h inline.h 
 		 cooling/none/cooling.h cooling/none/cooling_struct.h \
 	         cooling/const_du/cooling.h cooling/const_du/cooling_struct.h \
                  cooling/const_lambda/cooling.h cooling/const_lambda/cooling_struct.h \
+		 star_formation/none/star_formation.h star_formation/dens_thresh/star_formation.h \
                  memswap.h dump.h logger.h
 
 
