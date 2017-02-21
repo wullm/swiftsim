@@ -1246,7 +1246,7 @@ void cell_set_super(struct cell *c, struct cell *super) {
  * @param c The #cell.
  * @param e The #engine (to get ti_current).
  */
-void cell_drift(struct cell *c, const struct engine *e) {
+void cell_drift_particles(struct cell *c, const struct engine *e) {
 
   const double timeBase = e->timeBase;
   const integertime_t ti_old = c->ti_old;
@@ -1274,7 +1274,7 @@ void cell_drift(struct cell *c, const struct engine *e) {
     for (int k = 0; k < 8; k++)
       if (c->progeny[k] != NULL) {
         struct cell *cp = c->progeny[k];
-        cell_drift(cp, e);
+        cell_drift_particles(cp, e);
         dx_max = max(dx_max, cp->dx_max);
         h_max = max(h_max, cp->h_max);
       }
@@ -1432,51 +1432,3 @@ void cell_check_timesteps(struct cell *c) {
 #endif
 }
 
-void cell_add_star(struct cell* c,struct stragglers* stragglers){
-  
-  /* First create gpart */
-
-  struct gpart gp;
-  gp.x[0] = c->loc[0];
-  gp.x[1] = c->loc[1];
-  gp.x[2] = c->loc[2];
-  gp.v_full[0] = 1.f;
-  gp.v_full[1] = 0.f;
-  gp.v_full[2] = 0.f;
-  gp.a_grav[0] = 0.f;
-  gp.a_grav[1] = 0.f;
-  gp.a_grav[2] = 0.f;
-  gp.time_bin = 43;
-
-  struct gpart* gpart_pointer = stragglers_add_gpart(stragglers,&gp);
-
-  struct g_straggler_link* new_glink = malloc(sizeof(struct g_straggler_link));
-
-  new_glink->gp = gpart_pointer;
-  new_glink->next = c->g_straggler_next;
-  c->g_straggler_next = new_glink;
-  c->straggler_gcount++;
-
-  /* Then create spart which links to this gpart */
-
-  struct spart sp;
-  sp.id = 10000 + stragglers->scount;
-  sp.x[0] = c->loc[0];
-  sp.x[1] = c->loc[1];
-  sp.x[2] = c->loc[2];
-  sp.v[0] = 1.f;
-  sp.v[1] = 0.f;
-  sp.v[2] = 0.f;
-  sp.time_bin = 43;
-  sp.gpart = gpart_pointer;
-
-  
-  struct spart* spart_pointer = stragglers_add_spart(stragglers,&sp);
-  
-  struct s_straggler_link* new_slink = malloc(sizeof(struct s_straggler_link));
-
-  new_slink->sp = spart_pointer;
-  new_slink->next = c->s_straggler_next;
-  c->s_straggler_next = new_slink;
-  c->straggler_scount++;
-}
