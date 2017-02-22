@@ -48,6 +48,7 @@
 #include "space.h"
 #include "task.h"
 #include "units.h"
+#include "star_formation.h"
 
 /* Some constants. */
 enum engine_policy {
@@ -66,7 +67,8 @@ enum engine_policy {
   engine_policy_drift_all = (1 << 11),
   engine_policy_cooling = (1 << 12),
   engine_policy_sourceterms = (1 << 13),
-  engine_policy_stars = (1 << 14)
+  engine_policy_stars = (1 << 14),
+  engine_policy_star_formation = (1 << 15)
 };
 
 extern const char *engine_policy_names[];
@@ -206,6 +208,9 @@ struct engine {
   /* Properties of source terms */
   struct sourceterms *sourceterms;
 
+  /* Properties of the star formation model */
+  struct star_formation_data *star_formation;
+
   /* The (parsed) parameter file */
   const struct swift_params *parameter_file;
 };
@@ -224,7 +229,8 @@ void engine_init(struct engine *e, struct space *s,
                  const struct hydro_props *hydro,
                  const struct external_potential *potential,
                  const struct cooling_function_data *cooling,
-                 struct sourceterms *sourceterms);
+                 struct sourceterms *sourceterms,
+		 const struct star_formation_data *star_formation);
 void engine_launch(struct engine *e, int nr_runners);
 void engine_prepare(struct engine *e, int drift_all, int postrepart);
 void engine_print(struct engine *e);

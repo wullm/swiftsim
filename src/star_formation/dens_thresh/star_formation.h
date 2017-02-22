@@ -61,7 +61,7 @@ struct star_formation_data {
 __attribute__((always_inline)) INLINE static void do_star_formation(
     const struct star_formation_data* restrict star_formation,
     const struct phys_const* restrict phys_const, struct stragglers* restrict stragglers,
-    struct part* restrict p, struct cell* restrict c) {
+    struct part* restrict p, struct cell* restrict c, const float dt) {
 
   /* Get particle density */
   const float rho = hydro_get_density(p);

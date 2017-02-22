@@ -262,6 +262,54 @@ void runner_do_cooling(struct runner *r, struct cell *c, int timer) {
 }
 
 /**
+ * @brief Create star particles based on the properties of the gas particles in the cell
+ *
+ * @param r runner task
+ * @param c cell
+ * @param timer 1 if the time is to be recorded.
+ */
+void runner_do_star_formation(struct runner *r, struct cell *c, int timer) {
+
+  struct part *restrict parts = c->parts;
+  const int count = c->count;
+  const struct engine *e = r->e;
+  const struct star_formation_data *star_formation = e->star_formation;
+  const struct phys_const *constants = e->physical_constants;
+  const struct UnitSystem *us = e->internalUnits;
+  struct stragglers *stragglers = e->s->stragglers;
+  const double timeBase = e->timeBase;
+
+  //TIMER_TIC;
+
+  /* Anything to do here? */
+  if (!cell_is_active(c, e)) return;
+
+  /* Recurse? */
+  if (c->split) {
+    for (int k = 0; k < 8; k++)
+      if (c->progeny[k] != NULL) runner_do_star_formation(r, c->progeny[k], 0);
+  } else {
+
+    /* Loop over the parts in this cell. */
+    for (int i = 0; i < count; i++) {
+
+      /* Get a direct pointer on the part. */
+      struct part *restrict p = &parts[i];
+
+      if (part_is_active(p, e)) {
+
+        /* Do star formation */
+	const double dt = get_timestep(p->time_bin, timeBase);
+        do_star_formation(star_formation, constants, stragglers, p, c, dt);
+      }
+    }
+    
+  }
+
+  //if (timer) TIMER_TOC(timer_do_star_formation);
+}
+
+/**
  * @brief Sort the entries in ascending order using QuickSort.
  *
  * @param sort The entries

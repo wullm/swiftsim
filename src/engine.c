@@ -89,7 +89,8 @@ const char *engine_policy_names[16] = {"none",
                                        "drift_all",
                                        "cooling",
                                        "sourceterms",
-                                       "stars"};
+                                       "stars",
+                                       "star_formation"};
 
 /** The rank of the engine as a global variable (for messages). */
 int engine_rank;
@@ -3453,7 +3454,8 @@ void engine_init(struct engine *e, struct space *s,
                  const struct hydro_props *hydro,
                  const struct external_potential *potential,
                  const struct cooling_function_data *cooling_func,
-                 struct sourceterms *sourceterms) {
+                 struct sourceterms *sourceterms,
+		 const struct star_formation_data *star_formation) {
 
   /* Clean-up everything */
   bzero(e, sizeof(struct engine));
@@ -3506,6 +3508,7 @@ void engine_init(struct engine *e, struct space *s,
   e->external_potential = potential;
   e->cooling_func = cooling_func;
   e->sourceterms = sourceterms;
+  e->star_formation = star_formation;
   e->parameter_file = params;
   engine_rank = nodeID;
 

@@ -82,6 +82,7 @@ void print_help_message() {
   printf("  %2s %8s %s\n", "-n", "{int}",
          "Execute a fixed number of time steps. When unset use the time_end "
          "parameter to stop.");
+  printf("  %2s %8s %s\n", "-r", "", "Run with star formation");
   printf("  %2s %8s %s\n", "-s", "", "Run with SPH");
   printf("  %2s %8s %s\n", "-S", "", "Run with stars");
   printf("  %2s %8s %s\n", "-t", "{int}",
@@ -158,6 +159,7 @@ int main(int argc, char *argv[]) {
   int with_self_gravity = 0;
   int with_hydro = 0;
   int with_stars = 0;
+  int with_star_formation = 0;
   int with_fp_exceptions = 0;
   int with_drift_all = 0;
   int verbose = 0;
@@ -212,6 +214,9 @@ int main(int argc, char *argv[]) {
           return 1;
         }
         break;
+      case 'r':
+        with_star_formation = 1;
+	break;
       case 's':
         with_hydro = 1;
         break;
@@ -495,6 +500,11 @@ int main(int argc, char *argv[]) {
   if (with_sourceterms) sourceterms_init(params, &us, &sourceterms);
   if (with_sourceterms && myrank == 0) sourceterms_print(&sourceterms);
 
+  /* Initialise the star formation properties */
+  struct star_formation_data star_formation;
+  if (with_star_formation) star_formation_init(params, &us, &sourceterms);
+  if (with_star_formation && myrank == 0) star_formation_print(&sourceterms);
+
   /* Construct the engine policy */
   int engine_policies = ENGINE_POLICY | engine_policy_steal;
   if (with_drift_all) engine_policies |= engine_policy_drift_all;
@@ -505,13 +515,14 @@ int main(int argc, char *argv[]) {
   if (with_cooling) engine_policies |= engine_policy_cooling;
   if (with_sourceterms) engine_policies |= engine_policy_sourceterms;
   if (with_stars) engine_policies |= engine_policy_stars;
+  if (with_star_formation) engine_policies |= engine_policy_star_formation;
 
   /* Initialize the engine with the space and policies. */
   if (myrank == 0) clocks_gettime(&tic);
   struct engine e;
   engine_init(&e, &s, params, nr_nodes, myrank, nr_threads, with_aff,
               engine_policies, talking, &us, &prog_const, &hydro_properties,
-              &potential, &cooling_func, &sourceterms);
+              &potential, &cooling_func, &sourceterms, &star_formation);
   if (myrank == 0) {
     clocks_gettime(&toc);
     message("engine_init took %.3f %s.", clocks_diff(&tic, &toc),
