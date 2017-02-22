@@ -74,7 +74,7 @@
 /* Particle cache size. */
 #define CACHE_SIZE 512
 
-const char *engine_policy_names[16] = {"none",
+const char *engine_policy_names[17] = {"none",
                                        "rand",
                                        "steal",
                                        "keep",
@@ -135,6 +135,7 @@ void engine_make_hierarchical_tasks(struct engine *e, struct cell *c) {
   const int is_hydro = (e->policy & engine_policy_hydro);
   const int is_with_cooling = (e->policy & engine_policy_cooling);
   const int is_with_sourceterms = (e->policy & engine_policy_sourceterms);
+  const int is_with_star_formation = (e->policy & engine_policy_star_formation);
 
   /* Are we in a super-cell ? */
   if (c->super == c) {
@@ -189,6 +190,12 @@ void engine_make_hierarchical_tasks(struct engine *e, struct cell *c) {
       /* add source terms */
       if (is_with_sourceterms) {
         c->sourceterms = scheduler_addtask(s, task_type_sourceterms,
+                                           task_subtype_none, 0, 0, c, NULL, 0);
+      }
+
+      /* add star formation */
+      if (is_with_star_formation) {
+        c->star_formation = scheduler_addtask(s, task_type_star_formation,
                                            task_subtype_none, 0, 0, c, NULL, 0);
       }
     }
@@ -2355,7 +2362,8 @@ void engine_marktasks_mapper(void *map_data, int num_elements,
     /* Single-cell task? */
     if (t->type == task_type_self || t->type == task_type_ghost ||
         t->type == task_type_extra_ghost || t->type == task_type_cooling ||
-        t->type == task_type_sourceterms || t->type == task_type_sub_self) {
+        t->type == task_type_sourceterms || t->type == task_type_star_formation ||
+	t->type == task_type_sub_self) {
 
       /* Set this task's skip. */
       if (cell_is_active(t->ci, e)) scheduler_activate(s, t);
@@ -2869,7 +2877,7 @@ void engine_skip_force_and_kick(struct engine *e) {
     if (t->type == task_type_drift || t->type == task_type_kick1 ||
         t->type == task_type_kick2 || t->type == task_type_timestep ||
         t->subtype == task_subtype_force || t->type == task_type_cooling ||
-        t->type == task_type_sourceterms)
+        t->type == task_type_sourceterms || t->type == task_type_star_formation)
       t->skip = 1;
   }
 }

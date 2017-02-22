@@ -209,7 +209,7 @@ struct engine {
   struct sourceterms *sourceterms;
 
   /* Properties of the star formation model */
-  struct star_formation_data *star_formation;
+  const struct star_formation_data *star_formation;
 
   /* The (parsed) parameter file */
   const struct swift_params *parameter_file;

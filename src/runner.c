@@ -275,7 +275,6 @@ void runner_do_star_formation(struct runner *r, struct cell *c, int timer) {
   const struct engine *e = r->e;
   const struct star_formation_data *star_formation = e->star_formation;
   const struct phys_const *constants = e->physical_constants;
-  const struct UnitSystem *us = e->internalUnits;
   struct stragglers *stragglers = e->s->stragglers;
   const double timeBase = e->timeBase;
 
@@ -2090,6 +2089,9 @@ void *runner_main(void *data) {
           break;
         case task_type_sourceterms:
           runner_do_sourceterms(r, t->ci, 1);
+          break;
+	case task_type_star_formation:
+          runner_do_star_formation(r, t->ci, 1);
           break;
         default:
           error("Unknown/invalid task type (%d).", t->type);

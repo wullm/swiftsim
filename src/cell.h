@@ -182,6 +182,9 @@ struct cell {
   /*! Task for source terms */
   struct task *sourceterms;
 
+  /*! Task for star formation */
+  struct task *star_formation;
+
 #ifdef WITH_MPI
 
   /* Task receiving data (positions). */

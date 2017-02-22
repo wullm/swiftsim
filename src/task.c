@@ -52,7 +52,7 @@ const char *taskID_names[task_type_count] = {
     "sub_pair",      "init",     "ghost",    "extra_ghost", "drift",
     "kick1",         "kick2",    "timestep", "send",        "recv",
     "grav_gather_m", "grav_fft", "grav_mm",  "grav_up",     "cooling",
-    "sourceterms"};
+    "sourceterms", "star_formation"};
 
 const char *subtaskID_names[task_subtype_count] = {
     "none", "density", "gradient", "force", "grav", "external_grav",
@@ -121,6 +121,7 @@ __attribute__((always_inline)) INLINE static enum task_actions task_acts_on(
     case task_type_extra_ghost:
     case task_type_cooling:
     case task_type_sourceterms:
+    case task_type_star_formation:
       return task_action_part;
       break;
 

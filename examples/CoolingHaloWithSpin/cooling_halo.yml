@@ -49,3 +49,8 @@ LambdaCooling:
   mean_molecular_weight:       0.59   # Mean molecular weight
   hydrogen_mass_abundance:     0.75   # Hydrogen mass abundance (dimensionless)
   cooling_tstep_mult:          0.1    # Dimensionless pre-factor for the time-step condition
+
+#Star formation parameter
+DensThreshStarFormation:
+ number_density_threshold_cgs: 1.0e-1 
+ hydrogen_mass_abundance:      0.75

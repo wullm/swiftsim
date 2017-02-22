@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
 
   /* Parse the parameters */
   int c;
-  while ((c = getopt(argc, argv, "acCdDef:FgGhn:sSt:v:y:")) != -1) switch (c) {
+  while ((c = getopt(argc, argv, "acCdDef:FgGhn:rsSt:v:y:")) != -1) switch (c) {
       case 'a':
         with_aff = 1;
         break;
@@ -502,8 +502,8 @@ int main(int argc, char *argv[]) {
 
   /* Initialise the star formation properties */
   struct star_formation_data star_formation;
-  if (with_star_formation) star_formation_init(params, &us, &sourceterms);
-  if (with_star_formation && myrank == 0) star_formation_print(&sourceterms);
+  if (with_star_formation) star_formation_init(params, &us, &prog_const, &star_formation);
+  if (with_star_formation && myrank == 0) star_formation_print(&star_formation);
 
   /* Construct the engine policy */
   int engine_policies = ENGINE_POLICY | engine_policy_steal;

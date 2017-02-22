@@ -68,6 +68,23 @@ __attribute__((always_inline)) INLINE static void do_star_formation(
   
   if (rho > star_formation->density_threshold){
     
+    /* Create gpart with same properties as the gas particle's gpart */
+    struct gpart new_gpart = *(p->gpart);
+
+    /* Mark it as a star */
+    new_gpart.type = swift_type_star;
+    
+    /* Add it to the straggler gpart array */
+    struct gpart* new_gpart_pointer = stragglers_add_gpart(stragglers,&new_gpart);
+
+    /* Create a link to it from the cell */
+    struct g_straggler_link* new_glink = malloc(sizeof(struct g_straggler_link));
+
+    new_glink->gp = new_gpart_pointer;
+    new_glink->next = c->g_straggler_next;
+    c->g_straggler_next = new_glink;
+    c->straggler_gcount++;
+
     /* Create star with same properties as the gas particle */
     struct spart new_star;
     new_star.id = p->id;
@@ -79,11 +96,14 @@ __attribute__((always_inline)) INLINE static void do_star_formation(
     new_star.v[1] = p->v[1];
     new_star.v[2] = p->v[2];
     new_star.time_bin = p->time_bin;
-    new_star.gpart = p->gpart;
+    
+    /* Make it link to the gpart we just created */
+    new_star.gpart =new_gpart_pointer;
 
-    /* Add spart as to the cell as a straggler */
+    /* Add it to the straggler spart array */
     struct spart* new_star_pointer = stragglers_add_spart(stragglers,&new_star);
   
+    /* Create a link to it from the cell */
     struct s_straggler_link* new_slink = malloc(sizeof(struct s_straggler_link));
 
     new_slink->sp = new_star_pointer;
@@ -91,11 +111,11 @@ __attribute__((always_inline)) INLINE static void do_star_formation(
     c->s_straggler_next = new_slink;
     c->straggler_scount++;
 
-    /* For now we 'delete' the gas particle by setting its mass to be zero and its 
-       time bin to be very high so that it no longer interacts */
+    /* For now we 'delete' the gas particle by setting  its 
+       time bin to be very high so that it no longer interacts. */
 
-    p->mass = 0.0;
     p->time_bin = 128;
+    p->gpart->time_bin = 128;
   }
 }
 
