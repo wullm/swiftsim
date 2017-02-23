@@ -821,9 +821,8 @@ void scheduler_ranktasks(struct scheduler *s) {
   /* Run through the tasks and get all the waits right. */
   for (int i = 0; i < nr_tasks; i++) {
     struct task *t = &tasks[i];
-
     // Increment the waits of the dependances
-    for (int k = 0; k < t->nr_unlock_tasks; k++) {
+    for (int k = 0; k < t->nr_unlock_tasks; k++) {     
       t->unlock_tasks[k]->wait++;
     }
   }

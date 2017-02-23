@@ -109,8 +109,8 @@ __attribute__((always_inline)) INLINE static int part_is_active(
 #ifdef SWIFT_DEBUG_CHECKS
   if (ti_end < ti_current)
     error(
-        "particle in an impossible time-zone! p->ti_end=%lld "
-        "e->ti_current=%lld",
+        "particle in an impossible time-zone! p->time_bin = %d ,p->ti_end=%lld "
+        "e->ti_current=%lld", p->time_bin,
         ti_end, ti_current);
 #endif
 

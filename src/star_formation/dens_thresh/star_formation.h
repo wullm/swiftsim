@@ -66,7 +66,7 @@ __attribute__((always_inline)) INLINE static void do_star_formation(
   /* Get particle density */
   const float rho = hydro_get_density(p);
   
-  if (rho > star_formation->density_threshold){
+  if (rho > star_formation->density_threshold && dt > 0.0){
     
     /* Create gpart with same properties as the gas particle's gpart */
     struct gpart new_gpart = *(p->gpart);
@@ -111,11 +111,12 @@ __attribute__((always_inline)) INLINE static void do_star_formation(
     c->s_straggler_next = new_slink;
     c->straggler_scount++;
 
-    /* For now we 'delete' the gas particle by setting  its 
-       time bin to be very high so that it no longer interacts. */
+    /* For now we 'delete' the gas particle by setting its id to be negative. In 'runner_do_timestep' we then
+     set the time_bin of the part to be 64 so that it is inactive*/
 
-    p->time_bin = 128;
-    p->gpart->time_bin = 128;
+    printf("ID of particle is %lld \n",p->id);
+    p->id *= -1;
+  
   }
 }
 

@@ -179,28 +179,37 @@ void engine_make_hierarchical_tasks(struct engine *e, struct cell *c) {
                                            task_subtype_none, 0, 0, c, NULL, 0);
 #endif
 
-      /* Cooling task */
+      /* Cooling and star formation tasks */
       if (is_with_cooling) {
         c->cooling = scheduler_addtask(s, task_type_cooling, task_subtype_none,
                                        0, 0, c, NULL, 0);
 
-        scheduler_addunlock(s, c->cooling, c->kick2);
+	if (is_with_star_formation){
+	  c->star_formation = scheduler_addtask(s, task_type_star_formation,
+                                           task_subtype_none, 0, 0, c, NULL, 0);
+	  scheduler_addunlock(s, c->cooling, c->star_formation);
+	}
+	else{
+	  scheduler_addunlock(s, c->cooling, c->kick2);
+	}
       }
+      else {
+	if (is_with_star_formation) {
+        c->star_formation = scheduler_addtask(s, task_type_star_formation,
+                                           task_subtype_none, 0, 0, c, NULL, 0);
+	scheduler_addunlock(s, c->star_formation, c->kick2);
 
+	}
+      }
+	
       /* add source terms */
       if (is_with_sourceterms) {
         c->sourceterms = scheduler_addtask(s, task_type_sourceterms,
                                            task_subtype_none, 0, 0, c, NULL, 0);
       }
-
-      /* add star formation */
-      if (is_with_star_formation) {
-        c->star_formation = scheduler_addtask(s, task_type_star_formation,
-                                           task_subtype_none, 0, 0, c, NULL, 0);
-      }
     }
-
-  } else { /* We are above the super-cell so need to go deeper */
+  }
+  else { /* We are above the super-cell so need to go deeper */
 
 #ifdef SWIFT_DEBUG_CHECKS
     if (c->super != NULL) error("Incorrectly set super pointer");
@@ -212,6 +221,7 @@ void engine_make_hierarchical_tasks(struct engine *e, struct cell *c) {
         if (c->progeny[k] != NULL)
           engine_make_hierarchical_tasks(e, c->progeny[k]);
   }
+ 
 }
 
 /**
@@ -1938,7 +1948,7 @@ void engine_link_gravity_tasks(struct engine *e) {
  */
 static inline void engine_make_hydro_loops_dependencies(
     struct scheduler *sched, struct task *density, struct task *gradient,
-    struct task *force, struct cell *c, int with_cooling) {
+    struct task *force, struct cell *c, int with_cooling, int with_star_formation) {
   /* init --> density loop --> ghost --> gradient loop --> extra_ghost */
   /* extra_ghost --> force loop  */
   scheduler_addunlock(sched, c->super->init, density);
@@ -1951,8 +1961,13 @@ static inline void engine_make_hydro_loops_dependencies(
     /* force loop --> cooling (--> kick2)  */
     scheduler_addunlock(sched, force, c->super->cooling);
   } else {
-    /* force loop --> kick2 */
-    scheduler_addunlock(sched, force, c->super->kick2);
+    if (with_star_formation){
+     /* force loop --> star formation (--> kick2)  */ 
+     scheduler_addunlock(sched, force, c->super->star_formation); 
+    } else {
+      /* force loop --> kick2 */
+      scheduler_addunlock(sched, force, c->super->kick2);
+    }
   }
 }
 
@@ -1971,7 +1986,8 @@ static inline void engine_make_hydro_loops_dependencies(struct scheduler *sched,
                                                         struct task *density,
                                                         struct task *force,
                                                         struct cell *c,
-                                                        int with_cooling) {
+                                                        int with_cooling,
+							int with_star_formation) {
   /* init --> density loop --> ghost --> force loop */
   scheduler_addunlock(sched, c->super->init, density);
   scheduler_addunlock(sched, density, c->super->ghost);
@@ -1981,8 +1997,13 @@ static inline void engine_make_hydro_loops_dependencies(struct scheduler *sched,
     /* force loop --> cooling (--> kick2)  */
     scheduler_addunlock(sched, force, c->super->cooling);
   } else {
-    /* force loop --> kick2 */
-    scheduler_addunlock(sched, force, c->super->kick2);
+     if (with_star_formation){
+     /* force loop --> star formation (--> kick2)  */ 
+     scheduler_addunlock(sched, force, c->super->star_formation); 
+     } else {
+       /* force loop --> kick2 */
+       scheduler_addunlock(sched, force, c->super->kick2);
+     }
   }
 }
 
@@ -2005,7 +2026,7 @@ void engine_make_extra_hydroloop_tasks(struct engine *e) {
   const int nr_tasks = sched->nr_tasks;
   const int nodeID = e->nodeID;
   const int with_cooling = (e->policy & engine_policy_cooling);
-
+  const int with_star_formation = (e->policy & engine_policy_star_formation);
   for (int ind = 0; ind < nr_tasks; ind++) {
     struct task *t = &sched->tasks[ind];
 
@@ -2025,7 +2046,7 @@ void engine_make_extra_hydroloop_tasks(struct engine *e) {
 
       /* Now, build all the dependencies for the hydro */
       engine_make_hydro_loops_dependencies(sched, t, t2, t3, t->ci,
-                                           with_cooling);
+                                           with_cooling, with_star_formation);
 
 #else
 
@@ -2037,7 +2058,7 @@ void engine_make_extra_hydroloop_tasks(struct engine *e) {
       engine_addlink(e, &t->ci->force, t2);
 
       /* Now, build all the dependencies for the hydro */
-      engine_make_hydro_loops_dependencies(sched, t, t2, t->ci, with_cooling);
+      engine_make_hydro_loops_dependencies(sched, t, t2, t->ci, with_cooling, with_star_formation);
 #endif
     }
 
@@ -2061,11 +2082,11 @@ void engine_make_extra_hydroloop_tasks(struct engine *e) {
       /* that are local and are not descendant of the same super-cells */
       if (t->ci->nodeID == nodeID) {
         engine_make_hydro_loops_dependencies(sched, t, t2, t3, t->ci,
-                                             with_cooling);
+                                             with_cooling, with_star_formation);
       }
       if (t->cj->nodeID == nodeID && t->ci->super != t->cj->super) {
         engine_make_hydro_loops_dependencies(sched, t, t2, t3, t->cj,
-                                             with_cooling);
+                                             with_cooling, with_star_formation);
       }
 
 #else
@@ -2081,10 +2102,10 @@ void engine_make_extra_hydroloop_tasks(struct engine *e) {
       /* Now, build all the dependencies for the hydro for the cells */
       /* that are local and are not descendant of the same super-cells */
       if (t->ci->nodeID == nodeID) {
-        engine_make_hydro_loops_dependencies(sched, t, t2, t->ci, with_cooling);
+        engine_make_hydro_loops_dependencies(sched, t, t2, t->ci, with_cooling, with_star_formation);
       }
       if (t->cj->nodeID == nodeID && t->ci->super != t->cj->super) {
-        engine_make_hydro_loops_dependencies(sched, t, t2, t->cj, with_cooling);
+        engine_make_hydro_loops_dependencies(sched, t, t2, t->cj, with_cooling, with_star_formation);
       }
 
 #endif
@@ -2113,7 +2134,7 @@ void engine_make_extra_hydroloop_tasks(struct engine *e) {
       /* that are local and are not descendant of the same super-cells */
       if (t->ci->nodeID == nodeID) {
         engine_make_hydro_loops_dependencies(sched, t, t2, t3, t->ci,
-                                             with_cooling);
+                                             with_cooling, with_star_formation);
       }
 
 #else
@@ -2128,7 +2149,7 @@ void engine_make_extra_hydroloop_tasks(struct engine *e) {
       /* Now, build all the dependencies for the hydro for the cells */
       /* that are local and are not descendant of the same super-cells */
       if (t->ci->nodeID == nodeID) {
-        engine_make_hydro_loops_dependencies(sched, t, t2, t->ci, with_cooling);
+        engine_make_hydro_loops_dependencies(sched, t, t2, t->ci, with_cooling, with_star_formation);
       }
 #endif
     }
@@ -2157,11 +2178,11 @@ void engine_make_extra_hydroloop_tasks(struct engine *e) {
       /* that are local and are not descendant of the same super-cells */
       if (t->ci->nodeID == nodeID) {
         engine_make_hydro_loops_dependencies(sched, t, t2, t3, t->ci,
-                                             with_cooling);
+                                             with_cooling, with_star_formation);
       }
       if (t->cj->nodeID == nodeID && t->ci->super != t->cj->super) {
         engine_make_hydro_loops_dependencies(sched, t, t2, t3, t->cj,
-                                             with_cooling);
+                                             with_cooling, with_star_formation);
       }
 
 #else
@@ -2177,10 +2198,10 @@ void engine_make_extra_hydroloop_tasks(struct engine *e) {
       /* Now, build all the dependencies for the hydro for the cells */
       /* that are local and are not descendant of the same super-cells */
       if (t->ci->nodeID == nodeID) {
-        engine_make_hydro_loops_dependencies(sched, t, t2, t->ci, with_cooling);
+        engine_make_hydro_loops_dependencies(sched, t, t2, t->ci, with_cooling, with_star_formation);
       }
       if (t->cj->nodeID == nodeID && t->ci->super != t->cj->super) {
-        engine_make_hydro_loops_dependencies(sched, t, t2, t->cj, with_cooling);
+        engine_make_hydro_loops_dependencies(sched, t, t2, t->cj, with_cooling, with_star_formation);
       }
 #endif
     }

@@ -1306,7 +1306,7 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
       /* Get a handle on the part. */
       struct part *restrict p = &parts[k];
       struct xpart *restrict xp = &xparts[k];
-
+      
       /* If particle needs updating */
       if (part_is_active(p, e)) {
 
@@ -1319,20 +1319,29 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
           error("Computing time-step of rogue particle.");
 #endif
 
-        /* Get new time-step */
-        const integertime_t ti_new_step = get_part_timestep(p, xp, e);
+	/* Particles we have 'destroyed' by turning into stars */
+	if (p->id < 0){
+	  p->time_bin = 65;
+	  p->gpart->time_bin = 65;
+	  
+	}
+	else{
 
-        /* Update particle */
-        p->time_bin = get_time_bin(ti_new_step);
-        if (p->gpart != NULL) p->gpart->time_bin = get_time_bin(ti_new_step);
+	  /* Get new time-step */
+	  const integertime_t ti_new_step = get_part_timestep(p, xp, e);
 
-        /* Number of updated particles */
-        updated++;
-        if (p->gpart != NULL) g_updated++;
+	  /* Update particle */
+	  p->time_bin = get_time_bin(ti_new_step);
+	  if (p->gpart != NULL) p->gpart->time_bin = get_time_bin(ti_new_step);
 
-        /* What is the next sync-point ? */
-        ti_end_min = min(ti_current + ti_new_step, ti_end_min);
-        ti_end_max = max(ti_current + ti_new_step, ti_end_max);
+	  /* What is the next sync-point ? */
+	  ti_end_min = min(ti_current + ti_new_step, ti_end_min);
+	  ti_end_max = max(ti_current + ti_new_step, ti_end_max);
+	}
+
+	/* Number of updated particles */
+	updated++;
+	if (p->gpart != NULL) g_updated++;
       }
 
       else { /* part is inactive */
