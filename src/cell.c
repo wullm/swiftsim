@@ -1282,9 +1282,13 @@ void cell_drift_particles(struct cell *c, const struct engine *e) {
     /* Loop over all the g-particles in the cell */
     const size_t nr_gparts = c->gcount;
     for (size_t k = 0; k < nr_gparts; k++) {
-
+      
       /* Get a handle on the gpart. */
       struct gpart *const gp = &gparts[k];
+
+      /* If g-particle is permanently inactive, don't drift */
+      if (gp->time_bin == time_bin_inactive)
+	continue;
 
       /* Drift... */
       drift_gpart(gp, dt, timeBase, ti_old, ti_current);
@@ -1304,6 +1308,9 @@ void cell_drift_particles(struct cell *c, const struct engine *e) {
       struct part *const p = &parts[k];
       struct xpart *const xp = &xparts[k];
 
+      /* If particle is permanently inactive, don't drift */
+      if (p->time_bin == time_bin_inactive)
+	continue;
       /* Drift... */
       drift_part(p, xp, dt, timeBase, ti_old, ti_current);
 
@@ -1324,6 +1331,10 @@ void cell_drift_particles(struct cell *c, const struct engine *e) {
       /* Get a handle on the spart. */
       struct spart *const sp = &sparts[k];
 
+      /* If star particle is permanently inactive, don't drift */
+      if (sp->time_bin == time_bin_inactive)
+	continue;
+
       /* Drift... */
       drift_spart(sp, dt, timeBase, ti_old, ti_current);
 
@@ -1334,8 +1345,15 @@ void cell_drift_particles(struct cell *c, const struct engine *e) {
     const size_t nr_gpart_stragglers = c->straggler_gcount;
     for (size_t k = 0; k < nr_gpart_stragglers; k++) {
 
-      /* Get a handle on the star particle. */
+      /* Get a handle on the g-particle. */
       struct gpart *const gp = glink->gp;
+
+      /* If g-particle is permanently inactive, don't drift */
+      if (gp->time_bin == time_bin_inactive){
+	/* Get pointer to next gpart straggler link */
+	glink = glink->next;
+	continue;
+      }
 
       /* Drift... */
       drift_gpart(gp, dt, timeBase, ti_old, ti_current);
@@ -1357,6 +1375,12 @@ void cell_drift_particles(struct cell *c, const struct engine *e) {
       /* Get a handle on the star particle. */
       struct spart *const sp = slink->sp;
 
+      /* If particle is permanently inactive, don't drift */
+      if (sp->time_bin == time_bin_inactive){
+	/* Get pointer to next spart straggler link */
+	slink = slink->next;
+	continue;
+      }
       /* Drift... */
       drift_spart(sp, dt, timeBase, ti_old, ti_current);
 

@@ -107,11 +107,11 @@ __attribute__((always_inline)) INLINE static int part_is_active(
   const integertime_t ti_end = get_integer_time_end(ti_current, p->time_bin);
 
 #ifdef SWIFT_DEBUG_CHECKS
-  if (ti_end < ti_current)
-    error(
-        "particle in an impossible time-zone! p->time_bin = %d ,p->ti_end=%lld "
-        "e->ti_current=%lld", p->time_bin,
-        ti_end, ti_current);
+  /* if (ti_end < ti_current) */
+  /*   error( */
+  /*       "particle in an impossible time-zone! p->time_bin = %d ,p->ti_end=%lld " */
+  /*       "e->ti_current=%lld", p->time_bin, */
+  /*       ti_end, ti_current); */
 #endif
 
   return (ti_end == ti_current);

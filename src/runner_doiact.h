@@ -155,6 +155,11 @@ void DOPAIR_NAIVE(struct runner *r, struct cell *restrict ci,
 
     /* Get a hold of the ith part in ci. */
     struct part *restrict pi = &parts_i[pid];
+    
+    /* Skip this part if permanently inactive */
+    if (pi->time_bin == time_bin_inactive)
+      continue;
+
     const float hi = pi->h;
 
     double pix[3];
@@ -166,6 +171,10 @@ void DOPAIR_NAIVE(struct runner *r, struct cell *restrict ci,
 
       /* Get a pointer to the jth particle. */
       struct part *restrict pj = &parts_j[pjd];
+
+      /* Skip this part if permanently inactive */
+      if (pj->time_bin == time_bin_inactive)
+	continue;
 
       /* Compute the pairwise distance. */
       float r2 = 0.0f;
@@ -246,6 +255,10 @@ void DOSELF_NAIVE(struct runner *r, struct cell *restrict c) {
 
     /* Get a hold of the ith part in ci. */
     struct part *restrict pi = &parts[pid];
+    
+    /* Skip this part if permanently inactive */
+    if (pi->time_bin == time_bin_inactive)
+      continue;
     const double pix[3] = {pi->x[0], pi->x[1], pi->x[2]};
     const float hi = pi->h;
     const float hig2 = hi * hi * kernel_gamma2;
@@ -255,6 +268,10 @@ void DOSELF_NAIVE(struct runner *r, struct cell *restrict c) {
 
       /* Get a pointer to the jth particle. */
       struct part *restrict pj = &parts[pjd];
+
+      /* Skip this part if permanently inactive */
+      if (pj->time_bin == time_bin_inactive)
+	continue;
 
       /* Compute the pairwise distance. */
       float r2 = 0.0f;
@@ -354,6 +371,10 @@ void DOPAIR_SUBSET_NAIVE(struct runner *r, struct cell *restrict ci,
 
     /* Get a hold of the ith part in ci. */
     struct part *restrict pi = &parts_i[ind[pid]];
+
+    /* Skip this part if permanently inactive */
+    if (pi->time_bin == time_bin_inactive)
+      continue;
     double pix[3];
     for (int k = 0; k < 3; k++) pix[k] = pi->x[k] - shift[k];
     const float hi = pi->h;
@@ -364,6 +385,10 @@ void DOPAIR_SUBSET_NAIVE(struct runner *r, struct cell *restrict ci,
 
       /* Get a pointer to the jth particle. */
       struct part *restrict pj = &parts_j[pjd];
+
+      /* Skip this part if permanently inactive */
+      if (pj->time_bin == time_bin_inactive)
+	continue;
 
       /* Compute the pairwise distance. */
       float r2 = 0.0f;
@@ -489,6 +514,11 @@ void DOPAIR_SUBSET(struct runner *r, struct cell *restrict ci,
 
       /* Get a hold of the ith part in ci. */
       struct part *restrict pi = &parts_i[ind[pid]];
+
+      /* Skip this part if permanently inactive */
+      if (pi->time_bin == time_bin_inactive)
+	continue;
+
       double pix[3];
       for (int k = 0; k < 3; k++) pix[k] = pi->x[k] - shift[k];
 
@@ -503,6 +533,10 @@ void DOPAIR_SUBSET(struct runner *r, struct cell *restrict ci,
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pj = &parts_j[sort_j[pjd].i];
+
+	/* Skip this part if permanently inactive */
+	if (pj->time_bin == time_bin_inactive)
+	  continue;
 
         /* Compute the pairwise distance. */
         float r2 = 0.0f;
@@ -555,6 +589,11 @@ void DOPAIR_SUBSET(struct runner *r, struct cell *restrict ci,
 
       /* Get a hold of the ith part in ci. */
       struct part *restrict pi = &parts_i[ind[pid]];
+
+      /* Skip this part if permanently inactive */
+      if (pi->time_bin == time_bin_inactive)
+	continue;
+
       double pix[3];
       for (int k = 0; k < 3; k++) pix[k] = pi->x[k] - shift[k];
       const float hi = pi->h;
@@ -568,6 +607,10 @@ void DOPAIR_SUBSET(struct runner *r, struct cell *restrict ci,
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pj = &parts_j[sort_j[pjd].i];
+
+	/* Skip this part if permanently inactive */
+	if (pj->time_bin == time_bin_inactive)
+	  continue;
 
         /* Compute the pairwise distance. */
         float r2 = 0.0f;
@@ -653,6 +696,10 @@ void DOSELF_SUBSET(struct runner *r, struct cell *restrict ci,
 
     /* Get a hold of the ith part in ci. */
     struct part *restrict pi = &parts[ind[pid]];
+
+    /* Skip this part if permanently inactive */
+    if (pi->time_bin == time_bin_inactive)
+      continue;
     const double pix[3] = {pi->x[0], pi->x[1], pi->x[2]};
     const float hi = pi->h;
     const float hig2 = hi * hi * kernel_gamma2;
@@ -662,6 +709,10 @@ void DOSELF_SUBSET(struct runner *r, struct cell *restrict ci,
 
       /* Get a pointer to the jth particle. */
       struct part *restrict pj = &parts_j[pjd];
+
+      /* Skip this part if permanently inactive */
+      if (pj->time_bin == time_bin_inactive)
+	continue;
 
       /* Compute the pairwise distance. */
       float r2 = 0.0f;
@@ -799,6 +850,10 @@ void DOPAIR1(struct runner *r, struct cell *ci, struct cell *cj) {
         /* Get a pointer to the jth particle. */
         struct part *restrict pj = &parts_j[sort_j[pjd].i];
 
+	/* Skip this part if permanently inactive */
+	if (pj->time_bin == time_bin_inactive)
+	  continue;
+
         /* Compute the pairwise distance. */
         float r2 = 0.0f;
         float dx[3];
@@ -872,6 +927,10 @@ void DOPAIR1(struct runner *r, struct cell *ci, struct cell *cj) {
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pi = &parts_i[sort_i[pid].i];
+
+	/* Skip this part if permanently inactive */
+	if (pi->time_bin == time_bin_inactive)
+	  continue;
 
         /* Compute the pairwise distance. */
         float r2 = 0.0f;
@@ -1038,6 +1097,11 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj) {
 
     /* Get a hold of the ith part in ci. */
     struct part *restrict pi = &parts_i[sort_i[pid].i];
+
+    /* Skip this part if permanently inactive */
+    if (pi->time_bin == time_bin_inactive)
+      continue;
+
     const float hi = pi->h;
     const double di = sort_i[pid].d + hi * kernel_gamma + dx_max - rshift;
     if (di < dj_min) continue;
@@ -1054,6 +1118,11 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj) {
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pj = &parts_j[sortdt_j[pjd].i];
+
+	/* Skip this part if permanently inactive */
+	if (pj->time_bin == time_bin_inactive)
+	  continue;
+
         const float hj = pj->h;
 
         /* Compute the pairwise distance. */
@@ -1113,6 +1182,11 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj) {
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pj = &parts_j[sort_j[pjd].i];
+
+	/* Skip this part if permanently inactive */
+	if (pj->time_bin == time_bin_inactive)
+	  continue;
+
         const float hj = pj->h;
 
         /* Compute the pairwise distance. */
@@ -1198,6 +1272,11 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj) {
 
     /* Get a hold of the jth part in cj. */
     struct part *restrict pj = &parts_j[sort_j[pjd].i];
+
+    /* Skip this part if permanently inactive */
+    if (pj->time_bin == time_bin_inactive)
+      continue;
+
     const float hj = pj->h;
     const double dj = sort_j[pjd].d - hj * kernel_gamma - dx_max - rshift;
     if (dj > di_max) continue;
@@ -1214,6 +1293,11 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj) {
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pi = &parts_i[sortdt_i[pid].i];
+
+	/* Skip this part if permanently inactive */
+	if (pi->time_bin == time_bin_inactive)
+	  continue;
+
         const float hi = pi->h;
 
         /* Compute the pairwise distance. */
@@ -1272,6 +1356,11 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj) {
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pi = &parts_i[sort_i[pid].i];
+
+	/* Skip this part if permanently inactive */
+	if (pi->time_bin == time_bin_inactive)
+	  continue;
+
         const float hi = pi->h;
 
         /* Compute the pairwise distance. */
@@ -1420,6 +1509,10 @@ void DOSELF1(struct runner *r, struct cell *restrict c) {
     /* Get a pointer to the ith particle. */
     struct part *restrict pi = &parts[pid];
 
+    /* Skip this part if permanently inactive */
+    if (pi->time_bin == time_bin_inactive)
+      continue;
+
     /* Get the particle position and radius. */
     double pix[3];
     for (int k = 0; k < 3; k++) pix[k] = pi->x[k];
@@ -1428,61 +1521,60 @@ void DOSELF1(struct runner *r, struct cell *restrict c) {
 
     /* Is the ith particle inactive? */
     if (!part_is_active(pi, e)) {
+ 
+        /* Loop over the other particles .*/
+	for (int pjd = firstdt; pjd < countdt; pjd++) {
 
-      /* Loop over the other particles .*/
-      for (int pjd = firstdt; pjd < countdt; pjd++) {
-
-        /* Get a pointer to the jth particle. */
-        struct part *restrict pj = &parts[indt[pjd]];
-        const float hj = pj->h;
+	  /* Get a pointer to the jth particle. */
+	  struct part *restrict pj = &parts[indt[pjd]];
+	  const float hj = pj->h;
 
 #ifdef SWIFT_DEBUG_CHECKS
-        /* Check that particles have been drifted to the current time */
-        if (pi->ti_drift != e->ti_current)
-          error("Particle pi not drifted to current time");
-        if (pj->ti_drift != e->ti_current)
-          error("Particle pj not drifted to current time");
+	  /* Check that particles have been drifted to the current time */
+	  if (pi->ti_drift != e->ti_current)
+	    error("Particle pi not drifted to current time");
+	  if (pj->ti_drift != e->ti_current)
+	    error("Particle pj not drifted to current time");
 #endif
 
-        /* Compute the pairwise distance. */
-        float r2 = 0.0f;
-        float dx[3];
-        for (int k = 0; k < 3; k++) {
-          dx[k] = pj->x[k] - pix[k];
-          r2 += dx[k] * dx[k];
-        }
+	  /* Compute the pairwise distance. */
+	  float r2 = 0.0f;
+	  float dx[3];
+	  for (int k = 0; k < 3; k++) {
+	    dx[k] = pj->x[k] - pix[k];
+	    r2 += dx[k] * dx[k];
+	  }
 
-        /* Hit or miss? */
-        if (r2 < hj * hj * kernel_gamma2) {
+	  /* Hit or miss? */
+	  if (r2 < hj * hj * kernel_gamma2) {
 
 #ifndef WITH_OLD_VECTORIZATION
 
-          IACT_NONSYM(r2, dx, hj, hi, pj, pi);
+	    IACT_NONSYM(r2, dx, hj, hi, pj, pi);
 
 #else
 
-          /* Add this interaction to the queue. */
-          r2q1[icount1] = r2;
-          dxq1[3 * icount1 + 0] = dx[0];
-          dxq1[3 * icount1 + 1] = dx[1];
-          dxq1[3 * icount1 + 2] = dx[2];
-          hiq1[icount1] = hj;
-          hjq1[icount1] = hi;
-          piq1[icount1] = pj;
-          pjq1[icount1] = pi;
-          icount1 += 1;
+	    /* Add this interaction to the queue. */
+	    r2q1[icount1] = r2;
+	    dxq1[3 * icount1 + 0] = dx[0];
+	    dxq1[3 * icount1 + 1] = dx[1];
+	    dxq1[3 * icount1 + 2] = dx[2];
+	    hiq1[icount1] = hj;
+	    hjq1[icount1] = hi;
+	    piq1[icount1] = pj;
+	    pjq1[icount1] = pi;
+	    icount1 += 1;
 
-          /* Flush? */
-          if (icount1 == VEC_SIZE) {
-            IACT_NONSYM_VEC(r2q1, dxq1, hiq1, hjq1, piq1, pjq1);
-            icount1 = 0;
-          }
+	    /* Flush? */
+	    if (icount1 == VEC_SIZE) {
+	      IACT_NONSYM_VEC(r2q1, dxq1, hiq1, hjq1, piq1, pjq1);
+	      icount1 = 0;
+	    }
 
 #endif
-        }
+	  }
 
-      } /* loop over all other particles. */
-
+	} /* loop over all other particles. */
     }
 
     /* Otherwise, interact with all candidates. */
@@ -1496,106 +1588,111 @@ void DOSELF1(struct runner *r, struct cell *restrict c) {
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pj = &parts[pjd];
-        const float hj = pj->h;
 
-        /* Compute the pairwise distance. */
-        float r2 = 0.0f;
-        float dx[3];
-        for (int k = 0; k < 3; k++) {
-          dx[k] = pix[k] - pj->x[k];
-          r2 += dx[k] * dx[k];
-        }
-        const int doj =
+	/* Skip this part if permanently inactive */
+	if (pj->time_bin == time_bin_inactive)
+	  continue;
+
+	  const float hj = pj->h;
+
+	  /* Compute the pairwise distance. */
+	  float r2 = 0.0f;
+	  float dx[3];
+	  for (int k = 0; k < 3; k++) {
+	    dx[k] = pix[k] - pj->x[k];
+	    r2 += dx[k] * dx[k];
+	  }
+	  const int doj =
             (part_is_active(pj, e)) && (r2 < hj * hj * kernel_gamma2);
 
 #ifdef SWIFT_DEBUG_CHECKS
-        /* Check that particles have been drifted to the current time */
-        if (pi->ti_drift != e->ti_current)
-          error("Particle pi not drifted to current time");
-        if (pj->ti_drift != e->ti_current)
-          error("Particle pj not drifted to current time");
+	  /* Check that particles have been drifted to the current time */
+	  if (pi->ti_drift != e->ti_current)
+	    error("Particle pi not drifted to current time");
+	  if (pj->ti_drift != e->ti_current)
+	    error("Particle pj not drifted to current time");
 #endif
 
-        /* Hit or miss? */
-        if (r2 < hig2 || doj) {
+	  /* Hit or miss? */
+	  if (r2 < hig2 || doj) {
 
 #ifndef WITH_OLD_VECTORIZATION
 
-          /* Which parts need to be updated? */
-          if (r2 < hig2 && doj)
-            IACT(r2, dx, hi, hj, pi, pj);
-          else if (!doj)
-            IACT_NONSYM(r2, dx, hi, hj, pi, pj);
-          else {
-            dx[0] = -dx[0];
-            dx[1] = -dx[1];
-            dx[2] = -dx[2];
-            IACT_NONSYM(r2, dx, hj, hi, pj, pi);
-          }
+	    /* Which parts need to be updated? */
+	    if (r2 < hig2 && doj)
+	      IACT(r2, dx, hi, hj, pi, pj);
+	    else if (!doj)
+	      IACT_NONSYM(r2, dx, hi, hj, pi, pj);
+	    else {
+	      dx[0] = -dx[0];
+	      dx[1] = -dx[1];
+	      dx[2] = -dx[2];
+	      IACT_NONSYM(r2, dx, hj, hi, pj, pi);
+	    }
 
 #else
 
-          /* Does pj need to be updated too? */
-          if (r2 < hig2 && doj) {
+	    /* Does pj need to be updated too? */
+	    if (r2 < hig2 && doj) {
 
-            /* Add this interaction to the symmetric queue. */
-            r2q2[icount2] = r2;
-            dxq2[3 * icount2 + 0] = dx[0];
-            dxq2[3 * icount2 + 1] = dx[1];
-            dxq2[3 * icount2 + 2] = dx[2];
-            hiq2[icount2] = hi;
-            hjq2[icount2] = hj;
-            piq2[icount2] = pi;
-            pjq2[icount2] = pj;
-            icount2 += 1;
+	      /* Add this interaction to the symmetric queue. */
+	      r2q2[icount2] = r2;
+	      dxq2[3 * icount2 + 0] = dx[0];
+	      dxq2[3 * icount2 + 1] = dx[1];
+	      dxq2[3 * icount2 + 2] = dx[2];
+	      hiq2[icount2] = hi;
+	      hjq2[icount2] = hj;
+	      piq2[icount2] = pi;
+	      pjq2[icount2] = pj;
+	      icount2 += 1;
 
-            /* Flush? */
-            if (icount2 == VEC_SIZE) {
-              IACT_VEC(r2q2, dxq2, hiq2, hjq2, piq2, pjq2);
-              icount2 = 0;
-            }
+	      /* Flush? */
+	      if (icount2 == VEC_SIZE) {
+		IACT_VEC(r2q2, dxq2, hiq2, hjq2, piq2, pjq2);
+		icount2 = 0;
+	      }
 
-          } else if (!doj) {
+	    } else if (!doj) {
 
-            /* Add this interaction to the non-symmetric queue. */
-            r2q1[icount1] = r2;
-            dxq1[3 * icount1 + 0] = dx[0];
-            dxq1[3 * icount1 + 1] = dx[1];
-            dxq1[3 * icount1 + 2] = dx[2];
-            hiq1[icount1] = hi;
-            hjq1[icount1] = hj;
-            piq1[icount1] = pi;
-            pjq1[icount1] = pj;
-            icount1 += 1;
+	      /* Add this interaction to the non-symmetric queue. */
+	      r2q1[icount1] = r2;
+	      dxq1[3 * icount1 + 0] = dx[0];
+	      dxq1[3 * icount1 + 1] = dx[1];
+	      dxq1[3 * icount1 + 2] = dx[2];
+	      hiq1[icount1] = hi;
+	      hjq1[icount1] = hj;
+	      piq1[icount1] = pi;
+	      pjq1[icount1] = pj;
+	      icount1 += 1;
 
-            /* Flush? */
-            if (icount1 == VEC_SIZE) {
-              IACT_NONSYM_VEC(r2q1, dxq1, hiq1, hjq1, piq1, pjq1);
-              icount1 = 0;
-            }
+	      /* Flush? */
+	      if (icount1 == VEC_SIZE) {
+		IACT_NONSYM_VEC(r2q1, dxq1, hiq1, hjq1, piq1, pjq1);
+		icount1 = 0;
+	      }
 
-          } else {
+	    } else {
 
-            /* Add this interaction to the non-symmetric queue. */
-            r2q1[icount1] = r2;
-            dxq1[3 * icount1 + 0] = -dx[0];
-            dxq1[3 * icount1 + 1] = -dx[1];
-            dxq1[3 * icount1 + 2] = -dx[2];
-            hiq1[icount1] = hj;
-            hjq1[icount1] = hi;
-            piq1[icount1] = pj;
-            pjq1[icount1] = pi;
-            icount1 += 1;
+	      /* Add this interaction to the non-symmetric queue. */
+	      r2q1[icount1] = r2;
+	      dxq1[3 * icount1 + 0] = -dx[0];
+	      dxq1[3 * icount1 + 1] = -dx[1];
+	      dxq1[3 * icount1 + 2] = -dx[2];
+	      hiq1[icount1] = hj;
+	      hjq1[icount1] = hi;
+	      piq1[icount1] = pj;
+	      pjq1[icount1] = pi;
+	      icount1 += 1;
 
-            /* Flush? */
-            if (icount1 == VEC_SIZE) {
-              IACT_NONSYM_VEC(r2q1, dxq1, hiq1, hjq1, piq1, pjq1);
-              icount1 = 0;
-            }
-          }
+	      /* Flush? */
+	      if (icount1 == VEC_SIZE) {
+		IACT_NONSYM_VEC(r2q1, dxq1, hiq1, hjq1, piq1, pjq1);
+		icount1 = 0;
+	      }
+	    }
 
 #endif
-        }
+	  }
 
       } /* loop over all other particles. */
     }
@@ -1668,6 +1765,10 @@ void DOSELF2(struct runner *r, struct cell *restrict c) {
 
     /* Get a pointer to the ith particle. */
     struct part *restrict pi = &parts[pid];
+    
+    /* Skip this part if permanently inactive */
+    if (pi->time_bin == time_bin_inactive)
+      continue;
 
     /* Get the particle position and radius. */
     double pix[3];
@@ -1683,6 +1784,11 @@ void DOSELF2(struct runner *r, struct cell *restrict c) {
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pj = &parts[indt[pjd]];
+
+	/* Skip this part if permanently inactive */
+	if (pj->time_bin == time_bin_inactive)
+	  continue;
+
         const float hj = pj->h;
 
         /* Compute the pairwise distance. */
@@ -1745,6 +1851,11 @@ void DOSELF2(struct runner *r, struct cell *restrict c) {
 
         /* Get a pointer to the jth particle. */
         struct part *restrict pj = &parts[pjd];
+
+	/* Skip this part if permanently inactive */
+	if (pj->time_bin == time_bin_inactive)
+	  continue;
+
         const float hj = pj->h;
 
         /* Compute the pairwise distance. */

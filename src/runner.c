@@ -1319,29 +1319,21 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
           error("Computing time-step of rogue particle.");
 #endif
 
-	/* Particles we have 'destroyed' by turning into stars */
-	if (p->id < 0){
-	  p->time_bin = 65;
-	  p->gpart->time_bin = 65;
-	  
-	}
-	else{
+	/* Get new time-step */
+	const integertime_t ti_new_step = get_part_timestep(p, xp, e);
 
-	  /* Get new time-step */
-	  const integertime_t ti_new_step = get_part_timestep(p, xp, e);
+        /* Update particle */
+        p->time_bin = get_time_bin(ti_new_step);
+        if (p->gpart != NULL) p->gpart->time_bin = get_time_bin(ti_new_step);
 
-	  /* Update particle */
-	  p->time_bin = get_time_bin(ti_new_step);
-	  if (p->gpart != NULL) p->gpart->time_bin = get_time_bin(ti_new_step);
+	/* What is the next sync-point ? */
+	ti_end_min = min(ti_current + ti_new_step, ti_end_min);
+	ti_end_max = max(ti_current + ti_new_step, ti_end_max);
 
-	  /* What is the next sync-point ? */
-	  ti_end_min = min(ti_current + ti_new_step, ti_end_min);
-	  ti_end_max = max(ti_current + ti_new_step, ti_end_max);
-	}
 
-	/* Number of updated particles */
-	updated++;
-	if (p->gpart != NULL) g_updated++;
+       /* Number of updated particles */
+       updated++;
+       if (p->gpart != NULL) g_updated++;
       }
 
       else { /* part is inactive */

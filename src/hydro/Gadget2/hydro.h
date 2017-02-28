@@ -392,7 +392,6 @@ __attribute__((always_inline)) INLINE static void hydro_kick_extra(
   const float soundspeed = gas_soundspeed_from_pressure(p->rho, pressure);
 
   /* Divide the pressure by the density squared to get the SPH term */
-  //printf("ID = %lld , rho = %g ,dt = %g \n",p->id, p->rho, dt);
   const float rho_inv = 1.f / p->rho;
   const float P_over_rho2 = pressure * rho_inv * rho_inv;
 

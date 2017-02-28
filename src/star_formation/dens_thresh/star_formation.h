@@ -36,6 +36,7 @@
 #include "cell.h"
 #include "hydro.h"
 #include "stragglers.h"
+#include "timeline.h"
 
 /**
  * @brief Star Formation Properties
@@ -67,6 +68,8 @@ __attribute__((always_inline)) INLINE static void do_star_formation(
   const float rho = hydro_get_density(p);
   
   if (rho > star_formation->density_threshold && dt > 0.0){
+
+    message("Turning particle with ID %lld and density %g into a star",p->id,rho);
     
     /* Create gpart with same properties as the gas particle's gpart */
     struct gpart new_gpart = *(p->gpart);
@@ -111,11 +114,10 @@ __attribute__((always_inline)) INLINE static void do_star_formation(
     c->s_straggler_next = new_slink;
     c->straggler_scount++;
 
-    /* For now we 'delete' the gas particle by setting its id to be negative. In 'runner_do_timestep' we then
-     set the time_bin of the part to be 64 so that it is inactive*/
-
-    printf("ID of particle is %lld \n",p->id);
-    p->id *= -1;
+    /* For now we 'delete' the old particle by setting its timebin to the maximum possible
+       so that it no longer interacts*/
+    p->time_bin = time_bin_inactive;
+    p->gpart->time_bin = time_bin_inactive;
   
   }
 }
