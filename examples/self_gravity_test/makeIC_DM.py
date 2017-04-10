@@ -91,7 +91,7 @@ coords += np.full((n+1,3),boxSize/2.)
 # Header
 grp = file.create_group("/Header")
 grp.attrs["BoxSize"] = boxSize
-grp.attrs["NumPart_Total"] =  [0 ,n +1 , 0, 0, 0, 0]
+grp.attrs["NumPart_Total"] =  [0 , n+1, 0, 0, 0, 0]
 grp.attrs["NumPart_Total_HighWord"] = [0, 0, 0, 0, 0, 0]
 grp.attrs["NumPart_ThisFile"] = [0, n+1, 0, 0, 0, 0]
 grp.attrs["Time"] = 0.0
