@@ -44,7 +44,7 @@ n = int(sys.argv[1])
 
 # Parameters
 periodic= 0            # 1 For periodic box
-boxSize = 2.          
+boxSize = float(sys.argv[2])          
 
 
 # First particle is at the centre
@@ -93,8 +93,6 @@ grp.attrs["Unit temperature in cgs (U_T)"] = 1.
 grp = file.create_group("/RuntimePars")
 grp.attrs["PeriodicBoundariesOn"] = periodic
 
-# shift particles to centre of box
-coords += np.full((n,3),boxSize/2.)
 
 # Header
 grp = file.create_group("/Header")

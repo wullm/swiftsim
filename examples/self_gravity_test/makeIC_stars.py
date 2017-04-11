@@ -44,7 +44,7 @@ n = int(sys.argv[1])
 
 # Parameters
 periodic= 0            # 1 For periodic box
-boxSize = 2.          
+boxSize = float(sys.argv[2])          
 
 
 # First particle is at the centre
