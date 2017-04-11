@@ -1124,9 +1124,6 @@ void cell_check_multipole(struct cell *c, void *data) {
   if (c->gcount > 0) {
 
     /* Brute-force calculation */
-    if (c->gcount == 0){
-      error("Cell at [%f,%f,%f] has 0 particles\n",c->loc[0],c->loc[1],c->loc[2]);
-    }
     gravity_P2M(&ma, c->gparts, c->gcount);
 
     /* Now  compare the multipole expansion */

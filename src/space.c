@@ -2150,9 +2150,6 @@ void space_split_recursive(struct space *s, struct cell *c,
     ti_beg_max = get_integer_time_begin(e->ti_current + 1, time_bin_max);
 
     /* Construct the multipole and the centre of mass*/
-    if (c->gcount == 0){
-      error("Cell at [%f,%f,%f] has 0 particles\n",c->loc[0],c->loc[1],c->loc[2]);
-    }
     if (s->gravity) gravity_P2M(c->multipole, c->gparts, c->gcount);
   }
 
