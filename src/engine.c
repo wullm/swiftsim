@@ -592,83 +592,10 @@ void engine_redistribute(struct engine *e) {
   size_t offset_send = 0, offset_recv = 0;
   size_t g_offset_send = 0, g_offset_recv = 0;
   size_t s_offset_send = 0, s_offset_recv = 0;
+
   for (int k = 0; k < nr_nodes; k++) {
-
     /* Indices in the count arrays of the node of interest */
-    const int ind_send = nodeID * nr_nodes + k;
     const int ind_recv = k * nr_nodes + nodeID;
-
-    /* Are we sending any part/xpart ? */
-    if (counts[ind_send] > 0) {
-
-      /* message("Sending %d part to node %d", counts[ind_send], k); */
-
-      /* If the send is to the same node, just copy */
-      if (k == nodeID) {
-        memcpy(&parts_new[offset_recv], &s->parts[offset_send],
-               sizeof(struct part) * counts[ind_recv]);
-        memcpy(&xparts_new[offset_recv], &s->xparts[offset_send],
-               sizeof(struct xpart) * counts[ind_recv]);
-        offset_send += counts[ind_send];
-        offset_recv += counts[ind_recv];
-
-        /* Else, emit some communications */
-      } else {
-        if (MPI_Isend(&s->parts[offset_send], counts[ind_send], part_mpi_type,
-                      k, 4 * ind_send + 0, MPI_COMM_WORLD,
-                      &reqs[8 * k + 0]) != MPI_SUCCESS)
-          error("Failed to isend parts to node %i.", k);
-        if (MPI_Isend(&s->xparts[offset_send], counts[ind_send], xpart_mpi_type,
-                      k, 4 * ind_send + 1, MPI_COMM_WORLD,
-                      &reqs[8 * k + 1]) != MPI_SUCCESS)
-          error("Failed to isend xparts to node %i.", k);
-        offset_send += counts[ind_send];
-      }
-    }
-
-    /* Are we sending any gpart ? */
-    if (g_counts[ind_send] > 0) {
-
-      /* message("Sending %d gpart to node %d", g_counts[ind_send], k); */
-
-      /* If the send is to the same node, just copy */
-      if (k == nodeID) {
-        memcpy(&gparts_new[g_offset_recv], &s->gparts[g_offset_send],
-               sizeof(struct gpart) * g_counts[ind_recv]);
-        g_offset_send += g_counts[ind_send];
-        g_offset_recv += g_counts[ind_recv];
-
-        /* Else, emit some communications */
-      } else {
-        if (MPI_Isend(&s->gparts[g_offset_send], g_counts[ind_send],
-                      gpart_mpi_type, k, 4 * ind_send + 2, MPI_COMM_WORLD,
-                      &reqs[8 * k + 2]) != MPI_SUCCESS)
-          error("Failed to isend gparts to node %i.", k);
-        g_offset_send += g_counts[ind_send];
-      }
-    }
-
-    /* Are we sending any spart ? */
-    if (s_counts[ind_send] > 0) {
-
-      /* message("Sending %d spart to node %d", s_counts[ind_send], k); */
-
-      /* If the send is to the same node, just copy */
-      if (k == nodeID) {
-        memcpy(&sparts_new[s_offset_recv], &s->sparts[s_offset_send],
-               sizeof(struct spart) * s_counts[ind_recv]);
-        s_offset_send += s_counts[ind_send];
-        s_offset_recv += s_counts[ind_recv];
-
-        /* Else, emit some communications */
-      } else {
-        if (MPI_Isend(&s->sparts[s_offset_send], s_counts[ind_send],
-                      spart_mpi_type, k, 4 * ind_send + 3, MPI_COMM_WORLD,
-                      &reqs[8 * k + 3]) != MPI_SUCCESS)
-          error("Failed to isend gparts to node %i.", k);
-        s_offset_send += s_counts[ind_send];
-      }
-    }
 
     /* Now emit the corresponding Irecv() */
 
@@ -702,6 +629,89 @@ void engine_redistribute(struct engine *e) {
         error("Failed to emit irecv of sparts from node %i.", k);
       s_offset_recv += s_counts[ind_recv];
     }
+  }
+
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  for (int k = 0; k < nr_nodes; k++) {
+
+    /* Indices in the count arrays of the node of interest */
+    const int ind_send = nodeID * nr_nodes + k;
+    const int ind_recv = k * nr_nodes + nodeID;
+
+    /* Are we sending any part/xpart ? */
+    if (counts[ind_send] > 0) {
+
+      /* message("Sending %d part to node %d", counts[ind_send], k); */
+
+      /* If the send is to the same node, just copy */
+      if (k == nodeID) {
+        memcpy(&parts_new[offset_recv], &s->parts[offset_send],
+               sizeof(struct part) * counts[ind_recv]);
+        memcpy(&xparts_new[offset_recv], &s->xparts[offset_send],
+               sizeof(struct xpart) * counts[ind_recv]);
+        offset_send += counts[ind_send];
+        offset_recv += counts[ind_recv];
+
+        /* Else, emit some communications */
+      } else {
+        if (MPI_Irsend(&s->parts[offset_send], counts[ind_send], part_mpi_type,
+                      k, 4 * ind_send + 0, MPI_COMM_WORLD,
+                      &reqs[8 * k + 0]) != MPI_SUCCESS)
+          error("Failed to isend parts to node %i.", k);
+        if (MPI_Irsend(&s->xparts[offset_send], counts[ind_send], xpart_mpi_type,
+                      k, 4 * ind_send + 1, MPI_COMM_WORLD,
+                      &reqs[8 * k + 1]) != MPI_SUCCESS)
+          error("Failed to isend xparts to node %i.", k);
+        offset_send += counts[ind_send];
+      }
+    }
+
+    /* Are we sending any gpart ? */
+    if (g_counts[ind_send] > 0) {
+
+      /* message("Sending %d gpart to node %d", g_counts[ind_send], k); */
+
+      /* If the send is to the same node, just copy */
+      if (k == nodeID) {
+        memcpy(&gparts_new[g_offset_recv], &s->gparts[g_offset_send],
+               sizeof(struct gpart) * g_counts[ind_recv]);
+        g_offset_send += g_counts[ind_send];
+        g_offset_recv += g_counts[ind_recv];
+
+        /* Else, emit some communications */
+      } else {
+        if (MPI_Irsend(&s->gparts[g_offset_send], g_counts[ind_send],
+                      gpart_mpi_type, k, 4 * ind_send + 2, MPI_COMM_WORLD,
+                      &reqs[8 * k + 2]) != MPI_SUCCESS)
+          error("Failed to isend gparts to node %i.", k);
+        g_offset_send += g_counts[ind_send];
+      }
+    }
+
+    /* Are we sending any spart ? */
+    if (s_counts[ind_send] > 0) {
+
+      /* message("Sending %d spart to node %d", s_counts[ind_send], k); */
+
+      /* If the send is to the same node, just copy */
+      if (k == nodeID) {
+        memcpy(&sparts_new[s_offset_recv], &s->sparts[s_offset_send],
+               sizeof(struct spart) * s_counts[ind_recv]);
+        s_offset_send += s_counts[ind_send];
+        s_offset_recv += s_counts[ind_recv];
+
+        /* Else, emit some communications */
+      } else {
+        if (MPI_Irsend(&s->sparts[s_offset_send], s_counts[ind_send],
+                      spart_mpi_type, k, 4 * ind_send + 3, MPI_COMM_WORLD,
+                      &reqs[8 * k + 3]) != MPI_SUCCESS)
+          error("Failed to isend gparts to node %i.", k);
+        s_offset_send += s_counts[ind_send];
+      }
+    }
+
+
   }
 
   /* Wait for all the sends and recvs to tumble in. */
@@ -3136,7 +3146,6 @@ void engine_step(struct engine *e) {
   TIMER_TIC2;
 
   struct clocks_time time1, time2;
-  clocks_gettime(&time1);
 
 #ifdef SWIFT_DEBUG_TASKS
   e->tic_step = getticks();
@@ -3173,6 +3182,7 @@ void engine_step(struct engine *e) {
   engine_repartition_trigger(e);
 #endif
 
+  clocks_gettime(&time1);
   /* Are we drifting everything (a la Gadget/GIZMO) ? */
   if (e->policy & engine_policy_drift_all) engine_drift_all(e);
 
