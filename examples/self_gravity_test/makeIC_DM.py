@@ -43,7 +43,7 @@ print 'G=', const_G
 n = int(sys.argv[1])
 
 # Parameters
-periodic= 0            # 1 For periodic box
+periodic= 1            # 1 For periodic box
 boxSize = float(sys.argv[2])          
 
 
