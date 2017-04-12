@@ -967,7 +967,7 @@ INLINE static void gravity_P2M(struct gravity_tensors *m,
   }
 
   /* Final operation on CoM */
-    
+
   const double imass = 1.0 / mass;
   com[0] *= imass;
   com[1] *= imass;
