@@ -53,9 +53,6 @@ plt.plot(x_sim,y_sim,'ko')
 
 plt.xlim(-2,2)
 plt.ylim(-2,2)
-#plt.legend(loc = 0)
-#plt.title("Orbits in point mass potential")
-plt.show()
-#plt.savefig("test_particle_orbit.png" , format = "png")
-#plt.close()
+plt.savefig("test_particle_orbit.png" , format = "png")
+plt.close()
    
