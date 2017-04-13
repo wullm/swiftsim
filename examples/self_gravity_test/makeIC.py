@@ -39,37 +39,28 @@ print "UnitTime_in_cgs:     ", const_unit_time_in_cgs
 const_G                = ((CONST_G_CGS*const_unit_mass_in_cgs*const_unit_time_in_cgs*const_unit_time_in_cgs/(const_unit_length_in_cgs*const_unit_length_in_cgs*const_unit_length_in_cgs)))
 print 'G=', const_G
 
-# read number of particles in orbit
-n = int(sys.argv[1])
 
 # Parameters
-periodic= 0            # 1 For periodic box
-boxSize = float(sys.argv[2])          
+periodic= 1            # 1 For periodic box
+boxSize = 10.          
 
 
 # First particle is at the centre
-# initally put the particles at apoapsis on the x-axis, semi-major axis is 1.0
-coords = np.zeros((n+1,3))
-coords[1:,:] = np.random.random((n,3))
-# centre particle is stationary, put other particles on random orbits
-vels = np.zeros((n+1,3))
-vels[1:,:] = np.random.random((n,3))
+# Second particle is at  centre+[1,0,0]
+# Rest of the particles are randomly distributed
+coords = np.zeros((2,3))
+coords[0,:] = [boxSize/2.,boxSize/2.,boxSize/2.] 
+coords[1,:] = [boxSize/2. + 1.,boxSize/2.,boxSize/2.] 
 
-# centre particle has mass 1, other particles have 0 mass
-mass = np.zeros(n+1)
+# centre particle is stationary, second particle has velocity 1 in the y-direction, so that it is on a circular orbit
+vels = np.zeros((2,3))
+vels[1,:] = [0,1,0]
+
+
+# 1st particle has mass 1, second has mass read in from the command line
+mass = np.zeros(2)
 mass[0] = 1.0
-#r = np.zeros(n)
-#vels = np.zeros(n+1,3)
-#v_mag = np.zeros(n+1
-#for i in range(n):
- #   r[i] = np.sqrt(coords[i+1,0]**2+coords[i+1,1]**2+coords[i+1,2]**2)
-  #  vels[i+1,:] = 
-# First particle is stationary
-# give them suitable velocity in positive y-direction, so that they stay on these orbits.
-# we use units so that G = 1.0, and set M and a (mass and semi-major axis) to be 1.0
-#vels = np.zeros((n,3))
-#vels[1:,1] = np.sqrt((1.-e**2)/(1.+e)**2)
-
+mass[1] = float(sys.argv[1])
 # Create the file
 filename = "self_gravity_test.hdf5"
 file = h5py.File(filename, 'w')
@@ -86,14 +77,13 @@ grp.attrs["Unit temperature in cgs (U_T)"] = 1.
 grp = file.create_group("/RuntimePars")
 grp.attrs["PeriodicBoundariesOn"] = periodic
 
-coords += np.full((n+1,3),boxSize/2.)
 
 # Header
 grp = file.create_group("/Header")
 grp.attrs["BoxSize"] = boxSize
-grp.attrs["NumPart_Total"] =  [0 , 0, 0, 0, n+1, 0]
+grp.attrs["NumPart_Total"] =  [0 , 2, 0, 0, 0, 0]
 grp.attrs["NumPart_Total_HighWord"] = [0, 0, 0, 0, 0, 0]
-grp.attrs["NumPart_ThisFile"] = [0, 0, 0, 0, n+1, 0]
+grp.attrs["NumPart_ThisFile"] = [0, 2, 0, 0, 0, 0]
 grp.attrs["Time"] = 0.0
 grp.attrs["NumFilesPerSnapshot"] = 1
 grp.attrs["MassTable"] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -101,24 +91,24 @@ grp.attrs["Flag_Entropy_ICs"] = [0, 0, 0, 0, 0, 0]
 grp.attrs["Dimension"] = 3
 
 # Particle group
-grp = file.create_group("/PartType4")
+grp = file.create_group("/PartType1")
 
-ds = grp.create_dataset('Coordinates', (n+1, 3), 'd')
+ds = grp.create_dataset('Coordinates', (2, 3), 'd')
 ds[()] = coords
 coords = np.zeros(1)
 
-ds = grp.create_dataset('Velocities', (n+1, 3), 'f')
+ds = grp.create_dataset('Velocities', (2, 3), 'f')
 ds[()] = vels
 vels = np.zeros(1)
 
-ds = grp.create_dataset('Masses', (n+1, ), 'f')
+ds = grp.create_dataset('Masses', (2, ), 'f')
 ds[()] = mass
 mass = np.zeros(1)
 
 
 # Particle IDs
-ids = 1 + np.linspace(0, n+1, n+1, endpoint=False)
-ds = grp.create_dataset('ParticleIDs', (n+1, ), 'L')
+ids = 1 + np.linspace(0, 2, 2, endpoint=False)
+ds = grp.create_dataset('ParticleIDs', (2, ), 'L')
 ds[()] = ids
 
 file.close()
