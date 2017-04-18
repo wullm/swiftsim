@@ -374,11 +374,6 @@ INLINE static void gravity_field_tensors_print(const struct grav_tensor *l) {
 #endif
 }
 
-INLINE static void gravity_multipole_init(struct multipole *m) {
-
-  bzero(m, sizeof(struct multipole));
-}
-
 /**
  * @brief Zeroes all the fields of a multipole.
  *
