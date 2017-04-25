@@ -25,9 +25,9 @@ import math
 #constant
 CONST_G_CGS = 6.672e-8
 # units
-const_unit_length_in_cgs = 1.0
-const_unit_mass_in_cgs = 1.0
-const_unit_velocity_in_cgs = 2.583215e-4
+const_unit_length_in_cgs =  1.495978707e13 # astronomical units
+const_unit_mass_in_cgs = 1.98855e33 # solar mass
+const_unit_velocity_in_cgs = 4.74372e5 # astronomical units per year
 
 print "UnitMass_in_cgs:     ", const_unit_mass_in_cgs 
 print "UnitLength_in_cgs:   ", const_unit_length_in_cgs
@@ -41,26 +41,28 @@ print 'G=', const_G
 
 
 # Parameters
-periodic= 1            # 1 For periodic box
-boxSize = 10.          
+periodic= 0            # 1 For periodic box
+boxSize = 12.          
 
 
-# First particle is at the centre
-# Second particle is at  centre+[1,0,0]
-# Rest of the particles are randomly distributed
+# distance between particles is l, set by command line argument
+l = float(sys.argv[1])
+drift_speed = float(sys.argv[2])
 coords = np.zeros((2,3))
-coords[0,:] = [boxSize/2.,boxSize/2.,boxSize/2.] 
-coords[1,:] = [boxSize/2. + 1.,boxSize/2.,boxSize/2.] 
+coords[0,:] = [1.0,boxSize/2.,boxSize/2.] 
+coords[1,:] = [1.0 + l,boxSize/2.,boxSize/2.] 
 
-# centre particle is stationary, second particle has velocity 1 in the y-direction, so that it is on a circular orbit
+# particles are on a circular orbit
 vels = np.zeros((2,3))
-vels[1,:] = [0,1,0]
+speed = np.sqrt(const_G/(2.*l))
+vels[0,:] = [drift_speed,-speed,0]
+vels[1,:] = [drift_speed,speed,0]
 
 
-# 1st particle has mass 1, second has mass read in from the command line
+# both particles have unit mass
 mass = np.zeros(2)
 mass[0] = 1.0
-mass[1] = float(sys.argv[1])
+mass[1] = 1.0
 # Create the file
 filename = "self_gravity_test.hdf5"
 file = h5py.File(filename, 'w')
