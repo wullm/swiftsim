@@ -170,6 +170,10 @@ void engine_make_hierarchical_tasks(struct engine *e, struct cell *c) {
 
       if (is_self_gravity) {
 
+        /* Initialisation of the multipoles */
+        c->init_grav = scheduler_addtask(s, task_type_init_grav,
+                                         task_subtype_none, 0, 0, c, NULL, 0);
+
         /* Gravity non-neighbouring pm calculations */
         c->grav_long_range = scheduler_addtask(
             s, task_type_grav_long_range, task_subtype_none, 0, 0, c, NULL, 0);
@@ -182,8 +186,8 @@ void engine_make_hierarchical_tasks(struct engine *e, struct cell *c) {
         c->grav_down = scheduler_addtask(s, task_type_grav_down,
                                          task_subtype_none, 0, 0, c, NULL, 0);
 
-        scheduler_addunlock(s, c->init, c->grav_long_range);
-        scheduler_addunlock(s, c->init, c->grav_top_level);
+        scheduler_addunlock(s, c->init_grav, c->grav_long_range);
+        scheduler_addunlock(s, c->init_grav, c->grav_top_level);
         scheduler_addunlock(s, c->grav_long_range, c->grav_down);
         scheduler_addunlock(s, c->grav_top_level, c->grav_down);
         scheduler_addunlock(s, c->grav_down, c->kick2);
@@ -1689,7 +1693,7 @@ void engine_make_self_gravity_tasks(struct engine *e) {
 
       /* Are the cells to close for a MM interaction ? */
       if (!gravity_multipole_accept(ci->multipole, cj->multipole,
-                                    theta_crit_inv))
+                                    theta_crit_inv, 1))
         scheduler_addtask(sched, task_type_pair, task_subtype_grav, 0, 0, ci,
                           cj, 1);
     }
@@ -1892,6 +1896,7 @@ static inline void engine_make_self_gravity_dependencies(
 
   /* init --> gravity --> grav_down --> kick */
   scheduler_addunlock(sched, c->super->init, gravity);
+  scheduler_addunlock(sched, c->super->init_grav, gravity);
   scheduler_addunlock(sched, gravity, c->super->grav_down);
 }
 
@@ -2544,7 +2549,8 @@ void engine_marktasks_mapper(void *map_data, int num_elements,
 
     /* Kick/Drift/Init? */
     else if (t->type == task_type_kick1 || t->type == task_type_kick2 ||
-             t->type == task_type_drift || t->type == task_type_init) {
+             t->type == task_type_drift || t->type == task_type_init ||
+             t->type == task_type_init_grav) {
       if (cell_is_active(t->ci, e)) scheduler_activate(s, t);
     }
 
@@ -3137,7 +3143,8 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs) {
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   /* Run the brute-force gravity calculation for some gparts */
-  gravity_exact_force_compute(e->s, e);
+  if (e->policy & engine_policy_self_gravity)
+    gravity_exact_force_compute(e->s, e);
 #endif
 
   /* Run the 0th time-step */
@@ -3145,7 +3152,8 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs) {
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   /* Check the accuracy of the gravity calculation */
-  gravity_exact_force_check(e->s, e, 1e-1);
+  if (e->policy & engine_policy_self_gravity)
+    gravity_exact_force_check(e->s, e, 1e-1);
 #endif
 
   /* Recover the (integer) end of the next time-step */
@@ -3217,6 +3225,15 @@ void engine_step(struct engine *e) {
   /* Are we drifting everything (a la Gadget/GIZMO) ? */
   if (e->policy & engine_policy_drift_all) engine_drift_all(e);
 
+  /* Are we reconstructing the multipoles or drifting them ?*/
+  if (e->policy & engine_policy_self_gravity) {
+
+    if (e->policy & engine_policy_reconstruct_mpoles)
+      engine_reconstruct_multipoles(e);
+    else
+      engine_drift_top_multipoles(e);
+  }
+
   /* Print the number of active tasks ? */
   if (e->verbose) engine_print_task_counts(e);
 
@@ -3236,11 +3253,9 @@ void engine_step(struct engine *e) {
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   /* Run the brute-force gravity calculation for some gparts */
-  gravity_exact_force_compute(e->s, e);
+  if (e->policy & engine_policy_self_gravity)
+    gravity_exact_force_compute(e->s, e);
 #endif
-
-  /* Do we need to drift the top-level multipoles ? */
-  if (e->policy & engine_policy_self_gravity) engine_drift_top_multipoles(e);
 
   /* Start all the tasks. */
   TIMER_TIC;
@@ -3249,9 +3264,12 @@ void engine_step(struct engine *e) {
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   /* Check the accuracy of the gravity calculation */
-  gravity_exact_force_check(e->s, e, 1e-1);
+  if (e->policy & engine_policy_self_gravity)
+    gravity_exact_force_check(e->s, e, 1e-1);
 #endif
 
+  /* Let's trigger a rebuild every-so-often for good measure */  // MATTHIEU
+                                                                 // improve
   if (!(e->policy & engine_policy_hydro) &&
       (e->policy & engine_policy_self_gravity) && e->step % 20 == 0)
     e->forcerebuild = 1;
@@ -3429,6 +3447,39 @@ void engine_drift_top_multipoles(struct engine *e) {
   /* Check that all cells have been drifted to the current time. */
   space_check_top_multipoles_drift_point(e->s, e->ti_current);
 #endif
+
+  if (e->verbose)
+    message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
+            clocks_getunit());
+}
+
+void engine_do_reconstruct_multipoles_mapper(void *map_data, int num_elements,
+                                             void *extra_data) {
+
+  struct engine *e = (struct engine *)extra_data;
+  struct cell *cells = (struct cell *)map_data;
+
+  for (int ind = 0; ind < num_elements; ind++) {
+    struct cell *c = &cells[ind];
+    if (c != NULL && c->nodeID == e->nodeID) {
+
+      /* Construct the multipoles in this cell hierarchy */
+      cell_make_multipoles(c, e->ti_current);
+    }
+  }
+}
+
+/**
+ * @brief Reconstruct all the multipoles at all the levels in the tree.
+ *
+ * @param e The #engine.
+ */
+void engine_reconstruct_multipoles(struct engine *e) {
+
+  const ticks tic = getticks();
+
+  threadpool_map(&e->threadpool, engine_do_reconstruct_multipoles_mapper,
+                 e->s->cells_top, e->s->nr_cells, sizeof(struct cell), 10, e);
 
   if (e->verbose)
     message("took %.3f %s.", clocks_from_ticks(getticks() - tic),

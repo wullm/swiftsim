@@ -148,8 +148,11 @@ struct cell {
   /*! Linked list of the tasks computing this cell's gravity forces. */
   struct link *grav;
 
-  /*! The initialistation task */
+  /*! The particle initialistation task */
   struct task *init;
+
+  /*! The multipole initialistation task */
+  struct task *init_grav;
 
   /*! The ghost task */
   struct task *ghost;
@@ -348,8 +351,7 @@ int cell_link_gparts(struct cell *c, struct gpart *gparts);
 int cell_link_sparts(struct cell *c, struct spart *sparts);
 void cell_convert_hydro(struct cell *c, void *data);
 void cell_clean_links(struct cell *c, void *data);
-int cell_are_neighbours(const struct cell *restrict ci,
-                        const struct cell *restrict cj);
+void cell_make_multipoles(struct cell *c, integertime_t ti_current);
 void cell_check_multipole(struct cell *c, void *data);
 void cell_clean(struct cell *c);
 void cell_check_particle_drift_point(struct cell *c, void *data);
