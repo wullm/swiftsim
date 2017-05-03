@@ -2063,9 +2063,6 @@ void DOSUB_PAIR1(struct runner *r, struct cell *ci, struct cell *cj, int sid,
   if (!cell_is_active(ci, e) && !cell_is_active(cj, e)) return;
   if (ci->count == 0 || cj->count == 0) return;
 
-  /* Get the cell dimensions. */
-  const float h = min(ci->width[0], min(ci->width[1], ci->width[2]));
-
   /* Get the type of pair if not specified explicitly. */
   // if ( sid < 0 )
   double shift[3];
@@ -2073,9 +2070,8 @@ void DOSUB_PAIR1(struct runner *r, struct cell *ci, struct cell *cj, int sid,
 
   /* Recurse? */
   if (ci->split && cj->split &&
-      max(ci->h_max, cj->h_max) * kernel_gamma + ci->dx_max_sort +
-              cj->dx_max_sort <
-          h / 2) {
+      max(ci->h_max, cj->h_max) * kernel_gamma + ci->dx_max + cj->dx_max <
+          ci->dmin / 2) {
 
     /* Different types of flags. */
     switch (sid) {
@@ -2370,9 +2366,6 @@ void DOSUB_PAIR2(struct runner *r, struct cell *ci, struct cell *cj, int sid,
   if (!cell_is_active(ci, e) && !cell_is_active(cj, e)) return;
   if (ci->count == 0 || cj->count == 0) return;
 
-  /* Get the cell dimensions. */
-  const float h = min(ci->width[0], min(ci->width[1], ci->width[2]));
-
   /* Get the type of pair if not specified explicitly. */
   // if ( sid < 0 )
   double shift[3];
@@ -2380,9 +2373,8 @@ void DOSUB_PAIR2(struct runner *r, struct cell *ci, struct cell *cj, int sid,
 
   /* Recurse? */
   if (ci->split && cj->split &&
-      max(ci->h_max, cj->h_max) * kernel_gamma + ci->dx_max_sort +
-              cj->dx_max_sort <
-          h / 2) {
+      max(ci->h_max, cj->h_max) * kernel_gamma + ci->dx_max + cj->dx_max <
+          ci->dmin / 2) {
 
     /* Different types of flags. */
     switch (sid) {
@@ -2681,14 +2673,10 @@ void DOSUB_SUBSET(struct runner *r, struct cell *ci, struct part *parts,
   /* Otherwise, it's a pair interaction. */
   else {
 
-    /* Get the cell dimensions. */
-    const float h = min(ci->width[0], min(ci->width[1], ci->width[2]));
-
     /* Recurse? */
     if (ci->split && cj->split &&
-        max(ci->h_max, cj->h_max) * kernel_gamma + ci->dx_max_sort +
-                cj->dx_max_sort <
-            h / 2) {
+        max(ci->h_max, cj->h_max) * kernel_gamma + ci->dx_max + cj->dx_max <
+            ci->dmin / 2) {
 
       /* Get the type of pair if not specified explicitly. */
       double shift[3] = {0.0, 0.0, 0.0};
