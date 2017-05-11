@@ -1,0 +1,309 @@
+<?xml version="1.0" ?> 
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []> 
+<Xdmf xmlns:xi="http://www.w3.org/2003/XInclude" Version="2.1">
+<Domain>
+<Grid Name="TimeSeries" GridType="Collection" CollectionType="Temporal">
+
+
+<!-- XMF description for file: particle_line_000.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="0.000000"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_000.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_000.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_000.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_000.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_000.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_000.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=000, time=0.000000 -->
+
+
+<!-- XMF description for file: particle_line_001.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="1.025391"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_001.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_001.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_001.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_001.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_001.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_001.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=001, time=1.025391 -->
+
+
+<!-- XMF description for file: particle_line_002.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="2.343750"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_002.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_002.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_002.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_002.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_002.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_002.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=002, time=2.343750 -->
+
+
+<!-- XMF description for file: particle_line_003.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="3.125000"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_003.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_003.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_003.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_003.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_003.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_003.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=003, time=3.125000 -->
+
+
+<!-- XMF description for file: particle_line_004.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="4.687500"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_004.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_004.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_004.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_004.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_004.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_004.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=004, time=4.687500 -->
+
+
+<!-- XMF description for file: particle_line_005.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="5.468750"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_005.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_005.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_005.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_005.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_005.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_005.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=005, time=5.468750 -->
+
+
+<!-- XMF description for file: particle_line_006.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="6.250000"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_006.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_006.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_006.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_006.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_006.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_006.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=006, time=6.250000 -->
+
+
+<!-- XMF description for file: particle_line_007.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="7.031250"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_007.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_007.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_007.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_007.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_007.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_007.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=007, time=7.031250 -->
+
+
+<!-- XMF description for file: particle_line_008.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="8.593750"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_008.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_008.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_008.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_008.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_008.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_008.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=008, time=8.593750 -->
+
+
+<!-- XMF description for file: particle_line_009.hdf5 -->
+<Grid GridType="Collection" CollectionType="Spatial">
+<Time Type="Single" Value="9.375000"/>
+
+<Grid Name="DM" GridType="Uniform">
+<Topology TopologyType="Polyvertex" Dimensions="4"/>
+<Geometry GeometryType="XYZ">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_009.hdf5:/PartType1/Coordinates</DataItem>
+</Geometry>
+ <!-- Done geometry for DM, start of particle fields list -->
+<Attribute Name="Coordinates" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="8" Format="HDF">particle_line_009.hdf5:/PartType1/Coordinates</DataItem>
+</Attribute>
+<Attribute Name="Velocities" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_009.hdf5:/PartType1/Velocities</DataItem>
+</Attribute>
+<Attribute Name="Masses" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="4" Format="HDF">particle_line_009.hdf5:/PartType1/Masses</DataItem>
+</Attribute>
+<Attribute Name="ParticleIDs" AttributeType="Scalar" Center="Node">
+<DataItem Dimensions="4" NumberType="Double" Precision="8" Format="HDF">particle_line_009.hdf5:/PartType1/ParticleIDs</DataItem>
+</Attribute>
+<Attribute Name="Acceleration" AttributeType="Vector" Center="Node">
+<DataItem Dimensions="4 3" NumberType="Double" Precision="4" Format="HDF">particle_line_009.hdf5:/PartType1/Acceleration</DataItem>
+</Attribute>
+</Grid> <!-- End of meta-data for parttype=DM -->
+
+</Grid> <!-- End of meta-data for output=009, time=9.375000 -->
+
+</Grid> <!-- timeSeries -->
+</Domain>
+</Xdmf>

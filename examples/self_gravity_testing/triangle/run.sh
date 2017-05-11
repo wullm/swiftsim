@@ -8,9 +8,11 @@ minus_log_eta=(0 1 2 3 4 5)
 #cd -
 for i in "${minus_log_eta[@]}"; do 
     cd minus_log_eta_$i
-    python makeIC.py 10
-    ../../../swift -G -e -t 1 particle_line.yml
-    python energy_plot.py 11 $i
+    cp ../makeIC.py ./
+    cp ../make_energy_output.py ./
+    python makeIC.py
+    ../../../swift -G -e -t 1 triangle.yml
+    python make_energy_output.py 
     rm *.hdf5
     cd ..
 done

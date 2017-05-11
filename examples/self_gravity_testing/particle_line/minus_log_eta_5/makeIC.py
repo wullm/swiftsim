@@ -58,7 +58,7 @@ if (n > 1):
 
 # if just one particle, have it at the centre of the box
 # put the orbiting particle on the z-axis at r
-coords[n,2] = r
+coords[n,0] = r
 
 # move to centre of box
 coords += box_centre
@@ -70,7 +70,7 @@ mass = np.zeros(n+1)
 mass[:n] = 1./n
 
 # mass of the orbiting particle is 1.0e-6
-mass[n] = 1.0e-6
+mass[n] = 1.0e-5
 
 # line of particles are stationary, orbiting particle has velocity equal to that of a particle in a circular orbit of radius 1 around 
 # unit mass at the origin, in the positive y-direction

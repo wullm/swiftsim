@@ -1,0 +1,31 @@
+---
+
+InternalUnitSystem:
+  UnitMass_in_cgs: 1.98855e33
+  UnitLength_in_cgs: 1.495978707e13
+  UnitVelocity_in_cgs: 4.74372e5
+  UnitCurrent_in_cgs: 1
+  UnitTemp_in_cgs: 1
+
+TimeIntegration:
+  time_begin: 0.
+  time_end: 100.
+  dt_min: 1e-15
+  dt_max: 1.0
+
+Statistics:
+  delta_time: 1.0
+
+Snapshots:
+  basename: particle_line
+  time_first: 0.
+  delta_time: 1.0
+
+InitialConditions:
+  file_name: particle_line.hdf5
+
+Gravity:
+  eta: 1.0e-5
+  epsilon: 0.01
+  theta: 0.7
+...

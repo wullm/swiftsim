@@ -44,21 +44,23 @@ print 'G=', const_G
 periodic= 1            # 1 For periodic box
 boxSize = 12.          
 
-# number of particles in the line
-n = int(sys.argv[1])
 
 #radius of orbit
 r = 1.0
 
-# place particles at evenly spaced intervals on the x-axis between -0.5 and 0.5
+#number of particles
+n = 3
+
+# place particles on an equilateral triangle 
 box_centre = np.full((n+1,3),boxSize/2.)
 coords = np.zeros((n+1,3))
-if (n > 1):
-    coords[:n,0] = np.linspace(-0.5,0.5,n)
 
-# if just one particle, have it at the centre of the box
-# put the orbiting particle on the z-axis at r
-coords[n,2] = r
+coords[0,0] = -0.5
+coords[1,0] = 0.5
+coords[2,1] = np.sqrt(3)/2.
+
+# put the orbiting particle on the x-axis at r
+coords[n,0] = r
 
 # move to centre of box
 coords += box_centre
