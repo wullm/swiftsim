@@ -1,23 +1,23 @@
 #!/bin/bash
 
-#m_orders=(1 2 3 4 5)
-minus_log_eta=(0 1 2 3 4 5)
-#cd ../../../
-#configure --disable-vec --enable-no-gravity-below-id=11
-#make -j 8
-#cd -
-for i in "${minus_log_eta[@]}"; do 
-    cd minus_log_eta_$i
-    cp ../makeIC.py ./
-    cp ../make_energy_output.py ./
+#rm plots/xy_error_plot_*
+#rm plots/orbit_plot_*
+#rm plots/total_error_plot_*
+cd ../../../
+configure --disable-vec --enable-no-gravity-below-id=4 --with-multipole-order=1
+make -j 8
+cd -
+m_order=(1 2 3 4 5) 
+for i in "${m_order[@]}"; do 
+    cd ../../../
+    configure --disable-vec --enable-no-gravity-below-id=4 --with-multipole-order=$i
+    make -j 8
+    cd -
     python makeIC.py
-    ../../../swift -G -e -t 1 triangle.yml
-    python make_energy_output.py 
-    rm *.hdf5
-    cd ..
+    ../../swift -G -e -t 1 triangle.yml
+    python write_position_output.py
 done
-python eta_test_plot.py
-echo "Done"
+
 
 
 

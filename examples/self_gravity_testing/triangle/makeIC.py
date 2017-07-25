@@ -46,7 +46,7 @@ boxSize = 12.
 
 
 #radius of orbit
-r = 1.0
+r = 3.0
 
 #number of particles
 n = 3
@@ -55,15 +55,15 @@ n = 3
 box_centre = np.full((n+1,3),boxSize/2.)
 coords = np.zeros((n+1,3))
 
-coords[0,0] = -0.5
-coords[1,0] = 0.5
-coords[2,1] = np.sqrt(3)/2.
+coords[0,0] = [0.3,0,0]
+coords[1,0] = [0.3*np.cos(2.*np.pi/3.),0.3*np.sin(2.*np.pi/3.)]
+coords[2,1] = [0.3*np.cos(4.*np.pi/3.),0.3*np.sin(4.*np.pi/3.)]
 
 # put the orbiting particle on the x-axis at r
 coords[n,0] = r
 
-# move to centre of box
-coords += box_centre
+# move to centre of box + [0.5,0.5,0.5]
+coords += box_centre + np.array([0.5,0.5,0.5])
 
 print coords
 

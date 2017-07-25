@@ -30,7 +30,7 @@ InitialConditions:
  
 # Parameters related to the self-gravity
 Gravity:
-  eta:        0.01
+  eta:        1.0e-3
   epsilon:    0.01
-  theta:      0.7
+  theta:      1.0
 

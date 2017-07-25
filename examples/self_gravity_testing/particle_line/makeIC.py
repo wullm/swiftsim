@@ -48,7 +48,7 @@ boxSize = 12.
 n = int(sys.argv[1])
 
 #radius of orbit
-r = 1.0
+r = float(sys.argv[2])
 
 # place particles at evenly spaced intervals on the x-axis between -0.5 and 0.5
 box_centre = np.full((n+1,3),boxSize/2.)
@@ -57,8 +57,8 @@ if (n > 1):
     coords[:n,0] = np.linspace(-0.5,0.5,n)
 
 # if just one particle, have it at the centre of the box
-# put the orbiting particle on the z-axis at r
-coords[n,2] = r
+# put the orbiting particle on the x-axis at r
+coords[n,0] = r
 
 # move to centre of box
 coords += box_centre
@@ -72,6 +72,7 @@ mass[:n] = 1./n
 # mass of the orbiting particle is 1.0e-6
 mass[n] = 1.0e-6
 
+print mass
 # line of particles are stationary, orbiting particle has velocity equal to that of a particle in a circular orbit of radius 1 around 
 # unit mass at the origin, in the positive y-direction
 
