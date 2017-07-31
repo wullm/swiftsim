@@ -63,8 +63,7 @@ __attribute__((always_inline)) INLINE static float hydro_compute_timestep(
       sqrtf(vrel[0] * vrel[0] + vrel[1] * vrel[1] + vrel[2] * vrel[2]) +
       sqrtf(hydro_gamma * p->primitives.P / p->primitives.rho);
   vmax = max(vmax, p->timestepvars.vmax);
-  const float psize = powf(p->geometry.volume / hydro_dimension_unit_sphere,
-                           hydro_dimension_inv);
+  const float psize = get_radius_dimension_sphere(p->geometry.volume);
   float dt = FLT_MAX;
   if (vmax > 0.) {
     dt = psize / vmax;
