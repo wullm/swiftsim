@@ -22,14 +22,14 @@ import h5py
 from numpy import *
 import sys
 
-# Generates a swift IC file for the 2D Sod Shock in a periodic box
+# Generates a swift IC file for the 3D Sod Shock in a periodic box
 
 # Parameters
 gamma = 5./3.          # Gas adiabatic index
 x_min = -1.
 x_max = 1.
 rho_L = 1.             # Density left state
-rho_R = 0.140625       # Density right state
+rho_R = 0.125          # Density right state
 v_L = 0.               # Velocity left state
 v_R = 0.               # Velocity right state
 P_L = 1.               # Pressure left state
@@ -38,12 +38,11 @@ fileName = "sodShock.hdf5"
 
 num_copy = int(sys.argv[1])
 
-
 #---------------------------------------------------
 boxSize = (x_max - x_min)
 
-glass_L = h5py.File("glassPlane_128.hdf5", "r")
-glass_R = h5py.File("glassPlane_48.hdf5", "r")
+glass_L = h5py.File("glassCube_64.hdf5", "r")
+glass_R = h5py.File("glassCube_32.hdf5", "r")
 
 pos_L = glass_L["/PartType0/Coordinates"][:,:] * 0.5
 pos_R = glass_R["/PartType0/Coordinates"][:,:] * 0.5
@@ -74,6 +73,15 @@ for i in range(1, num_copy):
   pos_RR = append(pos_RR, pos_R + array([0., i * 0.5 / num_copy, 0.]), axis=0)
   h_LL = append(h_LL, h_L)
   h_RR = append(h_RR, h_R)
+pos_L = pos_LL
+pos_R = pos_RR
+h_L = h_LL
+h_R = h_RR
+for i in range(1, num_copy):
+  pos_LL = append(pos_LL, pos_L + array([0., 0., i * 0.5 / num_copy]), axis=0)
+  pos_RR = append(pos_RR, pos_R + array([0., 0., i * 0.5 / num_copy]), axis=0)
+  h_LL = append(h_LL, h_L)
+  h_RR = append(h_RR, h_R)
 
 pos = append(pos_LL - array([1.0, 0., 0.]), pos_RR, axis=0)
 h = append(h_LL, h_RR)
@@ -82,8 +90,8 @@ numPart_L = size(h_LL)
 numPart_R = size(h_RR)
 numPart = size(h)
 
-vol_L = 0.5
-vol_R = 0.5
+vol_L = 0.25
+vol_R = 0.25
 
 # Generate extra arrays
 v = zeros((numPart, 3))
@@ -111,7 +119,7 @@ file = h5py.File(fileName, 'w')
 
 # Header
 grp = file.create_group("/Header")
-grp.attrs["BoxSize"] = [boxSize, 0.5, 1.0]
+grp.attrs["BoxSize"] = [boxSize, 0.5, 0.5]
 grp.attrs["NumPart_Total"] =  [numPart, 0, 0, 0, 0, 0]
 grp.attrs["NumPart_Total_HighWord"] = [0, 0, 0, 0, 0, 0]
 grp.attrs["NumPart_ThisFile"] = [numPart, 0, 0, 0, 0, 0]
@@ -119,7 +127,7 @@ grp.attrs["Time"] = 0.0
 grp.attrs["NumFilesPerSnapshot"] = 1
 grp.attrs["MassTable"] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 grp.attrs["Flag_Entropy_ICs"] = 0
-grp.attrs["Dimension"] = 2
+grp.attrs["Dimension"] = 3
 
 #Runtime parameters
 grp = file.create_group("/RuntimePars")
