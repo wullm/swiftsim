@@ -30,6 +30,11 @@ import matplotlib
 matplotlib.use("Agg")
 import pylab as pl
 
+sims = {"gizmo": ["GIZMO", 'r'],
+        "gadget2": ["Gadget2", 'g'],
+        "hopkins": ["Pressure-entropy SPH", 'b']
+       }
+
 ncell = np.array([100, 200, 400, 800, 1600, 3200])
 ncell_real = ncell + np.floor(0.125*ncell)
 
@@ -37,28 +42,23 @@ def get_data(sim):
   file = open("{sim}/summary.txt".format(sim = sim), 'r')
   return eval(file.read())
 
-gizmo = {}
-gadget2 = {}
-hopkins = {}
-for n in ncell:
-  gizmo[n] = get_data("gizmo_{n}".format(n = n))
-  gadget2[n] = get_data("gadget2_{n}".format(n = n))
-  hopkins[n] = get_data("hopkins_{n}".format(n = n))
+data = {}
+for sim in sims:
+  data[sim] = {}
+  for n in ncell:
+    data[sim][n] = get_data("{sim}_{n}".format(sim = sim, n = n))
 
 fig, ax = pl.subplots(2, 2, sharex = True)
 
-ax[0][0].semilogy(ncell_real, [gizmo[n]["rho_xi2_tot"] for n in ncell], "ro-")
-ax[0][1].semilogy(ncell_real, [gizmo[n]["rho_xi2_rar"] for n in ncell], "ro-")
-ax[1][0].semilogy(ncell_real, [gizmo[n]["rho_xi2_con"] for n in ncell], "ro-")
-ax[1][1].semilogy(ncell_real, [gizmo[n]["rho_xi2_sho"] for n in ncell], "ro-")
-ax[0][0].semilogy(ncell_real, [gadget2[n]["rho_xi2_tot"] for n in ncell], "go-")
-ax[0][1].semilogy(ncell_real, [gadget2[n]["rho_xi2_rar"] for n in ncell], "go-")
-ax[1][0].semilogy(ncell_real, [gadget2[n]["rho_xi2_con"] for n in ncell], "go-")
-ax[1][1].semilogy(ncell_real, [gadget2[n]["rho_xi2_sho"] for n in ncell], "go-")
-ax[0][0].semilogy(ncell_real, [hopkins[n]["rho_xi2_tot"] for n in ncell], "bo-")
-ax[0][1].semilogy(ncell_real, [hopkins[n]["rho_xi2_rar"] for n in ncell], "bo-")
-ax[1][0].semilogy(ncell_real, [hopkins[n]["rho_xi2_con"] for n in ncell], "bo-")
-ax[1][1].semilogy(ncell_real, [hopkins[n]["rho_xi2_sho"] for n in ncell], "bo-")
+for sim in sims:
+  ax[0][0].semilogy(ncell_real, [data[sim][n]["rho_xi2_tot"] for n in ncell],
+                    "o-", color = sims[sim][1], label = sims[sim][0])
+  ax[0][1].semilogy(ncell_real, [data[sim][n]["rho_xi2_rar"] for n in ncell],
+                    "o-", color = sims[sim][1], label = sims[sim][0])
+  ax[1][0].semilogy(ncell_real, [data[sim][n]["rho_xi2_con"] for n in ncell],
+                    "o-", color = sims[sim][1], label = sims[sim][0])
+  ax[1][1].semilogy(ncell_real, [data[sim][n]["rho_xi2_sho"] for n in ncell],
+                    "o-", color = sims[sim][1], label = sims[sim][0])
 
 ax[0][0].set_title("Total")
 ax[0][1].set_title("Rarefaction")
@@ -66,4 +66,11 @@ ax[1][0].set_title("Contact")
 ax[1][1].set_title("Shock")
 dncell = 0.1 * (ncell_real[-1] - ncell_real[0])
 ax[0][0].set_xlim(ncell_real[0] - dncell, ncell_real[-1] + dncell)
+ax[1][0].set_xlabel("Number of particles")
+ax[1][1].set_xlabel("Number of particles")
+ax[0][0].set_ylabel(r"$\langle{}\chi{}^2\rangle{}$")
+ax[1][0].set_ylabel(r"$\langle{}\chi{}^2\rangle{}$")
+ax[0][0].legend(loc = "best")
+ax[0][0].set_xticks([0, 1000, 2000, 3000])
+pl.suptitle("1D Sod shock convergence")
 pl.savefig("SodShock_1D_convergence.png")

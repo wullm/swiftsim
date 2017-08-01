@@ -1,6 +1,6 @@
 #! /bin/bash
 
-for scheme in gizmo gadget2 minimal hopkins
+for scheme in gizmo gadget2 hopkins
 do
   echo "Testing " $scheme
   cd ../../..
