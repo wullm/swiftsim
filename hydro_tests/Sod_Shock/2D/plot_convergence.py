@@ -26,9 +26,12 @@
 # characteristic waves present in the solution.
 
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 import pylab as pl
 
 ncell = np.array([1, 2, 3, 4, 5])
+real_ncell = (128**2 * 2 + 48**2 * 2) * ncell**2
 
 def get_data(sim):
   file = open("{sim}/summary.txt".format(sim = sim), 'r')
@@ -44,22 +47,23 @@ for n in ncell:
 
 fig, ax = pl.subplots(2, 2, sharex = True)
 
-ax[0][0].semilogy(ncell, [gizmo[n]["rho_xi2_tot"] for n in ncell], "ro-")
-ax[0][1].semilogy(ncell, [gizmo[n]["rho_xi2_rar"] for n in ncell], "ro-")
-ax[1][0].semilogy(ncell, [gizmo[n]["rho_xi2_con"] for n in ncell], "ro-")
-ax[1][1].semilogy(ncell, [gizmo[n]["rho_xi2_sho"] for n in ncell], "ro-")
-ax[0][0].semilogy(ncell, [gadget2[n]["rho_xi2_tot"] for n in ncell], "go-")
-ax[0][1].semilogy(ncell, [gadget2[n]["rho_xi2_rar"] for n in ncell], "go-")
-ax[1][0].semilogy(ncell, [gadget2[n]["rho_xi2_con"] for n in ncell], "go-")
-ax[1][1].semilogy(ncell, [gadget2[n]["rho_xi2_sho"] for n in ncell], "go-")
-ax[0][0].semilogy(ncell, [hopkins[n]["rho_xi2_tot"] for n in ncell], "bo-")
-ax[0][1].semilogy(ncell, [hopkins[n]["rho_xi2_rar"] for n in ncell], "bo-")
-ax[1][0].semilogy(ncell, [hopkins[n]["rho_xi2_con"] for n in ncell], "bo-")
-ax[1][1].semilogy(ncell, [hopkins[n]["rho_xi2_sho"] for n in ncell], "bo-")
+ax[0][0].semilogy(real_ncell, [gizmo[n]["rho_xi2_tot"] for n in ncell], "ro-")
+ax[0][1].semilogy(real_ncell, [gizmo[n]["rho_xi2_rar"] for n in ncell], "ro-")
+ax[1][0].semilogy(real_ncell, [gizmo[n]["rho_xi2_con"] for n in ncell], "ro-")
+ax[1][1].semilogy(real_ncell, [gizmo[n]["rho_xi2_sho"] for n in ncell], "ro-")
+ax[0][0].semilogy(real_ncell, [gadget2[n]["rho_xi2_tot"] for n in ncell], "go-")
+ax[0][1].semilogy(real_ncell, [gadget2[n]["rho_xi2_rar"] for n in ncell], "go-")
+ax[1][0].semilogy(real_ncell, [gadget2[n]["rho_xi2_con"] for n in ncell], "go-")
+ax[1][1].semilogy(real_ncell, [gadget2[n]["rho_xi2_sho"] for n in ncell], "go-")
+ax[0][0].semilogy(real_ncell, [hopkins[n]["rho_xi2_tot"] for n in ncell], "bo-")
+ax[0][1].semilogy(real_ncell, [hopkins[n]["rho_xi2_rar"] for n in ncell], "bo-")
+ax[1][0].semilogy(real_ncell, [hopkins[n]["rho_xi2_con"] for n in ncell], "bo-")
+ax[1][1].semilogy(real_ncell, [hopkins[n]["rho_xi2_sho"] for n in ncell], "bo-")
 
 ax[0][0].set_title("Total")
 ax[0][1].set_title("Rarefaction")
 ax[1][0].set_title("Contact")
 ax[1][1].set_title("Shock")
-ax[0][0].set_xlim(0., 6.)
-pl.show()
+dncell = 0.1 * (ncell_real[-1] - ncell_real[0])
+ax[0][0].set_xlim(ncell_real[0] - dncell, ncell_real[-1] + dncell)
+pl.savefig("SodShock_2D_convergence.png")
