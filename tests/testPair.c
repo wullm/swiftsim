@@ -16,13 +16,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ******************************************************************************/
+#include "../config.h"
 
+/* Some standard headers. */
 #include <fenv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+/* Local headers. */
 #include "swift.h"
+
+#if defined(WITH_VECTORIZATION)
+#define DOSELF1 runner_doself1_density_vec
+#define DOPAIR1 runner_dopair1_branch_density
+#define DOSELF1_NAME "runner_doself1_density_vec"
+#define DOPAIR1_NAME "runner_dopair1_density_vec"
+#endif
+
+#ifndef DOSELF1
+#define DOSELF1 runner_doself1_density
+#define DOSELF1_NAME "runner_doself1_density"
+#endif
+
+#ifndef DOPAIR1
+#define DOPAIR1 runner_dopair1_branch_density
+#define DOPAIR1_NAME "runner_dopair1_density"
+#endif
 
 /* n is both particles per axis and box size:
  * particles are generated on a mesh with unit spacing
@@ -84,7 +105,8 @@ struct cell *make_cell(size_t n, double *offset, double size, double h,
   cell->split = 0;
   cell->h_max = h;
   cell->count = count;
-  cell->dx_max = 0.;
+  cell->dx_max_part = 0.;
+  cell->dx_max_sort = 0.;
   cell->width[0] = n;
   cell->width[1] = n;
   cell->width[2] = n;
@@ -92,22 +114,22 @@ struct cell *make_cell(size_t n, double *offset, double size, double h,
   cell->loc[1] = offset[1];
   cell->loc[2] = offset[2];
 
-  cell->ti_old = 8;
+  cell->ti_old_part = 8;
   cell->ti_end_min = 8;
   cell->ti_end_max = 8;
 
   shuffle_particles(cell->parts, cell->count);
 
   cell->sorted = 0;
-  cell->sort = NULL;
-  cell->sortsize = 0;
+  for (int k = 0; k < 13; k++) cell->sort[k] = NULL;
 
   return cell;
 }
 
 void clean_up(struct cell *ci) {
   free(ci->parts);
-  free(ci->sort);
+  for (int k = 0; k < 13; k++)
+    if (ci->sort[k] != NULL) free(ci->sort[k]);
   free(ci);
 }
 
@@ -186,6 +208,9 @@ void dump_particle_fields(char *fileName, struct cell *ci, struct cell *cj) {
 
 /* Just a forward declaration... */
 void runner_dopair1_density(struct runner *r, struct cell *ci, struct cell *cj);
+void runner_doself1_density_vec(struct runner *r, struct cell *ci);
+void runner_dopair1_branch_density(struct runner *r, struct cell *ci,
+                                   struct cell *cj);
 
 int main(int argc, char *argv[]) {
   size_t particles = 0, runs = 0, volume, type = 0;
@@ -204,6 +229,9 @@ int main(int argc, char *argv[]) {
   /* Initialize CPU frequency, this also starts time. */
   unsigned long long cpufreq = 0;
   clocks_set_cpufreq(cpufreq);
+
+  /* Choke on FP-exceptions */
+  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
   srand(0);
 
@@ -262,8 +290,8 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < type + 1; ++i) offset[i] = 1.;
   cj = make_cell(particles, offset, size, h, rho, &partId, perturbation);
 
-  runner_do_sort(&runner, ci, 0x1FFF, 0);
-  runner_do_sort(&runner, cj, 0x1FFF, 0);
+  runner_do_sort(&runner, ci, 0x1FFF, 0, 0);
+  runner_do_sort(&runner, cj, 0x1FFF, 0, 0);
 
   time = 0;
   for (size_t i = 0; i < runs; ++i) {
@@ -275,7 +303,7 @@ int main(int argc, char *argv[]) {
 
 #if defined(DEFAULT_SPH) || !defined(WITH_VECTORIZATION)
     /* Run the test */
-    runner_dopair1_density(&runner, ci, cj);
+    DOPAIR1(&runner, ci, cj);
 #endif
 
     toc = getticks();
