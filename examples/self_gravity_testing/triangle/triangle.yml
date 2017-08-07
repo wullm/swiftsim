@@ -19,14 +19,14 @@ Statistics:
   
 # Parameters governing the snapshots
 Snapshots:
-  basename:            particle_line  # Common part of the name of output files
+  basename:	       triangle # Common part of the name of output files
   time_first:          0.               # Time of the first output (in internal units)
   delta_time:          1.0           # Time difference between consecutive outputs (in internal units)
 
 
 # Parameters related to the initial conditions
 InitialConditions:
-  file_name:  particle_line.hdf5       # The file to read
+  file_name:  triangle.hdf5       # The file to read
  
 # Parameters related to the self-gravity
 Gravity:
