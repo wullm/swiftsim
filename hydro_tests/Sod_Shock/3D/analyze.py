@@ -273,7 +273,7 @@ print "xi2 rarefaction:", P_xi2_rar
 print "xi2 contact:", P_xi2_con
 print "xi2 shock:", P_xi2_sho
 
-times = np.loadtxt("{folder}/timesteps_4.txt".format(folder = folder))
+times = np.loadtxt("{folder}/timesteps_16.txt".format(folder = folder))
 
 time_total = sum(times[:,6])
 
