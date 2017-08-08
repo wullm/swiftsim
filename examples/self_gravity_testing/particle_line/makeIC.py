@@ -41,7 +41,7 @@ print 'G=', const_G
 
 
 # Parameters
-periodic= 1            # 1 For periodic box
+periodic= 0            # 1 For periodic box
 boxSize = 12.          
 
 # number of particles in the line
