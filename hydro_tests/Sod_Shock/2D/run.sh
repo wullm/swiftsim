@@ -13,7 +13,7 @@ do
   source hydro_tests/Sod_Shock/2D/"$scheme"_config.sh
   make -j 16
   cd hydro_tests/Sod_Shock/2D/
-  for n in 1 2 3 4 5
+  for n in $(python setups.py)
   do
     folder="$scheme"_"$n"
     mkdir $folder

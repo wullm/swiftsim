@@ -29,14 +29,14 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import pylab as pl
+import setups
 
 sims = {"gizmo": ["GIZMO", 'r'],
         "gadget2": ["Gadget2", 'g'],
         "hopkins": ["Pressure-entropy SPH", 'b']
        }
 
-ncell = np.array([1, 2, 3, 4, 5])
-ncell_real = (128**2 * 2 + 48**2 * 2) * ncell**2
+ncell = sorted(setups.setups.keys())
 
 def get_data(sim):
   file = open("{sim}/summary.txt".format(sim = sim), 'r')
@@ -51,21 +51,21 @@ for sim in sims:
 fig, ax = pl.subplots(2, 2, sharex = True)
 
 for sim in sims:
-  ax[0][0].semilogy(ncell_real, [data[sim][n]["rho_xi2_tot"] for n in ncell],
+  ax[0][0].semilogy(ncell, [data[sim][n]["rho_xi2_tot"] for n in ncell],
                     "o-", color = sims[sim][1], label = sims[sim][0])
-  ax[0][1].semilogy(ncell_real, [data[sim][n]["rho_xi2_rar"] for n in ncell],
+  ax[0][1].semilogy(ncell, [data[sim][n]["rho_xi2_rar"] for n in ncell],
                     "o-", color = sims[sim][1], label = sims[sim][0])
-  ax[1][0].semilogy(ncell_real, [data[sim][n]["rho_xi2_con"] for n in ncell],
+  ax[1][0].semilogy(ncell, [data[sim][n]["rho_xi2_con"] for n in ncell],
                     "o-", color = sims[sim][1], label = sims[sim][0])
-  ax[1][1].semilogy(ncell_real, [data[sim][n]["rho_xi2_sho"] for n in ncell],
+  ax[1][1].semilogy(ncell, [data[sim][n]["rho_xi2_sho"] for n in ncell],
                     "o-", color = sims[sim][1], label = sims[sim][0])
 
 ax[0][0].set_title("Total")
 ax[0][1].set_title("Rarefaction")
 ax[1][0].set_title("Contact")
 ax[1][1].set_title("Shock")
-dncell = 0.1 * (ncell_real[-1] - ncell_real[0])
-ax[0][0].set_xlim(ncell_real[0] - dncell, ncell_real[-1] + dncell)
+dncell = 0.1 * (ncell[-1] - ncell[0])
+ax[0][0].set_xlim(ncell[0] - dncell, ncell[-1] + dncell)
 ax[1][0].set_xlabel("Number of particles")
 ax[1][1].set_xlabel("Number of particles")
 ax[0][0].set_ylabel(r"$\langle{}\chi{}^2\rangle{}$")

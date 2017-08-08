@@ -21,6 +21,7 @@
 import h5py
 from numpy import *
 import sys
+import setups
 
 # Generates a swift IC file for the 2D Sod Shock in a periodic box
 
@@ -36,14 +37,23 @@ P_L = 1.               # Pressure left state
 P_R = 0.1              # Pressure right state
 fileName = "sodShock.hdf5" 
 
-num_copy = int(sys.argv[1])
+numPart_request = int(sys.argv[1])
 
+if not numPart_request in setups.setups:
+  print "No setup found for requested number of particles!"
+  exit()
+
+num_copy = setups.setups[numPart_request]["num_copy"]
+small_glass = "glassPlane_{0}.hdf5".format(
+                setups.setups[numPart_request]["small_glass"])
+large_glass = "glassPlane_{0}.hdf5".format(
+                setups.setups[numPart_request]["large_glass"])
 
 #---------------------------------------------------
 boxSize = (x_max - x_min)
 
-glass_L = h5py.File("glassPlane_128.hdf5", "r")
-glass_R = h5py.File("glassPlane_48.hdf5", "r")
+glass_L = h5py.File(large_glass, "r")
+glass_R = h5py.File(small_glass, "r")
 
 pos_L = glass_L["/PartType0/Coordinates"][:,:] * 0.5
 pos_R = glass_R["/PartType0/Coordinates"][:,:] * 0.5
