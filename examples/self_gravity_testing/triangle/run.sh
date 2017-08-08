@@ -1,5 +1,15 @@
 #!/bin/bash
 
+if [ ! -e ./data/ ]
+then
+    mkdir data
+fi
+
+if [ ! -e ./plots/ ]
+then
+    mkdir plots
+fi
+
 
 python makeIC.py 3.0
 m_order=(1 2 3 4 5) 
