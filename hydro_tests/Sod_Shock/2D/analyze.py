@@ -31,7 +31,7 @@
 # Parameters
 gas_gamma = 5./3.      # Polytropic index
 rho_L = 1.             # Density left state
-rho_R = 0.125          # Density right state
+rho_R = 0.140625       # Density right state
 v_L = 0.               # Velocity left state
 v_R = 0.               # Velocity right state
 P_L = 1.               # Pressure left state
