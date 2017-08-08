@@ -10,30 +10,27 @@ InternalUnitSystem:
 TimeIntegration:
   time_begin: 0.    # The starting time of the simulation (in internal units).
   time_end:   100.   # The end time of the simulation (in internal units).
-  dt_min:     1.0e-13 # The minimal time-step size of the simulation (in internal units).
-  dt_max:     1.0e-1  # The maximal time-step size of the simulation (in internal units).
+  dt_min:     1e-15  # The minimal time-step size of the simulation (in internal units).
+  dt_max:     0.1  # The maximal time-step size of the simulation (in internal units).
 
 # Parameters governing the conserved quantities statistics
 Statistics:
-  delta_time:          1.0 # Time between statistics output
+  delta_time:          0.1 # Time between statistics output
   
 # Parameters governing the snapshots
 Snapshots:
-  basename:            point_mass_ext_grav  # Common part of the name of output files
+  basename:            random  # Common part of the name of output files
   time_first:          0.               # Time of the first output (in internal units)
   delta_time:          0.1           # Time difference between consecutive outputs (in internal units)
 
 
 # Parameters related to the initial conditions
 InitialConditions:
-  file_name:  point_mass_ext_grav.hdf5       # The file to read
+  file_name:  random.hdf5       # The file to read
  
+# Parameters related to the self-gravity
+Gravity:
+  eta:        1.0e-2
+  epsilon:    0.01
+  theta:      0.7
 
-# External potential parameters
-PointMassPotential:
-  position_x:      6.     # Location of centre of isothermal potential in internal units
-  position_y:      6.
-  position_z:      6.	
-  mass:            1.   # Mass of point mass
-  timestep_mult:   1.0e-5   # Controls time step
- 

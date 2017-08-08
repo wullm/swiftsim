@@ -41,41 +41,37 @@ print 'G=', const_G
 
 
 # Parameters
-periodic= 1            # 1 For periodic box
+periodic= 0            # 1 For periodic box
 boxSize = 12.          
 
-# number of particles in the line
-n = int(sys.argv[1])
 
 #radius of orbit
 r = float(sys.argv[2])
 
-# place particles at evenly spaced intervals on the x-axis between 0.25 and 0.75
+#number of particles
+n = int(sys.argv[1])
+
+# place particles randomly within a cell
 box_centre = np.full((n+1,3),boxSize/2.)
 coords = np.zeros((n+1,3))
-if (n > 1):
-    coords[:n,0] = np.linspace(0.25,0.75,n)
 
-# if just one particle, have it at 0.5
-else:
-    coords[0,0] = 0.5
+coords[:n,:] = np.random.random((n,3)) 
 
-# put the orbiting particle on the x-axis at r + 0.5
-coords[n,0] = r + 0.5
+# put the orbiting particle on the x-axis at r
+coords[n,:] = [0.5 + r , 0.5 , 0.5]
 
-# move to centre of box
-coords += box_centre
+# move to centre of box + [0.5,0.5,0.5]
+coords += box_centre 
 
-print "Coordinates of particles are: \n", coords
+print coords
 
 # the mass of the line of particles totals 1
-masses = np.zeros(n+1)
-masses[:n] = 1./n
+mass = np.zeros(n+1)
+mass[:n] = 1./n
 
 # mass of the orbiting particle is 1.0e-6
-masses[n] = 1.0e-6
+mass[n] = 1.0e-6
 
-print "Masses of particles are: \n" , masses
 # line of particles are stationary, orbiting particle has velocity equal to that of a particle in a circular orbit of radius 1 around 
 # unit mass at the origin, in the positive y-direction
 
@@ -83,9 +79,9 @@ vels = np.zeros((n+1,3))
 speed = np.sqrt(const_G/r)
 vels[n,1] = speed
 
-print "Velocities of particles are: \n" , vels
+
 # Create the file
-filename = "particle_line.hdf5"
+filename = "random.hdf5"
 file = h5py.File(filename, 'w')
 
 #Units
@@ -125,8 +121,8 @@ ds[()] = vels
 vels = np.zeros(1)
 
 ds = grp.create_dataset('Masses', (n+1, ), 'f')
-ds[()] = masses
-masses = np.zeros(1)
+ds[()] = mass
+mass = np.zeros(1)
 
 
 # Particle IDs
