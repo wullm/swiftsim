@@ -1,9 +1,14 @@
 #!/bin/bash -l
 
-module purge
-module load swift
-module load swift/c5/intel/intelmpi/5.0.3
-module load utils
+if [ ! -e ./data/ ]
+then
+    mkdir data
+fi
+
+if [ ! -e ./plots/ ]
+then
+    mkdir plots
+fi
 
 m_order=(1 2 3 4 5) 
 for i in "${m_order[@]}"; do 
