@@ -45,9 +45,6 @@ shock_interval = [0.25, 0.5]
 import numpy as np
 import h5py
 import sys
-import matplotlib
-#matplotlib.use("Agg")
-import pylab as pl
 
 folder = sys.argv[1]
 snap = 1
