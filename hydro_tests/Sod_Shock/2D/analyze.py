@@ -45,9 +45,6 @@ shock_interval = [0.25, 0.5]
 import numpy as np
 import h5py
 import sys
-import matplotlib
-matplotlib.use("Agg")
-import pylab as pl
 
 folder = sys.argv[1]
 snap = 1
@@ -166,6 +163,7 @@ else:
 rho_s = np.zeros(N)
 P_s = np.zeros(N)
 v_s = np.zeros(N)
+x_s = sorted(x)
 
 # Compute solution in the different regions
 for i in range(N):
@@ -222,38 +220,26 @@ for i in range(N):
     if x[i] < -0.5 or x[i] > 0.5:
         v_s[i] = -v_s[i]
 
-rho_xi2_tot = sum( ( (rho-rho_s)/(rho+rho_s) )**2 ) / N
+rho_xi2_tot_array = rho - rho_s
+rho_xi2_tot = sum( rho_xi2_tot_array**2 ) / N
 rho_xi2_rar = \
-  sum( ( (rho[idx_rarefaction]-rho_s[idx_rarefaction])/ \
-         (rho[idx_rarefaction]+rho_s[idx_rarefaction]) )**2 ) / N_rarefaction
-rho_xi2_con = \
-  sum( ( (rho[idx_contact]-rho_s[idx_contact])/ \
-         (rho[idx_contact]+rho_s[idx_contact]) )**2 ) / N_contact
-rho_xi2_sho = \
-  sum( ( (rho[idx_shock]-rho_s[idx_shock])/ \
-         (rho[idx_shock]+rho_s[idx_shock]) )**2 ) / N_shock
+  sum( (rho[idx_rarefaction] - rho_s[idx_rarefaction])**2 ) / N_rarefaction
+rho_xi2_con = sum( (rho[idx_contact] - rho_s[idx_contact])**2 ) / N_contact
+rho_xi2_sho = sum( (rho[idx_shock] - rho_s[idx_shock])**2 ) / N_shock
 
-v_xi2_tot = sum( ( (v-v_s)/(v+v_s) )**2 ) / N
+v_xi2_tot_array = v - v_s
+v_xi2_tot = sum( v_xi2_tot_array**2 ) / N
 v_xi2_rar = \
-  sum( ( (v[idx_rarefaction]-v_s[idx_rarefaction])/ \
-         (v[idx_rarefaction]+v_s[idx_rarefaction]) )**2 ) / N_rarefaction
-v_xi2_con = \
-  sum( ( (v[idx_contact]-v_s[idx_contact])/ \
-         (v[idx_contact]+v_s[idx_contact]) )**2 ) / N_contact
-v_xi2_sho = \
-  sum( ( (v[idx_shock]-v_s[idx_shock])/ \
-         (v[idx_shock]+v_s[idx_shock]) )**2 ) / N_shock
+  sum( (v[idx_rarefaction] - v_s[idx_rarefaction])**2 ) / N_rarefaction
+v_xi2_con = sum( (v[idx_contact] - v_s[idx_contact])**2 ) / N_contact
+v_xi2_sho = sum( (v[idx_shock] -v_s [idx_shock])**2 ) / N_shock
 
-P_xi2_tot = sum( ( (P-P_s)/(P+P_s) )**2 ) / N
+P_xi2_tot_array = P - P_s
+P_xi2_tot = sum( P_xi2_tot_array**2 ) / N
 P_xi2_rar = \
-  sum( ( (P[idx_rarefaction]-P_s[idx_rarefaction])/ \
-         (P[idx_rarefaction]+P_s[idx_rarefaction]) )**2 ) / N_rarefaction
-P_xi2_con = \
-  sum( ( (P[idx_contact]-P_s[idx_contact])/ \
-         (P[idx_contact]+P_s[idx_contact]) )**2 ) / N_contact
-P_xi2_sho = \
-  sum( ( (P[idx_shock]-P_s[idx_shock])/ \
-         (P[idx_shock]+P_s[idx_shock]) )**2 ) / N_shock
+  sum( (P[idx_rarefaction] - P_s[idx_rarefaction])**2 ) / N_rarefaction
+P_xi2_con = sum( (P[idx_contact] - P_s[idx_contact])**2 ) / N_contact
+P_xi2_sho = sum( (P[idx_shock] - P_s[idx_shock])**2 ) / N_shock
 
 print "rho:"
 print "xi2 total:", rho_xi2_tot
@@ -297,3 +283,31 @@ file.write("\"P_xi2_con\": {val},\n".format(val = P_xi2_con))
 file.write("\"P_xi2_sho\": {val},\n".format(val = P_xi2_sho))
 
 file.write("\"time_total\": {val}}}\n".format(val = time_total))
+
+import matplotlib
+matplotlib.use("Agg")
+import pylab as pl
+
+# sort the analytic solution before we plot it
+si = np.argsort(x)
+x_s = np.array([x[i] for i in si])
+rho_s = np.array([rho_s[i] for i in si])
+v_s = np.array([v_s[i] for i in si])
+P_s = np.array([P_s[i] for i in si])
+
+fig, ax = pl.subplots(2, 3, sharex = True)
+ax[0][0].plot(x, rho, "k.")
+ax[0][0].plot(x_s, rho_s, "r-")
+ax[0][1].plot(x, v, "k.")
+ax[0][1].plot(x_s, v_s, "r-")
+ax[0][2].plot(x, P, "k.")
+ax[0][2].plot(x_s, P_s, "r-")
+ax[1][0].plot(x, rho_xi2_tot_array, "k.")
+ax[1][1].plot(x, v_xi2_tot_array, "k.")
+ax[1][2].plot(x, P_xi2_tot_array, "k.")
+ax[0][0].set_xlim(-1., 1.)
+ax[0][0].set_title("density")
+ax[0][1].set_title("velocity")
+ax[0][2].set_title("pressure")
+
+pl.savefig("{folder}/result.png".format(folder = folder))

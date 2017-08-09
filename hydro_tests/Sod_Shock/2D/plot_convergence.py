@@ -31,6 +31,8 @@ matplotlib.use("Agg")
 import pylab as pl
 import setups
 
+pl.rcParams["figure.figsize"] = (12, 8)
+
 sims = {"gizmo": ["GIZMO", 'r'],
         "gadget2": ["Gadget2", 'g'],
         "hopkins": ["Pressure-entropy SPH", 'b']
@@ -66,6 +68,7 @@ ax[1][0].set_title("Contact")
 ax[1][1].set_title("Shock")
 dncell = 0.1 * (ncell[-1] - ncell[0])
 ax[0][0].set_xlim(ncell[0] - dncell, ncell[-1] + dncell)
+ax[0][0].set_xticks([0., 1.e5, 2.e5, 3.e5])
 ax[1][0].set_xlabel("Number of particles")
 ax[1][1].set_xlabel("Number of particles")
 ax[0][0].set_ylabel(r"$\langle{}\chi{}^2\rangle{}$")

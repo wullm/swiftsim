@@ -33,7 +33,7 @@ setups = {
   73728: {"small_glass": 16, "large_glass": 32, "num_copy": 1},
   589824: {"small_glass": 32, "large_glass": 64, "num_copy": 1},
   4718592: {"small_glass": 64, "large_glass": 128, "num_copy": 1},
-  37748736: {"small_glass": 64, "large_glass": 128, "num_copy": 2}
+#  37748736: {"small_glass": 64, "large_glass": 128, "num_copy": 2}
 }
 
 # main method. If the script is called from the command line, we just print the

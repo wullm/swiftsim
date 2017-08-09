@@ -36,7 +36,7 @@ sims = {"gizmo": ["GIZMO", 'r'],
         "hopkins": ["Pressure-entropy SPH", 'b']
        }
 
-ncell = sorted(setups.setups.keys)
+ncell = sorted(setups.setups.keys())
 
 def get_data(sim):
   file = open("{sim}/summary.txt".format(sim = sim), 'r')

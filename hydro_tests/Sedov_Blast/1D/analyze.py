@@ -201,12 +201,14 @@ rho_s = rhospline(r)
 v_s = vspline(r)
 P_s = Pspline(r)
 
-rho_xi2_tot = sum( ( (rho-rho_s)/(rho+rho_s) )**2 ) / N
+rho_xi2_tot_array = (rho - rho_s)
+rho_xi2_tot = sum( rho_xi2_tot_array**2 ) / N
 
-vdiv = np.where(v_r + v_s > 0., v_r+v_s, np.ones(N))
-v_xi2_tot = sum( ( (v_r-v_s)/vdiv )**2 ) / N
+v_xi2_tot_array = (v_r - v_s)
+v_xi2_tot = sum( v_xi2_tot_array**2 ) / N
 
-P_xi2_tot = sum( ( (P-P_s)/(P+P_s) )**2 ) / N
+P_xi2_tot_array = (P - P_s)
+P_xi2_tot = sum( P_xi2_tot_array**2 ) / N
 
 print "rho:"
 print "xi2 total:", rho_xi2_tot
@@ -232,3 +234,23 @@ file.write("\"v_xi2_tot\": {val},\n".format(val = v_xi2_tot))
 file.write("\"P_xi2_tot\": {val},\n".format(val = P_xi2_tot))
 
 file.write("\"time_total\": {val}}}\n".format(val = time_total))
+
+import matplotlib
+matplotlib.use("Agg")
+import pylab as pl
+
+fig, ax = pl.subplots(2, 3, sharex = True)
+ax[0][0].plot(r, rho, "k.")
+ax[0][0].plot(r_s, rhospline(r_s), "r-")
+ax[0][1].plot(r, v_r, "k.")
+ax[0][1].plot(r_s, vspline(r_s), "r-")
+ax[0][2].plot(r, P, "k.")
+ax[0][2].plot(r_s, Pspline(r_s), "r-")
+ax[1][0].plot(r, rho_xi2_tot_array, "k.")
+ax[1][1].plot(r, v_xi2_tot_array, "k.")
+ax[1][2].plot(r, P_xi2_tot_array, "k.")
+ax[0][0].set_title("density")
+ax[0][1].set_title("velocity")
+ax[0][2].set_title("pressure")
+
+pl.savefig("{folder}/result.png".format(folder = folder))
