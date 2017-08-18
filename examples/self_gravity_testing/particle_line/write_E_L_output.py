@@ -9,7 +9,7 @@ from scipy.integrate import odeint
 ###################################################################################
 
 # get units
-filename = "particle_line_000.hdf5"
+filename = "particle_line_0000.hdf5"
 f = h5.File(filename,'r')
 units = f["InternalCodeUnits"]
 unit_length_cgs = units.attrs["Unit length in cgs (U_L)"]
@@ -25,7 +25,7 @@ file_list = glob.glob("particle_line_*")
 n_snaps = 1002
 
 # get the box size
-filename = "particle_line_000.hdf5"
+filename = "particle_line_0000.hdf5"
 f = h5.File(filename,'r')
 header = f["Header"]
 box_centre = np.array(header.attrs["BoxSize"])/2.
@@ -58,7 +58,7 @@ t = np.zeros(n_snaps)
 # read in the data
 for i in range(n_snaps):
 
-    filename = "particle_line_%03d.hdf5" %i
+    filename = "particle_line_%04d.hdf5" %i
     f = h5.File(filename,'r')
     coords = np.array(f["PartType1/Coordinates"])
     masses = np.array(f["PartType1/Masses"])
@@ -113,11 +113,12 @@ orbit_radius = float(sys.argv[2])
 ### period of orbit scales as r**(3/2)
 n_orbits = t / orbit_radius**(3./2.)
 
+print m_order
 
 
 ##################### write output to txt file ###########################
 
-out_filename = "./data/E_L_n_%d_r_%d_mle_%d_m_%d_theta_%d.dat" %(n_part,int(orbit_radius),int(-np.log10(eta)),m_order,theta)
+out_filename = "./data/E_L_n_%d_r_%d_mle_%d_m_%d_theta_%d.dat" %(n_part,int(orbit_radius),int(-np.log10(eta)),m_order,int(np.rint(theta)))
 
 output_array = np.zeros((len(t),3))
 

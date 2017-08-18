@@ -32,5 +32,5 @@ InitialConditions:
 Gravity:
   eta:        1.0e-2
   epsilon:    0.01
-  theta:      0.7
+  theta:      1.0
 

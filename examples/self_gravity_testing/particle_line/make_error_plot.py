@@ -30,7 +30,7 @@ colours= ['r','b','m','k','c']
 mle = 2
 m_vals = [1,2,3,4,5]
 i = 0
-theta = 0.7
+theta = 1.0
 
 n_part = int(sys.argv[1])
 r = float(sys.argv[2]) # orbit radius
@@ -40,7 +40,7 @@ r = float(sys.argv[2]) # orbit radius
 
 plt.figure()
 ax1 = plt.subplot(211)
-plt.title(r"$%d \, \,  \mathrm{particles}, \, \, \theta = \%1.1f, \, \, \log{\eta} = %d , \, \, r = %1.1f \mathrm{AU}$" %(n_part,theta,mle,r))
+plt.title(r"$%d \, \,  \mathrm{particles}, \, \, \theta = %1.1f, \, \, \log{\eta} = %d , \, \, r = %1.1f \mathrm{AU}$" %(n_part,theta,mle,r))
 plt.ylabel(r"$|\mathbf{x_{MM}} - \mathbf{x_{DS}}| / r$")
 plt.yscale('log')
 plt.ylim(1.0e-6,1.0e0)
@@ -97,7 +97,7 @@ plt.subplot(211)
 plt.legend(loc = 0)
 
 #plt.show()
-plt.savefig("./plots/particle_line_n_%d_multipole_test_r_%d.png" %(n,int(np.rint(r))) , format = "png")
+plt.savefig("./plots/particle_line_n_%d_multipole_test_r_%d.png" %(n_part,int(np.rint(r))) , format = "png")
 plt.close()
 
 
