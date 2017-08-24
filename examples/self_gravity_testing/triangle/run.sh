@@ -18,7 +18,7 @@ for i in "${m_order[@]}"; do
     configure --disable-vec --enable-no-gravity-below-id=4 --with-multipole-order=$i
     make -j 8
     cd -
-    ../../swift -G -e -t 1 triangle_theta_1.yml
+    ../../swift -G -e -t 1 triangle_theta_0p7.yml
     python write_position_output.py 3.0
     python write_E_L_output.py 3.0
 done

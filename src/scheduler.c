@@ -1378,7 +1378,7 @@ void scheduler_enqueue(struct scheduler *s, struct task *t) {
 
     /* If no previous owner, pick a random queue. */
     if (qid < 0)
-      qid = rand_r((unsigned int *)pthread_getspecific(s->local_seed_pointer)) %
+      qid = rand() %
             s->nr_queues;
 
     /* Increase the waiting counter. */
@@ -1491,7 +1491,7 @@ struct task *scheduler_gettask(struct scheduler *s, int qid,
 
   struct task *res = NULL;
   const int nr_queues = s->nr_queues;
-  unsigned int seed = qid;
+  //unsigned int seed = qid;
 
   /* Check qid. */
   if (qid >= nr_queues || qid < 0) error("Bad queue ID.");
@@ -1519,7 +1519,7 @@ struct task *scheduler_gettask(struct scheduler *s, int qid,
             qids[count++] = k;
           }
         for (int k = 0; k < scheduler_maxsteal && count > 0; k++) {
-          const int ind = rand_r(&seed) % count;
+          const int ind = rand() % count;
           TIMER_TIC
           res = queue_gettask(&s->queues[qids[ind]], prev, 0);
           TIMER_TOC(timer_qsteal);

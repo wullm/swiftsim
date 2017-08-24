@@ -30,7 +30,7 @@ colours= ['r','b','m','k','c']
 mle = 2
 m_vals = [1,2,3,4,5]
 i = 0
-theta = 1.0
+theta = 0.7
 
 n_part = int(sys.argv[1])
 r = float(sys.argv[2]) # orbit radius
@@ -48,10 +48,10 @@ plt.xlim((0,10))
 plt.setp(ax1.get_xticklabels(), visible = False)
 ax2 = plt.subplot(212, sharex = ax1)
 plt.ylabel(r"$ |E - E_{\mathrm{init}}| / E_{\mathrm{init}}$")
+plt.xlabel("Number of orbits")
 plt.yscale('log')
 plt.ylim(1.0e-6,1.0e0)
 plt.xlim((0,10))
-plt.setp(ax2.get_xticklabels(), visible = False)
 
 ### read in positions from direct n-body (theta = 0) run
 

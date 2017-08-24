@@ -13,6 +13,7 @@ fi
 m_order=(1 2 3 4 5) 
 for i in "${m_order[@]}"; do 
     cd ../../../
+    autoreconf
     configure --disable-vec --enable-no-gravity-below-id=3 --with-multipole-order=$i
     make -j 8
     cd -
