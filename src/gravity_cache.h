@@ -161,9 +161,9 @@ __attribute__((always_inline)) INLINE void gravity_cache_populate(
 
   /* Pad the caches */
   for (int i = gcount; i < gcount_padded; ++i) {
-    x[i] = 0.f;
-    y[i] = 0.f;
-    z[i] = 0.f;
+    x[i] = -1;
+    y[i] = -1;
+    z[i] = -1;
     epsilon[i] = 0.f;
     m[i] = 0.f;
   }
@@ -210,9 +210,9 @@ __attribute__((always_inline)) INLINE void gravity_cache_populate_no_shift(
 
   /* Pad the caches */
   for (int i = gcount; i < gcount_padded; ++i) {
-    x[i] = 0.f;
-    y[i] = 0.f;
-    z[i] = 0.f;
+    x[i] = -1;
+    y[i] = -1;
+    z[i] = -1;
     epsilon[i] = 0.f;
     m[i] = 0.f;
   }
