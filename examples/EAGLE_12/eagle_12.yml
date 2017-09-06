@@ -39,3 +39,8 @@ SPH:
 InitialConditions:
   file_name:  ./EAGLE_ICs_12.hdf5     # The file to read
 
+Scheduler:
+  cell_sub_size_pair_face:   256000000
+  cell_sub_size_pair_edge:   256000000
+  cell_sub_size_pair_corner: 256000000
+  cell_sub_size_self:        2000
