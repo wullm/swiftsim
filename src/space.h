@@ -43,8 +43,10 @@ struct cell;
 #define space_cellallocchunk 1000
 #define space_splitsize_default 400
 #define space_maxsize_default 8000000
-#define space_subsize_pair_default 256000000
-#define space_subsize_self_default 32000
+#define space_subsize_pair_face_default 256000000
+#define space_subsize_pair_edge_default 256000000
+#define space_subsize_pair_corner_default 256000000
+#define space_subsize_self_default 2000
 #define space_subsize_self_grav_default 32000
 #define space_max_top_level_cells_default 12
 #define space_stretch 1.10f
@@ -56,7 +58,10 @@ struct cell;
 /* Split size. */
 extern int space_splitsize;
 extern int space_maxsize;
-extern int space_subsize_pair;
+extern int space_subsize_pair_face;
+extern int space_subsize_pair_edge;
+extern int space_subsize_pair_corner;
+extern int space_subsize_pair_sid[13];
 extern int space_subsize_self;
 extern int space_subsize_self_grav;
 

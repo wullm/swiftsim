@@ -212,7 +212,7 @@ static void scheduler_splittask_hydro(struct task *t, struct scheduler *s) {
 
         /* Replace by a single sub-task? */
         if (scheduler_dosub && /* Use division to avoid integer overflow. */
-            ci->count * sid_scale[sid] < space_subsize_pair / cj->count &&
+            ci->count < space_subsize_pair_sid[sid] / cj->count &&
             !sort_is_corner(sid)) {
 
           /* Make this task a sub task. */

@@ -60,7 +60,17 @@
 
 /* Split size. */
 int space_splitsize = space_splitsize_default;
-int space_subsize_pair = space_subsize_pair_default;
+int space_subsize_pair_face = space_subsize_pair_face_default;
+int space_subsize_pair_edge = space_subsize_pair_edge_default;
+int space_subsize_pair_corner = space_subsize_pair_corner_default;
+int space_subsize_pair_sid[13] = {
+    space_subsize_pair_corner_default, space_subsize_pair_edge_default,
+    space_subsize_pair_corner_default, space_subsize_pair_edge_default,
+    space_subsize_pair_face_default,   space_subsize_pair_edge_default,
+    space_subsize_pair_corner_default, space_subsize_pair_edge_default,
+    space_subsize_pair_corner_default, space_subsize_pair_edge_default,
+    space_subsize_pair_face_default,   space_subsize_pair_edge_default,
+    space_subsize_pair_face_default};
 int space_subsize_self = space_subsize_self_default;
 int space_subsize_self_grav = space_subsize_self_grav_default;
 int space_maxsize = space_maxsize_default;
@@ -2494,9 +2504,7 @@ void space_synchronize_particle_positions_mapper(void *map_data, int nr_gparts,
       xp->v_full[0] = gp->v_full[0];
       xp->v_full[1] = gp->v_full[1];
       xp->v_full[2] = gp->v_full[2];
-    }
-
-    else if (gp->type == swift_type_star) {
+    } else if (gp->type == swift_type_star) {
 
       /* Get it's stellar friend */
       struct spart *sp = &s->sparts[-gp->id_or_neg_offset];
@@ -2711,8 +2719,28 @@ void space_init(struct space *s, const struct swift_params *params,
   /* Get the constants for the scheduler */
   space_maxsize = parser_get_opt_param_int(params, "Scheduler:cell_max_size",
                                            space_maxsize_default);
-  space_subsize_pair = parser_get_opt_param_int(
-      params, "Scheduler:cell_sub_size_pair", space_subsize_pair_default);
+  space_subsize_pair_face =
+      parser_get_opt_param_int(params, "Scheduler:cell_sub_size_pair_face",
+                               space_subsize_pair_face_default);
+  space_subsize_pair_edge =
+      parser_get_opt_param_int(params, "Scheduler:cell_sub_size_pair_face",
+                               space_subsize_pair_edge_default);
+  space_subsize_pair_corner =
+      parser_get_opt_param_int(params, "Scheduler:cell_sub_size_pair_corner",
+                               space_subsize_pair_corner_default);
+  space_subsize_pair_sid[0] = space_subsize_pair_corner;
+  space_subsize_pair_sid[1] = space_subsize_pair_edge;
+  space_subsize_pair_sid[2] = space_subsize_pair_corner;
+  space_subsize_pair_sid[3] = space_subsize_pair_edge;
+  space_subsize_pair_sid[4] = space_subsize_pair_face;
+  space_subsize_pair_sid[5] = space_subsize_pair_edge;
+  space_subsize_pair_sid[6] = space_subsize_pair_corner;
+  space_subsize_pair_sid[7] = space_subsize_pair_edge;
+  space_subsize_pair_sid[8] = space_subsize_pair_corner;
+  space_subsize_pair_sid[9] = space_subsize_pair_edge;
+  space_subsize_pair_sid[10] = space_subsize_pair_face;
+  space_subsize_pair_sid[11] = space_subsize_pair_edge;
+  space_subsize_pair_sid[12] = space_subsize_pair_face;
   space_subsize_self = parser_get_opt_param_int(
       params, "Scheduler:cell_sub_size_self", space_subsize_self_default);
   space_subsize_self_grav =
@@ -2723,9 +2751,11 @@ void space_init(struct space *s, const struct swift_params *params,
 
   if (verbose)
     message(
-        "max_size set to %d, sub_size_pair set to %d, sub_size_self set to %d, "
+        "max_size set to %d, sub_size_pair_face set to %d, sub_size_self set "
+        "to %d, "
         "split_size set to %d",
-        space_maxsize, space_subsize_pair, space_subsize_self, space_splitsize);
+        space_maxsize, space_subsize_pair_face, space_subsize_self,
+        space_splitsize);
 
   /* Apply h scaling */
   const double scaling =
