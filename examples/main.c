@@ -153,12 +153,6 @@ int main(int argc, char *argv[]) {
 
 #endif
 
-/* Let's pin the main thread */
-#if defined(HAVE_SETAFFINITY) && defined(HAVE_LIBNUMA) && defined(_GNU_SOURCE)
-  if (((ENGINE_POLICY)&engine_policy_setaffinity) == engine_policy_setaffinity)
-    engine_pin();
-#endif
-
   /* Welcome to SWIFT, you made the right choice */
   if (myrank == 0) greetings();
 
@@ -328,6 +322,12 @@ int main(int argc, char *argv[]) {
     if (myrank == 0) print_help_message();
     return 1;
   }
+
+/* Let's pin the main thread, now we know if affinity will be used. */
+#if defined(HAVE_SETAFFINITY) && defined(HAVE_LIBNUMA) && defined(_GNU_SOURCE)
+  if (with_aff && ((ENGINE_POLICY)&engine_policy_setaffinity) == engine_policy_setaffinity)
+    engine_pin();
+#endif
 
   /* Genesis 1.1: And then, there was time ! */
   clocks_set_cpufreq(cpufreq);
@@ -677,6 +677,7 @@ int main(int argc, char *argv[]) {
 
   /* Write the state of the system before starting time integration. */
   engine_dump_snapshot(&e);
+  engine_print_stats(&e);
 
   /* Legend */
   if (myrank == 0)
@@ -815,6 +816,7 @@ int main(int argc, char *argv[]) {
 
   /* Write final output. */
   engine_drift_all(&e);
+  engine_print_stats(&e);
   engine_dump_snapshot(&e);
 
 #ifdef WITH_MPI
