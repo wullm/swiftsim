@@ -2723,7 +2723,7 @@ void space_init(struct space *s, const struct swift_params *params,
       parser_get_opt_param_int(params, "Scheduler:cell_sub_size_pair_face",
                                space_subsize_pair_face_default);
   space_subsize_pair_edge =
-      parser_get_opt_param_int(params, "Scheduler:cell_sub_size_pair_face",
+      parser_get_opt_param_int(params, "Scheduler:cell_sub_size_pair_edge",
                                space_subsize_pair_edge_default);
   space_subsize_pair_corner =
       parser_get_opt_param_int(params, "Scheduler:cell_sub_size_pair_corner",
