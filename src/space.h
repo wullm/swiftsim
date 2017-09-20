@@ -46,7 +46,7 @@ struct cell;
 #define space_subsize_pair_face_default 256000000
 #define space_subsize_pair_edge_default 256000000
 #define space_subsize_pair_corner_default 256000000
-#define space_subsize_self_default 2000
+#define space_subsize_self_default 32000
 #define space_subsize_self_grav_default 32000
 #define space_max_top_level_cells_default 12
 #define space_stretch 1.10f
