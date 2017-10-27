@@ -309,5 +309,6 @@ ax[0][0].set_xlim(-1., 1.)
 ax[0][0].set_title("density")
 ax[0][1].set_title("velocity")
 ax[0][2].set_title("pressure")
+pl.suptitle("{0}, {1} particles".format(scheme, N))
 
 pl.savefig("{folder}/result.png".format(folder = folder))

@@ -61,6 +61,8 @@ S = sim["/PartType0/Entropy"][:]
 P = sim["/PartType0/Pressure"][:]
 rho = sim["/PartType0/Density"][:]
 
+npart = len(rho)
+
 # Now, work out the solution....
 
 from scipy.special import gamma as Gamma
@@ -253,5 +255,6 @@ ax[1][2].plot(r, P_xi2_tot_array, "k.")
 ax[0][0].set_title("density")
 ax[0][1].set_title("velocity")
 ax[0][2].set_title("pressure")
+pl.suptitle("{0}, {1} particles".format(scheme, npart))
 
 pl.savefig("{folder}/result.png".format(folder = folder))

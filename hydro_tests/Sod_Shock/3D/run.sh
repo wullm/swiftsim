@@ -2,7 +2,7 @@
 
 if [ ! -e glassCube_64.hdf5 ]
 then
-  echo "Fetching initial glass file for the 3D Sod shock example..."
+  echo "Fetching initial glass files for the 3D Sod convergence test..."
   ./getGlass.sh
 fi
 
