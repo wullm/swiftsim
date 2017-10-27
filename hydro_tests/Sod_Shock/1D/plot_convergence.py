@@ -30,9 +30,12 @@ import matplotlib
 matplotlib.use("Agg")
 import pylab as pl
 
-sims = {"gizmo": ["GIZMO", 'r'],
-        "gadget2": ["Gadget2", 'g'],
-        "hopkins": ["Pressure-entropy SPH", 'b']
+pl.rcParams["figure.figsize"] = (10, 8)
+pl.rcParams["text.usetex"] = True
+
+sims = {"gizmo": ["GIZMO", "#d7191c"],
+        "gadget2": ["Gadget2", "#fdae61"],
+        "hopkins": ["Pressure-entropy SPH", "#2c7bb6"]
        }
 
 ncell = np.array([100, 200, 400, 800, 1600, 3200])
@@ -73,4 +76,6 @@ ax[1][0].set_ylabel(r"$\langle{}\chi{}^2\rangle{}$")
 ax[0][0].legend(loc = "best")
 ax[0][0].set_xticks([0, 1000, 2000, 3000])
 pl.suptitle("1D Sod shock convergence")
+pl.tight_layout()
 pl.savefig("SodShock_1D_convergence.png")
+pl.close()

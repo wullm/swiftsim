@@ -17,8 +17,7 @@
 # 
 ################################################################################
 
-# Plots the convergence rate for the 1D Sedov blast test using different numbers
-# of cells
+# Plots the timings for the 1D Sedov blast test using different numbers of cells
 
 import numpy as np
 import matplotlib
@@ -35,26 +34,25 @@ sims = {"gizmo": ["GIZMO", "#d7191c"],
 
 ncell = np.array([100, 200, 400, 800, 1600, 3200])
 
-def get_data(sim):
-  file = open("{sim}/summary.txt".format(sim = sim), 'r')
-  return eval(file.read())
+def get_total_time(sim):
+  return sum(np.loadtxt("{sim}/timesteps_1.txt".format(sim = sim))[:,6])
 
-data = {}
+times = {}
 for sim in sims:
-  data[sim] = {}
-  for n in ncell:
-    data[sim][n] = get_data("{sim}_{n}".format(sim = sim, n = n))
+  times[sim] = np.zeros(len(ncell))
+  for i in range(len(ncell)):
+    times[sim][i] = get_total_time("{0}_{1}".format(sim, ncell[i]))
 
-fig, ax = pl.subplots(1, 1, sharex = True)
+fig, ax = pl.subplots(1, 1)
 
 for sim in sims:
-  ax.semilogy(ncell, [data[sim][n]["rho_xi2_tot"] for n in ncell], "o-",
-              color = sims[sim][1], label = sims[sim][0])
+  ax.semilogy(ncell, times[sim], "o-", color = sims[sim][1],
+              label = sims[sim][0])
 
-ax.set_title("1D Sedov blast convergence")
 ax.set_xlabel("Number of particles")
-ax.set_ylabel(r"$\langle{}\chi{}^2\rangle{}$")
+ax.set_ylabel("Runtime (ms)")
 ax.legend(loc = "best")
+ax.set_title("1D Sedov blast timings")
 pl.tight_layout()
-pl.savefig("SedovBlast_1D_convergence.png")
+pl.savefig("SedovBlast_1D_timings.png")
 pl.close()

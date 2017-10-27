@@ -242,6 +242,9 @@ import matplotlib
 matplotlib.use("Agg")
 import pylab as pl
 
+pl.rcParams["figure.figsize"] = (10, 8)
+pl.rcParams["text.usetex"] = True
+
 fig, ax = pl.subplots(2, 3, sharex = True)
 ax[0][0].plot(r, rho, "k.")
 ax[0][0].plot(r_s, rhospline(r_s), "r-")
@@ -255,6 +258,13 @@ ax[1][2].plot(r, P_xi2_tot_array, "k.")
 ax[0][0].set_title("density")
 ax[0][1].set_title("velocity")
 ax[0][2].set_title("pressure")
-pl.suptitle("{0}, {1} particles".format(scheme, npart))
+ax[0][0].set_ylabel("value")
+ax[1][0].set_ylabel("absolute difference")
+ax[1][0].set_xlabel("radius")
+ax[1][1].set_xlabel("radius")
+ax[1][2].set_xlabel("radius")
 
+pl.tight_layout()
+pl.subplots_adjust(top = 0.9)
+pl.suptitle("{0}, {1} particles".format(scheme, npart))
 pl.savefig("{folder}/result.png".format(folder = folder))

@@ -123,19 +123,36 @@ import matplotlib
 matplotlib.use("Agg")
 import pylab as pl
 
+pl.rcParams["figure.figsize"] = (10, 8)
+pl.rcParams["text.usetex"] = True
+
+rrange = np.arange(0., max(r), 0.001 * max(r))
+rhorange = np.ones(len(rrange)) * rho0
+vrange = np.zeros(len(rrange))
+Prange = np.zeros(len(rrange))
+for i in range(len(rrange)):
+  vrange[i], Prange[i] = analytic_solution(rrange[i], P0)
+
 fig, ax = pl.subplots(2, 3, sharex = True)
 ax[0][0].plot(r, rho, "k.")
-ax[0][0].plot(r, rho_s, "r-")
+ax[0][0].plot(rrange, rhorange, "r-")
 ax[0][1].plot(r, v_phi, "k.")
-ax[0][1].plot(r, v_s, "r-")
+ax[0][1].plot(rrange, vrange, "r-")
 ax[0][2].plot(r, P, "k.")
-ax[0][2].plot(r, P_s, "r-")
+ax[0][2].plot(rrange, Prange, "r-")
 ax[1][0].plot(r, rho_xi2_tot_array, "k.")
 ax[1][1].plot(r, v_xi2_tot_array, "k.")
 ax[1][2].plot(r, P_xi2_tot_array, "k.")
 ax[0][0].set_title("density")
 ax[0][1].set_title("velocity")
 ax[0][2].set_title("pressure")
-pl.suptitle("{0}, {1} particles".format(scheme, N))
+ax[0][0].set_ylabel("value")
+ax[1][0].set_ylabel("absolute difference")
+ax[1][0].set_xlabel("radius")
+ax[1][1].set_xlabel("radius")
+ax[1][2].set_xlabel("radius")
 
+pl.tight_layout()
+pl.subplots_adjust(top = 0.9)
+pl.suptitle("{0}, {1} particles".format(scheme, N))
 pl.savefig("{folder}/result.png".format(folder = folder))

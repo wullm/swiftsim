@@ -288,6 +288,9 @@ import matplotlib
 matplotlib.use("Agg")
 import pylab as pl
 
+pl.rcParams["figure.figsize"] = (10, 8)
+pl.rcParams["text.usetex"] = True
+
 # sort the analytic solution before we plot it
 si = np.argsort(x)
 x_s = np.array([x[i] for i in si])
@@ -309,6 +312,13 @@ ax[0][0].set_xlim(-1., 1.)
 ax[0][0].set_title("density")
 ax[0][1].set_title("velocity")
 ax[0][2].set_title("pressure")
-pl.suptitle("{0}, {1} particles".format(scheme, N))
+ax[0][0].set_ylabel("value")
+ax[1][0].set_ylabel("absolute difference")
+ax[1][0].set_xlabel("position")
+ax[1][1].set_xlabel("position")
+ax[1][2].set_xlabel("position")
 
+pl.tight_layout()
+pl.subplots_adjust(top = 0.9)
+pl.suptitle("{0}, {1} particles".format(scheme, N))
 pl.savefig("{folder}/result.png".format(folder = folder))

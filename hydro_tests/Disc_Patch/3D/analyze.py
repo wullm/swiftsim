@@ -82,6 +82,9 @@ def analyze_file(label):
   v_s = np.zeros(numPart)
   P_s = get_analytic_pressure(x)
 
+  pl.rcParams["figure.figsize"] = (10, 8)
+  pl.rcParams["text.usetex"] = True
+
   fig, ax = pl.subplots(2, 3, sharex = True)
 
   xrange = np.arange(x_disc - x_max, x_disc + x_max, 0.002 * x_max)
@@ -111,15 +114,21 @@ def analyze_file(label):
   ax[0][2].plot([x_disc + x_trunc, x_disc + x_trunc], [0, 10], "k--", alpha=0.5)
   ax[0][2].set_xlim(0., 2. * x_disc)
   ax[0][2].set_ylim(0., 1.2 * get_analytic_pressure(x_disc))
-  ax[0][2].set_xlabel("x")
   ax[1][2].plot(x, (P - P_s) / (P + P_s), "k.")
 
   ax[0][0].set_title("density")
   ax[0][1].set_title("velocity")
   ax[0][2].set_title("pressure")
 
-  pl.suptitle("{0}: {1}, {2} particles".format(label, scheme, numPart))
+  ax[0][0].set_ylabel("value")
+  ax[1][0].set_ylabel("absolute difference")
+  ax[1][0].set_xlabel("position")
+  ax[1][1].set_xlabel("position")
+  ax[1][2].set_xlabel("position")
 
+  pl.tight_layout()
+  pl.subplots_adjust(top = 0.9)
+  pl.suptitle("{0}: {1}, {2} particles".format(label, scheme, numPart))
   pl.savefig("{0}/result_{1}.png".format(folder, label))
   pl.close()
 

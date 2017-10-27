@@ -29,10 +29,10 @@
 # dictionary tells us which glass files to use and how many copies of them to
 # make
 setups = {
-  4096: {"glass_name": 16, "num_copy": 1},
-  32768: {"glass_name": 32, "num_copy": 1},
-  262144: {"glass_name": 64, "num_copy": 1},
-  2097152: {"glass_name": 128, "num_copy": 1}
+  8192: {"glass_name": 16, "num_copy": 1},
+  65536: {"glass_name": 32, "num_copy": 1},
+  524288: {"glass_name": 64, "num_copy": 1},
+  4194304: {"glass_name": 128, "num_copy": 1}
 }
 
 # main method. If the script is called from the command line, we just print the
