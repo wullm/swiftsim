@@ -12,9 +12,10 @@ do
     folder="$scheme"_"$n"
     mkdir $folder
     python makeIC.py $n
-    ../../../examples/swift -s -t 1 sodShock.yml
+    ../../../examples/swift -s -t 1 sodShock.yml 2>&1 | tee sodShock.log
     mv sodShock_0001.hdf5 $folder/
     mv timesteps_1.txt $folder/
+    mv sodShock.log $folder/
     python analyze.py $folder
   done
 done

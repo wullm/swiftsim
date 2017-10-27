@@ -37,7 +37,7 @@ import h5py
 import sys
 
 folder = sys.argv[1]
-snap = 5
+snap = 1
 
 # Read the simulation data
 sim = h5py.File("{folder}/sedov_{snap:04d}.hdf5".format(

@@ -18,9 +18,10 @@ do
     folder="$scheme"_"$n"
     mkdir $folder
     python makeIC.py $n
-    ../../../examples/swift -s -t 4 sedov.yml
-    mv sedov_0005.hdf5 $folder/
+    ../../../examples/swift -s -t 4 sedov.yml 2>&1 | tee sedov.log
+    mv sedov_0001.hdf5 $folder/
     mv timesteps_4.txt $folder/
+    mv sedov.log $folder/
     python analyze.py $folder
   done
 done

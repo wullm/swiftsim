@@ -40,7 +40,7 @@ if len(sys.argv) < 2:
   exit()
 
 folder = sys.argv[1]
-snap = 11
+snap = 1
 
 # Analytic solution
 def analytic_solution(r, P0):
