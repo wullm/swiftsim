@@ -79,13 +79,18 @@
  * size.
  *
  * Note that this turns into a no-op but gives information to the compiler.
- * GCC does not have the equivalent built-in so defaults to nothing.
+ * The GCC solution is dirty but works.
  *
  * @param var The variable
  * @param size The modulo of interest.
  */
 #if defined(__ICC)
 #define swift_assume_size(var, size) __assume(var % size == 0);
+#elif defined(__GNUC__)
+#define swift_assume_size(var, size)                 \
+  do {                                               \
+    if (!(var % size == 0)) __builtin_unreachable(); \
+  } while (0)
 #else
 #define swift_assume_size(var, size) ;
 #endif
