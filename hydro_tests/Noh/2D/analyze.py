@@ -1,7 +1,6 @@
 ################################################################################
 # This file is part of SWIFT.
-# Copyright (c) 2016 Matthieu Schaller (matthieu.schaller@durham.ac.uk)
-#               2017 Bert Vandenbroucke (bert.vandenbroucke@gmail.com)
+# Copyright (c) 2017 Bert Vandenbroucke (bert.vandenbroucke@ugent.be)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published
@@ -18,7 +17,7 @@
 #
 ################################################################################
 
-# Computes the analytical solution of the 1D Noh test
+# Computes the analytical solution of the 2D Noh test
 
 # Parameters
 rho0 = 1.          # Background Density
@@ -48,8 +47,12 @@ neighbours = sim["/HydroScheme"].attrs["Kernel target N_ngb"]
 eta = sim["/HydroScheme"].attrs["Kernel eta"]
 git = sim["Code"].attrs["Git Revision"]
 
-x = sim["/PartType0/Coordinates"][:,0] - 0.5 * boxSize
-v = sim["/PartType0/Velocities"][:,0]
+pos = sim["/PartType0/Coordinates"][:,:]
+x = np.array(pos[:,0]) - 0.5 * boxSize
+y = np.array(pos[:,1]) - 0.5 * boxSize
+vel = sim["/PartType0/Velocities"][:,:]
+r = np.sqrt(x**2 + y**2)
+v_r = (x * vel[:,0] + y * vel[:,1]) / r
 u = sim["/PartType0/InternalEnergy"][:]
 S = sim["/PartType0/Entropy"][:]
 P = sim["/PartType0/Pressure"][:]
@@ -59,20 +62,21 @@ N = len(rho)
 
 # Now, work out the solution....
 
-# shock position
 rs = 0.5 * (gas_gamma - 1.) * v0 * time
 
-rho_s = np.where(abs(x) < rs,
-                 np.ones(N) * rho0 * (gas_gamma + 1.) / (gas_gamma - 1.),
-                 np.ones(N) * rho0)
-v_s = np.where(abs(x) < rs, np.zeros(N), np.ones(N) * np.where(x < 0., v0, -v0))
-P_s = np.where(abs(x) < rs, np.ones(N) * 0.5 * rho0 * v0**2 * (gas_gamma + 1.),
+rho_s = np.where(r < rs,
+                 np.ones(N) * rho0 * ((gas_gamma + 1.) / (gas_gamma - 1.))**2,
+                 rho0 * (1. + v0 * time / r))
+v_s = np.where(r < rs, np.zeros(N), -np.ones(N) * v0)
+P_s = np.where(r < rs,
+               np.ones(N) * 0.5 * rho0 * v0**2 * \
+                 (gas_gamma + 1.)**2 / (gas_gamma - 1.),
                np.ones(N) * P0)
 
 rho_xi2_tot_array = (rho - rho_s)
 rho_xi2_tot = sum( rho_xi2_tot_array**2 ) / N
 
-v_xi2_tot_array = (v - v_s)
+v_xi2_tot_array = (v_r - v_s)
 v_xi2_tot = sum( v_xi2_tot_array**2 ) / N
 
 P_xi2_tot_array = (P - P_s)
@@ -87,7 +91,7 @@ print "xi2 total:", v_xi2_tot
 print "P:"
 print "xi2 total:", P_xi2_tot
 
-times = np.loadtxt("{folder}/timesteps_1.txt".format(folder = folder))
+times = np.loadtxt("{folder}/timesteps_4.txt".format(folder = folder))
 
 time_total = sum(times[:,6])
 
@@ -110,26 +114,28 @@ import pylab as pl
 pl.rcParams["figure.figsize"] = (10, 8)
 pl.rcParams["text.usetex"] = True
 
-xrange = np.arange(-0.5 * boxSize, 0.5 * boxSize, 0.001 * boxSize)
-rhorange = np.where(abs(xrange) < rs,
-                    np.ones(1000) * rho0 * (gas_gamma + 1.) / (gas_gamma - 1.),
-                    np.ones(1000) * rho0)
-vrange = np.where(abs(xrange) < rs, np.zeros(1000),
-                  np.ones(1000) * np.where(xrange < 0., v0, -v0))
-Prange = np.where(abs(xrange) < rs,
-                  np.ones(1000) * 0.5 * rho0 * v0**2 * (gas_gamma + 1.),
+rrange = np.arange(0., 0.5 * boxSize, 0.0005 * boxSize)
+rhorange = np.where(rrange < rs,
+                    np.ones(1000) * rho0 * \
+                      ((gas_gamma + 1.) / (gas_gamma - 1.))**2,
+                    np.ones(1000) * rho0 * (1. + v0 * time / rrange))
+vrange = np.where(rrange < rs, np.zeros(1000),
+                  -np.ones(1000) * v0)
+Prange = np.where(rrange < rs,
+                  np.ones(1000) * 0.5 * rho0 * v0**2 * \
+                    (gas_gamma + 1.)**2 / (gas_gamma - 1.),
                   np.ones(1000) * P0)
 
 fig, ax = pl.subplots(2, 3, sharex = True)
-ax[0][0].plot(x, rho, "k.")
-ax[0][0].plot(xrange, rhorange, "r-")
-ax[0][1].plot(x, v, "k.")
-ax[0][1].plot(xrange, vrange, "r-")
-ax[0][2].plot(x, P, "k.")
-ax[0][2].plot(xrange, Prange, "r-")
-ax[1][0].plot(x, rho_xi2_tot_array, "k.")
-ax[1][1].plot(x, v_xi2_tot_array, "k.")
-ax[1][2].plot(x, P_xi2_tot_array, "k.")
+ax[0][0].plot(r, rho, "k.")
+ax[0][0].plot(rrange, rhorange, "r-")
+ax[0][1].plot(r, v_r, "k.")
+ax[0][1].plot(rrange, vrange, "r-")
+ax[0][2].plot(r, P, "k.")
+ax[0][2].plot(rrange, Prange, "r-")
+ax[1][0].plot(r, rho_xi2_tot_array, "k.")
+ax[1][1].plot(r, v_xi2_tot_array, "k.")
+ax[1][2].plot(r, P_xi2_tot_array, "k.")
 ax[0][0].set_title("density")
 ax[0][1].set_title("velocity")
 ax[0][2].set_title("pressure")
