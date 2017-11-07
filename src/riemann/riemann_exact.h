@@ -243,14 +243,22 @@ __attribute__((always_inline)) INLINE static float riemann_solve_brent(
   fc = fa;
   mflag = 1;
 
+  unsigned int counter = 0;
   while (!(fb == 0.0f) && (fabs(a - b) > error_tol * 0.5f * (a + b))) {
-    if ((fa != fc) && (fb != fc)) /* Inverse quadratic interpolation */
+    ++counter;
+    if (counter == 1000) {
+      error("Stuck in Brent!");
+    }
+
+    if ((fa != fc) && (fb != fc)) {
+      /* Inverse quadratic interpolation */
       s = a * fb * fc / (fa - fb) / (fa - fc) +
           b * fa * fc / (fb - fa) / (fb - fc) +
           c * fa * fb / (fc - fa) / (fc - fb);
-    else
+    } else {
       /* Secant Rule */
       s = b - fb * (b - a) / (fb - fa);
+    }
 
     tmp2 = 0.25f * (3.0f * a + b);
     if (!(((s > tmp2) && (s < b)) || ((s < tmp2) && (s > b))) ||
