@@ -407,7 +407,11 @@ AC_ARG_WITH([metis],
 if test "x$with_metis" != "xno"; then
    if test "x$with_metis" != "xyes" -a "x$with_metis" != "x"; then
       METIS_LIBS="-L$with_metis/lib -lmetis"
-      METIS_INCS="-I$with_metis/include"
+      if test -f "$with_metis/include/metis/metis.h"; then
+         METIS_INCS="-I$with_metis/include/metis"
+      else
+         METIS_INCS="-I$with_metis/include"
+      fi
    else
       METIS_LIBS="-lmetis"
       METIS_INCS=""
@@ -420,6 +424,36 @@ fi
 AC_SUBST([METIS_LIBS])
 AC_SUBST([METIS_INCS])
 AM_CONDITIONAL([HAVEMETIS],[test -n "$METIS_LIBS"])
+
+# Check for SCOTCH. 
+have_scotch="no"
+AC_ARG_WITH([scotch],
+    [AS_HELP_STRING([--with-scotch=PATH],
+       [root directory where SCOTCH is installed @<:@yes/no@:>@]
+    )],
+    [],
+    [with_scotch="no"]
+)
+if test "x$with_scotch" != "xno"; then
+   SCOTCH_LIBS="-lscotch -lscotcherr"
+   if test "x$with_scotch" != "xyes" -a "x$with_scotch" != "x"; then
+      SCOTCH_LIBS="-L$with_scotch/lib $SCOTCH_LIBS"
+      if test -f "$with_scotch/include/scotch/scotch.h"; then
+         SCOTCH_INCS="-I$with_scotch/include/scotch"
+      else
+         SCOTCH_INCS="-I$with_scotch/include"
+      fi
+   else
+      SCOTCH_INCS=""
+   fi
+   have_scotch="yes"
+   AC_CHECK_LIB([scotch],[SCOTCH_graphRepart],
+      AC_DEFINE([HAVE_SCOTCH],1,[The SCOTCH library appears to be present.]),
+      AC_MSG_ERROR(something is wrong with the SCOTCH library!),$SCOTCH_LIBS)
+fi
+AC_SUBST([SCOTCH_LIBS])
+AC_SUBST([SCOTCH_INCS])
+AM_CONDITIONAL([HAVESCOTCH],[test -n "$SCOTCH_LIBS"])
 
 # Check for grackle. 
 have_grackle="no"
@@ -456,7 +490,6 @@ fi
 AC_SUBST([GRACKLE_LIBS])
 AC_SUBST([GRACKLE_INCS])
 AM_CONDITIONAL([HAVEGRACKLE],[test -n "$GRACKLE_LIBS"])
-
 
 #  Check for tcmalloc a fast malloc that is part of the gperftools.
 have_tcmalloc="no"
@@ -983,6 +1016,7 @@ AC_MSG_RESULT([
    HDF5 enabled     : $with_hdf5
     - parallel      : $have_parallel_hdf5
    Metis enabled    : $have_metis
+   SCOTCH enabled   : $have_scotch
    FFTW3 enabled    : $have_fftw3
    libNUMA enabled  : $have_numa
    GRACKLE enabled  : $have_grackle

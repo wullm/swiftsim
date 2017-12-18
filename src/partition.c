@@ -44,7 +44,17 @@
 #ifdef HAVE_METIS
 #include <metis.h>
 #endif
+
+#ifdef HAVE_SCOTCH
+#include <scotch.h>
+int METIS_SCOTCH_graphRepart(
+    const SCOTCH_Num *const n, const SCOTCH_Num *const xadj,
+    const SCOTCH_Num *const adjncy, const SCOTCH_Num *const vwgt,
+    const SCOTCH_Num *const adjwgt, const SCOTCH_Num *const nparts,
+    const SCOTCH_Num *const options, SCOTCH_Num *const edgecut,
+    SCOTCH_Num *const part);
 #endif
+#endif /* WITH_MPI */
 
 /* Local headers. */
 #include "debug.h"
@@ -416,7 +426,7 @@ static void pick_metis(struct space *s, int nregions, double *vertexw,
   options[METIS_OPTION_NITER] = 20;
 
   /* Call METIS. */
-  idx_t one = 1;
+  //idx_t one = 1;
   idx_t idx_ncells = ncells;
   idx_t idx_nregions = nregions;
   idx_t objval;
@@ -425,10 +435,16 @@ static void pick_metis(struct space *s, int nregions, double *vertexw,
   /*dumpMETISGraph("metis_graph", idx_ncells, one, xadj, adjncy,
    *               weights_v, NULL, weights_e);
    */
-  if (METIS_PartGraphKway(&idx_ncells, &one, xadj, adjncy, weights_v, NULL,
-                          weights_e, &idx_nregions, NULL, NULL, options,
-                          &objval, regionid) != METIS_OK)
-    error("Call to METIS_PartGraphKway failed.");
+  /*   if (METIS_PartGraphKway(&idx_ncells, &one, xadj, adjncy, weights_v, NULL,
+   */
+  /*                           weights_e, &idx_nregions, NULL, NULL, options, */
+  /*                           &objval, regionid) != METIS_OK) */
+  /*       error("Call to METIS_PartGraphKway failed."); */
+
+  if (METIS_SCOTCH_graphRepart(&idx_ncells, xadj, adjncy, weights_v,
+                               weights_e, &idx_nregions, options,
+                               &objval, regionid) != 0)
+    error("Call to METIS_SCOTCH_graphRepart failed.");
 
   /* Check that the regionids are ok. */
   for (int k = 0; k < ncells; k++)
@@ -1249,3 +1265,120 @@ int partition_space_to_space(double *oldh, double *oldcdim, int *oldnodeIDs,
   /* Check we have all nodeIDs present in the resample. */
   return check_complete(s, 1, nr_nodes + 1);
 }
+
+/*  SCOTCH support */
+/*  ============== */
+
+#if defined(WITH_MPI) && defined(HAVE_SCOTCH)
+
+#define SCOTCH_STRATDEFAULT 0x0000
+
+static int _SCOTCH_METIS_PartGraph2(
+    const SCOTCH_Num *const n, const SCOTCH_Num *const xadj,
+    const SCOTCH_Num *const adjncy, const SCOTCH_Num *const vwgt,
+    const SCOTCH_Num *const adjwgt, const SCOTCH_Num *const nparts,
+    SCOTCH_Num *const part, SCOTCH_Num flagval, double kbalval) {
+  SCOTCH_Graph grafdat;
+  SCOTCH_Strat stradat;
+  SCOTCH_Num vertnbr;
+  int result = 1;
+
+  SCOTCH_graphInit(&grafdat);
+
+  vertnbr = *n;
+
+  if (SCOTCH_graphBuild(&grafdat, 0, vertnbr, xadj, xadj + 1, vwgt, NULL,
+                        xadj[vertnbr] - 1, adjncy, adjwgt) == 0) {
+    SCOTCH_stratInit(&stradat);
+    SCOTCH_stratGraphMapBuild(&stradat, flagval, *nparts, kbalval);
+    result = SCOTCH_graphPart(&grafdat, *nparts, &stradat, part);
+    SCOTCH_stratExit(&stradat);
+  }
+
+  SCOTCH_graphExit(&grafdat);
+  return result;
+}
+
+static int _SCOTCH_METIS_PartGraph(
+    const SCOTCH_Num *const n, const SCOTCH_Num *const xadj,
+    const SCOTCH_Num *const adjncy, const SCOTCH_Num *const vwgt,
+    const SCOTCH_Num *const adjwgt, const SCOTCH_Num *const wgtflag,
+    const SCOTCH_Num *const nparts, const SCOTCH_Num *const options,
+    SCOTCH_Num *const edgecut, SCOTCH_Num *const part, SCOTCH_Num flagval,
+    double kbalval) {
+  const SCOTCH_Num *vwgt2;
+  const SCOTCH_Num *adjwgt2;
+  const SCOTCH_Num *restrict parttax = part;
+  const SCOTCH_Num *restrict verttax = xadj;
+  const SCOTCH_Num *restrict edgetax = adjncy;
+  SCOTCH_Num vertnnd;
+  SCOTCH_Num vertnum;
+  SCOTCH_Num edgenum;
+  SCOTCH_Num commcut;
+
+  vwgt2 = (((*wgtflag & 2) != 0) ? vwgt : NULL);
+  adjwgt2 = (((*wgtflag & 1) != 0) ? adjwgt : NULL);
+
+  if (_SCOTCH_METIS_PartGraph2(n, xadj, adjncy, vwgt2, adjwgt2, nparts, part,
+                               flagval, kbalval) != 0) {
+    *edgecut = -1; /* Indicate error */
+    return 1;
+  }
+
+  edgenum = 0;
+  vertnum = 0;
+  vertnnd = *n + vertnum;
+  commcut = 0;
+
+  if (adjwgt2 == NULL) { /* If graph does not have edge weights */
+    for (; vertnum < vertnnd; vertnum++) {
+      SCOTCH_Num edgennd;
+      SCOTCH_Num partval;
+
+      partval = parttax[vertnum];
+      for (edgennd = verttax[vertnum + 1]; edgenum < edgennd; edgenum++) {
+        if (parttax[edgetax[edgenum]] != partval) commcut++;
+      }
+    }
+  } else { /* Graph has edge weights */
+    const SCOTCH_Num *restrict edlotax;
+
+    edlotax = adjwgt2;
+    for (; vertnum < vertnnd; vertnum++) {
+      SCOTCH_Num edgennd;
+      SCOTCH_Num partval;
+
+      partval = parttax[vertnum];
+      for (edgennd = verttax[vertnum + 1]; edgenum < edgennd; edgenum++) {
+        SCOTCH_Num vertend;
+
+        vertend = edgetax[edgenum];
+        if (parttax[vertend] != partval) commcut += edlotax[edgenum];
+      }
+    }
+  }
+  *edgecut = commcut / 2;
+
+  return 0;
+}
+
+
+
+int METIS_SCOTCH_graphRepart(
+    const SCOTCH_Num *const n, const SCOTCH_Num *const xadj,
+    const SCOTCH_Num *const adjncy, const SCOTCH_Num *const vwgt,
+    const SCOTCH_Num *const adjwgt, const SCOTCH_Num *const nparts,
+    const SCOTCH_Num *const options, SCOTCH_Num *const edgecut,
+    SCOTCH_Num *const part) {
+
+  /* Weights flag, hmm */
+  SCOTCH_Num wgtflag = 0;
+  if (adjwgt != NULL) wgtflag += 1;
+  if (vwgt != NULL) wgtflag += 2;
+
+  return _SCOTCH_METIS_PartGraph(n, xadj, adjncy, vwgt, adjwgt, &wgtflag, nparts,
+                                 options, edgecut, part, SCOTCH_STRATDEFAULT,
+                                 0.01);
+}
+
+#endif /* HAVE_SCOTCH */

@@ -39,13 +39,13 @@ int checkCellhdxmax(const struct cell *c, int *depth);
 void dumpCells(const char *prefix, int active, int mpiactive, int pactive,
                struct space *s, int rank, int step);
 
+#ifdef WITH_MPI
 #ifdef HAVE_METIS
-#include "metis.h"
+#include <metis.h>
 void dumpMETISGraph(const char *prefix, idx_t nvtxs, idx_t ncon, idx_t *xadj,
                     idx_t *adjncy, idx_t *vwgt, idx_t *vsize, idx_t *adjwgt);
 #endif
 
-#ifdef HAVE_MPI
 void dumpCellRanks(const char *prefix, struct cell *cells_top, int nr_cells);
 #endif
 
