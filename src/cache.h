@@ -62,6 +62,9 @@ struct cache {
   /* Particle z velocity. */
   float *restrict vz SWIFT_CACHE_ALIGN;
 
+  /* Is this #part active ? */
+  int *restrict active SWIFT_CACHE_ALIGN;
+  
   /* Maximum index into neighbouring cell for particles that are in range. */
   int *restrict max_index SWIFT_CACHE_ALIGN;
 
@@ -141,6 +144,7 @@ __attribute__((always_inline)) INLINE void cache_init(struct cache *c,
     free(c->vy);
     free(c->vz);
     free(c->h);
+    free(c->active);
     free(c->max_index);
     free(c->rho);
     free(c->grad_h);
@@ -157,6 +161,7 @@ __attribute__((always_inline)) INLINE void cache_init(struct cache *c,
   error += posix_memalign((void **)&c->vy, SWIFT_CACHE_ALIGNMENT, sizeBytes);
   error += posix_memalign((void **)&c->vz, SWIFT_CACHE_ALIGNMENT, sizeBytes);
   error += posix_memalign((void **)&c->h, SWIFT_CACHE_ALIGNMENT, sizeBytes);
+  error += posix_memalign((void **)&c->active, SWIFT_CACHE_ALIGNMENT, sizeIntBytes);
   error += posix_memalign((void **)&c->max_index, SWIFT_CACHE_ALIGNMENT,
                           sizeIntBytes);
   error += posix_memalign((void **)&c->rho, SWIFT_CACHE_ALIGNMENT, sizeBytes);
@@ -181,6 +186,52 @@ __attribute__((always_inline)) INLINE void cache_init(struct cache *c,
  * @param ci_cache The cache.
  */
 __attribute__((always_inline)) INLINE void cache_read_particles(
+    const struct cell *restrict const ci,
+    struct cache *restrict const ci_cache, timebin_t max_active_bin) {
+
+#if defined(GADGET2_SPH)
+
+  /* Let the compiler know that the data is aligned and create pointers to the
+   * arrays inside the cache. */
+  swift_declare_aligned_ptr(float, x, ci_cache->x, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(float, y, ci_cache->y, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(float, z, ci_cache->z, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(float, h, ci_cache->h, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(float, m, ci_cache->m, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(float, vx, ci_cache->vx, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(float, vy, ci_cache->vy, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(float, vz, ci_cache->vz, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(int, active, ci_cache->active, SWIFT_CACHE_ALIGNMENT);
+  
+  //swift_assume_size(gcount_padded, VEC_SIZE);
+
+  const struct part *restrict parts = ci->parts;
+  const double loc[3] = {ci->loc[0], ci->loc[1], ci->loc[2]};
+
+  /* Shift the particles positions to a local frame so single precision can be
+   * used instead of double precision. */
+  for (int i = 0; i < ci->count; i++) {
+    x[i] = (float)(parts[i].x[0] - loc[0]);
+    y[i] = (float)(parts[i].x[1] - loc[1]);
+    z[i] = (float)(parts[i].x[2] - loc[2]);
+    h[i] = parts[i].h;
+    m[i] = parts[i].mass;
+    vx[i] = parts[i].v[0];
+    vy[i] = parts[i].v[1];
+    vz[i] = parts[i].v[2];
+    active[i] = (int)(parts[i].time_bin <= max_active_bin);
+  }
+
+#endif
+}
+
+/**
+ * @brief Populate cache by reading in the particles in unsorted order.
+ *
+ * @param ci The #cell.
+ * @param ci_cache The cache.
+ */
+__attribute__((always_inline)) INLINE void cache_read_particles_self_subset(
     const struct cell *restrict const ci,
     struct cache *restrict const ci_cache) {
 
@@ -426,7 +477,7 @@ __attribute__((always_inline)) INLINE void cache_read_two_partial_cells_sorted(
     struct cache *restrict const ci_cache,
     struct cache *restrict const cj_cache, const struct entry *restrict sort_i,
     const struct entry *restrict sort_j, const double *restrict const shift,
-    int *first_pi, int *last_pj) {
+    int *first_pi, int *last_pj, timebin_t max_active_bin) {
 
   /* Make the number of particles to be read a multiple of the vector size.
    * This eliminates serial remainder loops where possible when populating the
@@ -470,6 +521,7 @@ __attribute__((always_inline)) INLINE void cache_read_two_partial_cells_sorted(
   swift_declare_aligned_ptr(float, vx, ci_cache->vx, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vy, ci_cache->vy, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vz, ci_cache->vz, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(int, active, ci_cache->active, SWIFT_CACHE_ALIGNMENT);
 
   int ci_cache_count = ci->count - first_pi_align;
 
@@ -487,6 +539,7 @@ __attribute__((always_inline)) INLINE void cache_read_two_partial_cells_sorted(
 #ifdef GADGET2_SPH
     m[i] = parts_i[idx].mass;
 #endif
+    active[i] = (int)(parts_i[idx].time_bin <= max_active_bin);
   }
 
 #ifdef SWIFT_DEBUG_CHECKS
@@ -558,6 +611,7 @@ __attribute__((always_inline)) INLINE void cache_read_two_partial_cells_sorted(
   swift_declare_aligned_ptr(float, vxj, cj_cache->vx, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vyj, cj_cache->vy, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vzj, cj_cache->vz, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(int, activej, cj_cache->active, SWIFT_CACHE_ALIGNMENT);
 
   for (int i = 0; i <= last_pj_align; i++) {
     const int idx = sort_j[i].i;
@@ -568,6 +622,7 @@ __attribute__((always_inline)) INLINE void cache_read_two_partial_cells_sorted(
     vxj[i] = parts_j[idx].v[0];
     vyj[i] = parts_j[idx].v[1];
     vzj[i] = parts_j[idx].v[2];
+    activej[i] = (int)(parts_j[idx].time_bin <= max_active_bin);
 #ifdef GADGET2_SPH
     mj[i] = parts_j[idx].mass;
 #endif
@@ -824,6 +879,7 @@ static INLINE void cache_clean(struct cache *c) {
     free(c->vy);
     free(c->vz);
     free(c->h);
+    free(c->active);
     free(c->max_index);
     free(c->rho);
     free(c->grad_h);
