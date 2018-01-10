@@ -409,7 +409,7 @@ __attribute__((always_inline)) INLINE void cache_read_particles_subset(
  */
 __attribute__((always_inline)) INLINE void cache_read_force_particles(
     const struct cell *restrict const ci,
-    struct cache *restrict const ci_cache) {
+    struct cache *restrict const ci_cache, timebin_t max_active_bin) {
 
 #if defined(GADGET2_SPH)
 
@@ -423,6 +423,7 @@ __attribute__((always_inline)) INLINE void cache_read_force_particles(
   swift_declare_aligned_ptr(float, vx, ci_cache->vx, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vy, ci_cache->vy, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vz, ci_cache->vz, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(int, active, ci_cache->active, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, rho, ci_cache->rho, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, grad_h, ci_cache->grad_h,
                             SWIFT_CACHE_ALIGNMENT);
@@ -447,6 +448,7 @@ __attribute__((always_inline)) INLINE void cache_read_force_particles(
     vx[i] = parts[i].v[0];
     vy[i] = parts[i].v[1];
     vz[i] = parts[i].v[2];
+    active[i] = (int)(parts[i].time_bin <= max_active_bin);
     rho[i] = parts[i].rho;
     grad_h[i] = parts[i].force.f;
     pOrho2[i] = parts[i].force.P_over_rho2;
@@ -698,7 +700,7 @@ cache_read_two_partial_cells_sorted_force(
     const struct cell *const ci, const struct cell *const cj,
     struct cache *const ci_cache, struct cache *const cj_cache,
     const struct entry *restrict sort_i, const struct entry *restrict sort_j,
-    const double *const shift, int *first_pi, int *last_pj) {
+    const double *const shift, int *first_pi, int *last_pj, timebin_t max_active_bin) {
 
   /* Make the number of particles to be read a multiple of the vector size.
    * This eliminates serial remainder loops where possible when populating the
@@ -742,6 +744,7 @@ cache_read_two_partial_cells_sorted_force(
   swift_declare_aligned_ptr(float, vx, ci_cache->vx, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vy, ci_cache->vy, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vz, ci_cache->vz, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(int, active, ci_cache->active, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, rho, ci_cache->rho, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, grad_h, ci_cache->grad_h,
                             SWIFT_CACHE_ALIGNMENT);
@@ -765,6 +768,7 @@ cache_read_two_partial_cells_sorted_force(
     vx[i] = parts_i[idx].v[0];
     vy[i] = parts_i[idx].v[1];
     vz[i] = parts_i[idx].v[2];
+    active[i] = (int)(parts_i[idx].time_bin <= max_active_bin);
 #ifdef GADGET2_SPH
     m[i] = parts_i[idx].mass;
     rho[i] = parts_i[idx].rho;
@@ -811,6 +815,7 @@ cache_read_two_partial_cells_sorted_force(
   swift_declare_aligned_ptr(float, vxj, cj_cache->vx, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vyj, cj_cache->vy, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, vzj, cj_cache->vz, SWIFT_CACHE_ALIGNMENT);
+  swift_declare_aligned_ptr(int, activej, cj_cache->active, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, rhoj, cj_cache->rho, SWIFT_CACHE_ALIGNMENT);
   swift_declare_aligned_ptr(float, grad_hj, cj_cache->grad_h,
                             SWIFT_CACHE_ALIGNMENT);
@@ -830,6 +835,7 @@ cache_read_two_partial_cells_sorted_force(
     vxj[i] = parts_j[idx].v[0];
     vyj[i] = parts_j[idx].v[1];
     vzj[i] = parts_j[idx].v[2];
+    activej[i] = (int)(parts_j[i].time_bin <= max_active_bin);
 #ifdef GADGET2_SPH
     mj[i] = parts_j[idx].mass;
     rhoj[i] = parts_j[idx].rho;

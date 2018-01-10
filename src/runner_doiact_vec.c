@@ -1137,16 +1137,13 @@ void runner_doself2_force_vec(struct runner *r, struct cell *restrict c) {
   if (cell_cache->count < count) cache_init(cell_cache, count);
 
   /* Read the particles from the cell and store them locally in the cache. */
-  cache_read_force_particles(c, cell_cache);
+  cache_read_force_particles(c, cell_cache, max_active_bin);
 
   /* Loop over the particles in the cell. */
   for (int pid = 0; pid < count; pid++) {
 
-    /* Get a pointer to the ith particle. */
-    struct part *restrict pi = &parts[pid];
-
     /* Is the ith particle active? */
-    if (!part_is_active_no_debug(pi, max_active_bin)) continue;
+    if (!cell_cache->active[pid]) continue;
 
     const float hi = cell_cache->h[pid];
 
@@ -1176,7 +1173,7 @@ void runner_doself2_force_vec(struct runner *r, struct cell *restrict c) {
     vector v_a_hydro_ySum = vector_setzero();
     vector v_a_hydro_zSum = vector_setzero();
     vector v_h_dtSum = vector_setzero();
-    vector v_sigSum = vector_set1(pi->force.v_sig);
+    vector v_sigSum = vector_setzero();
     vector v_entropy_dtSum = vector_setzero();
 
     /* Pad cache if there is a serial remainder. */
@@ -1269,6 +1266,9 @@ void runner_doself2_force_vec(struct runner *r, struct cell *restrict c) {
 
     } /* Loop over all other particles. */
 
+    /* Get a pointer to the ith particle. */
+    struct part *restrict pi = &parts[pid];
+    
     VEC_HADD(v_a_hydro_xSum, pi->a_hydro[0]);
     VEC_HADD(v_a_hydro_ySum, pi->a_hydro[1]);
     VEC_HADD(v_a_hydro_zSum, pi->a_hydro[2]);
@@ -2098,7 +2098,7 @@ void runner_dopair2_force_vec(struct runner *r, struct cell *ci,
 
   /* Read the required particles into the two caches. */
   cache_read_two_partial_cells_sorted_force(ci, cj, ci_cache, cj_cache, sort_i,
-                                            sort_j, shift, &first_pi, &last_pj);
+                                            sort_j, shift, &first_pi, &last_pj, max_active_bin);
 
   /* Get the number of particles read into the ci cache. */
   const int ci_cache_count = count_i - first_pi;
@@ -2108,13 +2108,12 @@ void runner_dopair2_force_vec(struct runner *r, struct cell *ci,
     /* Loop over the parts in ci until nothing is within range in cj. */
     for (int pid = count_i - 1; pid >= first_pi_loop; pid--) {
 
-      /* Get a hold of the ith part in ci. */
-      struct part *restrict pi = &parts_i[sort_i[pid].i];
-      if (!part_is_active(pi, e)) continue;
-
       /* Set the cache index. */
       const int ci_cache_idx = pid - first_pi;
 
+      /* Is the ith particle active? */
+      if (!ci_cache->active[ci_cache_idx]) continue;
+      
       /* Skip this particle if no particle in cj is within range of it. */
       const float hi = ci_cache->h[ci_cache_idx];
       const double di_test =
@@ -2149,7 +2148,7 @@ void runner_dopair2_force_vec(struct runner *r, struct cell *ci,
       vector v_a_hydro_ySum = vector_setzero();
       vector v_a_hydro_zSum = vector_setzero();
       vector v_h_dtSum = vector_setzero();
-      vector v_sigSum = vector_set1(pi->force.v_sig);
+      vector v_sigSum = vector_setzero();
       vector v_entropy_dtSum = vector_setzero();
 
       /* Loop over the parts in cj. Making sure to perform an iteration of the
@@ -2223,6 +2222,9 @@ void runner_dopair2_force_vec(struct runner *r, struct cell *ci,
         }
 
       } /* loop over the parts in cj. */
+      
+      /* Get a hold of the ith part in ci. */
+      struct part *restrict pi = &parts_i[sort_i[pid].i];
 
       /* Perform horizontal adds on vector sums and store result in pi. */
       VEC_HADD(v_a_hydro_xSum, pi->a_hydro[0]);
@@ -2240,12 +2242,11 @@ void runner_dopair2_force_vec(struct runner *r, struct cell *ci,
     /* Loop over the parts in cj until nothing is within range in ci. */
     for (int pjd = 0; pjd < last_pj_loop_end; pjd++) {
 
-      /* Get a hold of the jth part in cj. */
-      struct part *restrict pj = &parts_j[sort_j[pjd].i];
-      if (!part_is_active(pj, e)) continue;
-
       /* Set the cache index. */
       const int cj_cache_idx = pjd;
+      
+      /* Is the jth particle active? */
+      if (!cj_cache->active[cj_cache_idx]) continue;
 
       /* Skip this particle if no particle in ci is within range of it. */
       const float hj = cj_cache->h[cj_cache_idx];
@@ -2281,7 +2282,7 @@ void runner_dopair2_force_vec(struct runner *r, struct cell *ci,
       vector v_a_hydro_ySum = vector_setzero();
       vector v_a_hydro_zSum = vector_setzero();
       vector v_h_dtSum = vector_setzero();
-      vector v_sigSum = vector_set1(pj->force.v_sig);
+      vector v_sigSum = vector_setzero();
       vector v_entropy_dtSum = vector_setzero();
 
       /* Convert exit iteration to cache indices. */
@@ -2358,6 +2359,9 @@ void runner_dopair2_force_vec(struct runner *r, struct cell *ci,
               v_doj_mask);
         }
       } /* loop over the parts in ci. */
+      
+      /* Get a hold of the jth part in cj. */
+      struct part *restrict pj = &parts_j[sort_j[pjd].i];
 
       /* Perform horizontal adds on vector sums and store result in pj. */
       VEC_HADD(v_a_hydro_xSum, pj->a_hydro[0]);
