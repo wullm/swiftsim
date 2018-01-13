@@ -56,27 +56,32 @@ struct xpart {
 /* Data of a single particle. */
 struct part {
 
+  /* Particle position. */
+  double x[3];
+
+  /* Particle cutoff radius. */
+  float h;
+  
+  /* Time-step length */
+  timebin_t time_bin;
+  
+  char dummy[3];
+
+  /* Particle predicted velocity. */
+  float v[3];
+
+  /* Particle mass. */
+  float mass;
+
   /* Particle ID. */
   long long id;
 
   /* Pointer to corresponding gravity part. */
   struct gpart* gpart;
-
-  /* Particle position. */
-  double x[3];
-
-  /* Particle predicted velocity. */
-  float v[3];
-
+  
   /* Particle acceleration. */
   float a_hydro[3];
-
-  /* Particle cutoff radius. */
-  float h;
-
-  /* Particle mass. */
-  float mass;
-
+  
   /* Particle density. */
   float rho;
 
@@ -130,8 +135,7 @@ struct part {
     } force;
   };
 
-  /* Time-step length */
-  timebin_t time_bin;
+
 
 #ifdef SWIFT_DEBUG_CHECKS
 
