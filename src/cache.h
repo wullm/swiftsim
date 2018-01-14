@@ -835,7 +835,7 @@ cache_read_two_partial_cells_sorted_force(
     vxj[i] = parts_j[idx].v[0];
     vyj[i] = parts_j[idx].v[1];
     vzj[i] = parts_j[idx].v[2];
-    activej[i] = (int)(parts_j[i].time_bin <= max_active_bin);
+    activej[i] = (int)(parts_j[idx].time_bin <= max_active_bin);
 #ifdef GADGET2_SPH
     mj[i] = parts_j[idx].mass;
     rhoj[i] = parts_j[idx].rho;
