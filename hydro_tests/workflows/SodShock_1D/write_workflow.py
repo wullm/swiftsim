@@ -15,8 +15,7 @@ configure_options = {"disable-vec": "no option",
                      "enable-sanitizer": "yes"}
 
 # parameters: resolutions to run, and schemes to include
-#resolutions = [100, 200, 400, 800, 1600, 3200]
-resolutions = [100]
+resolutions = [100, 200, 400, 800, 1600, 3200]
 schemes = ["gizmo", "gadget2", "hopkins"]
 # run command for a single simulation
 run_command = "../swift -s -t 1 sodShock.yml 2>&1 | tee sodShock.log"
@@ -65,6 +64,9 @@ for n in resolutions:
     wfile.write("ic_{0}.hdf5->sodShock.hdf5: makeIC.py\n".format(n))
     wfile.write("\tpython makeIC.py {0}\n\n".format(n))
 
+timestep_sources = ""
+summary_sources = ""
+result_sources = ""
 # commands uses to run and analyze the simulations
 for scheme in schemes:
   compilation = get_compilation_command(1, scheme, "master", 1)
@@ -81,6 +83,8 @@ for scheme in schemes:
       scheme, n, folder_short)
     output += " log_{0}_{1}.log->{2}/sodShock.log".format(
       scheme, n, folder_short)
+
+    timestep_sources += " timesteps_{0}_{1}.txt".format(scheme, n)
 
     # prepare the simulation directory
     # we need to create the new folder and manually move all input files
@@ -104,3 +108,19 @@ for scheme in schemes:
     output += " result_{0}_{1}.png->result.png".format(scheme, n)
     wfile.write("{0}: {1}\n".format(output, input))
     wfile.write("\tpython analyze.py\n\n")
+
+    summary_sources += " summary_{0}_{1}.txt".format(scheme, n)
+    result_sources += " result_{0}_{1}.png".format(scheme, n)
+
+wfile.write("SodShock_1D_convergence.png: plot_convergence.py {0}\n".format(
+              summary_sources))
+wfile.write("\tpython plot_convergence.py\n\n")
+
+wfile.write("SodShock_1D_timings.png: plot_times.py {0}\n".format(
+              timestep_sources))
+wfile.write("\tpython plot_times.py\n\n")
+
+wfile.write("index.html: make_webpage.py {0} {1} {2}\n".format(
+              "SodShock_1D_convergence.png", "SodShock_1D_timings.png",
+              result_sources))
+wfile.write("\tpython make_webpage.py\n\n")
