@@ -203,7 +203,7 @@ void writeArray(const struct engine* e, hid_t grp, char* fileName,
 
   /* Allocate temporary buffer */
   void* temp = NULL;
-  if (posix_memalign((void**)&temp, IO_BUFFER_ALIGNMENT,
+  if (swift_posix_memalign((void**)&temp, IO_BUFFER_ALIGNMENT,
                      num_elements * typeSize) != 0)
     error("Unable to allocate temporary i/o buffer");
 
@@ -461,7 +461,7 @@ void read_ic_single(char* fileName, const struct unit_system* internal_units,
   /* Allocate memory to store SPH particles */
   if (with_hydro) {
     *Ngas = N[swift_type_gas];
-    if (posix_memalign((void**)parts, part_align,
+    if (swift_posix_memalign((void**)parts, part_align,
                        *Ngas * sizeof(struct part)) != 0)
       error("Error while allocating memory for SPH particles");
     bzero(*parts, *Ngas * sizeof(struct part));
@@ -470,7 +470,7 @@ void read_ic_single(char* fileName, const struct unit_system* internal_units,
   /* Allocate memory to store star particles */
   if (with_stars) {
     *Nstars = N[swift_type_star];
-    if (posix_memalign((void**)sparts, spart_align,
+    if (swift_posix_memalign((void**)sparts, spart_align,
                        *Nstars * sizeof(struct spart)) != 0)
       error("Error while allocating memory for star particles");
     bzero(*sparts, *Nstars * sizeof(struct spart));
@@ -482,7 +482,7 @@ void read_ic_single(char* fileName, const struct unit_system* internal_units,
     *Ngparts = (with_hydro ? N[swift_type_gas] : 0) +
                N[swift_type_dark_matter] +
                (with_stars ? N[swift_type_star] : 0);
-    if (posix_memalign((void**)gparts, gpart_align,
+    if (swift_posix_memalign((void**)gparts, gpart_align,
                        *Ngparts * sizeof(struct gpart)) != 0)
       error("Error while allocating memory for gravity particles");
     bzero(*gparts, *Ngparts * sizeof(struct gpart));
@@ -815,7 +815,7 @@ void write_output_single(struct engine* e, const char* baseName,
 
       case swift_type_dark_matter:
         /* Allocate temporary array */
-        if (posix_memalign((void**)&dmparts, gpart_align,
+        if (swift_posix_memalign((void**)&dmparts, gpart_align,
                            Ndm * sizeof(struct gpart)) != 0)
           error("Error while allocating temporart memory for DM particles");
         bzero(dmparts, Ndm * sizeof(struct gpart));

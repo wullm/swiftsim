@@ -42,6 +42,14 @@
 #define swift_abort(errcode) exit(errcode)
 #endif
 
+/* Memory allocation with report about number of bytes requested. */
+#define swift_posix_memalign(memptr, alignment, size)                   \
+  ({                                                                    \
+    printf("%s %s:%s():%i: %zd\n", clocks_get_timesincestart(),         \
+           __FILE__, __FUNCTION__, __LINE__, (size_t)(size));           \
+    posix_memalign((memptr), (alignment), (size));                      \
+  })
+
 /**
  * @brief Error macro. Prints the message given in argument and aborts.
  *

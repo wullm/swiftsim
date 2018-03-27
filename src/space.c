@@ -60,7 +60,7 @@
 #include "threadpool.h"
 #include "tools.h"
 
-/* Split size. */
+ /* Split size. */
 int space_splitsize = space_splitsize_default;
 int space_subsize_pair_hydro = space_subsize_pair_hydro_default;
 int space_subsize_self_hydro = space_subsize_self_hydro_default;
@@ -423,21 +423,21 @@ void space_regrid(struct space *s, int verbose) {
 
     /* Allocate the highest level of cells. */
     s->tot_cells = s->nr_cells = cdim[0] * cdim[1] * cdim[2];
-    if (posix_memalign((void **)&s->cells_top, cell_align,
-                       s->nr_cells * sizeof(struct cell)) != 0)
+
+    if (swift_posix_memalign((void **)&s->cells_top, cell_align, s->nr_cells * sizeof(struct cell)) != 0)
       error("Failed to allocate top-level cells.");
     bzero(s->cells_top, s->nr_cells * sizeof(struct cell));
 
     /* Allocate the multipoles for the top-level cells. */
     if (s->gravity) {
-      if (posix_memalign((void **)&s->multipoles_top, multipole_align,
+      if (swift_posix_memalign((void **)&s->multipoles_top, multipole_align,
                          s->nr_cells * sizeof(struct gravity_tensors)) != 0)
         error("Failed to allocate top-level multipoles.");
       bzero(s->multipoles_top, s->nr_cells * sizeof(struct gravity_tensors));
     }
 
     /* Allocate the indices of local cells */
-    if (posix_memalign((void **)&s->local_cells_top, SWIFT_STRUCT_ALIGNMENT,
+    if (swift_posix_memalign((void **)&s->local_cells_top, SWIFT_STRUCT_ALIGNMENT,
                        s->nr_cells * sizeof(int)) != 0)
       error("Failed to allocate indices of local top-level cells.");
     bzero(s->local_cells_top, s->nr_cells * sizeof(int));
@@ -2062,7 +2062,7 @@ void space_split_recursive(struct space *s, struct cell *c,
   const int allocate_buffer = (buff == NULL && gbuff == NULL && sbuff == NULL);
   if (allocate_buffer) {
     if (count > 0) {
-      if (posix_memalign((void **)&buff, SWIFT_STRUCT_ALIGNMENT,
+      if (swift_posix_memalign((void **)&buff, SWIFT_STRUCT_ALIGNMENT,
                          sizeof(struct cell_buff) * count) != 0)
         error("Failed to allocate temporary indices.");
       for (int k = 0; k < count; k++) {
@@ -2072,7 +2072,7 @@ void space_split_recursive(struct space *s, struct cell *c,
       }
     }
     if (gcount > 0) {
-      if (posix_memalign((void **)&gbuff, SWIFT_STRUCT_ALIGNMENT,
+      if (swift_posix_memalign((void **)&gbuff, SWIFT_STRUCT_ALIGNMENT,
                          sizeof(struct cell_buff) * gcount) != 0)
         error("Failed to allocate temporary indices.");
       for (int k = 0; k < gcount; k++) {
@@ -2082,7 +2082,7 @@ void space_split_recursive(struct space *s, struct cell *c,
       }
     }
     if (scount > 0) {
-      if (posix_memalign((void **)&sbuff, SWIFT_STRUCT_ALIGNMENT,
+      if (swift_posix_memalign((void **)&sbuff, SWIFT_STRUCT_ALIGNMENT,
                          sizeof(struct cell_buff) * scount) != 0)
         error("Failed to allocate temporary indices.");
       for (int k = 0; k < scount; k++) {
@@ -2510,7 +2510,7 @@ void space_getcells(struct space *s, int nr_cells, struct cell **cells) {
 
     /* Is the cell buffer empty? */
     if (s->cells_sub == NULL) {
-      if (posix_memalign((void **)&s->cells_sub, cell_align,
+      if (swift_posix_memalign((void **)&s->cells_sub, cell_align,
                          space_cellallocchunk * sizeof(struct cell)) != 0)
         error("Failed to allocate more cells.");
 
@@ -2522,7 +2522,7 @@ void space_getcells(struct space *s, int nr_cells, struct cell **cells) {
 
     /* Is the multipole buffer empty? */
     if (s->gravity && s->multipoles_sub == NULL) {
-      if (posix_memalign(
+      if (swift_posix_memalign(
               (void **)&s->multipoles_sub, multipole_align,
               space_cellallocchunk * sizeof(struct gravity_tensors)) != 0)
         error("Failed to allocate more multipoles.");
@@ -3058,7 +3058,7 @@ void space_init(struct space *s, const struct swift_params *params,
 
   /* Allocate the extra parts array for the gas particles. */
   if (Npart > 0) {
-    if (posix_memalign((void **)&s->xparts, xpart_align,
+    if (swift_posix_memalign((void **)&s->xparts, xpart_align,
                        Npart * sizeof(struct xpart)) != 0)
       error("Failed to allocate xparts.");
     bzero(s->xparts, Npart * sizeof(struct xpart));
@@ -3106,15 +3106,15 @@ void space_replicate(struct space *s, int replicate, int verbose) {
   struct gpart *gparts = NULL;
   struct spart *sparts = NULL;
 
-  if (posix_memalign((void **)&parts, part_align,
+  if (swift_posix_memalign((void **)&parts, part_align,
                      s->nr_parts * sizeof(struct part)) != 0)
     error("Failed to allocate new part array.");
 
-  if (posix_memalign((void **)&gparts, gpart_align,
+  if (swift_posix_memalign((void **)&gparts, gpart_align,
                      s->nr_gparts * sizeof(struct gpart)) != 0)
     error("Failed to allocate new gpart array.");
 
-  if (posix_memalign((void **)&sparts, spart_align,
+  if (swift_posix_memalign((void **)&sparts, spart_align,
                      s->nr_sparts * sizeof(struct spart)) != 0)
     error("Failed to allocate new spart array.");
 
@@ -3214,11 +3214,11 @@ void space_generate_gas(struct space *s, const struct cosmology *cosmo,
   struct part *parts = NULL;
   struct gpart *gparts = NULL;
 
-  if (posix_memalign((void **)&parts, part_align,
+  if (swift_posix_memalign((void **)&parts, part_align,
                      s->nr_parts * sizeof(struct part)) != 0)
     error("Failed to allocate new part array.");
 
-  if (posix_memalign((void **)&gparts, gpart_align,
+  if (swift_posix_memalign((void **)&gparts, gpart_align,
                      s->nr_gparts * sizeof(struct gpart)) != 0)
     error("Failed to allocate new gpart array.");
 
@@ -3497,10 +3497,10 @@ void space_struct_restore(struct space *s, FILE *stream) {
   if (s->nr_parts > 0) {
 
     /* Need the memory for these. */
-    if (posix_memalign((void **)&s->parts, part_align,
+    if (swift_posix_memalign((void **)&s->parts, part_align,
                        s->size_parts * sizeof(struct part)) != 0)
       error("Failed to allocate restore part array.");
-    if (posix_memalign((void **)&s->xparts, xpart_align,
+    if (swift_posix_memalign((void **)&s->xparts, xpart_align,
                        s->size_parts * sizeof(struct xpart)) != 0)
       error("Failed to allocate restore xpart array.");
 
@@ -3511,7 +3511,7 @@ void space_struct_restore(struct space *s, FILE *stream) {
   }
   s->gparts = NULL;
   if (s->nr_gparts > 0) {
-    if (posix_memalign((void **)&s->gparts, gpart_align,
+    if (swift_posix_memalign((void **)&s->gparts, gpart_align,
                        s->size_gparts * sizeof(struct gpart)) != 0)
       error("Failed to allocate restore gpart array.");
 
@@ -3521,7 +3521,7 @@ void space_struct_restore(struct space *s, FILE *stream) {
 
   s->sparts = NULL;
   if (s->nr_sparts > 0) {
-    if (posix_memalign((void **)&s->sparts, spart_align,
+    if (swift_posix_memalign((void **)&s->sparts, spart_align,
                        s->size_sparts * sizeof(struct spart)) != 0)
       error("Failed to allocate restore spart array.");
 

@@ -390,7 +390,7 @@ static void *engine_do_redistribute(int *counts, char *parts,
 
   /* Allocate a new particle array with some extra margin */
   char *parts_new = NULL;
-  if (posix_memalign(
+  if (swift_posix_memalign(
           (void **)&parts_new, alignsize,
           sizeofparts * new_nr_parts * engine_redistribute_alloc_margin) != 0)
     error("Failed to allocate new particle data.");
@@ -1495,7 +1495,7 @@ void engine_exchange_cells(struct engine *e) {
 
   /* Allocate the pcells. */
   struct pcell *pcells = NULL;
-  if (posix_memalign((void **)&pcells, SWIFT_CACHE_ALIGNMENT,
+  if (swift_posix_memalign((void **)&pcells, SWIFT_CACHE_ALIGNMENT,
                      sizeof(struct pcell) * count_out) != 0)
     error("Failed to allocate pcell buffer.");
 
@@ -1564,21 +1564,21 @@ void engine_exchange_cells(struct engine *e) {
   if (count_parts_in > s->size_parts_foreign) {
     if (s->parts_foreign != NULL) free(s->parts_foreign);
     s->size_parts_foreign = 1.1 * count_parts_in;
-    if (posix_memalign((void **)&s->parts_foreign, part_align,
+    if (swift_posix_memalign((void **)&s->parts_foreign, part_align,
                        sizeof(struct part) * s->size_parts_foreign) != 0)
       error("Failed to allocate foreign part data.");
   }
   if (count_gparts_in > s->size_gparts_foreign) {
     if (s->gparts_foreign != NULL) free(s->gparts_foreign);
     s->size_gparts_foreign = 1.1 * count_gparts_in;
-    if (posix_memalign((void **)&s->gparts_foreign, gpart_align,
+    if (swift_posix_memalign((void **)&s->gparts_foreign, gpart_align,
                        sizeof(struct gpart) * s->size_gparts_foreign) != 0)
       error("Failed to allocate foreign gpart data.");
   }
   if (count_sparts_in > s->size_sparts_foreign) {
     if (s->sparts_foreign != NULL) free(s->sparts_foreign);
     s->size_sparts_foreign = 1.1 * count_sparts_in;
-    if (posix_memalign((void **)&s->sparts_foreign, spart_align,
+    if (swift_posix_memalign((void **)&s->sparts_foreign, spart_align,
                        sizeof(struct spart) * s->size_sparts_foreign) != 0)
       error("Failed to allocate foreign spart data.");
   }
@@ -1776,9 +1776,9 @@ void engine_exchange_strays(struct engine *e, size_t offset_parts,
     s->size_parts = (offset_parts + count_parts_in) * engine_parts_size_grow;
     struct part *parts_new = NULL;
     struct xpart *xparts_new = NULL;
-    if (posix_memalign((void **)&parts_new, part_align,
+    if (swift_posix_memalign((void **)&parts_new, part_align,
                        sizeof(struct part) * s->size_parts) != 0 ||
-        posix_memalign((void **)&xparts_new, xpart_align,
+        swift_posix_memalign((void **)&xparts_new, xpart_align,
                        sizeof(struct xpart) * s->size_parts) != 0)
       error("Failed to allocate new part data.");
     memcpy(parts_new, s->parts, sizeof(struct part) * offset_parts);
@@ -1797,7 +1797,7 @@ void engine_exchange_strays(struct engine *e, size_t offset_parts,
     message("re-allocating sparts array.");
     s->size_sparts = (offset_sparts + count_sparts_in) * engine_parts_size_grow;
     struct spart *sparts_new = NULL;
-    if (posix_memalign((void **)&sparts_new, spart_align,
+    if (swift_posix_memalign((void **)&sparts_new, spart_align,
                        sizeof(struct spart) * s->size_sparts) != 0)
       error("Failed to allocate new spart data.");
     memcpy(sparts_new, s->sparts, sizeof(struct spart) * offset_sparts);
@@ -1813,7 +1813,7 @@ void engine_exchange_strays(struct engine *e, size_t offset_parts,
     message("re-allocating gparts array.");
     s->size_gparts = (offset_gparts + count_gparts_in) * engine_parts_size_grow;
     struct gpart *gparts_new = NULL;
-    if (posix_memalign((void **)&gparts_new, gpart_align,
+    if (swift_posix_memalign((void **)&gparts_new, gpart_align,
                        sizeof(struct gpart) * s->size_gparts) != 0)
       error("Failed to allocate new gpart data.");
     memcpy(gparts_new, s->gparts, sizeof(struct gpart) * offset_gparts);
@@ -2061,12 +2061,12 @@ void engine_exchange_proxy_multipoles(struct engine *e) {
 
   /* Allocate the buffers for the packed data */
   struct gravity_tensors *buffer_send = NULL;
-  if (posix_memalign((void **)&buffer_send, SWIFT_CACHE_ALIGNMENT,
+  if (swift_posix_memalign((void **)&buffer_send, SWIFT_CACHE_ALIGNMENT,
                      count_send * sizeof(struct gravity_tensors)) != 0)
     error("Unable to allocate memory for multipole transactions");
 
   struct gravity_tensors *buffer_recv = NULL;
-  if (posix_memalign((void **)&buffer_recv, SWIFT_CACHE_ALIGNMENT,
+  if (swift_posix_memalign((void **)&buffer_recv, SWIFT_CACHE_ALIGNMENT,
                      count_recv * sizeof(struct gravity_tensors)) != 0)
     error("Unable to allocate memory for multipole transactions");
 
@@ -4995,9 +4995,9 @@ void engine_split(struct engine *e, struct partition *initial_partition) {
   s->size_parts = s->nr_parts * 1.2;
   struct part *parts_new = NULL;
   struct xpart *xparts_new = NULL;
-  if (posix_memalign((void **)&parts_new, part_align,
+  if (swift_posix_memalign((void **)&parts_new, part_align,
                      sizeof(struct part) * s->size_parts) != 0 ||
-      posix_memalign((void **)&xparts_new, xpart_align,
+      swift_posix_memalign((void **)&xparts_new, xpart_align,
                      sizeof(struct xpart) * s->size_parts) != 0)
     error("Failed to allocate new part data.");
   if (s->nr_parts > 0) {
@@ -5019,7 +5019,7 @@ void engine_split(struct engine *e, struct partition *initial_partition) {
             (size_t)(s->nr_sparts * 1.2));
   s->size_sparts = s->nr_sparts * 1.2;
   struct spart *sparts_new = NULL;
-  if (posix_memalign((void **)&sparts_new, spart_align,
+  if (swift_posix_memalign((void **)&sparts_new, spart_align,
                      sizeof(struct spart) * s->size_sparts) != 0)
     error("Failed to allocate new spart data.");
   if (s->nr_sparts > 0)
@@ -5037,7 +5037,7 @@ void engine_split(struct engine *e, struct partition *initial_partition) {
             (size_t)(s->nr_gparts * 1.2));
   s->size_gparts = s->nr_gparts * 1.2;
   struct gpart *gparts_new = NULL;
-  if (posix_memalign((void **)&gparts_new, gpart_align,
+  if (swift_posix_memalign((void **)&gparts_new, gpart_align,
                      sizeof(struct gpart) * s->size_gparts) != 0)
     error("Failed to allocate new gpart data.");
   if (s->nr_gparts > 0)
@@ -5678,7 +5678,7 @@ void engine_config(int restart, struct engine *e,
       parser_get_opt_param_int(params, "Scheduler:mpi_message_limit", 4) * 1024;
 
   /* Allocate and init the threads. */
-  if (posix_memalign((void **)&e->runners, SWIFT_CACHE_ALIGNMENT,
+  if (swift_posix_memalign((void **)&e->runners, SWIFT_CACHE_ALIGNMENT,
                      e->nr_threads * sizeof(struct runner)) != 0)
     error("Failed to allocate threads array.");
   for (int k = 0; k < e->nr_threads; k++) {

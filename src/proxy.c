@@ -64,7 +64,7 @@ void proxy_cells_exch1(struct proxy *p) {
 
   /* Allocate and fill the pcell buffer. */
   if (p->pcells_out != NULL) free(p->pcells_out);
-  if (posix_memalign((void **)&p->pcells_out, SWIFT_STRUCT_ALIGNMENT,
+  if (swift_posix_memalign((void **)&p->pcells_out, SWIFT_STRUCT_ALIGNMENT,
                      sizeof(struct pcell) * p->size_pcells_out) != 0)
     error("Failed to allocate pcell_out buffer.");
   for (int ind = 0, k = 0; k < p->nr_cells_out; k++) {
@@ -102,7 +102,7 @@ void proxy_cells_exch2(struct proxy *p) {
 
   /* Re-allocate the pcell_in buffer. */
   if (p->pcells_in != NULL) free(p->pcells_in);
-  if (posix_memalign((void **)&p->pcells_in, SWIFT_STRUCT_ALIGNMENT,
+  if (swift_posix_memalign((void **)&p->pcells_in, SWIFT_STRUCT_ALIGNMENT,
                      sizeof(struct pcell) * p->size_pcells_in) != 0)
     error("Failed to allocate pcell_in buffer.");
 
