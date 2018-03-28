@@ -103,6 +103,9 @@ const char *engine_policy_names[] = {"none",
 /** The rank of the engine as a global variable (for messages). */
 int engine_rank;
 
+/** The current step of the engine as a global variable (for messages). */
+int engine_cstep;
+
 /**
  * @brief Data collected from the cells at the end of a time-step
  */
@@ -4391,6 +4394,7 @@ void engine_step(struct engine *e) {
   e->max_active_bin = get_max_active_bin(e->ti_end_min);
   e->min_active_bin = get_min_active_bin(e->ti_current, e->ti_old);
   e->step += 1;
+  engine_cstep = e->step;
   e->step_props = engine_step_prop_none;
 
   if (e->policy & engine_policy_cosmology) {
