@@ -390,8 +390,8 @@ void runner_do_sort(struct runner *r, struct cell *c, int flags, int cleanup,
   /* start by allocating the entry arrays in the requested dimensions. */
   for (int j = 0; j < 13; j++) {
     if ((flags & (1 << j)) && c->sort[j] == NULL) {
-      if ((c->sort[j] = (struct entry *)malloc(sizeof(struct entry) *
-                                               (count + 1))) == NULL)
+      if ((c->sort[j] = (struct entry *)swift_malloc(sizeof(struct entry) *
+                                                     (count + 1))) == NULL)
         error("Failed to allocate sort memory.");
     }
   }

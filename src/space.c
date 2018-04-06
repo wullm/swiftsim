@@ -2062,7 +2062,7 @@ void space_split_recursive(struct space *s, struct cell *c,
   const int allocate_buffer = (buff == NULL && gbuff == NULL && sbuff == NULL);
   if (allocate_buffer) {
     if (count > 0) {
-      if (swift_posix_memalign((void **)&buff, SWIFT_STRUCT_ALIGNMENT,
+      if (posix_memalign((void **)&buff, SWIFT_STRUCT_ALIGNMENT,
                          sizeof(struct cell_buff) * count) != 0)
         error("Failed to allocate temporary indices.");
       for (int k = 0; k < count; k++) {
@@ -2072,7 +2072,7 @@ void space_split_recursive(struct space *s, struct cell *c,
       }
     }
     if (gcount > 0) {
-      if (swift_posix_memalign((void **)&gbuff, SWIFT_STRUCT_ALIGNMENT,
+      if (posix_memalign((void **)&gbuff, SWIFT_STRUCT_ALIGNMENT,
                          sizeof(struct cell_buff) * gcount) != 0)
         error("Failed to allocate temporary indices.");
       for (int k = 0; k < gcount; k++) {
@@ -2082,7 +2082,7 @@ void space_split_recursive(struct space *s, struct cell *c,
       }
     }
     if (scount > 0) {
-      if (swift_posix_memalign((void **)&sbuff, SWIFT_STRUCT_ALIGNMENT,
+      if (posix_memalign((void **)&sbuff, SWIFT_STRUCT_ALIGNMENT,
                          sizeof(struct cell_buff) * scount) != 0)
         error("Failed to allocate temporary indices.");
       for (int k = 0; k < scount; k++) {

@@ -36,34 +36,13 @@
 /* Local headers. */
 #include "clocks.h"
 
+/* Use exit when not developing, avoids core dumps. */
 #ifdef SWIFT_DEVELOP_MODE
 #define swift_abort(errcode) abort()
 #else
 #define swift_abort(errcode) exit(errcode)
 #endif
 
-/* Memory allocation with report about number of bytes requested. */
-#ifdef WITH_MPI
-extern int engine_rank;
-extern int engine_cstep;
-#define swift_posix_memalign(memptr, alignment, size)                   \
-  ({                                                                    \
-    printf("[%04i] %s %d:memalign:%s:%s():%i: '" #size "' %zd\n",       \
-           engine_rank, clocks_get_timesincestart(), engine_cstep,      \
-           __FILE__, __FUNCTION__, __LINE__, (size_t)(size));           \
-    posix_memalign((memptr), (alignment), (size));                      \
-  })
-
-#else
-extern int engine_cstep;
-#define swift_posix_memalign(memptr, alignment, size)                   \
-  ({                                                                    \
-    printf("%s %d:memalign:%s:%s():%i: '" #size "' %zd\n",              \
-           clocks_get_timesincestart(), engine_cstep, __FILE__,          \
-           __FUNCTION__, __LINE__, (size_t)(size));                     \
-    posix_memalign((memptr), (alignment), (size));                      \
-  })
-#endif
 
 /**
  * @brief Error macro. Prints the message given in argument and aborts.
@@ -161,6 +140,80 @@ extern int engine_rank;
       fflush(stderr);                                                         \
       swift_abort(1);                                                         \
     }                                                                         \
+  })
+#endif
+
+/**
+ * @brief Memory allocation using posix_memalign with optional report about
+ *        number of bytes requested. Output is in KB.
+ */
+#ifdef WITH_MPI
+extern int engine_rank;
+extern int engine_cstep;
+#define swift_posix_memalign(memptr, alignment, size)                   \
+  ({                                                                    \
+    printf("[%04i] %s %d:memuse:%s:%s():%i: '" #size "' %zd\n",         \
+           engine_rank, clocks_get_timesincestart(), engine_cstep,      \
+           __FILE__, __FUNCTION__, __LINE__, (size_t)((size)/1024));    \
+    posix_memalign((memptr), (alignment), (size));                      \
+  })
+
+#else
+extern int engine_cstep;
+#define swift_posix_memalign(memptr, alignment, size)                   \
+  ({                                                                    \
+    printf("%s %d:memuse:%s:%s():%i: '" #size "' %zd\n",                \
+           clocks_get_timesincestart(), engine_cstep, __FILE__,         \
+           __FUNCTION__, __LINE__, (size_t)((size)/1024));              \
+    posix_memalign((memptr), (alignment), (size));                      \
+  })
+#endif
+
+/**
+ * @brief Memory allocation using malloc with optional report about
+ *        number of bytes requested. Output is in KB.
+ */
+#ifdef WITH_MPI
+extern int engine_rank;
+extern int engine_cstep;
+#define swift_malloc(size)                                              \
+  ({                                                                    \
+    printf("[%04i] %s %d:memuse:%s:%s():%i: '" #size "' %zd\n",         \
+           engine_rank, clocks_get_timesincestart(), engine_cstep,      \
+           __FILE__, __FUNCTION__, __LINE__, (size_t)((size)/1024));    \
+    malloc((size));                                                     \
+  })
+
+#else
+extern int engine_cstep;
+#define swift_malloc(size)                                              \
+  ({                                                                    \
+      printf("%s %d:memuse:%s:%s():%i: '" #size "' %zd\n",              \
+           clocks_get_timesincestart(), engine_cstep, __FILE__,         \
+           __FUNCTION__, __LINE__, (size_t)((size)/1024));              \
+    malloc((size));                                                     \
+  })
+#endif
+
+/**
+ * @brief Macro to print a suitable message about memory use. Note units
+ *        should be in KB.
+ */
+#ifdef WITH_MPI
+extern int engine_rank;
+extern int engine_cstep;
+#define swift_memuse_report(memuse)                                     \
+  ({                                                                    \
+    printf("[%04i] %s %d:memuse:%s:%s():%i: %s\n",                      \
+           engine_rank, clocks_get_timesincestart(), engine_cstep,      \
+           __FILE__, __FUNCTION__, __LINE__, memuse);                   \
+  })
+#else
+#define swift_memuse_report(memuse, ...)                                \
+  ({                                                                    \
+    printf("%s %d:memuse:%s:%s():%i: %s\n",                             \
+           clocks_get_timesincestart(), engine_cstep,                   \
+           __FILE__, __FUNCTION__, __LINE__, memuse);                   \
   })
 #endif
 

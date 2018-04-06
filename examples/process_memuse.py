@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """
 Usage:
-    process_memalign.py output.dat
+    process_memuse.py output.dat
 
-Parse the output of a run of SWIFT to convert the memalign output strings
+Parse the output of a run of SWIFT to convert the memuse output strings
 into memory use per rank per step.
 
 This file is part of SWIFT.
@@ -35,13 +35,15 @@ memuse = OrderedDict()
 
 with open(sys.argv[1]) as infile:
     for line in infile:
-        if "memalign" in line:
+        if ":memuse:" in line:
             words = line.split()
             if words[2] not in memuse:
                 memuse[words[2]] = 0
             memuse[words[2]] = memuse[words[2]] + int(words[-1])
 
+print "# step function memuse"
 for key, value in memuse.items():
-    print key, value
+    words = key.split(":")
+    print words[0], words[3] + ":" + words[4], value
 
 sys.exit(0)

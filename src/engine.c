@@ -1571,6 +1571,8 @@ void engine_exchange_cells(struct engine *e) {
                        sizeof(struct part) * s->size_parts_foreign) != 0)
       error("Failed to allocate foreign part data.");
   }
+  message("foreign_parts = %zd", sizeof(struct part) * s->size_parts_foreign);
+
   if (count_gparts_in > s->size_gparts_foreign) {
     if (s->gparts_foreign != NULL) free(s->gparts_foreign);
     s->size_gparts_foreign = 1.1 * count_gparts_in;
@@ -4352,6 +4354,10 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
   e->forcerebuild = 1;
   e->wallclock_time = (float)clocks_diff(&time1, &time2);
 
+  //#ifdef SWIFT_MEM_REPORT
+  swift_memuse_report(debug_mem_use_string());
+  //#endif
+
   if (e->verbose) message("took %.3f %s.", e->wallclock_time, clocks_getunit());
 }
 
@@ -4536,6 +4542,11 @@ void engine_step(struct engine *e) {
 
   /* Final job is to create a restart file if needed. */
   engine_dump_restarts(e, drifted_all, e->restart_onexit && engine_is_done(e));
+
+  //#ifdef SWIFT_MEM_REPORT
+  swift_memuse_report(debug_mem_use_string());
+  //#endif
+
 }
 
 /**

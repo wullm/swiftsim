@@ -370,7 +370,7 @@ static void dumpCells_map(struct cell *c, void *data) {
  * @param rank node ID of MPI rank, or 0 if not relevant.
  * @param step the current engine step, or some unique integer.
  */
-void dumpCells(const char *prefix, int super, int active, int mpiactive, int pactive, 
+void dumpCells(const char *prefix, int super, int active, int mpiactive, int pactive,
                struct space *s, int rank, int step) {
 
   FILE *file = NULL;
@@ -594,7 +594,7 @@ void dumpCellRanks(const char *prefix, struct cell *cells_top, int nr_cells) {
  * @param drs      data+stack resident set (DATA)
  * @param dt       dirty pages (nDRT)
  */
-void getProcMemUse(long *size, long *resident, long *share, long *trs,
+void debug_mem_use(long *size, long *resident, long *share, long *trs,
                    long *lrs, long *drs, long *dt) {
 
   /* Open the file. */
@@ -632,9 +632,15 @@ void getProcMemUse(long *size, long *resident, long *share, long *trs,
 }
 
 /**
- * @brief Print the current memory use of the process. A la "top".
+ * @brief Return a string with the current memory use of the process described.
+ *
+ * Not thread safe.
+ *
+ * @result the memory use of the process, note make a copy if not used
+ * immediately.
  */
-void printProcMemUse() {
+char *debug_mem_use_string() {
+  static char buffer[256];
   long size;
   long resident;
   long share;
@@ -642,8 +648,9 @@ void printProcMemUse() {
   long lrs;
   long drs;
   long dt;
-  getProcMemUse(&size, &resident, &share, &trs, &lrs, &drs, &dt);
-  printf("## VIRT = %ld , RES = %ld , SHR = %ld , CODE = %ld, DATA = %ld\n",
-         size, resident, share, trs, drs);
-  fflush(stdout);
+  debug_mem_use(&size, &resident, &share, &trs, &lrs, &drs, &dt);
+
+  snprintf(buffer, 256, "VIRT = %ld SHR = %ld CODE = %ld DATA = %ld "
+           "RES = %ld", size, share, trs, drs, resident);
+  return buffer;
 }
