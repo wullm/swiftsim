@@ -1,6 +1,6 @@
 #! /bin/bash --login
 
-#git clone https://gitlab.cosma.dur.ac.uk/swift/swiftsim.git
+git clone https://gitlab.cosma.dur.ac.uk/swift/swiftsim.git
 mkdir outputs
 
 cd swiftsim
