@@ -34,7 +34,7 @@ def get_total_time(sim):
     """
     Gets the total runtime of a simulation.
     """
-    return sum(np.loadtxt("{sim}/timesteps_16.txt".format(sim = sim))[:,6])
+    return sum(np.loadtxt("{sim}/timesteps_16.txt".format(sim = sim))[:,-2])
 
 
 def add_subplot_axes(ax,rect,axisbg='w'):
