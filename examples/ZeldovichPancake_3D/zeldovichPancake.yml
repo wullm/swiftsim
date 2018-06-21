@@ -32,8 +32,8 @@ InitialConditions:
   file_name:  ./zeldovichPancake.hdf5       # The file to read
 
 Scheduler:
-  max_top_level_cells: 8
-  cell_split_size:           400
+  max_top_level_cells: 4
+  #cell_split_size:           6
   
 Cosmology:
   Omega_m: 1.
@@ -46,7 +46,7 @@ Cosmology:
 Gravity:
   mesh_side_length:   16
   eta: 0.025
-  theta: 0.7
-  r_cut_max: 5.
+  theta: 0.3
+  r_cut_max: 1000.
   comoving_softening: 0.0001
   max_physical_softening: 0.0001

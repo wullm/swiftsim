@@ -42,6 +42,10 @@
 
 #define multipole_align 128
 
+void gravity_exact_force_ewald_evaluate(double rx, double ry, double rz,
+                                        double corr_f[3], double *corr_p);
+
+
 struct grav_tensor {
 
   /* 0th order terms */
@@ -1546,9 +1550,12 @@ INLINE static void gravity_M2L(struct grav_tensor *l_b,
 
   /* Compute all derivatives */
   struct potential_derivatives_M2L pot;
-  compute_potential_derivatives_M2L(dx, dy, dz, r2, r_inv, eps, eps_inv,
-                                    periodic, rs_inv, &pot);
+  /* compute_potential_derivatives_M2L(dx, dy, dz, r2, r_inv, eps, eps_inv, */
+  /*                                   periodic, rs_inv, &pot); */
 
+  compute_potential_derivatives_M2L(dx, dy, dz, r2, r_inv, eps, eps_inv,
+                                    0, 0.f, &pot);
+  
 #ifdef SWIFT_DEBUG_CHECKS
   /* Count interactions */
   l_b->num_interacted += m_a->num_gpart;
@@ -1886,6 +1893,18 @@ INLINE static void gravity_M2L(struct grav_tensor *l_b,
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 5
 #error "Missing implementation for order >5"
 #endif
+
+
+  if(periodic) {
+    double corr_f[3], corr_pot;
+    gravity_exact_force_ewald_evaluate(-dx, -dy, -dz, corr_f, &corr_pot);
+    
+    const float mass_a = m_a->M_000;
+    l_b->F_100 += mass_a * corr_f[0];
+    l_b->F_010 += mass_a * corr_f[1];
+    l_b->F_001 += mass_a * corr_f[2];
+    l_b->F_000 += mass_a * corr_pot;
+  }
 }
 
 /**
@@ -2259,7 +2278,7 @@ INLINE static void gravity_L2P(const struct grav_tensor *lb,
                                const double loc[3], struct gpart *gp) {
 
 #ifdef SWIFT_DEBUG_CHECKS
-  if (lb->num_interacted == 0) error("Interacting with empty field tensor");
+  //if (lb->num_interacted == 0) error("Interacting with empty field tensor");
   gp->num_interacted += lb->num_interacted;
 #endif
 
@@ -2390,17 +2409,17 @@ INLINE static void gravity_L2P(const struct grav_tensor *lb,
  * We use the multipole acceptance criterion of Dehnen, 2002, JCoPh, Volume 179,
  * Issue 1, pp.27-42, equation 10.
  *
- * @param r_crit_a The size of the multipole A.
- * @param r_crit_b The size of the multipole B.
+ * @param r_max_a The size of the multipole A.
+ * @param r_max_b The size of the multipole B.
  * @param theta_crit2 The square of the critical opening angle.
  * @param r2 Square of the distance (periodically wrapped) between the
  * multipoles.
  */
 __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept(
-    const double r_crit_a, const double r_crit_b, const double theta_crit2,
+    const double r_max_a, const double r_max_b, const double theta_crit2,
     const double r2) {
 
-  const double size = r_crit_a + r_crit_b;
+  const double size = r_max_a + r_max_b;
   const double size2 = size * size;
 
   // MATTHIEU: Make this mass-dependent ?
@@ -2428,6 +2447,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
 
   /* Multipole acceptance criterion (Dehnen 2002, eq.10) */
   return (r2 * theta_crit2 > r_max2);
+  //return 0;
 }
 
 #endif /* SWIFT_MULTIPOLE_H */

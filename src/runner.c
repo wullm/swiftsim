@@ -1750,27 +1750,27 @@ void runner_do_end_force(struct runner *r, struct cell *c, int timer) {
 
           /* Check that this gpart has interacted with all the other
            * particles (via direct or multipoles) in the box */
-          /* if (gp->num_interacted != e->total_nr_gparts) { */
+          if (gp->num_interacted != e->total_nr_gparts) {
 
-          /*   /\* Get the ID of the gpart *\/ */
-          /*   long long my_id = 0; */
-          /*   if (gp->type == swift_type_gas) */
-          /*     my_id = e->s->parts[-gp->id_or_neg_offset].id; */
-          /*   else if (gp->type == swift_type_star) */
-          /*     my_id = e->s->sparts[-gp->id_or_neg_offset].id; */
-          /*   else if (gp->type == swift_type_black_hole) */
-          /*     error("Unexisting type"); */
-          /*   else */
-          /*     my_id = gp->id_or_neg_offset; */
+            /* Get the ID of the gpart */
+            long long my_id = 0;
+            if (gp->type == swift_type_gas)
+              my_id = e->s->parts[-gp->id_or_neg_offset].id;
+            else if (gp->type == swift_type_star)
+              my_id = e->s->sparts[-gp->id_or_neg_offset].id;
+            else if (gp->type == swift_type_black_hole)
+              error("Unexisting type");
+            else
+              my_id = gp->id_or_neg_offset;
 
-          /*   error( */
-          /*       "g-particle (id=%lld, type=%s) did not interact " */
-          /*       "gravitationally with all other gparts " */
-          /*       "gp->num_interacted=%lld, total_gparts=%lld (local " */
-          /*       "num_gparts=%zd)", */
-          /*       my_id, part_type_names[gp->type], gp->num_interacted, */
-          /*       e->total_nr_gparts, e->s->nr_gparts); */
-          /* } */
+            error(
+                "g-particle (id=%lld, type=%s) did not interact "
+                "gravitationally with all other gparts "
+                "gp->num_interacted=%lld, total_gparts=%lld (local "
+                "num_gparts=%zd)",
+                my_id, part_type_names[gp->type], gp->num_interacted,
+                e->total_nr_gparts, e->s->nr_gparts);
+          }
         }
 #endif
       }
@@ -2222,7 +2222,7 @@ void *runner_main(void *data) {
           runner_do_grav_down(r, t->ci, 1);
           break;
         case task_type_grav_mesh:
-          runner_do_grav_mesh(r, t->ci, 1);
+          //runner_do_grav_mesh(r, t->ci, 1);
           break;
         case task_type_grav_top_level:
           // runner_do_grav_fft(r, 1);

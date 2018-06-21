@@ -25,6 +25,7 @@
 /* Local headers. */
 #include "approx_math.h"
 #include "const.h"
+#include "error.h"
 #include "inline.h"
 
 /* Standard headers */
@@ -183,6 +184,8 @@ __attribute__((always_inline)) INLINE static void kernel_long_grav_pot_eval(
 __attribute__((always_inline)) INLINE static void kernel_long_grav_force_eval(
     const float u, float *const W) {
 
+  error(":(");
+  
 #ifdef GADGET2_LONG_RANGE_CORRECTION
 
   const float one_over_sqrt_pi = ((float)(M_2_SQRTPI * 0.5));

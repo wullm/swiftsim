@@ -3114,7 +3114,7 @@ void engine_maketasks(struct engine *e) {
 #else
   const int hydro_tasks_per_cell = 27 * 2;
 #endif
-  const int self_grav_tasks_per_cell = 125;
+  const int self_grav_tasks_per_cell = 1250;
   const int ext_grav_tasks_per_cell = 1;
 
   if (e->policy & engine_policy_hydro)
@@ -3689,7 +3689,7 @@ int engine_estimate_nr_tasks(struct engine *e) {
 #endif
   }
   if (e->policy & engine_policy_self_gravity) {
-    n1 += 125;
+    n1 += 1250;
     n2 += 1;
 #ifdef WITH_MPI
     n2 += 2;
@@ -5967,8 +5967,8 @@ void engine_config(int restart, struct engine *e, struct swift_params *params,
     /* Allocate particle caches. */
     e->runners[k].ci_gravity_cache.count = 0;
     e->runners[k].cj_gravity_cache.count = 0;
-    gravity_cache_init(&e->runners[k].ci_gravity_cache, space_splitsize);
-    gravity_cache_init(&e->runners[k].cj_gravity_cache, space_splitsize);
+    gravity_cache_init(&e->runners[k].ci_gravity_cache, space_splitsize * 100);
+    gravity_cache_init(&e->runners[k].cj_gravity_cache, space_splitsize * 100);
 #ifdef WITH_VECTORIZATION
     e->runners[k].ci_cache.count = 0;
     e->runners[k].cj_cache.count = 0;

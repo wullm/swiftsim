@@ -689,6 +689,8 @@ int main(int argc, char *argv[]) {
       fflush(stdout);
     }
 
+    //periodic = 0;
+    
 #ifdef SWIFT_DEBUG_CHECKS
     /* Check once and for all that we don't have unwanted links */
     if (!with_stars && !dry_run) {
