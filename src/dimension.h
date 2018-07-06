@@ -274,13 +274,14 @@ __attribute__((always_inline)) INLINE static vector pow_dimension_vec(
     vector x) {
 
 #if defined(HYDRO_DIMENSION_3D)
-
-  return (vector)(vec_mul(vec_mul(x.v, x.v), x.v));
+  vector r;
+  r.v = vec_mul(vec_mul(x.v, x.v), x.v);
+  return r;
 
 #elif defined(HYDRO_DIMENSION_2D)
-
-  return (vector)(vec_mul(x.v, x.v));
-
+  vector r;
+  r.v = (vec_mul(x.v, x.v));
+  return r;
 #elif defined(HYDRO_DIMENSION_1D)
 
   return x;
@@ -302,18 +303,23 @@ __attribute__((always_inline)) INLINE static vector pow_dimension_vec(
 __attribute__((always_inline)) INLINE static vector pow_dimension_plus_one_vec(
     vector x) {
 
+  vector r;
 #if defined(HYDRO_DIMENSION_3D)
 
-  const vector x2 = (vector)(vec_mul(x.v, x.v));
-  return (vector)(vec_mul(x2.v, x2.v));
+  vector x2;
+  x2.v = vec_mul(x.v, x.v);
+  r.v = vec_mul(x2.v, x2.v);
+  return r;
 
 #elif defined(HYDRO_DIMENSION_2D)
 
-  return (vector)(vec_mul(x.v, vec_mul(x.v, x.v)));
+  r.v = vec_mul(x.v, vec_mul(x.v, x.v));
+  return r;
 
 #elif defined(HYDRO_DIMENSION_1D)
 
-  return (vector)(vec_mul(x.v, x.v));
+  r.v = vec_mul(x.v, x.v);
+  return r;
 
 #else
 
