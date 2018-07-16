@@ -73,9 +73,9 @@ file = h5py.File(fileName, 'w')
 # Header
 grp = file.create_group("/Header")
 grp.attrs["BoxSize"] = [Boxsize]*3
-grp.attrs["NumPart_Total"] =  [numPart, 0, 0, 0, 0, 0]
+grp.attrs["NumPart_Total"] =  [numPart, 0, 0, 0, 1, 0]
 grp.attrs["NumPart_Total_HighWord"] = [0, 0, 0, 0, 0, 0]
-grp.attrs["NumPart_ThisFile"] = [numPart, 0, 0, 0, 0, 0]
+grp.attrs["NumPart_ThisFile"] = [numPart, 0, 0, 0, 1, 0]
 grp.attrs["Time"] = 0.0
 grp.attrs["NumFilesPerSnapshot"] = 1
 grp.attrs["MassTable"] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

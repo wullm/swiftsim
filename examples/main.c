@@ -61,6 +61,7 @@ void print_help_message(void) {
 
   printf("Valid options are:\n");
   printf("  %2s %14s %s\n", "-a", "", "Pin runners using processor affinity.");
+  printf("  %2s %14s %s\n", "-b", "", "Run with stellar feedback.");
   printf("  %2s %14s %s\n", "-c", "",
          "Run with cosmological time integration.");
   printf("  %2s %14s %s\n", "-C", "", "Run with cooling.");
@@ -134,6 +135,7 @@ int main(int argc, char *argv[]) {
   struct gpart *gparts = NULL;
   struct gravity_props gravity_properties;
   struct hydro_props hydro_properties;
+  struct star_props star_properties;
   struct part *parts = NULL;
   struct phys_const prog_const;
   struct sourceterms sourceterms;
@@ -191,6 +193,7 @@ int main(int argc, char *argv[]) {
   int with_self_gravity = 0;
   int with_hydro = 0;
   int with_stars = 0;
+  int with_feedback = 0;
   int with_fp_exceptions = 0;
   int with_drift_all = 0;
   int with_mpole_reconstruction = 0;
@@ -206,7 +209,7 @@ int main(int argc, char *argv[]) {
 
   /* Parse the parameters */
   int c;
-  while ((c = getopt(argc, argv, "acCdDef:FgGhMn:o:P:rsSt:Tv:y:Y:")) != -1)
+  while ((c = getopt(argc, argv, "abcCdDef:FgGhMn:o:P:rsSt:Tv:y:Y:")) != -1)
     switch (c) {
       case 'a':
 #if defined(HAVE_SETAFFINITY) && defined(HAVE_LIBNUMA)
@@ -215,6 +218,9 @@ int main(int argc, char *argv[]) {
         error("Need NUMA support for thread affinity");
 #endif
         break;
+      case 'b': /* backlash */
+	with_feedback = 1;
+	break;
       case 'c':
         with_cosmology = 1;
         break;
@@ -631,6 +637,10 @@ int main(int argc, char *argv[]) {
       hydro_props_init(&hydro_properties, &prog_const, &us, params);
     if (with_hydro) eos_init(&eos, &prog_const, &us, params);
 
+    /* Initialise the star properties */
+    if (with_stars)
+      star_props_init(&star_properties, &prog_const, &us, params, &hydro_properties);
+
     /* Initialise the gravity properties */
     if (with_self_gravity)
       gravity_props_init(&gravity_properties, params, &cosmo, with_cosmology);
@@ -841,12 +851,13 @@ int main(int argc, char *argv[]) {
     if (with_cooling) engine_policies |= engine_policy_cooling;
     if (with_sourceterms) engine_policies |= engine_policy_sourceterms;
     if (with_stars) engine_policies |= engine_policy_stars;
+    if (with_feedback) engine_policies |= engine_policy_feedback;
 
     /* Initialize the engine with the space and policies. */
     if (myrank == 0) clocks_gettime(&tic);
     engine_init(&e, &s, params, N_total[0], N_total[1], N_total[2],
                 engine_policies, talking, &reparttype, &us, &prog_const, &cosmo,
-                &hydro_properties, &gravity_properties, &mesh, &potential,
+                &hydro_properties, &gravity_properties, &star_properties, &mesh, &potential,
                 &cooling_func, &chemistry, &sourceterms);
     engine_config(0, &e, params, nr_nodes, myrank, nr_threads, with_aff,
                   talking, restart_file);

@@ -19,8 +19,37 @@
 #ifndef SWIFT_STAR_IO_H
 #define SWIFT_STAR_IO_H
 
+#include "../config.h"
+
 #include "./const.h"
 
+#ifdef STARS_GEAR
+#include "./stars/GEAR/star_io.h"
+#else
 #include "./stars/Default/star_io.h"
+#endif
+
+/**
+ * @brief Write a #star_props struct to the given FILE as a stream of bytes.
+ *
+ * @param s the struct
+ * @param stream the file stream
+ */
+INLINE static void star_props_struct_dump(const struct star_props *s, FILE *stream) {
+  restart_write_blocks((void *)s, sizeof(struct star_props), 1, stream,
+                       "starprops", "star props");
+}
+
+/**
+ * @brief Restore a #star_props struct from the given FILE as a stream of
+ * bytes.
+ *
+ * @param s the struct
+ * @param stream the file stream
+ */
+INLINE static void star_props_struct_restore(const struct star_props *s, FILE *stream) {
+  restart_read_blocks((void *)s, sizeof(struct star_props), 1, stream, NULL,
+                      "star props");
+}
 
 #endif /* SWIFT_STAR_IO_H */

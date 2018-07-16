@@ -31,6 +31,6 @@ SPH:
 
 # Parameters related to the initial conditions
 InitialConditions:
-  file_name:                    ./sedov.hdf5          
+  file_name:                    ./SN_feedback.hdf5
   smoothing_length_scaling:     3.33
  

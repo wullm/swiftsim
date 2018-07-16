@@ -52,7 +52,8 @@ const char *taskID_names[task_type_count] = {
     "sub_pair",    "init_grav",  "ghost_in",    "ghost",     "ghost_out",
     "extra_ghost", "drift_part", "drift_gpart", "end_force", "kick1",
     "kick2",       "timestep",   "send",        "recv",      "grav_long_range",
-    "grav_mm",     "grav_down",  "grav_mesh",   "cooling",   "sourceterms"};
+    "grav_mm",     "grav_down",  "grav_mesh",   "cooling",   "sourceterms",
+    "star_ev",     "star_fb"};
 
 /* Sub-task type names. */
 const char *subtaskID_names[task_subtype_count] = {

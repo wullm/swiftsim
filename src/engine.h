@@ -70,9 +70,10 @@ enum engine_policy {
   engine_policy_reconstruct_mpoles = (1 << 12),
   engine_policy_cooling = (1 << 13),
   engine_policy_sourceterms = (1 << 14),
-  engine_policy_stars = (1 << 15)
+  engine_policy_stars = (1 << 15),
+  engine_policy_feedback = (1 << 16),
 };
-#define engine_maxpolicy 15
+#define engine_maxpolicy 16
 extern const char *engine_policy_names[];
 
 /**
@@ -300,6 +301,9 @@ struct engine {
   /* Properties of the self-gravity scheme */
   struct gravity_props *gravity_properties;
 
+  /* Properties of the stellar model */
+  const struct star_props *star_properties;
+
   /* The mesh used for long-range gravity forces */
   struct pm_mesh *mesh;
 
@@ -361,7 +365,8 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  const struct unit_system *internal_units,
                  const struct phys_const *physical_constants,
                  struct cosmology *cosmo, const struct hydro_props *hydro,
-                 struct gravity_props *gravity, struct pm_mesh *mesh,
+                 struct gravity_props *gravity, const struct star_props *star,
+		 struct pm_mesh *mesh,
                  const struct external_potential *potential,
                  const struct cooling_function_data *cooling_func,
                  const struct chemistry_global_data *chemistry,

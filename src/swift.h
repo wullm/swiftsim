@@ -65,6 +65,7 @@
 #include "single_io.h"
 #include "sourceterms.h"
 #include "space.h"
+#include "stars_io.h"
 #include "task.h"
 #include "threadpool.h"
 #include "timeline.h"

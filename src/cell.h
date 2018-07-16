@@ -270,6 +270,11 @@ struct cell {
   /*! Task for source terms */
   struct task *sourceterms;
 
+  /*! Task for stellar evolution */
+  struct task *stellar_evolution;
+
+  /*! Task for stellar feedback */
+  struct task *stellar_feedback;
 #ifdef WITH_MPI
 
   /* Task receiving hydro data (positions). */

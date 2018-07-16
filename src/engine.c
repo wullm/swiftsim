@@ -80,6 +80,7 @@
 #include "single_io.h"
 #include "sort_part.h"
 #include "sourceterms.h"
+#include "stars_io.h"
 #include "statistics.h"
 #include "timers.h"
 #include "tools.h"
@@ -105,7 +106,8 @@ const char *engine_policy_names[] = {"none",
                                      "reconstruct multi-poles",
                                      "cooling",
                                      "sourceterms",
-                                     "stars"};
+                                     "stars",
+				     "feedback"};
 
 /** The rank of the engine as a global variable (for messages). */
 int engine_rank;
@@ -183,6 +185,7 @@ void engine_make_hierarchical_tasks_common(struct engine *e, struct cell *c) {
 
   struct scheduler *s = &e->sched;
   const int is_with_cooling = (e->policy & engine_policy_cooling);
+  const int is_with_stars = (e->policy & engine_policy_stars);
 
   /* Are we in a super-cell ? */
   if (c->super == c) {
@@ -205,7 +208,9 @@ void engine_make_hierarchical_tasks_common(struct engine *e, struct cell *c) {
       c->end_force = scheduler_addtask(s, task_type_end_force,
                                        task_subtype_none, 0, 0, c, NULL);
 
-      if (!is_with_cooling) scheduler_addunlock(s, c->end_force, c->kick2);
+      if (!is_with_cooling & !is_with_stars)
+	scheduler_addunlock(s, c->end_force, c->kick2);
+
       scheduler_addunlock(s, c->kick2, c->timestep);
       scheduler_addunlock(s, c->timestep, c->kick1);
     }
@@ -272,8 +277,8 @@ void engine_make_hierarchical_tasks_hydro(struct engine *e, struct cell *c) {
         c->cooling = scheduler_addtask(s, task_type_cooling, task_subtype_none,
                                        0, 0, c, NULL);
 
-        scheduler_addunlock(s, c->super->end_force, c->cooling);
-        scheduler_addunlock(s, c->cooling, c->super->kick2);
+	scheduler_addunlock(s, c->super->end_force, c->cooling);
+	scheduler_addunlock(s, c->cooling, c->super->kick2);
       }
 
       /* add source terms */
@@ -290,6 +295,50 @@ void engine_make_hierarchical_tasks_hydro(struct engine *e, struct cell *c) {
       for (int k = 0; k < 8; k++)
         if (c->progeny[k] != NULL)
           engine_make_hierarchical_tasks_hydro(e, c->progeny[k]);
+  }
+}
+
+/**
+ * @brief Generate the stellar hierarchical tasks for a hierarchy of cells -
+ * i.e. all the O(Npart) tasks -- star version
+ *
+ * Tasks are only created here. The dependencies will be added later on.
+ *
+ * Note that there is no need to recurse below the super-cell. Note also
+ * that we only add tasks if the relevant particles are present in the cell.
+ *
+ * @param e The #engine.
+ * @param c The #cell.
+ */
+void engine_make_hierarchical_tasks_stars(struct engine *e, struct cell *c) {
+
+  struct scheduler *s = &e->sched;
+
+  /* Are we in a super-cell ? 
+     Use the hydro one due to the feedback */
+  if (c->super_hydro == c) {
+
+    /* Local tasks only... */
+    if (c->nodeID == e->nodeID) {
+
+      /* Add the stellar evolution task. */
+      c->stellar_evolution = scheduler_addtask(s, task_type_stellar_evolution,
+					       task_subtype_none, 0, 0, c, NULL);
+
+      /* Add unlock from hydro (required when star formation will be implemented) */
+      scheduler_addunlock(s, c->super->end_force, c->stellar_evolution);
+
+      /* Now we can free the kick2 */
+      scheduler_addunlock(s, c->stellar_evolution, c->super->kick2);
+    }
+
+  } else { /* We are above the super-cell so need to go deeper */
+
+    /* Recurse. */
+    if (c->split)
+      for (int k = 0; k < 8; k++)
+        if (c->progeny[k] != NULL)
+          engine_make_hierarchical_tasks_stars(e, c->progeny[k]);
   }
 }
 
@@ -364,6 +413,7 @@ void engine_make_hierarchical_tasks_mapper(void *map_data, int num_elements,
   const int is_with_self_gravity = (e->policy & engine_policy_self_gravity);
   const int is_with_external_gravity =
       (e->policy & engine_policy_external_gravity);
+  const int is_with_stars = (e->policy & engine_policy_stars);
 
   for (int ind = 0; ind < num_elements; ind++) {
     struct cell *c = &((struct cell *)map_data)[ind];
@@ -374,6 +424,9 @@ void engine_make_hierarchical_tasks_mapper(void *map_data, int num_elements,
     /* And the gravity stuff */
     if (is_with_self_gravity || is_with_external_gravity)
       engine_make_hierarchical_tasks_gravity(e, c);
+    /* And the stellar stuff */
+    if (is_with_stars)
+      engine_make_hierarchical_tasks_stars(e, c);
   }
 }
 
@@ -4194,7 +4247,8 @@ void engine_skip_force_and_kick(struct engine *e) {
         t->subtype == task_subtype_grav || t->type == task_type_end_force ||
         t->type == task_type_grav_long_range ||
         t->type == task_type_grav_down || t->type == task_type_cooling ||
-        t->type == task_type_sourceterms)
+        t->type == task_type_sourceterms || t->type == task_type_stellar_evolution ||
+	t->type == task_type_stellar_feedback)
       t->skip = 1;
   }
 
@@ -5379,7 +5433,8 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  const struct unit_system *internal_units,
                  const struct phys_const *physical_constants,
                  struct cosmology *cosmo, const struct hydro_props *hydro,
-                 struct gravity_props *gravity, struct pm_mesh *mesh,
+                 struct gravity_props *gravity, const struct star_props *star,
+		 struct pm_mesh *mesh,
                  const struct external_potential *potential,
                  const struct cooling_function_data *cooling_func,
                  const struct chemistry_global_data *chemistry,
@@ -5441,6 +5496,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->cosmology = cosmo;
   e->hydro_properties = hydro;
   e->gravity_properties = gravity;
+  e->star_properties = star;
   e->mesh = mesh;
   e->external_potential = potential;
   e->cooling_func = cooling_func;
@@ -5741,6 +5797,9 @@ void engine_config(int restart, struct engine *e, struct swift_params *params,
   /* Print information about the hydro scheme */
   if (e->policy & engine_policy_hydro)
     if (e->nodeID == 0) hydro_props_print(e->hydro_properties);
+
+  if (e->policy & engine_policy_stars)
+    if (e->nodeID == 0) star_props_print(e->star_properties);
 
   /* Print information about the gravity scheme */
   if (e->policy & engine_policy_self_gravity)
@@ -6295,6 +6354,7 @@ void engine_struct_dump(struct engine *e, FILE *stream) {
   phys_const_struct_dump(e->physical_constants, stream);
   hydro_props_struct_dump(e->hydro_properties, stream);
   gravity_props_struct_dump(e->gravity_properties, stream);
+  star_props_struct_dump(e->star_properties, stream);
   pm_mesh_struct_dump(e->mesh, stream);
   potential_struct_dump(e->external_potential, stream);
   cooling_struct_dump(e->cooling_func, stream);
@@ -6364,6 +6424,11 @@ void engine_struct_restore(struct engine *e, FILE *stream) {
       (struct gravity_props *)malloc(sizeof(struct gravity_props));
   gravity_props_struct_restore(gravity_properties, stream);
   e->gravity_properties = gravity_properties;
+
+  struct star_props *star_properties =
+    (struct star_props *)malloc(sizeof(struct star_props));
+  star_props_struct_restore(star_properties, stream);
+  e->star_properties = star_properties;
 
   struct pm_mesh *mesh = (struct pm_mesh *)malloc(sizeof(struct pm_mesh));
   pm_mesh_struct_restore(mesh, stream);
