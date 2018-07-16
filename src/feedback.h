@@ -16,23 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ******************************************************************************/
-#ifndef SWIFT_STAR_H
-#define SWIFT_STAR_H
+#ifndef SWIFT_FEEDBACK_H
+#define SWIFT_FEEDBACK_H
 
 /* Config parameters. */
 #include "../config.h"
 
 /* Straight-forward import */
 
-#ifdef STARS_GEAR
+#ifdef FEEDBACK_THERMAL
 
-#include "./stars/GEAR/star.h"
-#include "./stars/GEAR/star_iact.h"
+#include "./feedback/thermal/feedback_io.h"
 
 #else
 
-#include "./stars/Default/star.h"
-#include "./stars/Default/star_iact.h"
+#include "./feedback/none/feedback_io.h"
 
 #endif
 
