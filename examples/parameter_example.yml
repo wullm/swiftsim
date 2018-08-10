@@ -55,6 +55,7 @@ Scheduler:
   cell_sub_size_pair_grav:   256000000 # (Optional) Maximal number of interactions per sub-pair gravity task  (this is the default value).
   cell_sub_size_self_grav:   32000     # (Optional) Maximal number of interactions per sub-self gravity task  (this is the default value).
   cell_split_size:           400       # (Optional) Maximal number of particles per cell (this is the default value).
+  cell_subdepth_grav:        2         # (Optional) Maximal depth the gravity tasks can be pushed down (this is the default value).
   max_top_level_cells:       12        # (Optional) Maximal number of top-level cells in any dimension. The number of top-level cells will be the cube of this (this is the default value).
   tasks_per_cell:            0         # (Optional) The average number of tasks per cell. If not large enough the simulation will fail (means guess...).
   mpi_message_limit:         4096      # (Optional) Maximum MPI task message size to send non-buffered, KB.
@@ -80,6 +81,8 @@ Snapshots:
   UnitVelocity_in_cgs: 1  # (Optional) Unit system for the outputs (Centimeters per second)
   UnitCurrent_in_cgs:  1  # (Optional) Unit system for the outputs (Amperes)
   UnitTemp_in_cgs:     1  # (Optional) Unit system for the outputs (Kelvin)
+  output_list_on:      0  # (Optional) Enable the output list
+  output_list:         snaplist.txt # (Optional) File containing the output times (see documentation in "Parameter File" section)
 
 # Parameters governing the conserved quantities statistics
 Statistics:
@@ -88,6 +91,8 @@ Statistics:
   time_first:             0.     # (Optional) Time of the first stats output if non-cosmological time-integration (in internal units)
   energy_file_name:    energy    # (Optional) File name for energy output
   timestep_file_name:  timesteps # (Optional) File name for timing information output. Note: No underscores "_" allowed in file name
+  output_list_on:      0   	 # (Optional) Enable the output list
+  output_list:         statlist.txt # (Optional) File containing the output times (see documentation in "Parameter File" section)
 
 # Parameters related to the initial conditions
 InitialConditions:
@@ -219,3 +224,14 @@ EAGLEChemistry:
   CalciumOverSilicon:      0.0941736    # Constant ratio of Calcium over Silicon abundance
   SulphurOverSilicon:      0.6054160    # Constant ratio of Sulphur over Silicon abundance
 
+# Structure finding options (requires velociraptor)
+StructureFinding:
+  config_file_name:     stf_input.cfg # Name of the STF config file.
+  basename:             ./stf         # Common part of the name of output files.
+  output_time_format:   0             # Specifies the frequency format of structure finding. 0 for simulation steps (delta_step) and 1 for simulation time intervals (delta_time).
+  scale_factor_first:   0.92          # Scale-factor of the first snaphot (cosmological run)
+  time_first:           0.01          # Time of the first structure finding output (in internal units).
+  delta_step:           1000          # Time difference between consecutive structure finding outputs (in internal units) in simulation steps.
+  delta_time:           1.10          # Time difference between consecutive structure finding outputs (in internal units) in simulation time intervals.
+  output_list_on:      0   	      # (Optional) Enable the output list
+  output_list:         stflist.txt    # (Optional) File containing the output times (see documentation in "Parameter File" section)
