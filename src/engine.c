@@ -1999,36 +1999,27 @@ void engine_rebuild(struct engine *e, int repartitioned,
   /* Re-build the space. */
   space_rebuild(e->s, repartitioned, e->verbose);
 
-  const ticks tic2 = getticks();
+  ticks tic2 = getticks();
 
   /* Update the global counters of particles */
   long long num_particles[3] = {(long long)e->s->nr_parts,
                                 (long long)e->s->nr_gparts,
                                 (long long)e->s->nr_sparts};
-#ifdef WITH_MPI
-  MPI_Allreduce(MPI_IN_PLACE, num_particles, 3, MPI_LONG_LONG, MPI_SUM,
-                MPI_COMM_WORLD);
-#endif
-  e->total_nr_parts = num_particles[0];
-  e->total_nr_gparts = num_particles[1];
-  e->total_nr_sparts = num_particles[2];
 
-  /* Flag that there are no inhibited particles */
-  e->nr_inhibited_parts = 0;
-  e->nr_inhibited_gparts = 0;
-  e->nr_inhibited_sparts = 0;
+#ifdef WITH_MPI
+  /* Send the data asynchronously */
+  MPI_Request num_particles_request;
+  MPI_Iallreduce(MPI_IN_PLACE, num_particles, 3, MPI_LONG_LONG, MPI_SUM,
+                 MPI_COMM_WORLD, &num_particles_request);
+#endif
 
   if (e->verbose)
-    message("updating particle counts took %.3f %s.",
+    message("updating particle counts (send) took %.3f %s.",
             clocks_from_ticks(getticks() - tic2), clocks_getunit());
 
   /* Re-compute the mesh forces */
   if ((e->policy & engine_policy_self_gravity) && e->s->periodic)
     pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose);
-
-  /* Re-compute the maximal RMS displacement constraint */
-  if (e->policy & engine_policy_cosmology)
-    engine_recompute_displacement_constraint(e);
 
 #ifdef SWIFT_DEBUG_CHECKS
   part_verify_links(e->s->parts, e->s->gparts, e->s->sparts, e->s->nr_parts,
@@ -2084,13 +2075,39 @@ void engine_rebuild(struct engine *e, int repartitioned,
   if (engine_marktasks(e))
     error("engine_marktasks failed after space_rebuild.");
 
-  /* Print the status of the system */
-  if (e->verbose) engine_print_task_counts(e);
+  tic2 = getticks();
+
+#ifdef WITH_MPI
+  /* Wait for the particle counts to trickle in */
+  if (MPI_Wait(&num_particles_request, MPI_STATUS_IGNORE) != MPI_SUCCESS)
+    error("MPI_Wait failed.");
+#endif
+
+  /* Update the global counters of particles */
+  e->total_nr_parts = num_particles[0];
+  e->total_nr_gparts = num_particles[1];
+  e->total_nr_sparts = num_particles[2];
+
+  /* Flag that there are no inhibited particles */
+  e->nr_inhibited_parts = 0;
+  e->nr_inhibited_gparts = 0;
+  e->nr_inhibited_sparts = 0;
 
   /* Clear the counters of updates since the last rebuild */
   e->updates_since_rebuild = 0;
   e->g_updates_since_rebuild = 0;
   e->s_updates_since_rebuild = 0;
+
+  if (e->verbose)
+    message("updating particle counts (recv) took %.3f %s.",
+            clocks_from_ticks(getticks() - tic2), clocks_getunit());
+
+  /* Re-compute the maximal RMS displacement constraint */
+  if (e->policy & engine_policy_cosmology)
+    engine_recompute_displacement_constraint(e);
+
+  /* Print the status of the system */
+  if (e->verbose) engine_print_task_counts(e);
 
   /* Flag that a rebuild has taken place */
   e->step_props |= engine_step_prop_rebuild;
