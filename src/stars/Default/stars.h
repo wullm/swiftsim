@@ -45,6 +45,8 @@ __attribute__((always_inline)) INLINE static void stars_first_init_spart(
     struct spart* sp) {
 
   sp->time_bin = 0;
+
+  sp->created = 0;
 }
 
 /**

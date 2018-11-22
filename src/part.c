@@ -192,11 +192,16 @@ void part_verify_links(struct part *parts, struct gpart *gparts,
       if (gparts[k].x[0] != spart->x[0] || gparts[k].x[1] != spart->x[1] ||
           gparts[k].x[2] != spart->x[2])
         error(
-            "Linked particles are not at the same position !\n"
-            "gp->x=[%e %e %e] sp->x=[%e %e %e] diff=[%e %e %e]",
+            "Linked particles are not at the same position %ld %ld %ld!\n"
+            "gp->x=[%e %e %e] sp->x=[%e %e %e] diff=[%e %e %e]"
+	    "gp->time_bin=%d sp->time_bin=%d\n"
+	    "sp->created=%d gp->offset=%lld sp->id=%lld",
+	    nr_parts, nr_gparts, nr_sparts,
             gparts[k].x[0], gparts[k].x[1], gparts[k].x[2], spart->x[0],
             spart->x[1], spart->x[2], gparts[k].x[0] - spart->x[0],
-            gparts[k].x[1] - spart->x[1], gparts[k].x[2] - spart->x[2]);
+            gparts[k].x[1] - spart->x[1], gparts[k].x[2] - spart->x[2],
+	    gparts[k].time_bin, spart->time_bin, spart->created,
+	    gparts[k].id_or_neg_offset, spart->id);
 
       /* Check that the particles are at the same time */
       if (gparts[k].time_bin != spart->time_bin)

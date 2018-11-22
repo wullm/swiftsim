@@ -3057,6 +3057,45 @@ void engine_step(struct engine *e) {
   clocks_gettime(&time2);
   e->wallclock_time = (float)clocks_diff(&time1, &time2);
 
+  for(size_t i = 0; i < e->s->nr_sparts; ++i) {
+
+    const struct spart *sp = &e->s->sparts[i];
+
+    if(sp->id == 6373899038395LL) {
+      const struct gpart *gp = sp->gpart;
+
+      message("sp->x=[%e %e %e] sp->v=[%e %e %e]", sp->x[0], sp->x[1], sp->x[2], sp->v[0], sp->v[1], sp->v[2]);
+      message("gp->x=[%e %e %e] gp->v=[%e %e %e]", gp->x[0], gp->x[1], gp->x[2], gp->v_full[0], gp->v_full[1], gp->v_full[2]);
+      message("gp->type=%d", gp->type);
+      message("i=%zd offset=%lld", i, gp->id_or_neg_offset);
+      fflush(stdout);
+    }
+  }
+
+  message("Opposite loop");
+
+  for(size_t i = 0; i < e->s->nr_gparts; ++i) {
+
+    const struct gpart *gp = &e->s->gparts[i];
+
+    if(gp->type == swift_type_stars) {
+      
+      const struct spart *sp = &e->s->sparts[-gp->id_or_neg_offset];
+
+      if(sp->id == 6373899038395LL) {
+
+	message("sp->x=[%e %e %e] sp->v=[%e %e %e]", sp->x[0], sp->x[1], sp->x[2], sp->v[0], sp->v[1], sp->v[2]);
+	message("gp->x=[%e %e %e] gp->v=[%e %e %e]", gp->x[0], gp->x[1], gp->x[2], gp->v_full[0], gp->v_full[1], gp->v_full[2]);
+	message("sp->created=%d", sp->created);
+	message("gp->type=%d", gp->type);
+	message("i=%zd offset=%lld", i, gp->id_or_neg_offset);
+	fflush(stdout);
+      }
+            
+    }
+
+  }
+
 #ifdef SWIFT_DEBUG_TASKS
   /* Time in ticks at the end of this step. */
   e->toc_step = getticks();
@@ -3504,8 +3543,91 @@ void engine_drift_all(struct engine *e) {
                    e->s->nr_cells, sizeof(struct cell), 0, e);
   }
 
+  message("AFTER DRIFT");
+
+  for(size_t i = 0; i < e->s->nr_sparts; ++i) {
+
+    const struct spart *sp = &e->s->sparts[i];
+
+    if(sp->id == 6373899038395LL) {
+      const struct gpart *gp = sp->gpart;
+
+      message("sp->x=[%e %e %e] sp->v=[%e %e %e]", sp->x[0], sp->x[1], sp->x[2], sp->v[0], sp->v[1], sp->v[2]);
+      message("gp->x=[%e %e %e] gp->v=[%e %e %e]", gp->x[0], gp->x[1], gp->x[2], gp->v_full[0], gp->v_full[1], gp->v_full[2]);
+      message("gp->type=%d", gp->type);
+      message("i=%zd offset=%lld", i, gp->id_or_neg_offset);
+      fflush(stdout);
+    }
+  }
+
+  message("Opposite loop");
+
+  for(size_t i = 0; i < e->s->nr_gparts; ++i) {
+
+    const struct gpart *gp = &e->s->gparts[i];
+
+    if(gp->type == swift_type_stars) {
+      
+      const struct spart *sp = &e->s->sparts[-gp->id_or_neg_offset];
+      
+      if(sp->id == 6373899038395LL) {
+	
+	message("sp->x=[%e %e %e] sp->v=[%e %e %e]", sp->x[0], sp->x[1], sp->x[2], sp->v[0], sp->v[1], sp->v[2]);
+	message("gp->x=[%e %e %e] gp->v=[%e %e %e]", gp->x[0], gp->x[1], gp->x[2], gp->v_full[0], gp->v_full[1], gp->v_full[2]);
+	message("sp->created=%d", sp->created);
+	message("gp->type=%d", gp->type);
+	message("i=%zd offset=%lld", i, gp->id_or_neg_offset);
+	fflush(stdout);
+      }            
+    }
+
+  }
+
+
   /* Synchronize particle positions */
   space_synchronize_particle_positions(e->s);
+
+  message("AFTER SYNC");
+  
+  for(size_t i = 0; i < e->s->nr_sparts; ++i) {
+
+    const struct spart *sp = &e->s->sparts[i];
+
+    if(sp->id == 6373899038395LL) {
+      const struct gpart *gp = sp->gpart;
+
+      message("sp->x=[%e %e %e] sp->v=[%e %e %e]", sp->x[0], sp->x[1], sp->x[2], sp->v[0], sp->v[1], sp->v[2]);
+      message("gp->x=[%e %e %e] gp->v=[%e %e %e]", gp->x[0], gp->x[1], gp->x[2], gp->v_full[0], gp->v_full[1], gp->v_full[2]);
+      message("gp->type=%d", gp->type);
+      message("i=%zd offset=%lld", i, gp->id_or_neg_offset);
+      fflush(stdout);
+    }
+  }
+  message("Opposite loop");
+
+  for(size_t i = 0; i < e->s->nr_gparts; ++i) {
+
+    const struct gpart *gp = &e->s->gparts[i];
+
+    if(gp->type == swift_type_stars) {
+      
+      const struct spart *sp = &e->s->sparts[-gp->id_or_neg_offset];
+
+
+      if(sp->id == 6373899038395LL) {
+	
+	message("sp->x=[%e %e %e] sp->v=[%e %e %e]", sp->x[0], sp->x[1], sp->x[2], sp->v[0], sp->v[1], sp->v[2]);
+	message("gp->x=[%e %e %e] gp->v=[%e %e %e]", gp->x[0], gp->x[1], gp->x[2], gp->v_full[0], gp->v_full[1], gp->v_full[2]);
+	message("sp->created=%d", sp->created);
+	message("gp->type=%d", gp->type);
+	message("i=%zd offset=%lld", i, gp->id_or_neg_offset);
+	fflush(stdout);
+      }
+            
+    }
+
+  }
+
 
 #ifdef SWIFT_DEBUG_CHECKS
   /* Check that all cells have been drifted to the current time. */
@@ -4018,22 +4140,22 @@ void engine_dump_snapshot(struct engine *e) {
 #endif
 
 /* Dump... */
-#if defined(HAVE_HDF5)
-#if defined(WITH_MPI)
-#if defined(HAVE_PARALLEL_HDF5)
-  write_output_parallel(e, e->snapshot_base_name, e->internal_units,
-                        e->snapshot_units, e->nodeID, e->nr_nodes,
-                        MPI_COMM_WORLD, MPI_INFO_NULL);
-#else
-  write_output_serial(e, e->snapshot_base_name, e->internal_units,
-                      e->snapshot_units, e->nodeID, e->nr_nodes, MPI_COMM_WORLD,
-                      MPI_INFO_NULL);
-#endif
-#else
-  write_output_single(e, e->snapshot_base_name, e->internal_units,
-                      e->snapshot_units);
-#endif
-#endif
+/* #if defined(HAVE_HDF5) */
+/* #if defined(WITH_MPI) */
+/* #if defined(HAVE_PARALLEL_HDF5) */
+/*   write_output_parallel(e, e->snapshot_base_name, e->internal_units, */
+/*                         e->snapshot_units, e->nodeID, e->nr_nodes, */
+/*                         MPI_COMM_WORLD, MPI_INFO_NULL); */
+/* #else */
+/*   write_output_serial(e, e->snapshot_base_name, e->internal_units, */
+/*                       e->snapshot_units, e->nodeID, e->nr_nodes, MPI_COMM_WORLD, */
+/*                       MPI_INFO_NULL); */
+/* #endif */
+/* #else */
+/*   write_output_single(e, e->snapshot_base_name, e->internal_units, */
+/*                       e->snapshot_units); */
+/* #endif */
+/* #endif */
 
   /* Flag that we dumped a snapshot */
   e->step_props |= engine_step_prop_snapshot;

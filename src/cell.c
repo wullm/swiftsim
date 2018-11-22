@@ -3649,7 +3649,7 @@ void cell_check_timesteps(struct cell *c) {
 }
 
 void cell_check_spart_pos(const struct cell *c,
-                          const struct spart *global_sparts) {
+                          const struct spart *global_sparts, const struct spart *const new_star) {
 
 #ifdef SWIFT_DEBUG_CHECKS
 
@@ -3657,33 +3657,61 @@ void cell_check_spart_pos(const struct cell *c,
   if (c->split) {
     for (int k = 0; k < 8; ++k)
       if (c->progeny[k] != NULL)
-        cell_check_spart_pos(c->progeny[k], global_sparts);
+        cell_check_spart_pos(c->progeny[k], global_sparts, new_star);
   }
 
   struct spart *sparts = c->stars.parts;
-  const int count = c->stars.count;
-  for (int i = 0; i < count; ++i) {
+  const int s_count = c->stars.count;
+  for (int i = 0; i < s_count; ++i) {
 
     const struct spart *sp = &sparts[i];
-    if ((sp->x[0] < c->loc[0] / space_stretch) ||
-        (sp->x[1] < c->loc[1] / space_stretch) ||
-        (sp->x[2] < c->loc[2] / space_stretch) ||
-        (sp->x[0] >= (c->loc[0] + c->width[0]) * space_stretch) ||
-        (sp->x[1] >= (c->loc[1] + c->width[1]) * space_stretch) ||
-        (sp->x[2] >= (c->loc[2] + c->width[2]) * space_stretch))
-      error("spart not in its cell!");
+    /* if ((sp->x[0] < c->loc[0] / (3. * space_stretch)) || */
+    /*     (sp->x[1] < c->loc[1] / (3. * space_stretch)) || */
+    /* 	(sp->x[2] < c->loc[2] / (3. * space_stretch)) || */
+    /*     (sp->x[0] >= (c->loc[0] + c->width[0]) * 3. * space_stretch) || */
+    /*     (sp->x[1] >= (c->loc[1] + c->width[1]) * 3. * space_stretch) || */
+    /*     (sp->x[2] >= (c->loc[2] + c->width[2]) * 3. * space_stretch)) */
+    /*   error("spart not in its cell!"); */
 
     if (sp->time_bin != time_bin_not_created &&
         sp->time_bin != time_bin_inhibited) {
 
       const struct gpart *gp = sp->gpart;
-      if (gp == NULL && sp->time_bin != time_bin_not_created)
-        error("Unlinked spart!");
+      if (gp == NULL && sp->time_bin != time_bin_not_created) {
+	message("sp->time_bin=%d", sp->time_bin);
+	message("sp->loc=[%f %f %f]", sp->x[0], sp->x[1], sp->x[2]);
+	message("sp->offset=%ld", sp - global_sparts);
+	message("sp->gpart=%p", sp->gpart);
+	message("sp->ID=%lld", sp->id);
+	message("c->count=%d", c->stars.count);
+	message("c->loc=[%f %f %f]", c->loc[0], c->loc[1], c->loc[2]);
+	message("c->width=[%f %f %f]", c->width[0], c->width[1], c->width[2]);
+	message("c->parts=%p", c->stars.parts);
+	message("c->depth=%d", c->depth);
+	message("c->cellID=%d", c->cellID);
+	error("Unlinked spart!");
+      }
 
-      if (&global_sparts[-gp->id_or_neg_offset] != sp)
+      if (&global_sparts[-gp->id_or_neg_offset] != sp && sp != new_star)
         error("Incorrectly linked spart!");
     }
   }
+
+  /* struct gpart *gparts = c->grav.parts; */
+  /* const int g_count = c->grav.count; */
+  /* for (int i = 0; i < g_count; ++i) { */
+
+  /*   const struct gpart *gp = &gparts[i]; */
+
+  /*   if(gp->type == swift_type_stars) { */
+      
+  /*     const struct spart *sp = &global_sparts[-gp->id_or_neg_offset]; */
+
+  /*     if(sp->gpart != gp && sp != new_star) */
+  /* 	error("Incorrect revderse link!"); */
+      
+  /*   } */
+  /* } */
 
 #else
   error("Calling a degugging function outside debugging mode.");
@@ -3707,6 +3735,11 @@ void cell_recursively_shift_sparts(struct cell *c,
 
     /* No need to recurse in progenies located before the insestion point */
     const int first_progeny = main_branch ? progeny_list[(int)c->depth] : 0;
+
+#ifdef SWIFT_DEBUG_CHECKS
+    if (first_progeny == -1) 
+      error("Incorrect progeny index in table!");
+#endif
 
     for (int k = first_progeny; k < 8; ++k) {
 
@@ -3748,64 +3781,117 @@ struct spart *cell_add_spart(struct engine *e, struct cell *const c) {
   }
 
   /* Are there any extra particles left? */
-  if (top->stars.count == top->stars.count_total) {
+  if (top->stars.count == top->stars.count_total - 1) {
     message("We ran out of star particles!");
     atomic_inc(&e->forcerebuild);
     return NULL;
   }
 
   /* Number of particles to shift in order to get a free space. */
-  const int n_copy = &top->stars.parts[top->stars.count] - c->stars.parts;
+  const size_t n_copy = &top->stars.parts[top->stars.count] - c->stars.parts;
+
+#ifdef SWIFT_DEBUG_CHECKS
+  struct spart const* pointer_check = &c->stars.parts[0];
+#endif
 
   if (n_copy > 0) {
 
     // MATTHIEU: This can be improved. We don't need to copy everything, just
     // need to swap a few particles.
+    memmove(&c->stars.parts[1], &c->stars.parts[0], n_copy * sizeof(struct spart));
 
-    struct spart *temp = NULL;
-    if (posix_memalign((void **)&temp, spart_align,
-                       n_copy * sizeof(struct spart)) != 0)
-      error("Impossible to allocate temp buffer");
-
-    /* Shift all the spart ahead of the current empty position by 1 */
-    memcpy(temp, c->stars.parts, n_copy * sizeof(struct spart));
-    memcpy(c->stars.parts + 1, temp, n_copy * sizeof(struct spart));
-    free(temp);
+    //c->stars.parts[0].gpart->id_or_neg_offset = 42;
+    //c->stars.parts[0].gpart->type = swift_type_dark_matter;
 
     /* Update the gpart->spart links (shift by 1) */
-    for (int i = 0; i < n_copy; ++i) {
+    for (size_t i = 0; i < n_copy; ++i) {
+
 #ifdef SWIFT_DEBUG_CHECKS
       if (c->stars.parts[i + 1].gpart == NULL) {
         error("Incorrectly linked spart!");
       }
 #endif
-      c->stars.parts[i + 1].gpart->id_or_neg_offset--;
+
+      c->stars.parts[i + 1].gpart->id_or_neg_offset = -(&c->stars.parts[i + 1] - e->s->sparts);
+
+      if(c->stars.parts[i + 1].gpart - e->s->gparts == 73306022) {
+	message("Found it! i=%zd n_copy=%zd", i, n_copy);
+      }
+
+      if(c->stars.parts[i + 1].id==6373899038395LL) {
+	const struct spart *sp = &c->stars.parts[i + 1];
+	const struct gpart *gp = c->stars.parts[i + 1].gpart;
+
+	message("Star 6373899038395's gpart shifted by 1! top->cellID=%d i=%zd n_copy=%zd, top->count=%d top->count_total=%d",
+		top->cellID, i, n_copy, top->stars.count, top->stars.count_total);
+	message("sp->pos=[%e %e %e]", sp->x[0], sp->x[1], sp->x[2]);
+	message("gp->pos=[%e %e %e]", gp->x[0], gp->x[1], gp->x[2]);
+	message("gp->type=%d", gp->type);
+	message("gp->offset=%lld", gp->id_or_neg_offset);
+      }
+
+
     }
-  }
+ 
 
   /* Recursively shift all the stars to get a free spot at the start of the
    * current cell*/
   cell_recursively_shift_sparts(top, progeny, /* main_branch=*/1);
 
+  }
+
+  else {
+    message("n_copy == 0!!");
+    atomic_inc(&e->forcerebuild);
+    return NULL;
+    
+  }
+
+
   /* We now have an empty spart as the first particle in that cell */
   struct spart *sp = &c->stars.parts[0];
   bzero(sp, sizeof(struct spart));
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if(pointer_check != sp)
+    error("Pointer to the new spart has changed.");
+#endif
 
   /* Give it a decent position */
   sp->x[0] = c->loc[0] + 0.5 * c->width[0];
   sp->x[1] = c->loc[1] + 0.5 * c->width[1];
   sp->x[2] = c->loc[2] + 0.5 * c->width[2];
 
+#ifdef SWIFT_DEBUG_CHECKS
+  /* Check that everything went OK */
+  sp->time_bin = time_bin_not_created;
+  cell_check_spart_pos(top, e->s->sparts, sp);
+#endif
+
   /* Set it to the current time-bin */
   sp->time_bin = e->min_active_bin;
+
+  sp->created = 1;
+
+  top = c;
+  while (top->parent != NULL) {
+    top->grav.ti_end_min = e->ti_current;
+    top = top->parent;
+  }
+  top->grav.ti_end_min = e->ti_current;
 
 #ifdef SWIFT_DEBUG_CHECKS
   /* Specify it was drifted to this point */
   sp->ti_drift = e->ti_current;
 #endif
 
+  /* message("top-ID=%d cellID=%d depth=%d c->loc=[%f %f %f]",  */
+  /* 	  top->cellID, c->cellID, c->depth, c->loc[0], c->loc[1], c->loc[2]); */
+
+  //cell_check_spart_pos(c, e->s->sparts, sp);
+
   /* Register that we used one of the free slots. */
-  atomic_dec(&e->s->nr_extra_sparts);
+  atomic_sub(&e->s->nr_extra_sparts, (size_t) 1);
 
   return sp;
 }
@@ -3990,7 +4076,6 @@ void cell_reorder_extra_parts(struct cell *c, const ptrdiff_t parts_offset) {
   struct part *parts = c->hydro.parts;
   struct xpart *xparts = c->hydro.xparts;
   const int count_real = c->hydro.count;
-  const int count_total = count_real + space_extra_parts;
 
   if (c->depth != 0 || c->nodeID != engine_rank)
     error("This function should only be called on local top-level cells!");
@@ -4008,7 +4093,7 @@ void cell_reorder_extra_parts(struct cell *c, const ptrdiff_t parts_offset) {
       }
 
 #ifdef SWIFT_DEBUG_CHECKS
-      if (first_not_extra >= count_total)
+      if (first_not_extra >= count_real + space_extra_parts)
         error("Looking for extra particles beyond this cell's range!");
 #endif
 
@@ -4033,7 +4118,6 @@ void cell_reorder_extra_sparts(struct cell *c, const ptrdiff_t sparts_offset) {
 
   struct spart *sparts = c->stars.parts;
   const int count_real = c->stars.count;
-  const int count_total = count_real + space_extra_sparts;
 
   if (c->depth != 0 || c->nodeID != engine_rank)
     error("This function should only be called on local top-level cells!");
@@ -4051,7 +4135,7 @@ void cell_reorder_extra_sparts(struct cell *c, const ptrdiff_t sparts_offset) {
       }
 
 #ifdef SWIFT_DEBUG_CHECKS
-      if (first_not_extra >= count_total)
+      if (first_not_extra >= count_real + space_extra_sparts)
         error("Looking for extra particles beyond this cell's range!");
 #endif
 
@@ -4076,7 +4160,6 @@ void cell_reorder_extra_gparts(struct cell *c, struct part *parts,
 
   struct gpart *gparts = c->grav.parts;
   const int count_real = c->grav.count;
-  const int count_total = count_real + space_extra_gparts;
 
   if (c->depth != 0 || c->nodeID != engine_rank)
     error("This function should only be called on local top-level cells!");
@@ -4094,7 +4177,7 @@ void cell_reorder_extra_gparts(struct cell *c, struct part *parts,
       }
 
 #ifdef SWIFT_DEBUG_CHECKS
-      if (first_not_extra >= count_total)
+      if (first_not_extra >= count_real + space_extra_gparts)
         error("Looking for extra particles beyond this cell's range!");
 #endif
 

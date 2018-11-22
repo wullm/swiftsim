@@ -837,7 +837,7 @@ static void pick_parmetis(int nodeID, struct space *s, int nregions,
     int bad = 0;
     for (int k = 0; k < ncells; k++) {
       if (newcelllist[k] < 0 || newcelllist[k] >= nregions) {
-        message("Got bad nodeID %" PRIDX " for cell %i.", newcelllist[k], k);
+        //message("Got bad nodeID %" PRIDX " for cell %i.", (int)newcelllist[k], k);
         bad++;
       }
     }

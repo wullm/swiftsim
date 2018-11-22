@@ -894,7 +894,7 @@ void space_allocate_extras(struct space *s, int verbose) {
          ++i) {
       bzero(&s->sparts[i], sizeof(struct spart));
       s->sparts[i].time_bin = time_bin_not_created;
-      s->sparts[i].id = -42;
+      s->sparts[i].id = -1;
     }
 
       /* Put the spare particles in their correct cell */
@@ -3238,10 +3238,38 @@ void space_synchronize_particle_positions_mapper(void *map_data, int nr_gparts,
       /* Get it's stellar friend */
       struct spart *sp = &s->sparts[-gp->id_or_neg_offset];
 
+      if(sp->id == 6373899038395LL) {
+	const struct gpart *gp2 = sp->gpart;
+
+	message("BEFORE!");
+	message("sp->x=[%e %e %e] sp->v=[%e %e %e]", sp->x[0], sp->x[1], sp->x[2], sp->v[0], sp->v[1], sp->v[2]);
+	message("sp->created=%d", sp->created);
+	message("gp2->x=[%e %e %e] gp2->v=[%e %e %e]", gp2->x[0], gp2->x[1], gp2->x[2], gp2->v_full[0], gp2->v_full[1], gp2->v_full[2]);
+	message("i=%d offset=%lld", k, gp2->id_or_neg_offset);
+	fflush(stdout);
+      }
+	
+
       /* Synchronize positions */
       sp->x[0] = gp->x[0];
       sp->x[1] = gp->x[1];
       sp->x[2] = gp->x[2];
+
+      sp->v[0] = gp->v_full[0];
+      sp->v[1] = gp->v_full[1];
+      sp->v[2] = gp->v_full[2];
+
+      if(sp->id == 6373899038395LL) {
+	const struct gpart *gp2 = sp->gpart;
+
+	message("AFTER!");
+	message("sp->x=[%e %e %e] sp->v=[%e %e %e]", sp->x[0], sp->x[1], sp->x[2], sp->v[0], sp->v[1], sp->v[2]);
+	message("sp->created=%d", sp->created);
+	message("gp2->x=[%e %e %e] gp2->v=[%e %e %e]", gp2->x[0], gp2->x[1], gp2->x[2], gp2->v_full[0], gp2->v_full[1], gp2->v_full[2]);
+	message("i=%d offset=%lld", k, gp2->id_or_neg_offset);
+	fflush(stdout);
+      }
+
     }
   }
 }
