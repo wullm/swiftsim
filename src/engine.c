@@ -3939,8 +3939,8 @@ void engine_dump_snapshot(struct engine *e) {
 #ifdef WITH_MPI
   for(size_t i = 0; i < e->s->nr_parts_foreign; i++) {
     for(size_t j = 0; j < e->s->nr_parts; j++) {
-      if (e->s->parts[i].id == e->s->parts[j].id) {
-	error("Found a local particle in the foreign vector");
+      if (e->s->parts[j].id == e->s->parts_foreign[i].id) {
+	error("Found a local particle in the foreign vector %lli %lli", e->s->parts[j].id, e->s->parts_foreign[i].id);
       }
     }
   }
