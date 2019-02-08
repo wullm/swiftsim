@@ -16,7 +16,10 @@ int main(){
           v2.f[i] = -1.0;
       }
     }
-    int result = vec_is_mask_true(vec_cmp_lte(v1.v, v2.v));
+    mask_t m;
+    m.v = vec_cmp_lte(v1.v, v2.v);
+
+    int result = vec_is_mask_true(m);
     for(int i = 0; i < VEC_SIZE; i++){
       if((i & 1) && !(result & (1 << i)) ){
           return 1;
