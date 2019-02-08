@@ -6,7 +6,6 @@ int main(){
   printf("test_create_mask not yet implemented for AVX512_F\n");
   return 1;
 #else
-  printf(" WARNING: test_create_mask is a bit weird at the moment\n");
   mask_t masky;
   vector v;
   vector zero;
@@ -20,9 +19,9 @@ int main(){
   }
   vec_create_mask(masky, vec_cmp_gt(v.v, zero.v));
  for(int i = 0; i < VEC_SIZE; i++){
-    if( i & 1 && masky.i[i] != -1 ){
+    if( i & 1 && masky.i[i] != 0 ){
         return 1;
-    }else if( i & 1 == 0 && masky.i[i] != 0){
+    }else if( !(i & 1) && masky.i[i] != -1){
         return 1;
     }
  } 
