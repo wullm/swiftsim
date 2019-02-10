@@ -197,6 +197,7 @@ StructureFinding:
 EoS:
   isothermal_internal_energy: 20.26784  # Thermal energy per unit mass for the case of isothermal equation of state (in internal units).
 
+  planetary_use_idg:    0   # (Optional) Whether to prepare the ideal gas EOS
   planetary_use_Til:    1   # (Optional) Whether to prepare the Tillotson EOS
   planetary_use_HM80:   0   # (Optional) Whether to prepare the Hubbard & MacFarlane (1980) EOS
   planetary_use_ANEOS:  0   # (Optional) Whether to prepare the ANEOS EOS

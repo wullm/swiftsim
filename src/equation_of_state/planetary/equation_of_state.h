@@ -52,6 +52,9 @@ extern struct eos_parameters eos;
  */
 enum eos_planetary_type_id {
 
+  /*! Ideal Gas */
+  eos_planetary_type_idg = 0,
+
   /*! Tillotson */
   eos_planetary_type_Til = 1,
 
@@ -66,6 +69,12 @@ enum eos_planetary_type_id {
  * @brief Minor type for the planetary equation of state.
  */
 enum eos_planetary_material_id {
+
+  /* Ideal Gas */
+
+  /*! Ideal gas hydrogen-helium */
+  eos_planetary_id_idg_HHe =
+      eos_planetary_type_idg * eos_planetary_type_factor,
 
   /* Tillotson */
 
@@ -115,6 +124,7 @@ enum eos_planetary_material_id {
 };
 
 /* Individual EOS function headers. */
+#include "ideal_gas.h"
 #include "hm80.h"
 #include "sesame.h"
 #include "tillotson.h"
@@ -123,6 +133,7 @@ enum eos_planetary_material_id {
  * @brief The parameters of the equation of state.
  */
 struct eos_parameters {
+  struct idg_params idg_HHe;
   struct Til_params Til_iron, Til_granite, Til_water;
   struct HM80_params HM80_HHe, HM80_ice, HM80_rock;
   struct SESAME_params SESAME_iron, SESAME_basalt, SESAME_water, SS08_water;
@@ -143,6 +154,22 @@ gas_internal_energy_from_entropy(float density, float entropy,
 
   /* Select the material base type */
   switch (type) {
+
+    /* Ideal Gas EoS */
+    case eos_planetary_type_idg:
+
+      /* Select the material */
+      switch (mat_id) {
+        case eos_planetary_id_idg_HHe:
+          return idg_internal_energy_from_entropy(density, entropy,
+                                                  &eos.idg_HHe);
+          break;
+
+        default:
+          error("Unknown material ID! mat_id = %d", mat_id);
+          return 0.f;
+      };
+      break;
 
     /* Tillotson EoS */
     case eos_planetary_type_Til:
@@ -248,6 +275,21 @@ __attribute__((always_inline)) INLINE static float gas_pressure_from_entropy(
   /* Select the material base type */
   switch (type) {
 
+    /* Ideal Gas EoS */
+    case eos_planetary_type_idg:
+
+      /* Select the material */
+      switch (mat_id) {
+        case eos_planetary_id_idg_HHe:
+          return idg_pressure_from_entropy(density, entropy, &eos.idg_HHe);
+          break;
+
+        default:
+          error("Unknown material ID! mat_id = %d", mat_id);
+          return 0.f;
+      };
+      break;
+
     /* Tillotson EoS */
     case eos_planetary_type_Til:
 
@@ -347,6 +389,21 @@ __attribute__((always_inline)) INLINE static float gas_entropy_from_pressure(
   /* Select the material base type */
   switch (type) {
 
+    /* Ideal Gas EoS */
+    case eos_planetary_type_idg:
+
+      /* Select the material */
+      switch (mat_id) {
+        case eos_planetary_id_idg_HHe:
+          return idg_entropy_from_pressure(density, P, &eos.idg_HHe);
+          break;
+
+        default:
+          error("Unknown material ID! mat_id = %d", mat_id);
+          return 0.f;
+      };
+      break;
+
     /* Tillotson EoS */
     case eos_planetary_type_Til:
 
@@ -440,6 +497,21 @@ __attribute__((always_inline)) INLINE static float gas_soundspeed_from_entropy(
 
   /* Select the material base type */
   switch (type) {
+
+    /* Ideal Gas EoS */
+    case eos_planetary_type_idg:
+
+      /* Select the material */
+      switch (mat_id) {
+        case eos_planetary_id_idg_HHe:
+          return idg_soundspeed_from_entropy(density, entropy, &eos.idg_HHe);
+          break;
+
+        default:
+          error("Unknown material ID! mat_id = %d", mat_id);
+          return 0.f;
+      };
+      break;
 
     /* Tillotson EoS */
     case eos_planetary_type_Til:
@@ -540,6 +612,21 @@ gas_entropy_from_internal_energy(float density, float u,
   /* Select the material base type */
   switch (type) {
 
+    /* Ideal Gas EoS */
+    case eos_planetary_type_idg:
+
+      /* Select the material */
+      switch (mat_id) {
+        case eos_planetary_id_idg_HHe:
+          return idg_entropy_from_internal_energy(density, u, &eos.idg_HHe);
+          break;
+
+        default:
+          error("Unknown material ID! mat_id = %d", mat_id);
+          return 0.f;
+      };
+      break;
+
     /* Tillotson EoS */
     case eos_planetary_type_Til:
 
@@ -638,6 +725,21 @@ gas_pressure_from_internal_energy(float density, float u,
 
   /* Select the material base type */
   switch (type) {
+
+    /* Ideal Gas EoS */
+    case eos_planetary_type_idg:
+
+      /* Select the material */
+      switch (mat_id) {
+        case eos_planetary_id_idg_HHe:
+          return idg_pressure_from_internal_energy(density, u, &eos.idg_HHe);
+          break;
+
+        default:
+          error("Unknown material ID! mat_id = %d", mat_id);
+          return 0.f;
+      };
+      break;
 
     /* Tillotson EoS */
     case eos_planetary_type_Til:
@@ -742,6 +844,21 @@ gas_internal_energy_from_pressure(float density, float P,
   /* Select the material base type */
   switch (type) {
 
+    /* Ideal Gas EoS */
+    case eos_planetary_type_idg:
+
+      /* Select the material */
+      switch (mat_id) {
+        case eos_planetary_id_idg_HHe:
+          return idg_internal_energy_from_pressure(density, P, &eos.idg_HHe);
+          break;
+
+        default:
+          error("Unknown material ID! mat_id = %d", mat_id);
+          return 0.f;
+      };
+      break;
+
     /* Tillotson EoS */
     case eos_planetary_type_Til:
 
@@ -841,6 +958,21 @@ gas_soundspeed_from_internal_energy(float density, float u,
 
   /* Select the material base type */
   switch (type) {
+
+    /* Ideal Gas EoS */
+    case eos_planetary_type_idg:
+
+      /* Select the material */
+      switch (mat_id) {
+        case eos_planetary_id_idg_HHe:
+          return idg_soundspeed_from_internal_energy(density, u, &eos.idg_HHe);
+          break;
+
+        default:
+          error("Unknown material ID! mat_id = %d", mat_id);
+          return 0.f;
+      };
+      break;
 
     /* Tillotson EoS */
     case eos_planetary_type_Til:
@@ -945,6 +1077,21 @@ __attribute__((always_inline)) INLINE static float gas_soundspeed_from_pressure(
   /* Select the material base type */
   switch (type) {
 
+    /* Ideal Gas EoS */
+    case eos_planetary_type_idg:
+
+      /* Select the material */
+      switch (mat_id) {
+        case eos_planetary_id_idg_HHe:
+          return idg_soundspeed_from_pressure(density, P, &eos.idg_HHe);
+          break;
+
+        default:
+          error("Unknown material ID! mat_id = %d", mat_id);
+          return 0.f;
+      };
+      break;
+
     /* Tillotson EoS */
     case eos_planetary_type_Til:
 
@@ -1046,6 +1193,12 @@ __attribute__((always_inline)) INLINE static void eos_init(
 
   // Set the parameters and material IDs, load tables, etc. for each material
   // and convert to internal units
+  
+  // Ideal Gas
+  if (parser_get_opt_param_int(params, "EoS:planetary_use_idg", 0)) {
+    set_idg_HHe(&e->idg_HHe, eos_planetary_id_idg_HHe);
+  }
+  
   // Tillotson
   if (parser_get_opt_param_int(params, "EoS:planetary_use_Til", 0)) {
     set_Til_iron(&e->Til_iron, eos_planetary_id_Til_iron);
