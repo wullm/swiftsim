@@ -1,0 +1,3 @@
+[submodule "PySWIFTsim"]
+	path = PySWIFTsim
+	url = https://gitlab.cosma.dur.ac.uk/swift/PySWIFTsim.git
