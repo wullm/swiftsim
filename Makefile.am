@@ -23,6 +23,9 @@ SUBDIRS = src argparse examples doc tests tools
 if HAVEEAGLECOOLING
 SUBDIRS += examples/CoolingRates
 endif
+if HAVEPYSWIFTSIM
+SUBDIRS += PySWIFTsim
+endif
 
 # Non-standard files that should be part of the distribution.
 EXTRA_DIST = INSTALL.swift .clang-format format.sh

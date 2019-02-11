@@ -917,6 +917,55 @@ if test "$with_hdf5" = "yes"; then
 fi
 AM_CONDITIONAL([HAVEPARALLELHDF5],[test "$have_parallel_hdf5" = "yes"])
 
+# check for python
+have_python="no"
+AC_ARG_WITH([python],
+    [AS_HELP_STRING([--with-python=PATH],
+       [root directory where python is installed @<:@yes/no@:>@]
+    )],
+    [with_python="$withval"],
+    [with_python="no"]
+)
+if test "x$with_python" != "xno"; then
+   AM_PATH_PYTHON([3], [], [AC_MSG_ERROR(python not found)])   
+   AC_ARG_VAR([PYTHON_INCS], [Include flags for python, bypassing python-config])
+   AC_ARG_VAR([PYTHON_CONFIG], [Path to python-config])
+   AS_IF([test -z "$PYTHON_INCS"], [
+      AS_IF([test -z "$PYTHON_CONFIG"], [
+      	AC_PATH_PROGS([PYTHON_CONFIG],
+	          [python$PYTHON_VERSION-config python-config],
+                  [no],
+                  [`dirname $PYTHON`])
+    	AS_IF([test "$PYTHON_CONFIG" = no], [AC_MSG_ERROR([cannot find python-config for $PYTHON.])])
+      ])
+      AC_MSG_CHECKING([python include flags])
+      PYTHON_INCS=`$PYTHON_CONFIG --includes`
+      AC_MSG_RESULT([$PYTHON_INCS])
+  ])
+  have_python="yes"
+fi
+AC_SUBST([PYTHON_INCS])
+AM_CONDITIONAL([HAVEPYTHON],[test -n "$PYTHON_INCS"])
+
+# check for pyswiftsim
+have_pyswiftsim="no"
+AC_ARG_ENABLE([pyswiftsim],
+    [AS_HELP_STRING([--enable-pyswiftsim],
+       [Enable the python wrapper.]
+    )],
+    [enable_pyswiftsim="$enableval"],
+    [enable_pyswiftsim="no"]
+)
+
+if test "x$enable_pyswiftsim" != "xno"; then
+   if test "x$with_python" == "xno"; then
+   AC_MSG_ERROR([Cannot use PySWIFTsim without Python])
+   fi
+fi
+
+AM_CONDITIONAL([HAVEPYSWIFTSIM],[test -n "enable_pyswiftsim"])
+
+
 # Check for grackle.
 have_grackle="no"
 AC_ARG_WITH([grackle],
@@ -1768,7 +1817,7 @@ AM_CONDITIONAL([HAVEEAGLECOOLING], [test $with_cooling = "EAGLE"])
 
 # Handle .in files.
 AC_CONFIG_FILES([Makefile src/Makefile examples/Makefile examples/CoolingRates/Makefile doc/Makefile doc/Doxyfile tests/Makefile])
-AC_CONFIG_FILES([argparse/Makefile tools/Makefile])
+AC_CONFIG_FILES([argparse/Makefile tools/Makefile PySWIFTsim/src/Makefile])
 AC_CONFIG_FILES([tests/testReading.sh], [chmod +x tests/testReading.sh])
 AC_CONFIG_FILES([tests/testActivePair.sh], [chmod +x tests/testActivePair.sh])
 AC_CONFIG_FILES([tests/test27cells.sh], [chmod +x tests/test27cells.sh])
@@ -1822,6 +1871,8 @@ AC_MSG_RESULT([
    Pthread barriers     : $have_pthread_barrier
    VELOCIraptor enabled : $have_velociraptor
    Particle Logger      : $with_logger
+   Python               : $have_python
+   PySWIFTsim           : $enable_pyswiftsim
 
    Hydro scheme       : $with_hydro
    Dimensionality     : $with_dimension
