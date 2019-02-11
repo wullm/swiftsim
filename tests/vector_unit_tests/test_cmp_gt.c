@@ -17,7 +17,7 @@ int main(){
  for(int i = 0; i < VEC_SIZE; i++){
     if( i & 1 && result.i[i] != 0 ){
         return 1;
-    }else if( i & 1 == 0 && result.i[i] != -1){
+    }else if( !(i & 1) && result.i[i] != -1){
         return 1;
     }
  } 
