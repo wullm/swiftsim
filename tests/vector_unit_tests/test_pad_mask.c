@@ -2,28 +2,19 @@
 
 int main(){
 
-#ifdef HAVE_AVX512_F
-  printf("No mask tests for AVX512\n");
-  return 0;
-#else
+  mask_t mask;
+  int pad = 2;
+  vec_init_mask_true(mask);
 
-mask_t m;
-int pad = 2;
-for(int i = 0; i < VEC_SIZE; i++){
-  m.i[i] = 0xFFFFFFFF;
-}
-vec_pad_mask(m, pad);
+  vec_pad_mask(mask, pad);
 
-for(int i = 0; i < VEC_SIZE; i++){
-  if(i < VEC_SIZE-pad && m.i[i] != 0xFFFFFFFF){
-     return 1;
-  }else if( i >= VEC_SIZE - pad && m.i[i] != 0){
-     return 1; 
+  for(int i = 0; i < VEC_SIZE; i++){
+    if(i < VEC_SIZE-pad && !vec_is_mask_bit_true(mask, i)){
+      return 1;
+    }else if( i >= VEC_SIZE - pad && vec_is_mask_bit_true(mask, i)){
+      return 1; 
+    }
   }
+
+  return 0;
 }
-
-    return 0;
-#endif
-}
-
-

@@ -2,10 +2,6 @@
 
 int main(){
 
-#ifdef HAVE_AVX512_F
-  printf("test_create_mask not yet implemented for AVX512_F\n");
-  return 1;
-#else
   mask_t masky;
   vector v;
   vector zero;
@@ -17,17 +13,16 @@ int main(){
     }
     zero.f[i] = 0.0;
   }
+
   vec_create_mask(masky, vec_cmp_gt(v.v, zero.v));
- for(int i = 0; i < VEC_SIZE; i++){
-    if( i & 1 && masky.i[i] != 0 ){
-        return 1;
-    }else if( !(i & 1) && masky.i[i] != -1){
-        return 1;
+
+  for(int i = 0; i < VEC_SIZE; i++){
+    if(i & 1 && vec_is_mask_bit_true(masky, i)){
+      return 1;
+    }else if(!(i & 1) && !vec_is_mask_bit_true(masky, i)){
+      return 1;
     }
- } 
+  } 
 
-    return 0;
-#endif
+  return 0;
 }
-
-
