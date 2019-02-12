@@ -13,7 +13,7 @@ int main(){
 
     for(int i = 0; i < VEC_SIZE; i++){
       float temp = (float)i;
-      if(result.f[i] != (temp*temp)-temp){
+      if(result.f[i] != temp-(temp*temp)){
           return 1;
       }
     }
