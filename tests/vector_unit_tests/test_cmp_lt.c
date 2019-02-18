@@ -13,14 +13,13 @@ int main(){
     }
     zero.f[i] = 0.0;
   }
-  
-  vec_create_mask(result, vec_cmp_lt(v.v, zero.v));
-  
+
+  result.v = vec_cmp_lt(v.v, zero.v);
   for(int i = 0; i < VEC_SIZE; i++){
-    if(i & 1 && !vec_is_mask_bit_true(result, i)){
-      return 1;
-    }else if(!(i & 1) && vec_is_mask_bit_true(result, i)){
-      return 1;
+    if( i & 1 && result.i[i] != -1 ){
+        return 1;
+    }else if( i & 1 == 0 && result.i[i] != 0){
+        return 1;
     }
   } 
 

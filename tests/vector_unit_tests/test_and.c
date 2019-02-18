@@ -6,7 +6,7 @@ int main(){
     for(int i = 0; i < VEC_SIZE; i++){
         v1.f[i] = (float)i;
         if(i & 1){
-            v2.f[i] = (float)i;
+            v2.f[i] = 1.0*(float)i;
         }else{
             v2.f[i] = -1.0*(float)i;
         }
@@ -16,6 +16,7 @@ int main(){
 
     for(int i = 0; i < VEC_SIZE; i++){
         if(result.f[i] != (float)i){
+	    printf("%f %f\n", result.f[i], (float)i);
             return 1;
         }
     }

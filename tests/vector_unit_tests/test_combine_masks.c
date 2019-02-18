@@ -17,14 +17,10 @@ int main(){
   }
 #endif
 
-  vec_combine_masks(m1, m2);
-
-  for(int i = 0; i < VEC_SIZE; i++){
-    
-    if(i == 0 && !vec_is_mask_bit_true(m1, i)){
-      return 1;
-    }else if( i > 0 && vec_is_mask_bit_true(m1, i)){
-      return 1;
+    if(i == 0 && m1.i[i] != 0xFFFFFFFF){
+        return 1;
+    }else if( i > 0 && m1.i[i] != 0){
+        return 1;
     }
 
   }
