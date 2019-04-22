@@ -137,7 +137,7 @@ struct space {
   int nr_local_cells_with_particles;
 
   /*! The (level 0) cells themselves. */
-  struct cell *cells_top;
+  struct cell **cells_top;
 
   /*! Buffer of unused cells for the sub-cells. */
   struct cell *cells_sub;
