@@ -918,7 +918,7 @@ void runner_do_hydro_sort(struct runner *r, struct cell *c, int flags,
   /* Make sure the sort flags are consistent (downward). */
   runner_check_sorts_hydro(c, c->hydro.sorted);
 
-  /* Make sure the sort flags are consistent (upard). */
+  /* Make sure the sort flags are consistent (upward). */
   for (struct cell *finger = c->parent; finger != NULL;
        finger = finger->parent) {
     if (finger->hydro.sorted & ~c->hydro.sorted)
@@ -933,8 +933,31 @@ void runner_do_hydro_sort(struct runner *r, struct cell *c, int flags,
   /* Allocate memory for sorting. */
   cell_malloc_hydro_sorts(c, flags);
 
-  /* Does this cell have any progeny? */
+  /* Shall we recurse to a lower level? */
+  int recurse = 0;
   if (c->split) {
+    for (int k = 0; k < 8; k++) {
+
+      const struct cell *cp = c->progeny[k];
+
+      if (cp != NULL && cp->hydro.count > 0) { /* Are there any parts? */
+
+        const int do_sub_sort = cell_get_flag(cp, cell_flag_do_hydro_sub_sort);
+
+        if (cp->hydro.requires_sorts ||    /* Do they need sorting? */
+            (cp->hydro.do_sort | flags) || /* Are we forcing a sort? */
+            do_sub_sort) { /* Do we want a sort at a lower level? */
+
+          /* Ok, recurse */
+          recurse = 1;
+          break;
+        }
+      }
+    }
+  }
+
+  /* Are we going to a lower level? */
+  if (recurse) {
 
     /* Fill in the gaps within the progeny. */
     float dx_max_sort = 0.0f;
