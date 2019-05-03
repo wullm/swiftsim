@@ -64,6 +64,7 @@
 #include "gravity.h"
 #include "gravity_cache.h"
 #include "hydro.h"
+#include "image.h"
 #include "logger.h"
 #include "logger_io.h"
 #include "map.h"
@@ -2458,6 +2459,7 @@ void engine_check_for_dumps(struct engine *e) {
         engine_dump_index(e);
 #else
         engine_dump_snapshot(e);
+        image_dump_image(e);
 #endif
 
         /* Free the memory allocated for VELOCIraptor i/o. */
