@@ -55,7 +55,7 @@ static const int bisection_max_iterations = 150;
 //static const float explicit_tolerance = 0.05;
 static const float bisection_tolerance = 1.0e-6;
 //static const double bracket_factor = 1.5;
-//static const double bracket_factor = 1.0488;
+static const double bracket_factor = 1.0488;
 
 /**
  * @brief Find the index of the current redshift along the redshift dimension
@@ -211,7 +211,7 @@ INLINE static double bisection_iter(
     //const struct cooling_function_data *restrict cooling,
     struct cooling_function_data *restrict cooling,
     const float abundance_ratio[chemistry_element_count + 2],
-    const double dt_cgs, const long long ID, const float min_u_cgs) {
+    const double dt_cgs, const long long ID) {
 
   /* Bracketing */
   double u_lower_cgs = u_ini_cgs;
@@ -230,87 +230,83 @@ INLINE static double bisection_iter(
   /* Let's try to bracket the solution */
   /*************************************/
 
-  // Try using full range?
-  u_lower_cgs = min_u_cgs;
-  u_upper_cgs = min_u_cgs * 1e7;
+  if (LambdaNet_cgs < 0) {
 
-  //if (LambdaNet_cgs < 0) {
+    /* we're cooling! */
+    u_lower_cgs /= bracket_factor;
+    u_upper_cgs *= bracket_factor;
 
-  //  /* we're cooling! */
-  //  u_lower_cgs /= bracket_factor;
-  //  u_upper_cgs *= bracket_factor;
+    /* Compute a new rate */
+    LambdaNet_cgs = Lambda_He_reion_cgs +
+                    eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
+                                       abundance_ratio, n_H_index, d_n_H,
+                                       He_index, d_He, cooling);
 
-  //  /* Compute a new rate */
-  //  LambdaNet_cgs = Lambda_He_reion_cgs +
-  //                  eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
-  //                                     abundance_ratio, n_H_index, d_n_H,
-  //                                     He_index, d_He, cooling);
+    int i = 0;
+    while (u_lower_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs >
+               0 &&
+           i < bisection_max_iterations) {
 
-  //  int i = 0;
-  //  while (u_lower_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs >
-  //             0 &&
-  //         i < bisection_max_iterations) {
+      //u_lower_cgs /= bracket_factor;
+      //u_upper_cgs /= bracket_factor;
+      // Try new approach to not check overlapping bounds
+      u_upper_cgs = u_lower_cgs;
+      u_lower_cgs /= bracket_factor;
 
-  //    //u_lower_cgs /= bracket_factor;
-  //    //u_upper_cgs /= bracket_factor;
-  //    // Try new approach to not check overlapping bounds
-  //    u_upper_cgs = u_lower_cgs;
-  //    u_lower_cgs /= bracket_factor;
+      /* Compute a new rate */
+      LambdaNet_cgs = Lambda_He_reion_cgs +
+                      eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
+                                         abundance_ratio, n_H_index, d_n_H,
+                                         He_index, d_He, cooling);
+      i++;
+    }
+    cooling->bisection_cooling_bound_iterations += i;
 
-  //    /* Compute a new rate */
-  //    LambdaNet_cgs = Lambda_He_reion_cgs +
-  //                    eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
-  //                                       abundance_ratio, n_H_index, d_n_H,
-  //                                       He_index, d_He, cooling);
-  //    i++;
-  //  }
-  //  cooling->bisection_cooling_bound_iterations += i;
+    if (i >= bisection_max_iterations) {
+      error(
+          "particle %llu exceeded max iterations searching for bounds when "
+          "cooling, u_ini_cgs %.5e n_H_cgs %.5e",
+          ID, u_ini_cgs, n_H_cgs);
+    }
+  } else {
 
-  //  if (i >= bisection_max_iterations) {
-  //    error(
-  //        "particle %llu exceeded max iterations searching for bounds when "
-  //        "cooling, u_ini_cgs %.5e n_H_cgs %.5e",
-  //        ID, u_ini_cgs, n_H_cgs);
-  //  }
-  //} else {
+    /* we are heating! */
+    u_lower_cgs /= bracket_factor;
+    u_upper_cgs *= bracket_factor;
 
-  //  /* we are heating! */
-  //  u_lower_cgs /= bracket_factor;
-  //  u_upper_cgs *= bracket_factor;
+    /* Compute a new rate */
+    LambdaNet_cgs = Lambda_He_reion_cgs +
+                    eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
+                                       abundance_ratio, n_H_index, d_n_H,
+                                       He_index, d_He, cooling);
 
-  //  /* Compute a new rate */
-  //  LambdaNet_cgs = Lambda_He_reion_cgs +
-  //                  eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
-  //                                     abundance_ratio, n_H_index, d_n_H,
-  //                                     He_index, d_He, cooling);
+    int i = 0;
+    while (u_upper_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs <
+               0 &&
+           i < bisection_max_iterations) {
 
-  //  int i = 0;
-  //  while (u_upper_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs <
-  //             0 &&
-  //         i < bisection_max_iterations) {
+      //u_lower_cgs *= bracket_factor;
+      //u_upper_cgs *= bracket_factor;
+      // Try to not have overlaps
+      u_lower_cgs = u_upper_cgs;
+      u_upper_cgs *= bracket_factor;
 
-  //    //u_lower_cgs *= bracket_factor;
-  //    //u_upper_cgs *= bracket_factor;
-  //    // Try to not have overlaps
-  //    u_lower_cgs = u_upper_cgs;
-  //    u_upper_cgs *= bracket_factor;
+      /* Compute a new rate */
+      LambdaNet_cgs = Lambda_He_reion_cgs +
+                      eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
+                                         abundance_ratio, n_H_index, d_n_H,
+                                         He_index, d_He, cooling);
+      i++;
+    }
+    cooling->bisection_heating_bound_iterations += i;
 
-  //    /* Compute a new rate */
-  //    LambdaNet_cgs = Lambda_He_reion_cgs +
-  //                    eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
-  //                                       abundance_ratio, n_H_index, d_n_H,
-  //                                       He_index, d_He, cooling);
-  //    i++;
-  //  }
-  //  cooling->bisection_heating_bound_iterations += i;
-
-  //  if (i >= bisection_max_iterations) {
-  //    error(
-  //        "particle %llu exceeded max iterations searching for bounds when "
-  //        "heating, u_ini_cgs %.5e n_H_cgs %.5e",
-  //        ID, u_ini_cgs, n_H_cgs);
-  //  }
-  //}
+    if (i >= bisection_max_iterations) {
+      error(
+          "particle %llu exceeded max iterations searching for bounds when "
+          "heating, u_ini_cgs %.5e n_H_cgs %.5e",
+          ID, u_ini_cgs, n_H_cgs);
+    }
+  }
 
   /********************************************/
   /* We now have an upper and lower bound.    */
@@ -503,7 +499,7 @@ void cooling_cool_part(const struct phys_const *phys_const,
     u_final_cgs =
         bisection_iter(u_0_cgs, n_H_cgs, cosmo->z, n_H_index, d_n_H, He_index,
                        d_He, Lambda_He_reion_cgs, ratefact_cgs, cooling,
-                       abundance_ratio, dt_cgs, p->id, hydro_properties->minimal_internal_energy*units_cgs_conversion_factor(us, UNIT_CONV_ENERGY_PER_UNIT_MASS));
+                       abundance_ratio, dt_cgs, p->id);
   //}
 
   /* Convert back to internal units */
