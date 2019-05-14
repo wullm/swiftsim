@@ -52,9 +52,10 @@
 static const int bisection_max_iterations = 150;
 
 /* Tolerances for termination criteria. */
-static const float explicit_tolerance = 0.05;
+//static const float explicit_tolerance = 0.05;
 static const float bisection_tolerance = 1.0e-6;
 static const double bracket_factor = 1.5;
+//static const double bracket_factor = 1.0488;
 
 /**
  * @brief Find the index of the current redshift along the redshift dimension
@@ -206,7 +207,9 @@ INLINE static double bisection_iter(
     const int n_H_index, const float d_n_H, const int He_index,
     const float d_He, const double Lambda_He_reion_cgs,
     const double ratefact_cgs,
-    const struct cooling_function_data *restrict cooling,
+    // Set to non const for counting, remove for production
+    //const struct cooling_function_data *restrict cooling,
+    struct cooling_function_data *restrict cooling,
     const float abundance_ratio[chemistry_element_count + 2],
     const double dt_cgs, const long long ID) {
 
@@ -254,6 +257,7 @@ INLINE static double bisection_iter(
                                          He_index, d_He, cooling);
       i++;
     }
+    cooling->bisection_cooling_bound_iterations += i;
 
     if (i >= bisection_max_iterations) {
       error(
@@ -288,6 +292,7 @@ INLINE static double bisection_iter(
                                          He_index, d_He, cooling);
       i++;
     }
+    cooling->bisection_heating_bound_iterations += i;
 
     if (i >= bisection_max_iterations) {
       error(
@@ -335,6 +340,7 @@ INLINE static double bisection_iter(
   } while (fabs(u_upper_cgs - u_lower_cgs) / u_next_cgs > bisection_tolerance &&
            i < bisection_max_iterations);
 
+  cooling->bisection_iterations += i;
   if (i >= bisection_max_iterations)
     error("Particle id %llu failed to converge", ID);
 
@@ -380,7 +386,9 @@ void cooling_cool_part(const struct phys_const *phys_const,
                        const struct cosmology *cosmo,
                        const struct hydro_props *hydro_properties,
                        const struct entropy_floor_properties *floor_props,
-                       const struct cooling_function_data *cooling,
+		       // Set to non const for counting, remove for production
+                       //const struct cooling_function_data *cooling,
+                       struct cooling_function_data *cooling,
                        struct part *restrict p, struct xpart *restrict xp,
                        const float dt, const float dt_therm) {
 
@@ -468,25 +476,25 @@ void cooling_cool_part(const struct phys_const *phys_const,
   double u_final_cgs = u_0_cgs;
 
   /* First try an explicit integration (note we ignore the derivative) */
-  const double LambdaNet_cgs =
-      Lambda_He_reion_cgs +
-      eagle_cooling_rate(log10(u_0_cgs), cosmo->z, n_H_cgs, abundance_ratio,
-                         n_H_index, d_n_H, He_index, d_He, cooling);
+  //const double LambdaNet_cgs =
+  //    Lambda_He_reion_cgs +
+  //    eagle_cooling_rate(log10(u_0_cgs), cosmo->z, n_H_cgs, abundance_ratio,
+  //                       n_H_index, d_n_H, He_index, d_He, cooling);
 
   /* if cooling rate is small, take the explicit solution */
-  if (fabs(ratefact_cgs * LambdaNet_cgs * dt_cgs) <
-      explicit_tolerance * u_0_cgs) {
+  //if (fabs(ratefact_cgs * LambdaNet_cgs * dt_cgs) <
+  //    explicit_tolerance * u_0_cgs) {
 
-    u_final_cgs = u_0_cgs + ratefact_cgs * LambdaNet_cgs * dt_cgs;
+  //  u_final_cgs = u_0_cgs + ratefact_cgs * LambdaNet_cgs * dt_cgs;
 
-  } else {
+  //} else {
 
     /* Otherwise, go the bisection route. */
     u_final_cgs =
         bisection_iter(u_0_cgs, n_H_cgs, cosmo->z, n_H_index, d_n_H, He_index,
                        d_He, Lambda_He_reion_cgs, ratefact_cgs, cooling,
                        abundance_ratio, dt_cgs, p->id);
-  }
+  //}
 
   /* Convert back to internal units */
   double u_final = u_final_cgs * cooling->internal_energy_from_cgs;

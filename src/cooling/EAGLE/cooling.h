@@ -42,7 +42,9 @@ void cooling_cool_part(const struct phys_const *phys_const,
                        const struct cosmology *cosmo,
                        const struct hydro_props *hydro_properties,
                        const struct entropy_floor_properties *floor_props,
-                       const struct cooling_function_data *cooling,
+		       // Set to non consdt for counting, remove for production
+                       //const struct cooling_function_data *cooling,
+                       struct cooling_function_data *cooling,
                        struct part *restrict p, struct xpart *restrict xp,
                        const float dt, const float dt_therm);
 

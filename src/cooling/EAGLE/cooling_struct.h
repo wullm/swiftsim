@@ -126,6 +126,11 @@ struct cooling_function_data {
 
   /*! Index of the previous tables along the redshift index of the tables */
   int previous_z_index;
+
+  // Counters for investigating bisection scheme, remove for production
+  int bisection_cooling_bound_iterations;
+  int bisection_heating_bound_iterations;
+  int bisection_iterations;
 };
 
 /**
