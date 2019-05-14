@@ -91,6 +91,8 @@ struct entropy_floor_properties {
  *
  * Note that the particle is not updated!!
  *
+ * We use hard-coded slopes for efficiency.
+ *
  * @param p The #part.
  * @param cosmo The cosmological model.
  * @param props The properties of the entropy floor.
@@ -118,22 +120,45 @@ static INLINE float entropy_floor(
   if ((rho_com >= rho_crit_baryon * props->Jeans_over_density_threshold) &&
       (rho_phys >= props->Jeans_density_threshold)) {
 
+    /* In the EAGLE model, the slope is 4/3, so we can bypass the pow()
+     * calculation. pow(x, 4/3) == x * x^(1/3) */
+    const float x_Jeans = rho_phys * props->Jeans_density_threshold_inv;
     const float pressure_Jeans =
+        props->Jeans_pressure_norm * x_Jeans * cbrtf(x_Jeans);
+
+#ifdef SWIFT_DEBUG_CHECKS
+    const float pressure_Jeans_debug =
         props->Jeans_pressure_norm *
         powf(rho_phys * props->Jeans_density_threshold_inv,
              props->Jeans_gamma_effective);
+
+    if (pressure_Jeans < 0.99 * pressure_Jeans_debug ||
+        pressure_Jeans > 1.01 * pressure_Jeans_debug)
+      error("Optimized 'Jeans' entropy floor not identical to exact one");
+#endif
 
     pressure = max(pressure, pressure_Jeans);
   }
 
   /* Are we in the regime of the Cool equation of state? */
-  if ((rho_com >= rho_crit_baryon * props->Cool_over_density_threshold) &&
-      (rho_phys >= props->Cool_density_threshold)) {
+  else if ((rho_com >= rho_crit_baryon * props->Cool_over_density_threshold) &&
+           (rho_phys >= props->Cool_density_threshold)) {
 
-    const float pressure_Cool =
+    /* In the EAGLE model, the slope is 1, so we can bypass the pow()
+     * calculation. pow(x, 1) == x */
+    const float x_Cool = rho_phys * props->Cool_density_threshold_inv;
+    const float pressure_Cool = props->Cool_pressure_norm * x_Cool;
+
+#ifdef SWIFT_DEBUG_CHECKS
+    const float pressure_Cool_debug =
         props->Cool_pressure_norm *
         powf(rho_phys * props->Cool_density_threshold_inv,
              props->Cool_gamma_effective);
+
+    if (pressure_Cool < 0.99 * pressure_Cool_debug ||
+        pressure_Cool > 1.01 * pressure_Cool_debug)
+      error("Optimized 'Cool' entropy floor not identical to exact one");
+#endif
 
     pressure = max(pressure, pressure_Cool);
   }
@@ -150,6 +175,8 @@ static INLINE float entropy_floor(
  * This is the temperature exactly corresponding to the imposed EoS shape.
  * It only matches the entropy returned by the entropy_floor() function
  * for a neutral gas with primoridal abundance.
+ *
+ * We use hard-coded slopes for efficiency.
  *
  * @param p The #part.
  * @param cosmo The cosmological model.
@@ -178,24 +205,44 @@ static INLINE float entropy_floor_temperature(
   if ((rho_com >= rho_crit_baryon * props->Jeans_over_density_threshold) &&
       (rho_phys >= props->Jeans_density_threshold)) {
 
-    const float jeans_slope = props->Jeans_gamma_effective - 1.f;
-
+    /* In the EAGLE model, the slope is 1/3, so we can bypass the pow()
+     * calculation. pow(x, 4/3 - 1) == x^1/3 */
+    const float x_Jeans = rho_phys * props->Jeans_density_threshold_inv;
     const float temperature_Jeans =
+        props->Jeans_temperature_norm * cbrtf(x_Jeans);
+
+#ifdef SWIFT_DEBUG_CHECKS
+    const float Jeans_slope = props->Jeans_gamma_effective - 1.f;
+    const float temperature_Jeans_debug =
         props->Jeans_temperature_norm *
-        pow(rho_phys * props->Jeans_density_threshold_inv, jeans_slope);
+        pow(rho_phys * props->Jeans_density_threshold_inv, Jeans_slope);
+
+    if (temperature_Jeans < 0.99 * temperature_Jeans_debug ||
+        temperature_Jeans > 1.01 * temperature_Jeans_debug)
+      error("Optimized 'Jeans' entropy floor not identical to exact one");
+#endif
 
     temperature = max(temperature, temperature_Jeans);
   }
 
   /* Are we in the regime of the Cool equation of state? */
-  if ((rho_com >= rho_crit_baryon * props->Cool_over_density_threshold) &&
-      (rho_phys >= props->Cool_density_threshold)) {
+  else if ((rho_com >= rho_crit_baryon * props->Cool_over_density_threshold) &&
+           (rho_phys >= props->Cool_density_threshold)) {
 
-    const float cool_slope = props->Cool_gamma_effective - 1.f;
+    /* In the EAGLE model, the slope is 0, so we can bypass the pow()
+     * calculation. pow(x, 1 - 1) == 1 */
+    const float temperature_Cool = props->Cool_temperature_norm;
 
-    const float temperature_Cool =
+#ifdef SWIFT_DEBUG_CHECKS
+    const float Cool_slope = props->Cool_gamma_effective - 1.f;
+    const float temperature_Cool_debug =
         props->Cool_temperature_norm *
-        pow(rho_phys * props->Cool_density_threshold_inv, cool_slope);
+        pow(rho_phys * props->Cool_density_threshold_inv, Cool_slope);
+
+    if (temperature_Cool < 0.99 * temperature_Cool_debug ||
+        temperature_Cool > 1.01 * temperature_Cool_debug)
+      error("Optimized 'Cool' entropy floor not identical to exact one");
+#endif
 
     temperature = max(temperature, temperature_Cool);
   }
@@ -240,6 +287,20 @@ static INLINE void entropy_floor_init(struct entropy_floor_properties *props,
       params, "EAGLEEntropyFloor:Cool_temperature_norm_K");
   props->Cool_gamma_effective =
       parser_get_param_float(params, "EAGLEEntropyFloor:Cool_gamma_effective");
+
+  /* Check that the code will work! */
+  if (props->Jeans_gamma_effective > (4. / 3.) * 1.01 ||
+      props->Jeans_gamma_effective < (4. / 3.) * 0.99)
+    error(
+        "SWIFT now uses hard-coded slopes for the 'Jeans' entropy floor. Use "
+        "4/3 or edit the code!");
+
+  /* Check that the code will work! */
+  if (props->Cool_gamma_effective > (1.) * 1.01 ||
+      props->Cool_gamma_effective < (1.) * 0.99)
+    error(
+        "SWIFT now uses hard-coded slopes for the 'Cool' entropy floor. Use 1 "
+        "or edit the code!");
 
   /* Cross-check that the input makes sense */
   if (props->Cool_density_threshold_H_p_cm3 >=
