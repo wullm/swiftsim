@@ -54,8 +54,8 @@ static const int bisection_max_iterations = 150;
 /* Tolerances for termination criteria. */
 //static const float explicit_tolerance = 0.05;
 static const float bisection_tolerance = 1.0e-6;
-static const double bracket_factor = 1.5;
-//static const double bracket_factor = 1.0488;
+//static const double bracket_factor = 1.5;
+static const double bracket_factor = 1.0488;
 
 /**
  * @brief Find the index of the current redshift along the redshift dimension
@@ -247,8 +247,11 @@ INLINE static double bisection_iter(
                0 &&
            i < bisection_max_iterations) {
 
+      //u_lower_cgs /= bracket_factor;
+      //u_upper_cgs /= bracket_factor;
+      // Try new approach to not check overlapping bounds
+      u_upper_cgs = u_lower_cgs;
       u_lower_cgs /= bracket_factor;
-      u_upper_cgs /= bracket_factor;
 
       /* Compute a new rate */
       LambdaNet_cgs = Lambda_He_reion_cgs +
@@ -282,7 +285,10 @@ INLINE static double bisection_iter(
                0 &&
            i < bisection_max_iterations) {
 
-      u_lower_cgs *= bracket_factor;
+      //u_lower_cgs *= bracket_factor;
+      //u_upper_cgs *= bracket_factor;
+      // Try to not have overlaps
+      u_lower_cgs = u_upper_cgs;
       u_upper_cgs *= bracket_factor;
 
       /* Compute a new rate */
