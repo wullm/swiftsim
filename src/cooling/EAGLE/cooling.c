@@ -315,20 +315,16 @@ INLINE static double bisection_iter(
 
   /* bisection iteration */
   int i = 0;
-  //double u_next_cgs;
-  double log10_u_next_cgs;
+  double u_next_cgs;
 
   do {
 
     /* New guess */
-    //Trying bisection in log10, comment regular for now.
-    //u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
-    log10_u_next_cgs = 0.5 * (log10(u_lower_cgs) + log10(u_upper_cgs));
+    u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
 
     /* New rate */
     LambdaNet_cgs = Lambda_He_reion_cgs +
-                    //eagle_cooling_rate(log10(u_next_cgs), redshift, n_H_cgs,
-                    eagle_cooling_rate(log10_u_next_cgs, redshift, n_H_cgs,
+                    eagle_cooling_rate(log10(u_next_cgs), redshift, n_H_cgs,
                                        abundance_ratio, n_H_index, d_n_H,
                                        He_index, d_He, cooling);
 #ifdef SWIFT_DEBUG_CHECKS
@@ -340,21 +336,14 @@ INLINE static double bisection_iter(
 #endif
 
     /* Where do we go next? */
-    // Try doing everything in log space, comment linear for now
-    //if (u_next_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs > 0.0) {
-    //  u_upper_cgs = u_next_cgs;
-    //} else {
-    //  u_lower_cgs = u_next_cgs;
-    //}
-    if (log10_u_next_cgs - log10(u_ini_cgs + LambdaNet_cgs * ratefact_cgs * dt_cgs) > 0.0) {
-      u_upper_cgs = exp10(log10_u_next_cgs);
+    if (u_next_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs > 0.0) {
+      u_upper_cgs = u_next_cgs;
     } else {
-      u_lower_cgs = exp10(log10_u_next_cgs);
+      u_lower_cgs = u_next_cgs;
     }
 
     i++;
-  //} while (fabs(u_upper_cgs - u_lower_cgs) / u_next_cgs > bisection_tolerance &&
-  } while (fabs(u_upper_cgs - u_lower_cgs) / exp10(log10_u_next_cgs) > bisection_tolerance &&
+  } while (fabs(u_upper_cgs - u_lower_cgs) / u_next_cgs > bisection_tolerance &&
            i < bisection_max_iterations);
 
   cooling->bisection_iterations += i;
