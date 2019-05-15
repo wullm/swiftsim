@@ -335,8 +335,8 @@ INLINE static double bisection_iter(
       const double f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
       const double a = (f_upper_cgs - f_lower_cgs)/(u_upper_cgs - u_lower_cgs);
       const double b = f_lower_cgs - a*u_lower_cgs;
-      u_next_cgs = -b/a;
-
+      u_upper_cgs = -b/a;
+      break;
     } else {
       /* New guess */
       u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
