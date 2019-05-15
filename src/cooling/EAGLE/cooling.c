@@ -57,6 +57,8 @@ static const float bisection_tolerance = 1.0e-6;
 //static const double bracket_factor = 1.5;
 static const double bracket_factor = 1.0488;
 
+static const double temp_table_spacing = 0.09;
+
 /**
  * @brief Find the index of the current redshift along the redshift dimension
  * of the cooling tables.
@@ -319,8 +321,26 @@ INLINE static double bisection_iter(
 
   do {
 
-    /* New guess */
-    u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
+    if (u_upper_cgs/u_lower_cgs < temp_table_spacing) {
+
+      const double LambdaNet_upper_cgs = Lambda_He_reion_cgs +
+                      eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
+                                         abundance_ratio, n_H_index, d_n_H,
+                                         He_index, d_He, cooling);
+      const double LambdaNet_lower_cgs = Lambda_He_reion_cgs +
+                      eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
+                                         abundance_ratio, n_H_index, d_n_H,
+                                         He_index, d_He, cooling);
+      const double f_upper_cgs = u_upper_cgs - u_ini_cgs - LambdaNet_upper_cgs * ratefact_cgs * dt_cgs;
+      const double f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
+      const double a = (f_upper_cgs - f_lower_cgs)/(u_upper_cgs - u_lower_cgs);
+      const double b = f_lower_cgs - a*u_lower_cgs;
+      u_next_cgs = -b/a;
+
+    } else {
+      /* New guess */
+      u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
+    }
 
     /* New rate */
     LambdaNet_cgs = Lambda_He_reion_cgs +
