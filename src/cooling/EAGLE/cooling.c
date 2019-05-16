@@ -57,8 +57,6 @@ static const float bisection_tolerance = 1.0e-6;
 //static const double bracket_factor = 1.5;
 static const double bracket_factor = 1.0488;
 
-static const double temp_table_spacing = 0.09;
-
 /**
  * @brief Find the index of the current redshift along the redshift dimension
  * of the cooling tables.
@@ -319,9 +317,17 @@ INLINE static double bisection_iter(
   int i = 0;
   double u_next_cgs;
 
+  // Diagnostics to see why we're taking so many iterations in bisection
+  //double u_record[150][3];
+  //int u_record_index[150][2];
+  int u_upper_index, u_lower_index;
+  float d_u_upper, d_u_lower;
+
   do {
 
-    if (u_upper_cgs/u_lower_cgs < temp_table_spacing) {
+    get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_upper_cgs),&u_upper_index,&d_u_upper);
+    get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_lower_cgs),&u_lower_index,&d_u_lower);
+    if (u_upper_index == u_lower_index) {
 
       const double LambdaNet_upper_cgs = Lambda_He_reion_cgs +
                       eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
@@ -341,6 +347,12 @@ INLINE static double bisection_iter(
       /* New guess */
       u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
     }
+
+    //u_record[i][0] = u_upper_cgs;
+    //u_record[i][1] = u_lower_cgs;
+    //u_record[i][2] = u_next_cgs;
+    //u_record_index[i][0] = u_upper_index;
+    //u_record_index[i][1] = u_lower_index;
 
     /* New rate */
     LambdaNet_cgs = Lambda_He_reion_cgs +
@@ -365,6 +377,11 @@ INLINE static double bisection_iter(
     i++;
   } while (fabs(u_upper_cgs - u_lower_cgs) / u_next_cgs > bisection_tolerance &&
            i < bisection_max_iterations);
+
+  //if (dt_cgs > 0 && i > 15) {
+  //  for (int j = 0; j < i; j++) message("iter %d u_upper %.5e lower %.5e next %.5e index upper %d lower %d", j, u_record[j][0], u_record[j][1], u_record[j][2], u_record_index[j][0], u_record_index[j][1]);
+  //  message("Many bisection iterations");
+  //}
 
   cooling->bisection_iterations += i;
   if (i >= bisection_max_iterations)
