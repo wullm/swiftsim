@@ -322,6 +322,7 @@ INLINE static double bisection_iter(
   //int u_record_index[150][2];
   int u_upper_index, u_lower_index;
   float d_u_upper, d_u_lower;
+  //double u_jump_cgs;
 
   do {
 
@@ -341,6 +342,8 @@ INLINE static double bisection_iter(
       const double f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
       const double a = (f_upper_cgs - f_lower_cgs)/(u_upper_cgs - u_lower_cgs);
       const double b = f_lower_cgs - a*u_lower_cgs;
+    //  u_jump_cgs = -b/a;
+    //}
       u_upper_cgs = -b/a;
       break;
     } else {
@@ -382,6 +385,8 @@ INLINE static double bisection_iter(
   //  for (int j = 0; j < i; j++) message("iter %d u_upper %.5e lower %.5e next %.5e index upper %d lower %d", j, u_record[j][0], u_record[j][1], u_record[j][2], u_record_index[j][0], u_record_index[j][1]);
   //  message("Many bisection iterations");
   //}
+  
+  //if (dt_cgs > 0 && fabs(u_jump_cgs - u_upper_cgs)/u_upper_cgs > bisection_tolerance) message("bisection and jump scheme don't agree, bisection %.5e jump %.5e error %.5e iterations %d", u_upper_cgs, u_jump_cgs, fabs(u_jump_cgs - u_upper_cgs)/u_upper_cgs, i);
 
   cooling->bisection_iterations += i;
   if (i >= bisection_max_iterations)
