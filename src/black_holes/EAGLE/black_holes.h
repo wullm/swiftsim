@@ -83,6 +83,7 @@ __attribute__((always_inline)) INLINE static void black_holes_init_bpart(
   bp->velocity_gas[2] = 0.f;
   bp->ngb_mass = 0.f;
   bp->num_ngbs = 0;
+  bp->accretion_rate = 0.f;
 }
 
 /**
@@ -198,44 +199,17 @@ __attribute__((always_inline)) INLINE static void black_holes_prepare_feedback(
   /* (Subgrid) mass of the BH (internal units) */
   const double BH_mass = bp->subgrid_mass;
 
-  /* Convert the quantities we gathered to physical frame (all internal units)
-   */
-  const double gas_rho_phys = bp->rho_gas * cosmo->a3_inv;
-  const double gas_c_phys = bp->sound_speed_gas * cosmo->a_factor_sound_speed;
-  const double gas_v_peculiar[3] = {bp->velocity_gas[0] * cosmo->a_inv,
-                                    bp->velocity_gas[1] * cosmo->a_inv,
-                                    bp->velocity_gas[2] * cosmo->a_inv};
-
-  const double bh_v_peculiar[3] = {bp->v[0] * cosmo->a_inv,
-                                   bp->v[1] * cosmo->a_inv,
-                                   bp->v[2] * cosmo->a_inv};
-
-  /* Difference in peculiar velocity between the gas and the BH
-   * Note that there is no need for a Hubble flow term here. We are
-   * computing the gas velocity at the position of the black hole. */
-  const double v_diff_peculiar[3] = {gas_v_peculiar[0] - bh_v_peculiar[0],
-                                     gas_v_peculiar[1] - bh_v_peculiar[1],
-                                     gas_v_peculiar[2] - bh_v_peculiar[2]};
-  const double v_diff_norm2 = v_diff_peculiar[0] * v_diff_peculiar[0] +
-                              v_diff_peculiar[1] * v_diff_peculiar[1] +
-                              v_diff_peculiar[2] * v_diff_peculiar[2];
-
-  /* We can now compute the Bondi accretion rate (internal units) */
-  const double gas_c_phys2 = gas_c_phys * gas_c_phys;
-  const double denominator2 = v_diff_norm2 + gas_c_phys2;
-  const double denominator_inv = 1. / sqrt(denominator2);
-  const double Bondi_rate = 4. * M_PI * G * G * BH_mass * BH_mass *
-                            gas_rho_phys * denominator_inv * denominator_inv *
-                            denominator_inv;
-
   /* Compute the Eddington rate (internal units) */
   const double Eddington_rate =
       4. * M_PI * G * BH_mass * proton_mass / (epsilon_r * c * sigma_Thomson);
 
-  /* Limit the accretion rate to the Eddington fraction */
-  const double accr_rate = min(Bondi_rate, f_Edd * Eddington_rate);
-  bp->accretion_rate = accr_rate;
+  /* Apply constant pre-factors to BH accretion rate */
+  bp->accretion_rate *= (4. * M_PI * G * G * BH_mass * BH_mass);
 
+  /* Limit the accretion rate to the Eddington fraction */
+  bp->accretion_rate = min(bp->accretion_rate, f_Edd * Eddington_rate);
+  const double accr_rate = bp->accretion_rate;
+  
   /* Factor in the radiative efficiency */
   const double mass_rate = (1. - epsilon_r) * accr_rate;
   const double luminosity = epsilon_r * accr_rate * c * c;

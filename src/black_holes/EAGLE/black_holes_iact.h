@@ -63,6 +63,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_bh_density(
   /* Neighbour gas mass */
   const float mj = hydro_get_mass(pj);
 
+  /* Get gas particle's (physical) density */
+  const float rhoj = mj * wi * cosmo->a3_inv;
+  
   /* Contribution to the BH gas density */
   bi->rho_gas += mj * wi;
 
@@ -83,6 +86,36 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_bh_density(
   bi->velocity_gas[1] += mj * vj[1] * wi;
   bi->velocity_gas[2] += mj * vj[2] * wi;
 
+  const double bh_v_peculiar[3] = {bi->v[0] * cosmo->a_inv,
+                                   bi->v[1] * cosmo->a_inv,
+                                   bi->v[2] * cosmo->a_inv};
+
+  const double gas_v_peculiar[3] = {vj[0] * cosmo->a_inv,
+                                    vj[1] * cosmo->a_inv,
+                                    vj[2] * cosmo->a_inv};
+
+  /* Difference in peculiar velocity between the gas and the BH
+   * Note that there is no need for a Hubble flow term here. We are
+   * computing the gas velocity at the position of the black hole. */
+  const double v_diff_peculiar[3] = {gas_v_peculiar[0] - bh_v_peculiar[0],
+                                     gas_v_peculiar[1] - bh_v_peculiar[1],
+                                     gas_v_peculiar[2] - bh_v_peculiar[2]};
+
+  /* (Bulk) velocity between BH and gas particle */  
+  const double v_diff_norm2 = v_diff_peculiar[0] * v_diff_peculiar[0] +
+                              v_diff_peculiar[1] * v_diff_peculiar[1] +
+                              v_diff_peculiar[2] * v_diff_peculiar[2];
+  
+  /* Contribution to the accretion rate */
+  const double gas_c_phys = cj * cosmo->a_factor_sound_speed;
+  const double gas_c_phys2 = gas_c_phys * gas_c_phys;
+  const double denominator2 = v_diff_norm2 + gas_c_phys2;
+  const double denominator_inv = 1. / sqrt(denominator2);
+
+  /* 'Accretion rate' does not yet have the constant pre-factor */
+  bi->accretion_rate += rhoj * denominator_inv * denominator_inv *
+                        denominator_inv;
+  
 #ifdef DEBUG_INTERACTIONS_BH
   /* Update ngb counters */
   if (si->num_ngb_density < MAX_NUM_OF_NEIGHBOURS_BH)
