@@ -192,13 +192,14 @@ int main(int argc, char **argv) {
   const float log10_nh_max_cgs = 0.f;
   const float log10_Z_min = -6.f;
   const float log10_Z_max = -2.f;
-  const int n_u = 10;
-  const int n_nh = 10;
-  const int n_Z = 10;
+  const int n_u = 100;
+  const int n_nh = 100;
+  const int n_Z = 100;
 
   // Loop over internal energy
   for (int u_i = 0; u_i < n_u; u_i++) {
     double u_ini_cgs = exp10(log10_u_min_cgs + u_i * (log10_u_max_cgs - log10_u_min_cgs)/n_u);
+    double u_ini = u_ini_cgs/units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
 
     // Loop over hydrogen number density
     for (int nh_i = 0; nh_i < n_nh; nh_i++) {
@@ -207,15 +208,10 @@ int main(int argc, char **argv) {
       // Loop over metallicities
       for (int Z_i = 0; Z_i < n_Z; Z_i++) {
         float Z = exp10(log10_Z_min + Z_i * (log10_Z_max - log10_Z_min)/n_Z);
-	message("u_ini %.5e nh %.5e Z %.5e", u_ini_cgs, nh_cgs, Z);
   
 	// Update particle data
         set_quantities(&p, &xp, &us, &cooling, &cosmo, &internal_const, Z,
 		       nh_cgs, u_ini_cgs);
-
-	double u = hydro_get_physical_internal_energy(&p, &xp, &cosmo) *
-		   units_cgs_conversion_factor(&us, UNIT_CONV_ENERGY_PER_UNIT_MASS);
-	message("u %.5e", u);
 
         // Cool the particle
 	cooling_cool_part(&internal_const, &us, &cosmo,
@@ -224,6 +220,10 @@ int main(int argc, char **argv) {
                        //const struct cooling_function_data *cooling,
                        &cooling, &p, &xp, dt, dt_therm);
         
+	// Update the particle's internal energy
+	const float du_dt_new = hydro_get_physical_internal_energy_dt(&p, &cosmo);
+	hydro_set_physical_internal_energy(&p, &xp, &cosmo, u_ini + dt * du_dt_new);
+
 	// Get the final energy of the particle
 	const double u_final_cgs = hydro_get_physical_internal_energy(&p,&xp,&cosmo) *
 				   units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);

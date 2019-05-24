@@ -55,7 +55,8 @@ static const int bisection_max_iterations = 150;
 //static const float explicit_tolerance = 0.05;
 static const float bisection_tolerance = 1.0e-6;
 //static const double bracket_factor = 1.5;
-static const double bracket_factor = 1.0488;
+//static const double bracket_factor = 1.0488;
+static const double bracket_factor = 1.2;
 
 /**
  * @brief Find the index of the current redshift along the redshift dimension
