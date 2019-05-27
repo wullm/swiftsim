@@ -327,6 +327,7 @@ INLINE static double bisection_iter(
 
   do {
 
+    // If we're within one grid cell solve linear equation. 
     get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_upper_cgs),&u_upper_index,&d_u_upper);
     get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_lower_cgs),&u_lower_index,&d_u_lower);
     if (u_upper_index == u_lower_index) {
@@ -341,11 +342,11 @@ INLINE static double bisection_iter(
                                          He_index, d_He, cooling);
       const double f_upper_cgs = u_upper_cgs - u_ini_cgs - LambdaNet_upper_cgs * ratefact_cgs * dt_cgs;
       const double f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
-      const double a = (f_upper_cgs - f_lower_cgs)/(u_upper_cgs - u_lower_cgs);
-      const double b = f_lower_cgs - a*u_lower_cgs;
+      const double a = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
+      const double b = f_lower_cgs - a*log10(u_lower_cgs);
     //  u_jump_cgs = -b/a;
     //}
-      u_upper_cgs = -b/a;
+      u_upper_cgs = exp10(-b/a);
       break;
     } else {
       /* New guess */

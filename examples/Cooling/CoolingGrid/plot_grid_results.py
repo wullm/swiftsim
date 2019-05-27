@@ -24,13 +24,13 @@ for line in file_in:
 	iteration_bisection.append(float(data[1]) + float(data[2]) + float(data[3]))
 file_in.close
 
-file_in = open("cooling_energy_evolution_jump_1.2.dat","r")
+file_in = open("cooling_energy_evolution.dat","r")
 for line in file_in:
 	data = line.split()
 	u_jump.append(float(data[1]))
 file_in.close
 
-file_in = open("cooling_iterations_jump_1.2.dat","r")
+file_in = open("cooling_iterations.dat","r")
 for line in file_in:
 	data = line.split()
 	u_ini_jump.append(float(data[0]))
@@ -61,15 +61,16 @@ for i in range(len(u_bisection)):
 
 fig = plt.figure(figsize = [10,4])
 plt.subplot(121)
-plt.scatter(u_ini_bisection,relative_error,marker = 'o', s = 0.5, color = 'k', label = 'bisection')
+plt.scatter(u_ini_bisection,relative_error,marker = 'o', s = 0.5, color = 'k', alpha = 0.01)
+#plt.ylim([-0.015,0.03])
 plt.xscale("log")
 plt.ylabel("Final internal energy relative error")
 plt.xlabel("Initial internal energy (cgs)")
 
 plt.subplot(122)
-plt.scatter(u_ini_bisection,iteration_bisection,marker = 'o', s = 0.5, color = 'b', label = 'bisection')
-plt.scatter(u_ini_bisection,iteration_jump,marker = 'o', s = 0.5, color = 'r', label = 'jump')
-#plt.ylim([-1,30])
+plt.scatter(u_ini_bisection,iteration_bisection,marker = 'o', s = 0.5, color = 'b', label = 'bisection', alpha = 0.01)
+plt.scatter(u_ini_bisection,iteration_jump,marker = 'o', s = 0.5, color = 'r', label = 'jump', alpha = 0.01)
+plt.ylim([-1,70])
 plt.xscale("log")
 plt.ylabel("Total iterations")
 plt.xlabel("Initial internal energy (cgs)")
