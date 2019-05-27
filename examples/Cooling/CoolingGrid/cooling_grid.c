@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
 #endif
 
   // Set some default values
-  float redshift = 0.0, log_10_nh = -1;
+  float redshift = 0.0;//, log_10_nh = -1;
 
   // Read options
   int param;
@@ -109,10 +109,6 @@ int main(int argc, char **argv) {
       case 'z':
         // read redshift
         redshift = atof(optarg);
-        break;
-      case 'd':
-        // read log10 of hydrogen number density
-        log_10_nh = atof(optarg);
         break;
       case '?':
         if (optopt == 'z')
