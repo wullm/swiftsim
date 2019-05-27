@@ -330,6 +330,7 @@ INLINE static double bisection_iter(
     // If we're within one grid cell solve linear equation. 
     get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_upper_cgs),&u_upper_index,&d_u_upper);
     get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_lower_cgs),&u_lower_index,&d_u_lower);
+
     if (u_upper_index == u_lower_index) {
 
       const double LambdaNet_upper_cgs = Lambda_He_reion_cgs +
@@ -350,7 +351,10 @@ INLINE static double bisection_iter(
       break;
     } else {
       /* New guess */
-      u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
+      //u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
+
+      /* New guess at the half-point in log-space */
+      u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
     }
 
     //u_record[i][0] = u_upper_cgs;
