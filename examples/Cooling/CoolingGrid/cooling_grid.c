@@ -46,7 +46,7 @@ void set_quantities(struct part *restrict p, struct xpart *restrict xp,
                     const struct cooling_function_data *restrict cooling,
                     const struct cosmology *restrict cosmo,
                     const struct phys_const *restrict internal_const,
-		    float Z, float nh, double u) {
+		    float Z, float nh, double u, const struct chemistry_part_data *solar_abundance) {
 
   double hydrogen_number_density =
       nh * pow(units_cgs_conversion_factor(us, UNIT_CONV_LENGTH), 3);
@@ -62,12 +62,17 @@ void set_quantities(struct part *restrict p, struct xpart *restrict xp,
 
   p->chemistry_data.smoothed_metal_mass_fraction_total = Z;
 
-  for (int elem = 0; elem < chemistry_element_count; ++elem) {
-    if (elem == 0) p->chemistry_data.smoothed_metal_mass_fraction[elem] = 0.752 - 3.29*Z;
-    else if (elem == 1) p->chemistry_data.smoothed_metal_mass_fraction[elem] = 0.248 + 2.29*Z;
-    else p->chemistry_data.smoothed_metal_mass_fraction[elem] *= Z;
+  float total_Z = 0.f;
+
+  /* Re-scale the individual abundances */
+  for (int elem = 2; elem < chemistry_element_count; ++elem) {
+    p->chemistry_data.smoothed_metal_mass_fraction[elem] = Z * solar_abundance->metal_mass_fraction[elem];
+    total_Z += p->chemistry_data.smoothed_metal_mass_fraction[elem];
   }
 
+  /* Deal with Hydrogen and Helium */
+  p->chemistry_data.smoothed_metal_mass_fraction[chemistry_element_H] = 0.752 - total_Z;
+  p->chemistry_data.smoothed_metal_mass_fraction[chemistry_element_He] = 0.248 - total_Z;
 }
 
 /**
@@ -81,6 +86,7 @@ int main(int argc, char **argv) {
   struct swift_params *params = malloc(sizeof(struct swift_params));
   struct unit_system us;
   struct chemistry_global_data chem_data;
+  struct chemistry_part_data solar_abundance;
   struct part p;
   struct xpart xp;
   struct phys_const internal_const;
@@ -136,6 +142,7 @@ int main(int argc, char **argv) {
   chemistry_init(params, &us, &internal_const, &chem_data);
   chemistry_first_init_part(&internal_const, &us, &cosmo, &chem_data, &p, &xp);
   chemistry_print(&chem_data);
+  solar_abundance = p.chemistry_data;
 
   // Init cosmology
   cosmology_init(params, &us, &internal_const, &cosmo);
@@ -184,30 +191,30 @@ int main(int argc, char **argv) {
   // Define bounds for internal energy, density, metallicity
   const float log10_u_min_cgs = 10.f;
   const float log10_u_max_cgs = 18.f;
-  const float log10_nh_min_cgs = -4.f;
-  const float log10_nh_max_cgs = 0.f;
-  const float log10_Z_min = -6.f;
-  const float log10_Z_max = -2.f;
+  const float log10_nh_min_cgs = -6.f;
+  const float log10_nh_max_cgs = 2.f;
+  const float log10_Z_min = -4.f;
+  const float log10_Z_max = 0.f;
   const int n_u = 100;
   const int n_nh = 100;
   const int n_Z = 100;
 
   // Loop over internal energy
   for (int u_i = 0; u_i < n_u; u_i++) {
-    double u_ini_cgs = exp10(log10_u_min_cgs + u_i * (log10_u_max_cgs - log10_u_min_cgs)/n_u);
-    double u_ini = u_ini_cgs/units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
+    const double u_ini_cgs = exp10(log10_u_min_cgs + u_i * (log10_u_max_cgs - log10_u_min_cgs)/n_u);
+    const double u_ini = u_ini_cgs/units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
 
     // Loop over hydrogen number density
     for (int nh_i = 0; nh_i < n_nh; nh_i++) {
-      float nh_cgs = exp10(log10_nh_min_cgs + nh_i * (log10_nh_max_cgs - log10_nh_min_cgs)/n_nh);
+      const float nh_cgs = exp10(log10_nh_min_cgs + nh_i * (log10_nh_max_cgs - log10_nh_min_cgs)/n_nh);
 
       // Loop over metallicities
       for (int Z_i = 0; Z_i < n_Z; Z_i++) {
-        float Z = exp10(log10_Z_min + Z_i * (log10_Z_max - log10_Z_min)/n_Z);
-  
+        const float Z = exp10(log10_Z_min + Z_i * (log10_Z_max - log10_Z_min)/n_Z);
+
 	// Update particle data
         set_quantities(&p, &xp, &us, &cooling, &cosmo, &internal_const, Z,
-		       nh_cgs, u_ini_cgs);
+		       nh_cgs, u_ini_cgs, &solar_abundance);
 
         // Cool the particle
 	cooling_cool_part(&internal_const, &us, &cosmo,
