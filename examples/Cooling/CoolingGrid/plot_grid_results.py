@@ -3,45 +3,23 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-u_bisection = []
-u_ini_bisection = []
-iteration_bisection = []
+data = np.loadtxt("cooling_energy_evolution_bisection_1.2.dat")
+u_bisection = data[:,1]
 
-u_jump = []
-u_ini_jump = []
-iteration_jump = []
+data = np.loadtxt("cooling_iterations_bisection_1.2.dat")
+u_ini_bisection = data[:,0]
+iteration_bisection = data[:,1] + data[:,2] + data[:,3]
 
-file_in = open("cooling_energy_evolution_bisection_1.2.dat","r")
-for line in file_in:
-	data = line.split()
-	u_bisection.append(float(data[1]))
-file_in.close
+data = np.loadtxt("cooling_energy_evolution.dat")
+u_jump = data[:,1]
 
-file_in = open("cooling_iterations_bisection_1.2.dat","r")
-for line in file_in:
-	data = line.split()
-	u_ini_bisection.append(float(data[0]))
-	iteration_bisection.append(float(data[1]) + float(data[2]) + float(data[3]))
-file_in.close
-
-file_in = open("cooling_energy_evolution.dat","r")
-for line in file_in:
-	data = line.split()
-	u_jump.append(float(data[1]))
-file_in.close
-
-file_in = open("cooling_iterations.dat","r")
-for line in file_in:
-	data = line.split()
-	u_ini_jump.append(float(data[0]))
-	iteration_jump.append(float(data[1]) + float(data[2]) + float(data[3]))
-file_in.close
+data = np.loadtxt("cooling_iterations.dat")
+u_ini_jump = data[:,0]
+iteration_jump = data[:,1] + data[:,2] + data[:,3]
 
 index = range(len(u_bisection))
 
-relative_error = np.zeros(len(u_bisection))
-for i in range(len(u_bisection)):
-	relative_error[i] = (u_bisection[i] - u_jump[i])/u_bisection[i]
+relative_error = 2. * (u_bisection - u_jump) / (u_bisection + u_jump)
 
 #fig = plt.figure(figsize = [10,4])
 #plt.subplot(121)
