@@ -319,47 +319,49 @@ INLINE static double bisection_iter(
   double u_next_cgs;
 
   // Diagnostics to see why we're taking so many iterations in bisection
-  //double u_record[150][3];
+  double u_record[150][3];
   //int u_record_index[150][2];
-  int u_upper_index, u_lower_index;
+  int u_upper_index[150], u_lower_index[150];
   float d_u_upper, d_u_lower;
-  //double u_jump_cgs;
+  double u_jump_cgs[150];
+  double LambdaNet_upper_cgs, LambdaNet_lower_cgs, f_upper_cgs, f_lower_cgs, a[150], b[150];
 
   do {
 
     // If we're within one grid cell solve linear equation. 
-    get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_upper_cgs),&u_upper_index,&d_u_upper);
-    get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_lower_cgs),&u_lower_index,&d_u_lower);
+    get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_upper_cgs),&(u_upper_index[i]),&d_u_upper);
+    get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_lower_cgs),&(u_lower_index[i]),&d_u_lower);
 
-    if (u_upper_index == u_lower_index) {
+    if (u_upper_index[i] == u_lower_index[i]) {
+    //if (u_upper_index == u_lower_index && u_jump_cgs == 0.) {
 
-      const double LambdaNet_upper_cgs = Lambda_He_reion_cgs +
+      LambdaNet_upper_cgs = Lambda_He_reion_cgs +
                       eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
                                          abundance_ratio, n_H_index, d_n_H,
                                          He_index, d_He, cooling);
-      const double LambdaNet_lower_cgs = Lambda_He_reion_cgs +
+      LambdaNet_lower_cgs = Lambda_He_reion_cgs +
                       eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
                                          abundance_ratio, n_H_index, d_n_H,
                                          He_index, d_He, cooling);
-      const double f_upper_cgs = u_upper_cgs - u_ini_cgs - LambdaNet_upper_cgs * ratefact_cgs * dt_cgs;
-      const double f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
-      const double a = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
-      const double b = f_lower_cgs - a*log10(u_lower_cgs);
-    //  u_jump_cgs = -b/a;
-    //}
-      u_upper_cgs = exp10(-b/a);
-      break;
-    } else {
+      f_upper_cgs = u_upper_cgs - u_ini_cgs - LambdaNet_upper_cgs * ratefact_cgs * dt_cgs;
+      f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
+      a[i] = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
+      b[i] = f_lower_cgs - a[i]*log10(u_lower_cgs);
+      u_jump_cgs[i] = exp10(-b[i]/a[i]);
+    }
+    //  u_upper_cgs = exp10(-b/a);
+    //  break;
+    //} else {
       /* New guess */
       //u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
 
       /* New guess at the half-point in log-space */
       u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
-    }
+    //}
 
-    //u_record[i][0] = u_upper_cgs;
-    //u_record[i][1] = u_lower_cgs;
-    //u_record[i][2] = u_next_cgs;
+    u_record[i][0] = u_upper_cgs;
+    u_record[i][1] = u_lower_cgs;
+    u_record[i][2] = u_next_cgs;
     //u_record_index[i][0] = u_upper_index;
     //u_record_index[i][1] = u_lower_index;
 
@@ -392,7 +394,11 @@ INLINE static double bisection_iter(
   //  message("Many bisection iterations");
   //}
   
-  //if (dt_cgs > 0 && fabs(u_jump_cgs - u_upper_cgs)/u_upper_cgs > bisection_tolerance) message("bisection and jump scheme don't agree, bisection %.5e jump %.5e error %.5e iterations %d", u_upper_cgs, u_jump_cgs, fabs(u_jump_cgs - u_upper_cgs)/u_upper_cgs, i);
+  if (dt_cgs > 0 && fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs > 0.1) {
+    message("bisection %.5e jump %.5e error %.5e iterations %d f upper lower %.5e %.5e a %.5e b %.5e", u_upper_cgs, u_jump_cgs[i-1], fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs, i, f_upper_cgs, f_lower_cgs, a[i-1], b[i-1]);
+    for (int j = 0; j < i; j++)
+      message("iteration %d u upper lower mid %.5e %.5e %.5e jump %.5e a b %.5e %.5e index upper lower %d %d", j, u_record[j][0], u_record[j][1], u_record[j][2], u_jump_cgs[j], a[j], b[j], u_upper_index[j], u_lower_index[j]);
+  }
 
   cooling->bisection_iterations += i;
   if (i >= bisection_max_iterations)
