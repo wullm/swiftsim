@@ -319,12 +319,18 @@ INLINE static double bisection_iter(
   double u_next_cgs;
 
   // Diagnostics to see why we're taking so many iterations in bisection
-  double u_record[150][3];
-  //int u_record_index[150][2];
-  int u_upper_index[150], u_lower_index[150];
+  //double u_record[bisection_max_iterations][3];
+  //int u_record_index[bisection_max_iterations][2];
+  int u_upper_index[bisection_max_iterations], u_lower_index[bisection_max_iterations];
   float d_u_upper, d_u_lower;
-  double u_jump_cgs[150];
-  double LambdaNet_upper_cgs, LambdaNet_lower_cgs, f_upper_cgs, f_lower_cgs, a[150], b[150];
+  //double u_jump_cgs[bisection_max_iterations];
+  double LambdaNet_upper_cgs, LambdaNet_lower_cgs, f_upper_cgs, f_lower_cgs; 
+  double a, b;
+  //double a[bisection_max_iterations], b[bisection_max_iterations];
+  //double u_jump_cgs_first = 0;
+  
+  int jump_counter = 0;
+  const int jump_threshold = 3;
 
   do {
 
@@ -332,8 +338,7 @@ INLINE static double bisection_iter(
     get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_upper_cgs),&(u_upper_index[i]),&d_u_upper);
     get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_lower_cgs),&(u_lower_index[i]),&d_u_lower);
 
-    if (u_upper_index[i] == u_lower_index[i]) {
-    //if (u_upper_index == u_lower_index && u_jump_cgs == 0.) {
+    if (u_upper_index[i] == u_lower_index[i] && jump_counter >= jump_threshold) {
 
       LambdaNet_upper_cgs = Lambda_He_reion_cgs +
                       eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
@@ -345,23 +350,27 @@ INLINE static double bisection_iter(
                                          He_index, d_He, cooling);
       f_upper_cgs = u_upper_cgs - u_ini_cgs - LambdaNet_upper_cgs * ratefact_cgs * dt_cgs;
       f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
-      a[i] = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
-      b[i] = f_lower_cgs - a[i]*log10(u_lower_cgs);
-      u_jump_cgs[i] = exp10(-b[i]/a[i]);
-    }
-    //  u_upper_cgs = exp10(-b/a);
-    //  break;
-    //} else {
-      /* New guess */
-      //u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
-
-      /* New guess at the half-point in log-space */
-      u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
+      a = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
+      b = f_lower_cgs - a*log10(u_lower_cgs);
+    //  a[i] = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
+    //  b[i] = f_lower_cgs - a[i]*log10(u_lower_cgs);
+    //  u_jump_cgs[i] = exp10(-b[i]/a[i]);
+    //  if (u_jump_cgs_first == 0) u_jump_cgs_first = u_jump_cgs[i];
     //}
+      u_upper_cgs = exp10(-b/a);
+      break;
+    } else {
+    /* New guess */
+    //u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
 
-    u_record[i][0] = u_upper_cgs;
-    u_record[i][1] = u_lower_cgs;
-    u_record[i][2] = u_next_cgs;
+    /* New guess at the half-point in log-space */
+    u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
+    if (u_upper_index[i] == u_lower_index[i]) jump_counter++;
+    }
+
+    //u_record[i][0] = u_upper_cgs;
+    //u_record[i][1] = u_lower_cgs;
+    //u_record[i][2] = u_next_cgs;
     //u_record_index[i][0] = u_upper_index;
     //u_record_index[i][1] = u_lower_index;
 
@@ -394,16 +403,22 @@ INLINE static double bisection_iter(
   //  message("Many bisection iterations");
   //}
   
-  if (dt_cgs > 0 && fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs > 0.1) {
-    message("bisection %.5e jump %.5e error %.5e iterations %d f upper lower %.5e %.5e a %.5e b %.5e", u_upper_cgs, u_jump_cgs[i-1], fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs, i, f_upper_cgs, f_lower_cgs, a[i-1], b[i-1]);
-    for (int j = 0; j < i; j++)
-      message("iteration %d u upper lower mid %.5e %.5e %.5e jump %.5e a b %.5e %.5e index upper lower %d %d", j, u_record[j][0], u_record[j][1], u_record[j][2], u_jump_cgs[j], a[j], b[j], u_upper_index[j], u_lower_index[j]);
-  }
+  //float max_error = 0;
+  //for (int k = 0; k < i; k++) max_error = max(max_error,
+  //        (fabs(2.*(u_jump_cgs[k] - u_record[i-1][0])/(u_jump_cgs[k] + u_record[i-1][0])) < 1.9) ? fabs(2.*(u_jump_cgs[k] - u_record[i-1][0])/(u_jump_cgs[k] + u_record[i-1][0])) : 0);
+  //if (dt_cgs > 0 && fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs > 0.1) {
+  //if (dt_cgs > 0 ) {
+  //  message("bisection %.5e jump %.5e error %.5e iterations %d f upper lower %.5e %.5e a %.5e b %.5e", u_upper_cgs, u_jump_cgs[i-1], fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs, i, f_upper_cgs, f_lower_cgs, a[i-1], b[i-1]);
+  //  for (int j = 0; j < i; j++)
+  //    message("iteration %d u upper lower mid %.5e %.5e %.5e jump %.5e error %.5e a b %.5e %.5e index upper lower %d %d", j, u_record[j][0], u_record[j][1], u_record[j][2], u_jump_cgs[j], 2.*(u_jump_cgs[j] - u_record[i-1][0])/(u_jump_cgs[j] + u_record[i-1][0]), a[j], b[j], u_upper_index[j], u_lower_index[j]);
+  //}
 
   cooling->bisection_iterations += i;
   if (i >= bisection_max_iterations)
     error("Particle id %llu failed to converge", ID);
 
+  //message("u bisection %.5e jump %.5e", u_upper_cgs, u_jump_cgs_first);
+  //return u_jump_cgs_first;
   return u_upper_cgs;
 }
 

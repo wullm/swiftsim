@@ -97,6 +97,9 @@ int main(int argc, char **argv) {
   struct space s;
   const char *parametersFileName = "./cooling_grid.yml";
 
+  bzero(&p, sizeof(struct part));
+  bzero(&xp, sizeof(struct xpart));
+
   /* Initialize CPU frequency, this also starts time. */
   unsigned long long cpufreq = 0;
   clocks_set_cpufreq(cpufreq);
@@ -135,7 +138,7 @@ int main(int argc, char **argv) {
   // Init physical constants
   phys_const_init(&us, params, &internal_const);
 
-  // Init porperties of hydro
+  // Init properties of hydro
   hydro_props_init(&hydro_properties, &internal_const, &us, params);
 
   // Init chemistry
@@ -201,48 +204,54 @@ int main(int argc, char **argv) {
 
   // Loop over internal energy
   for (int u_i = 0; u_i < n_u; u_i++) {
+  //for (int u_i = 99; u_i < n_u; u_i++) {
     const double u_ini_cgs = exp10(log10_u_min_cgs + u_i * (log10_u_max_cgs - log10_u_min_cgs)/n_u);
     const double u_ini = u_ini_cgs/units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
 
     // Loop over hydrogen number density
     for (int nh_i = 0; nh_i < n_nh; nh_i++) {
+    //for (int nh_i = 98; nh_i < 99; nh_i++) {
       const float nh_cgs = exp10(log10_nh_min_cgs + nh_i * (log10_nh_max_cgs - log10_nh_min_cgs)/n_nh);
 
       // Loop over metallicities
       for (int Z_i = 0; Z_i < n_Z; Z_i++) {
+      //for (int Z_i = 80; Z_i < 81; Z_i++) {
         const float Z = exp10(log10_Z_min + Z_i * (log10_Z_max - log10_Z_min)/n_Z);
 
-	// Update particle data
+	    // Update particle data
         set_quantities(&p, &xp, &us, &cooling, &cosmo, &internal_const, Z,
 		       nh_cgs, u_ini_cgs, &solar_abundance);
+	    
+        hydro_set_physical_internal_energy_dt(&p, &cosmo, 0);
 
         // Cool the particle
-	cooling_cool_part(&internal_const, &us, &cosmo,
+	    cooling_cool_part(&internal_const, &us, &cosmo,
                        &hydro_properties, &floor_props,
                        // Set to non const for counting, remove for production
                        //const struct cooling_function_data *cooling,
                        &cooling, &p, &xp, dt, dt_therm);
         
-	// Update the particle's internal energy
-	const float du_dt_new = hydro_get_physical_internal_energy_dt(&p, &cosmo);
-	hydro_set_physical_internal_energy(&p, &xp, &cosmo, u_ini + dt * du_dt_new);
+	    // Update the particle's internal energy
+	    const float du_dt_new = hydro_get_physical_internal_energy_dt(&p, &cosmo);
+	    hydro_set_physical_internal_energy(&p, &xp, &cosmo, u_ini + dt * du_dt_new);
 
-	// Get the final energy of the particle
-	const double u_final_cgs = hydro_get_physical_internal_energy(&p,&xp,&cosmo) *
-				   units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
+	    // Get the final energy of the particle
+	    const double u_final_cgs = hydro_get_physical_internal_energy(&p,&xp,&cosmo) *
+	    			   units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
 
-	// Save relevant data
-	fprintf(output_iterations_file, "%.5e %d %d %d\n", 
-		u_ini_cgs, cooling.bisection_cooling_bound_iterations, 
-		cooling.bisection_heating_bound_iterations, 
-		cooling.bisection_iterations);
-	
-	fprintf(output_energy_file, "%.5e %.5e\n", u_ini_cgs, u_final_cgs);
+	    // Save relevant data
+	    fprintf(output_iterations_file, "%.5e %d %d %d %d %d %d\n", 
+	    	u_ini_cgs, cooling.bisection_cooling_bound_iterations, 
+	    	cooling.bisection_heating_bound_iterations, 
+	    	cooling.bisection_iterations,
+            u_i, nh_i, Z_i);
+	    
+	    fprintf(output_energy_file, "%.5e %.5e\n", u_ini_cgs, u_final_cgs);
 
-	// Zero counters
-	cooling.bisection_cooling_bound_iterations = 0;
-	cooling.bisection_heating_bound_iterations = 0;
-	cooling.bisection_iterations = 0;
+	    // Zero counters
+	    cooling.bisection_cooling_bound_iterations = 0;
+	    cooling.bisection_heating_bound_iterations = 0;
+	    cooling.bisection_iterations = 0;
         
       }
     }
