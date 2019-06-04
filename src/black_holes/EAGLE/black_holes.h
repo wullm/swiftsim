@@ -205,7 +205,8 @@ __attribute__((always_inline)) INLINE static void black_holes_prepare_feedback(
 
   /* Apply constant pre-factors to BH accretion rate */
   bp->accretion_rate *= (4. * M_PI * G * G * BH_mass * BH_mass);
-
+  printf("Accretion rate: %g", bp->accretion_rate);
+  
   /* Limit the accretion rate to the Eddington fraction */
   bp->accretion_rate = min(bp->accretion_rate, f_Edd * Eddington_rate);
   const double accr_rate = bp->accretion_rate;
