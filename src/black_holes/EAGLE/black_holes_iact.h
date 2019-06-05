@@ -111,8 +111,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_bh_density(
   const double gas_c_phys2 = gas_c_phys * gas_c_phys;
   const double denominator2 = v_diff_norm2 + gas_c_phys2;
   const double denominator_inv = 1. / sqrt(denominator2);
-  printf("Bondi-denominator-sq=%g, c_phys2=%g, rhoj=%g\n",
-	 denominator2, gas_c_phys2, rhoj);
+  printf("Bondi-denominator-sq=%g, c_phys2=%g, cj=%g, rhoj=%g\n",
+	 denominator2, gas_c_phys2, cj, rhoj);
    
   /* 'Accretion rate' does not yet have the constant pre-factor */
   bi->accretion_rate += rhoj * denominator_inv * denominator_inv *
