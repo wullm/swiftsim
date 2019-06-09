@@ -55,24 +55,8 @@ struct SESAME_params {
 };
 
 // Parameter values for each material (cgs units)
-INLINE static void set_SESAME_iron(struct SESAME_params *mat,
-                                   enum eos_planetary_material_id mat_id) {
-  // SESAME 2140
-  mat->mat_id = mat_id;
-}
-INLINE static void set_SESAME_basalt(struct SESAME_params *mat,
-                                     enum eos_planetary_material_id mat_id) {
-  // SESAME 7530
-  mat->mat_id = mat_id;
-}
-INLINE static void set_SESAME_water(struct SESAME_params *mat,
-                                    enum eos_planetary_material_id mat_id) {
-  // SESAME 7154
-  mat->mat_id = mat_id;
-}
-INLINE static void set_SS08_water(struct SESAME_params *mat,
+INLINE static void set_SESAME_mat(struct SESAME_params *mat,
                                   enum eos_planetary_material_id mat_id) {
-  // Senft & Stewart (2008)
   mat->mat_id = mat_id;
 }
 

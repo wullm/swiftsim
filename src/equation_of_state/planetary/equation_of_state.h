@@ -121,6 +121,22 @@ enum eos_planetary_material_id {
   /*! Senft & Stewart (2008) SESAME-like water */
   eos_planetary_id_SS08_water =
       eos_planetary_type_SESAME * eos_planetary_type_factor + 3,
+
+  /*! SESAME water 5251 */
+  eos_planetary_id_SESAME_H2 =
+      eos_planetary_type_SESAME * eos_planetary_type_factor + 4,
+
+  /*! SESAME water 5000 */
+  eos_planetary_id_SESAME_N2 =
+      eos_planetary_type_SESAME * eos_planetary_type_factor + 5,
+
+  /*! SESAME water 7152 */
+  eos_planetary_id_SESAME_steam =
+      eos_planetary_type_SESAME * eos_planetary_type_factor + 6,
+
+  /*! SESAME water 5212 */
+  eos_planetary_id_SESAME_CO2 =
+      eos_planetary_type_SESAME * eos_planetary_type_factor + 7,
 };
 
 /* Individual EOS function headers. */
@@ -136,7 +152,8 @@ struct eos_parameters {
   struct idg_params idg_HHe;
   struct Til_params Til_iron, Til_granite, Til_water;
   struct HM80_params HM80_HHe, HM80_ice, HM80_rock;
-  struct SESAME_params SESAME_iron, SESAME_basalt, SESAME_water, SS08_water;
+  struct SESAME_params SESAME_iron, SESAME_basalt, SESAME_water, SS08_water,
+                       SESAME_H2, SESAME_N2, SESAME_steam, SESAME_CO2;
 };
 
 /**
@@ -248,6 +265,26 @@ gas_internal_energy_from_entropy(float density, float entropy,
                                                      &eos.SS08_water);
           break;
 
+        case eos_planetary_id_SESAME_H2:
+          return SESAME_internal_energy_from_entropy(density, entropy,
+                                                     &eos.SESAME_H2);
+          break;
+
+        case eos_planetary_id_SESAME_N2:
+          return SESAME_internal_energy_from_entropy(density, entropy,
+                                                     &eos.SESAME_N2);
+          break;
+
+        case eos_planetary_id_SESAME_steam:
+          return SESAME_internal_energy_from_entropy(density, entropy,
+                                                     &eos.SESAME_steam);
+          break;
+
+        case eos_planetary_id_SESAME_CO2:
+          return SESAME_internal_energy_from_entropy(density, entropy,
+                                                     &eos.SESAME_CO2);
+          break;
+
         default:
           error("Unknown material ID! mat_id = %d", mat_id);
           return 0.f;
@@ -354,11 +391,31 @@ __attribute__((always_inline)) INLINE static float gas_pressure_from_entropy(
         case eos_planetary_id_SESAME_water:
           return SESAME_pressure_from_entropy(density, entropy,
                                               &eos.SESAME_water);
-
+          break;
+          
         case eos_planetary_id_SS08_water:
           return SESAME_pressure_from_entropy(density, entropy,
                                               &eos.SS08_water);
           break;
+
+        case eos_planetary_id_SESAME_H2:
+          return SESAME_pressure_from_entropy(density, entropy,
+                                              &eos.SESAME_H2);
+          break;
+
+        case eos_planetary_id_SESAME_N2:
+          return SESAME_pressure_from_entropy(density, entropy,
+                                              &eos.SESAME_N2);
+          break;
+
+        case eos_planetary_id_SESAME_steam:
+          return SESAME_pressure_from_entropy(density, entropy,
+                                              &eos.SESAME_steam);
+          break;
+
+        case eos_planetary_id_SESAME_CO2:
+          return SESAME_pressure_from_entropy(density, entropy,
+                                              &eos.SESAME_CO2);
           break;
 
         default:
@@ -469,6 +526,22 @@ __attribute__((always_inline)) INLINE static float gas_entropy_from_pressure(
 
         case eos_planetary_id_SS08_water:
           return SESAME_entropy_from_pressure(density, P, &eos.SS08_water);
+          break;
+
+        case eos_planetary_id_SESAME_H2:
+          return SESAME_entropy_from_pressure(density, P, &eos.SESAME_H2);
+          break;
+
+        case eos_planetary_id_SESAME_N2:
+          return SESAME_entropy_from_pressure(density, P, &eos.SESAME_N2);
+          break;
+
+        case eos_planetary_id_SESAME_steam:
+          return SESAME_entropy_from_pressure(density, P, &eos.SESAME_steam);
+          break;
+
+        case eos_planetary_id_SESAME_CO2:
+          return SESAME_entropy_from_pressure(density, P, &eos.SESAME_CO2);
           break;
 
         default:
@@ -585,6 +658,26 @@ __attribute__((always_inline)) INLINE static float gas_soundspeed_from_entropy(
                                                 &eos.SS08_water);
           break;
 
+        case eos_planetary_id_SESAME_H2:
+          return SESAME_soundspeed_from_entropy(density, entropy,
+                                                &eos.SESAME_H2);
+          break;
+
+        case eos_planetary_id_SESAME_N2:
+          return SESAME_soundspeed_from_entropy(density, entropy,
+                                                &eos.SESAME_N2);
+          break;
+
+        case eos_planetary_id_SESAME_steam:
+          return SESAME_soundspeed_from_entropy(density, entropy,
+                                                &eos.SESAME_steam);
+          break;
+
+        case eos_planetary_id_SESAME_CO2:
+          return SESAME_soundspeed_from_entropy(density, entropy,
+                                                &eos.SESAME_CO2);
+          break;
+
         default:
           error("Unknown material ID! mat_id = %d", mat_id);
           return 0.f;
@@ -696,6 +789,26 @@ gas_entropy_from_internal_energy(float density, float u,
         case eos_planetary_id_SS08_water:
           return SESAME_entropy_from_internal_energy(density, u,
                                                      &eos.SS08_water);
+          break;
+
+        case eos_planetary_id_SESAME_H2:
+          return SESAME_entropy_from_internal_energy(density, u,
+                                                     &eos.SESAME_H2);
+          break;
+
+        case eos_planetary_id_SESAME_N2:
+          return SESAME_entropy_from_internal_energy(density, u,
+                                                     &eos.SESAME_N2);
+          break;
+
+        case eos_planetary_id_SESAME_steam:
+          return SESAME_entropy_from_internal_energy(density, u,
+                                                     &eos.SESAME_steam);
+          break;
+
+        case eos_planetary_id_SESAME_CO2:
+          return SESAME_entropy_from_internal_energy(density, u,
+                                                     &eos.SESAME_CO2);
           break;
 
         default:
@@ -811,6 +924,26 @@ gas_pressure_from_internal_energy(float density, float u,
         case eos_planetary_id_SS08_water:
           return SESAME_pressure_from_internal_energy(density, u,
                                                       &eos.SS08_water);
+          break;
+
+        case eos_planetary_id_SESAME_H2:
+          return SESAME_pressure_from_internal_energy(density, u,
+                                                      &eos.SESAME_H2);
+          break;
+
+        case eos_planetary_id_SESAME_N2:
+          return SESAME_pressure_from_internal_energy(density, u,
+                                                      &eos.SESAME_N2);
+          break;
+
+        case eos_planetary_id_SESAME_steam:
+          return SESAME_pressure_from_internal_energy(density, u,
+                                                      &eos.SESAME_steam);
+          break;
+
+        case eos_planetary_id_SESAME_CO2:
+          return SESAME_pressure_from_internal_energy(density, u,
+                                                      &eos.SESAME_CO2);
           break;
 
         default:
@@ -929,6 +1062,26 @@ gas_internal_energy_from_pressure(float density, float P,
         case eos_planetary_id_SS08_water:
           return SESAME_internal_energy_from_pressure(density, P,
                                                       &eos.SS08_water);
+          break;
+
+        case eos_planetary_id_SESAME_H2:
+          return SESAME_internal_energy_from_pressure(density, P,
+                                                      &eos.SESAME_H2);
+          break;
+
+        case eos_planetary_id_SESAME_N2:
+          return SESAME_internal_energy_from_pressure(density, P,
+                                                      &eos.SESAME_N2);
+          break;
+
+        case eos_planetary_id_SESAME_steam:
+          return SESAME_internal_energy_from_pressure(density, P,
+                                                      &eos.SESAME_steam);
+          break;
+
+        case eos_planetary_id_SESAME_CO2:
+          return SESAME_internal_energy_from_pressure(density, P,
+                                                      &eos.SESAME_CO2);
           break;
 
         default:
@@ -1050,6 +1203,26 @@ gas_soundspeed_from_internal_energy(float density, float u,
                                                         &eos.SS08_water);
           break;
 
+        case eos_planetary_id_SESAME_H2:
+          return SESAME_soundspeed_from_internal_energy(density, u,
+                                                        &eos.SESAME_H2);
+          break;
+
+        case eos_planetary_id_SESAME_N2:
+          return SESAME_soundspeed_from_internal_energy(density, u,
+                                                        &eos.SESAME_N2);
+          break;
+
+        case eos_planetary_id_SESAME_steam:
+          return SESAME_soundspeed_from_internal_energy(density, u,
+                                                        &eos.SESAME_steam);
+          break;
+
+        case eos_planetary_id_SESAME_CO2:
+          return SESAME_soundspeed_from_internal_energy(density, u,
+                                                        &eos.SESAME_CO2);
+          break;
+
         default:
           error("Unknown material ID! mat_id = %d", mat_id);
           return 0.f;
@@ -1160,6 +1333,22 @@ __attribute__((always_inline)) INLINE static float gas_soundspeed_from_pressure(
           return SESAME_soundspeed_from_pressure(density, P, &eos.SS08_water);
           break;
 
+        case eos_planetary_id_SESAME_H2:
+          return SESAME_soundspeed_from_pressure(density, P, &eos.SESAME_H2);
+          break;
+
+        case eos_planetary_id_SESAME_N2:
+          return SESAME_soundspeed_from_pressure(density, P, &eos.SESAME_N2);
+          break;
+
+        case eos_planetary_id_SESAME_steam:
+          return SESAME_soundspeed_from_pressure(density, P, &eos.SESAME_steam);
+          break;
+
+        case eos_planetary_id_SESAME_CO2:
+          return SESAME_soundspeed_from_pressure(density, P, &eos.SESAME_CO2);
+          break;
+
         default:
           error("Unknown material ID! mat_id = %d", mat_id);
           return 0.f;
@@ -1190,6 +1379,10 @@ __attribute__((always_inline)) INLINE static void eos_init(
   char SESAME_basalt_table_file[PARSER_MAX_LINE_SIZE];
   char SESAME_water_table_file[PARSER_MAX_LINE_SIZE];
   char SS08_water_table_file[PARSER_MAX_LINE_SIZE];
+  char SESAME_H2_table_file[PARSER_MAX_LINE_SIZE];
+  char SESAME_N2_table_file[PARSER_MAX_LINE_SIZE];
+  char SESAME_steam_table_file[PARSER_MAX_LINE_SIZE];
+  char SESAME_CO2_table_file[PARSER_MAX_LINE_SIZE];
 
   // Set the parameters and material IDs, load tables, etc. for each material
   // and convert to internal units
@@ -1238,10 +1431,14 @@ __attribute__((always_inline)) INLINE static void eos_init(
 
   // SESAME
   if (parser_get_opt_param_int(params, "EoS:planetary_use_SESAME", 0)) {
-    set_SESAME_iron(&e->SESAME_iron, eos_planetary_id_SESAME_iron);
-    set_SESAME_basalt(&e->SESAME_basalt, eos_planetary_id_SESAME_basalt);
-    set_SESAME_water(&e->SESAME_water, eos_planetary_id_SESAME_water);
-    set_SS08_water(&e->SESAME_water, eos_planetary_id_SS08_water);
+    set_SESAME_mat(&e->SESAME_iron, eos_planetary_id_SESAME_iron);
+    set_SESAME_mat(&e->SESAME_basalt, eos_planetary_id_SESAME_basalt);
+    set_SESAME_mat(&e->SESAME_water, eos_planetary_id_SESAME_water);
+    set_SESAME_mat(&e->SS08_water, eos_planetary_id_SS08_water);
+    set_SESAME_mat(&e->SESAME_H2, eos_planetary_id_SESAME_H2);
+    set_SESAME_mat(&e->SESAME_N2, eos_planetary_id_SESAME_N2);
+    set_SESAME_mat(&e->SESAME_steam, eos_planetary_id_SESAME_steam);
+    set_SESAME_mat(&e->SESAME_CO2, eos_planetary_id_SESAME_CO2);
 
     parser_get_param_string(params, "EoS:planetary_SESAME_iron_table_file",
                             SESAME_iron_table_file);
@@ -1251,21 +1448,41 @@ __attribute__((always_inline)) INLINE static void eos_init(
                             SESAME_water_table_file);
     parser_get_param_string(params, "EoS:planetary_SS08_water_table_file",
                             SS08_water_table_file);
+    parser_get_param_string(params, "EoS:planetary_SESAME_H2_table_file",
+                            SESAME_H2_table_file);
+    parser_get_param_string(params, "EoS:planetary_SESAME_N2_table_file",
+                            SESAME_N2_table_file);
+    parser_get_param_string(params, "EoS:planetary_SESAME_steam_table_file",
+                            SESAME_steam_table_file);
+    parser_get_param_string(params, "EoS:planetary_SESAME_CO2_table_file",
+                            SESAME_CO2_table_file);
 
     load_table_SESAME(&e->SESAME_iron, SESAME_iron_table_file);
     load_table_SESAME(&e->SESAME_basalt, SESAME_basalt_table_file);
     load_table_SESAME(&e->SESAME_water, SESAME_water_table_file);
     load_table_SESAME(&e->SS08_water, SS08_water_table_file);
+    load_table_SESAME(&e->SESAME_H2, SESAME_H2_table_file);
+    load_table_SESAME(&e->SESAME_N2, SESAME_N2_table_file);
+    load_table_SESAME(&e->SESAME_steam, SESAME_steam_table_file);
+    load_table_SESAME(&e->SESAME_CO2, SESAME_CO2_table_file);
 
     prepare_table_SESAME(&e->SESAME_iron);
     prepare_table_SESAME(&e->SESAME_basalt);
     prepare_table_SESAME(&e->SESAME_water);
     prepare_table_SESAME(&e->SS08_water);
+    prepare_table_SESAME(&e->SESAME_H2);
+    prepare_table_SESAME(&e->SESAME_N2);
+    prepare_table_SESAME(&e->SESAME_steam);
+    prepare_table_SESAME(&e->SESAME_CO2);
 
     convert_units_SESAME(&e->SESAME_iron, us);
     convert_units_SESAME(&e->SESAME_basalt, us);
     convert_units_SESAME(&e->SESAME_water, us);
     convert_units_SESAME(&e->SS08_water, us);
+    convert_units_SESAME(&e->SESAME_H2, us);
+    convert_units_SESAME(&e->SESAME_N2, us);
+    convert_units_SESAME(&e->SESAME_steam, us);
+    convert_units_SESAME(&e->SESAME_CO2, us);
   }
 }
 
