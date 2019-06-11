@@ -37,7 +37,8 @@ struct space;
 void cooling_update(const struct cosmology *cosmo,
                     struct cooling_function_data *cooling, struct space *s);
 
-void cooling_cool_part(const struct phys_const *phys_const,
+//void cooling_cool_part(const struct phys_const *phys_const,
+double cooling_cool_part(const struct phys_const *phys_const,
                        const struct unit_system *us,
                        const struct cosmology *cosmo,
                        const struct hydro_props *hydro_properties,

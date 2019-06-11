@@ -204,18 +204,18 @@ int main(int argc, char **argv) {
 
   // Loop over internal energy
   for (int u_i = 0; u_i < n_u; u_i++) {
-  //for (int u_i = 99; u_i < n_u; u_i++) {
+  //for (int u_i = 50; u_i < 51; u_i++) {
     const double u_ini_cgs = exp10(log10_u_min_cgs + u_i * (log10_u_max_cgs - log10_u_min_cgs)/n_u);
     const double u_ini = u_ini_cgs/units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
 
     // Loop over hydrogen number density
     for (int nh_i = 0; nh_i < n_nh; nh_i++) {
-    //for (int nh_i = 98; nh_i < 99; nh_i++) {
+    //for (int nh_i = 32; nh_i < 33; nh_i++) {
       const float nh_cgs = exp10(log10_nh_min_cgs + nh_i * (log10_nh_max_cgs - log10_nh_min_cgs)/n_nh);
 
       // Loop over metallicities
       for (int Z_i = 0; Z_i < n_Z; Z_i++) {
-      //for (int Z_i = 80; Z_i < 81; Z_i++) {
+      //for (int Z_i = 82; Z_i < 83; Z_i++) {
         const float Z = exp10(log10_Z_min + Z_i * (log10_Z_max - log10_Z_min)/n_Z);
 
 	    // Update particle data
@@ -225,19 +225,20 @@ int main(int argc, char **argv) {
         hydro_set_physical_internal_energy_dt(&p, &cosmo, 0);
 
         // Cool the particle
-	    cooling_cool_part(&internal_const, &us, &cosmo,
+	    const double u_final = cooling_cool_part(&internal_const, &us, &cosmo,
                        &hydro_properties, &floor_props,
                        // Set to non const for counting, remove for production
                        //const struct cooling_function_data *cooling,
                        &cooling, &p, &xp, dt, dt_therm);
+        const double u_final_cgs = u_final * units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
         
 	    // Update the particle's internal energy
 	    const float du_dt_new = hydro_get_physical_internal_energy_dt(&p, &cosmo);
 	    hydro_set_physical_internal_energy(&p, &xp, &cosmo, u_ini + dt * du_dt_new);
 
 	    // Get the final energy of the particle
-	    const double u_final_cgs = hydro_get_physical_internal_energy(&p,&xp,&cosmo) *
-	    			   units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
+	    //const double u_final_cgs = hydro_get_physical_internal_energy(&p,&xp,&cosmo) *
+	    //			   units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
 
 	    // Save relevant data
 	    fprintf(output_iterations_file, "%.5e %d %d %d %d %d %d\n", 
@@ -246,6 +247,7 @@ int main(int argc, char **argv) {
 	    	cooling.bisection_iterations,
             u_i, nh_i, Z_i);
 	    
+	    //fprintf(output_energy_file, "%.5e %.5e %.5e\n", u_ini_cgs, u_final_cgs, dt*du_dt_new*units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS));
 	    fprintf(output_energy_file, "%.5e %.5e\n", u_ini_cgs, u_final_cgs);
 
 	    // Zero counters

@@ -29,6 +29,7 @@
 #include <hdf5.h>
 #include <math.h>
 #include <time.h>
+#include <gsl/gsl_poly.h>
 
 /* Local includes. */
 #include "chemistry.h"
@@ -186,6 +187,33 @@ void cooling_update(const struct cosmology *cosmo,
   cooling->z_index = z_index;
 }
 
+
+INLINE static double solve_taylor(double u_upper, double u_lower, double u_ini, double a, double LambdaNet_lower, double ratefact, double dt) {
+    const double c_1 = u_lower - u_ini - LambdaNet_lower*ratefact*dt;
+    const double c_2 = 1. - a*ratefact*dt/u_lower;
+    const double c_3 = a*ratefact*dt/(2.*u_lower*u_lower);
+    const double c_4 = -a*ratefact*dt/(3.*u_lower*u_lower*u_lower);
+
+    const double A = (-3.*c_4*u_lower + c_3)/c_4;
+    const double B = (3.*c_4*u_lower*u_lower - 2.*c_3*u_lower + c_2)/c_4;
+    const double C = (-c_4*u_lower*u_lower*u_lower + c_3*u_lower*u_lower - c_2*u_lower + c_1)/c_4;
+
+    double u_0 = 0, u_1 = 0, u_2 = 0;
+    gsl_poly_solve_cubic(A,B,C,&u_0,&u_1,&u_2);
+
+    if (u_0 < u_upper && u_0 > u_lower) {
+      return u_0;
+    } else if (u_1 < u_upper && u_1 > u_lower) {
+      return u_1;
+    } else if (u_2 < u_upper && u_2 > u_lower) {
+      return u_2;
+    } else {
+      error("Couldn't find cooling solution c_1 c_2 c_3 c_4 %.5e %.5e %.5e %.5e A B C %.5e %.5e %.5e u_0 u_1 u_2 %.5e %.5e %.5e u upper lower %.5e %.5e", c_1, c_2, c_3, c_4, A, B, C, u_0, u_1, u_2, u_upper, u_lower);
+      return 0;
+    }
+
+}
+
 /**
  * @brief Bisection integration scheme
  *
@@ -320,17 +348,25 @@ INLINE static double bisection_iter(
 
   // Diagnostics to see why we're taking so many iterations in bisection
   //double u_record[bisection_max_iterations][3];
-  //int u_record_index[bisection_max_iterations][2];
-  int u_upper_index[bisection_max_iterations], u_lower_index[bisection_max_iterations];
-  float d_u_upper, d_u_lower;
+  //int u_upper_index[bisection_max_iterations], u_lower_index[bisection_max_iterations];
+  //float d_u_upper, d_u_lower;
   //double u_jump_cgs[bisection_max_iterations];
-  double LambdaNet_upper_cgs, LambdaNet_lower_cgs, f_upper_cgs, f_lower_cgs; 
-  double a, b;
+  //double LambdaNet_upper_cgs, LambdaNet_lower_cgs, f_upper_cgs, f_lower_cgs; 
+  //double a, b;
   //double a[bisection_max_iterations], b[bisection_max_iterations];
   //double u_jump_cgs_first = 0;
   
-  int jump_counter = 0;
-  const int jump_threshold = 3;
+  //int jump_counter = 0;
+  //const int jump_threshold = 3;
+  
+  // Variables declared for taylor approximation solver
+  //double u_record[bisection_max_iterations][3];
+  int u_upper_index[bisection_max_iterations], u_lower_index[bisection_max_iterations];
+  float d_u_upper, d_u_lower;
+  double LambdaNet_upper_cgs, LambdaNet_lower_cgs; 
+  double a;
+  //double u_jump_cgs[bisection_max_iterations];
+  //double u_jump_cgs_first = 0;
 
   do {
 
@@ -338,7 +374,24 @@ INLINE static double bisection_iter(
     get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_upper_cgs),&(u_upper_index[i]),&d_u_upper);
     get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_lower_cgs),&(u_lower_index[i]),&d_u_lower);
 
-    if (u_upper_index[i] == u_lower_index[i] && jump_counter >= jump_threshold) {
+    //if (u_upper_index[i] == u_lower_index[i] && jump_counter >= jump_threshold) {
+    if (u_upper_index[i] == u_lower_index[i]) {
+
+      //LambdaNet_upper_cgs = Lambda_He_reion_cgs +
+      //                eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
+      //                                   abundance_ratio, n_H_index, d_n_H,
+      //                                   He_index, d_He, cooling);
+      //LambdaNet_lower_cgs = Lambda_He_reion_cgs +
+      //                eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
+      //                                   abundance_ratio, n_H_index, d_n_H,
+      //                                   He_index, d_He, cooling);
+      //f_upper_cgs = u_upper_cgs - u_ini_cgs - LambdaNet_upper_cgs * ratefact_cgs * dt_cgs;
+      //f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
+      ////a = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
+      ////b = f_lower_cgs - a*log10(u_lower_cgs);
+      //a[i] = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
+      //b[i] = f_lower_cgs - a[i]*log10(u_lower_cgs);
+      //u_jump_cgs[i] = exp10(-b[i]/a[i]);
 
       LambdaNet_upper_cgs = Lambda_He_reion_cgs +
                       eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
@@ -348,31 +401,29 @@ INLINE static double bisection_iter(
                       eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
                                          abundance_ratio, n_H_index, d_n_H,
                                          He_index, d_He, cooling);
-      f_upper_cgs = u_upper_cgs - u_ini_cgs - LambdaNet_upper_cgs * ratefact_cgs * dt_cgs;
-      f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
-      a = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
-      b = f_lower_cgs - a*log10(u_lower_cgs);
-    //  a[i] = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
-    //  b[i] = f_lower_cgs - a[i]*log10(u_lower_cgs);
-    //  u_jump_cgs[i] = exp10(-b[i]/a[i]);
-    //  if (u_jump_cgs_first == 0) u_jump_cgs_first = u_jump_cgs[i];
+      a = (LambdaNet_upper_cgs - LambdaNet_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs)) / M_LN10;
+      if (LambdaNet_upper_cgs != LambdaNet_lower_cgs) {
+        //message("doing taylor solver lambdanet lower %.5e upper %.5e a %.5e", LambdaNet_lower_cgs, LambdaNet_upper_cgs, a);
+        //u_jump_cgs[i] = solve_taylor(u_upper_cgs,u_lower_cgs, u_ini_cgs, a, LambdaNet_lower_cgs, ratefact_cgs, dt_cgs);
+        u_upper_cgs = solve_taylor(u_upper_cgs,u_lower_cgs, u_ini_cgs, a, LambdaNet_lower_cgs, ratefact_cgs, dt_cgs);
+        break;
+        //if (u_jump_cgs_first == 0) u_jump_cgs_first = u_jump_cgs[i];
+      }
     //}
-      u_upper_cgs = exp10(-b/a);
-      break;
+    //  u_upper_cgs = exp10(-b/a);
+    //  break;
     } else {
     /* New guess */
     //u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
 
     /* New guess at the half-point in log-space */
     u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
-    if (u_upper_index[i] == u_lower_index[i]) jump_counter++;
+    //if (u_upper_index[i] == u_lower_index[i]) jump_counter++;
     }
 
     //u_record[i][0] = u_upper_cgs;
     //u_record[i][1] = u_lower_cgs;
     //u_record[i][2] = u_next_cgs;
-    //u_record_index[i][0] = u_upper_index;
-    //u_record_index[i][1] = u_lower_index;
 
     /* New rate */
     LambdaNet_cgs = Lambda_He_reion_cgs +
@@ -405,12 +456,13 @@ INLINE static double bisection_iter(
   
   //float max_error = 0;
   //for (int k = 0; k < i; k++) max_error = max(max_error,
-  //        (fabs(2.*(u_jump_cgs[k] - u_record[i-1][0])/(u_jump_cgs[k] + u_record[i-1][0])) < 1.9) ? fabs(2.*(u_jump_cgs[k] - u_record[i-1][0])/(u_jump_cgs[k] + u_record[i-1][0])) : 0);
-  //if (dt_cgs > 0 && fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs > 0.1) {
-  //if (dt_cgs > 0 ) {
-  //  message("bisection %.5e jump %.5e error %.5e iterations %d f upper lower %.5e %.5e a %.5e b %.5e", u_upper_cgs, u_jump_cgs[i-1], fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs, i, f_upper_cgs, f_lower_cgs, a[i-1], b[i-1]);
+  //        (fabs(2.*(u_jump_cgs_first - u_record[i-1][0])/(u_jump_cgs_first + u_record[i-1][0])) < 1.9) ? fabs(2.*(u_jump_cgs_first - u_record[i-1][0])/(u_jump_cgs_first + u_record[i-1][0])) : 0);
+  //
+  ////if (dt_cgs > 0 && fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs > 0.1) {
+  //if (dt_cgs > 0) {
+  //  message("bisection %.5e jump %.5e error %.5e iterations %d", u_upper_cgs, u_jump_cgs[i-1], fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs, i);
   //  for (int j = 0; j < i; j++)
-  //    message("iteration %d u upper lower mid %.5e %.5e %.5e jump %.5e error %.5e a b %.5e %.5e index upper lower %d %d", j, u_record[j][0], u_record[j][1], u_record[j][2], u_jump_cgs[j], 2.*(u_jump_cgs[j] - u_record[i-1][0])/(u_jump_cgs[j] + u_record[i-1][0]), a[j], b[j], u_upper_index[j], u_lower_index[j]);
+  //    message("iteration %d u upper lower mid %.5e %.5e %.5e jump %.5e error %.5e index upper lower %d %d", j, u_record[j][0], u_record[j][1], u_record[j][2], u_jump_cgs[j], 2.*(u_jump_cgs[j] - u_record[i-1][0])/(u_jump_cgs[j] + u_record[i-1][0]), u_upper_index[j], u_lower_index[j]);
   //}
 
   cooling->bisection_iterations += i;
@@ -456,7 +508,9 @@ INLINE static double bisection_iter(
  * @param dt The cooling time-step of this particle.
  * @param dt_therm The hydro time-step of this particle.
  */
-void cooling_cool_part(const struct phys_const *phys_const,
+//void cooling_cool_part(const struct phys_const *phys_const,
+// ALEXEI: temporarily change return type to double for debugging
+double cooling_cool_part(const struct phys_const *phys_const,
                        const struct unit_system *us,
                        const struct cosmology *cosmo,
                        const struct hydro_props *hydro_properties,
@@ -468,7 +522,9 @@ void cooling_cool_part(const struct phys_const *phys_const,
                        const float dt, const float dt_therm) {
 
   /* No cooling happens over zero time */
-  if (dt == 0.) return;
+  //if (dt == 0.) return;
+  // ALEXEI: return initial energy, used for debugging
+  if (dt == 0.) return hydro_get_physical_internal_energy(p, xp, cosmo);
 
 #ifdef SWIFT_DEBUG_CHECKS
   if (cooling->Redshifts == NULL)
@@ -599,6 +655,9 @@ void cooling_cool_part(const struct phys_const *phys_const,
 
   /* Store the radiated energy */
   xp->cooling_data.radiated_energy -= hydro_get_mass(p) * cooling_du_dt * dt;
+
+  // ALEXEI: return final energy for debugging
+  return u_final;
 }
 
 /**
