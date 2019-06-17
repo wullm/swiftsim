@@ -214,6 +214,9 @@ INLINE static double bisection_iter(
     const float abundance_ratio[chemistry_element_count + 2],
     const double dt_cgs, const long long ID) {
 
+  double LambdaNet_upper_cgs, LambdaNet_lower_cgs;
+  int recompute_cooling_rate_flag = 1;
+
   /* Bracketing */
   double u_lower_cgs = u_ini_cgs;
   double u_upper_cgs = u_ini_cgs;
@@ -225,7 +228,7 @@ INLINE static double bisection_iter(
   double LambdaNet_cgs =
       Lambda_He_reion_cgs +
       eagle_cooling_rate(log10(u_ini_cgs), redshift, n_H_cgs, abundance_ratio,
-                         n_H_index, d_n_H, He_index, d_He, cooling);
+                         n_H_index, d_n_H, He_index, d_He, &LambdaNet_upper_cgs, &LambdaNet_lower_cgs, cooling, recompute_cooling_rate_flag);
 
   /*************************************/
   /* Let's try to bracket the solution */
@@ -241,7 +244,7 @@ INLINE static double bisection_iter(
     LambdaNet_cgs = Lambda_He_reion_cgs +
                     eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
                                        abundance_ratio, n_H_index, d_n_H,
-                                       He_index, d_He, cooling);
+                                       He_index, d_He, &LambdaNet_upper_cgs, &LambdaNet_lower_cgs, cooling, recompute_cooling_rate_flag);
 
     int i = 0;
     while (u_lower_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs >
@@ -258,7 +261,7 @@ INLINE static double bisection_iter(
       LambdaNet_cgs = Lambda_He_reion_cgs +
                       eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
                                          abundance_ratio, n_H_index, d_n_H,
-                                         He_index, d_He, cooling);
+                                         He_index, d_He, &LambdaNet_upper_cgs, &LambdaNet_lower_cgs, cooling, recompute_cooling_rate_flag);
       i++;
     }
     cooling->bisection_cooling_bound_iterations += i;
@@ -279,7 +282,7 @@ INLINE static double bisection_iter(
     LambdaNet_cgs = Lambda_He_reion_cgs +
                     eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
                                        abundance_ratio, n_H_index, d_n_H,
-                                       He_index, d_He, cooling);
+                                       He_index, d_He, &LambdaNet_upper_cgs, &LambdaNet_lower_cgs, cooling, recompute_cooling_rate_flag);
 
     int i = 0;
     while (u_upper_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs <
@@ -296,7 +299,7 @@ INLINE static double bisection_iter(
       LambdaNet_cgs = Lambda_He_reion_cgs +
                       eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
                                          abundance_ratio, n_H_index, d_n_H,
-                                         He_index, d_He, cooling);
+                                         He_index, d_He, &LambdaNet_upper_cgs, &LambdaNet_lower_cgs, cooling, recompute_cooling_rate_flag);
       i++;
     }
     cooling->bisection_heating_bound_iterations += i;
@@ -315,59 +318,17 @@ INLINE static double bisection_iter(
   /********************************************/
 
   /* bisection iteration */
-  int i = 0;
+  int i = 0, T_index_old = -1;
   double u_next_cgs;
 
   // Diagnostics to see why we're taking so many iterations in bisection
-  //double u_record[bisection_max_iterations][3];
-  ////int u_record_index[bisection_max_iterations][2];
-  int u_upper_index[bisection_max_iterations], u_lower_index[bisection_max_iterations];
-  float d_u_upper, d_u_lower;
-  //double u_jump_cgs[bisection_max_iterations];
-  double LambdaNet_upper_cgs, LambdaNet_lower_cgs, f_upper_cgs, f_lower_cgs; 
-  double a, b;
-  //double a[bisection_max_iterations], b[bisection_max_iterations];
-  //double u_jump_cgs_first = 0;
-  
-  //int jump_counter = 0;
-  //const int jump_threshold = 3;
+  ////double u_record[bisection_max_iterations][3];
+  //////int u_record_index[bisection_max_iterations][2];
 
   do {
 
-    // If we're within one grid cell solve linear equation. 
-    get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_upper_cgs),&(u_upper_index[i]),&d_u_upper);
-    get_index_1d(cooling->Therm,eagle_cooling_N_temperature,log10(u_lower_cgs),&(u_lower_index[i]),&d_u_lower);
-
-    //if (u_upper_index[i] == u_lower_index[i] && jump_counter >= jump_threshold) {
-    if (u_upper_index[i] == u_lower_index[i] && 2.*(u_upper_cgs - u_lower_cgs)/(u_upper_cgs + u_lower_cgs) < 1e-2) {
-
-      LambdaNet_upper_cgs = Lambda_He_reion_cgs +
-                      eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
-                                         abundance_ratio, n_H_index, d_n_H,
-                                         He_index, d_He, cooling);
-      LambdaNet_lower_cgs = Lambda_He_reion_cgs +
-                      eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
-                                         abundance_ratio, n_H_index, d_n_H,
-                                         He_index, d_He, cooling);
-      f_upper_cgs = u_upper_cgs - u_ini_cgs - LambdaNet_upper_cgs * ratefact_cgs * dt_cgs;
-      f_lower_cgs = u_lower_cgs - u_ini_cgs - LambdaNet_lower_cgs * ratefact_cgs * dt_cgs;
-      a = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
-      b = f_lower_cgs - a*log10(u_lower_cgs);
-    //  a[i] = (f_upper_cgs - f_lower_cgs)/(log10(u_upper_cgs) - log10(u_lower_cgs));
-    //  b[i] = f_lower_cgs - a[i]*log10(u_lower_cgs);
-    //  u_jump_cgs[i] = exp10(-b[i]/a[i]);
-    //  if (u_jump_cgs_first == 0) u_jump_cgs_first = u_jump_cgs[i];
-    //}
-      u_upper_cgs = exp10(-b/a);
-      break;
-    } else {
-    /* New guess */
-    //u_next_cgs = 0.5 * (u_lower_cgs + u_upper_cgs);
-
     /* New guess at the half-point in log-space */
     u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
-    //if (u_upper_index[i] == u_lower_index[i]) jump_counter++;
-    }
 
     //u_record[i][0] = u_upper_cgs;
     //u_record[i][1] = u_lower_cgs;
@@ -375,11 +336,31 @@ INLINE static double bisection_iter(
     //u_record_index[i][0] = u_upper_index;
     //u_record_index[i][1] = u_lower_index;
 
+    // Get temperature grid cell
+    const double log_10_T = eagle_convert_u_to_temp(
+        log10(u_next_cgs), redshift, n_H_index, He_index, d_n_H, d_He, cooling);
+
+    /* Get index along temperature dimension of the tables */
+    int T_index;
+    float d_T;
+    get_index_1d(cooling->Temp, eagle_cooling_N_temperature, log_10_T, &T_index,
+                 &d_T);
+
+    /* Check if we're in the same grid cell as last iteration */
+    if (T_index != T_index_old) {
+      // If we're not, set flag to recompute, save current index to old
+      recompute_cooling_rate_flag = 1;
+      T_index_old = T_index;
+    } else {
+      // If we're in the same cell don't reinterpolate cooling rates
+      recompute_cooling_rate_flag = 0;
+    }
+
     /* New rate */
     LambdaNet_cgs = Lambda_He_reion_cgs +
                     eagle_cooling_rate(log10(u_next_cgs), redshift, n_H_cgs,
                                        abundance_ratio, n_H_index, d_n_H,
-                                       He_index, d_He, cooling);
+                                       He_index, d_He, &LambdaNet_upper_cgs, &LambdaNet_lower_cgs, cooling, recompute_cooling_rate_flag);
 #ifdef SWIFT_DEBUG_CHECKS
     if (u_next_cgs <= 0)
       error(

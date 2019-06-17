@@ -104,9 +104,13 @@ INLINE static double eagle_print_metal_cooling_rate(
 
   /* calculate cooling rates */
   for (int j = 0; j < eagle_cooling_N_metal + 2; j++) element_lambda[j] = 0.0;
+
+  double lambda_net_upper, lambda_net_lower;
+  const int recompute_cooling_rate_flag = 1;
+
   lambda_net =
       eagle_metal_cooling_rate(log10(u), cosmo->z, n_h, abundance_ratio, n_h_i,
-                               d_n_h, He_i, d_He, cooling, element_lambda);
+                               d_n_h, He_i, d_He, &lambda_net_upper, &lambda_net_lower, cooling, element_lambda, recompute_cooling_rate_flag);
 
   /* write cooling rate contributions to their own files. */
   for (int j = 0; j < eagle_cooling_N_metal + 2; j++) {
