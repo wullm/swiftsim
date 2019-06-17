@@ -53,6 +53,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_bh_density(
   const float ui = r * hi_inv;
   kernel_deval(ui, &wi, &wi_dx);
 
+  /* Some smoothing length multiples. */
+  const float hi_inv_dim = pow_dimension(hi_inv);       /* 1/h^d */
+
   /* Compute contribution to the number of neighbours */
   bi->density.wcount += wi;
   bi->density.wcount_dh -= (hydro_dimension * wi + ui * wi_dx);
@@ -64,7 +67,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_bh_density(
   const float mj = hydro_get_mass(pj);
 
   /* Get gas particle's (physical) density */
-  const float rhoj = mj * wi * cosmo->a3_inv;
+  const float rhoj = mj * wi * cosmo->a3_inv * hi_inv_dim;
   
   /* Contribution to the BH gas density */
   bi->rho_gas += mj * wi;
@@ -110,14 +113,15 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_bh_density(
   const double gas_c_phys = cj * cosmo->a_factor_sound_speed;
   const double gas_c_phys2 = gas_c_phys * gas_c_phys;
   const double denominator2 = v_diff_norm2 + gas_c_phys2;
-  const double denominator_inv = 1. / sqrt(denominator2);
-  printf("Bondi-denominator-sq=%g, c_phys2=%g, cj=%g, rhoj=%g\n",
-	 denominator2, gas_c_phys2, cj, rhoj);
-   
+  double denominator_inv = 1. / sqrt(denominator2);
+
+  /* Ad-hoc fix in case the denominator is zero -- ignore particle. */
+  if (denominator2 == 0)
+    denominator_inv = 0;
+     
   /* 'Accretion rate' does not yet have the constant pre-factor */
-  bi->accretion_rate += rhoj * denominator_inv * denominator_inv *
-                        denominator_inv;
-  /*printf("Accretion rate (w/o prefix)=%g\n", bi->accretion_rate); */
+  bi->accretion_rate += (rhoj * denominator_inv * denominator_inv *
+			 denominator_inv);
   
 #ifdef DEBUG_INTERACTIONS_BH
   /* Update ngb counters */
