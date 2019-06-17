@@ -1360,7 +1360,7 @@ esac
 # Gravity scheme.
 AC_ARG_WITH([gravity],
    [AS_HELP_STRING([--with-gravity=<scheme>],
-      [Gravity scheme to use @<:@default, with-potential, default: default@:>@]
+      [Gravity scheme to use @<:@default, with-potential, with-multi-softening default: default@:>@]
    )],
    [with_gravity="$withval"],
    [with_gravity="default"]
@@ -1369,6 +1369,9 @@ AC_ARG_WITH([gravity],
 case "$with_gravity" in
    with-potential)
       AC_DEFINE([POTENTIAL_GRAVITY], [1], [Gravity scheme with potential calculation])
+   ;;
+   with-multi-softening)
+      AC_DEFINE([MULTI_SOFTENING_GRAVITY], [1], [Gravity scheme with per-particle softening value calculated from their mass])
    ;;
    default)
       AC_DEFINE([DEFAULT_GRAVITY], [1], [Default gravity scheme])
