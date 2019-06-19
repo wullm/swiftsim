@@ -739,12 +739,6 @@ int main(int argc, char *argv[]) {
     const int generate_gas_in_ics = parser_get_opt_param_int(
         params, "InitialConditions:generate_gas_in_ics", 0);
 
-    /* Some checks that we are not doing something stupid */
-    if (generate_gas_in_ics && flag_entropy_ICs)
-      error("Can't generate gas if the entropy flag is set in the ICs.");
-    if (generate_gas_in_ics && !with_cosmology)
-      error("Can't generate gas if the run is not cosmological.");
-
     /* Initialise the cosmology */
     if (with_cosmology)
       cosmology_init(params, &us, &prog_const, &cosmo);
@@ -798,13 +792,6 @@ int main(int argc, char *argv[]) {
     } else
       bzero(&black_holes_properties, sizeof(struct black_holes_props));
 
-    /* Initialise the gravity properties */
-    if (with_self_gravity)
-      gravity_props_init(&gravity_properties, params, &cosmo, with_cosmology,
-                         periodic);
-    else
-      bzero(&gravity_properties, sizeof(struct gravity_props));
-
       /* Initialise the cooling function properties */
 #ifdef COOLING_NONE
     if (with_cooling || with_temperature) {
@@ -856,28 +843,31 @@ int main(int argc, char *argv[]) {
     /* Get ready to read particles of all kinds */
     size_t Ngas = 0, Ngpart = 0, Ngpart_background = 0, Nspart = 0, Nbpart = 0;
     double dim[3] = {0., 0., 0.};
+    float high_res_DM_mass = -1.f;
     if (myrank == 0) clocks_gettime(&tic);
 #if defined(HAVE_HDF5)
 #if defined(WITH_MPI)
 #if defined(HAVE_PARALLEL_HDF5)
-    read_ic_parallel(
-        ICfileName, &us, dim, &parts, &gparts, &sparts, &bparts, &Ngas, &Ngpart,
-        &Ngpart_background, &Nspart, &Nbpart, &flag_entropy_ICs, with_hydro,
-        (with_external_gravity || with_self_gravity), with_stars,
-        with_black_holes, cleanup_h, cleanup_sqrt_a, cosmo.h, cosmo.a, myrank,
-        nr_nodes, MPI_COMM_WORLD, MPI_INFO_NULL, nr_threads, dry_run);
+    read_ic_parallel(ICfileName, &us, dim, &parts, &gparts, &sparts, &bparts,
+                     &Ngas, &Ngpart, &Ngpart_background, &Nspart, &Nbpart,
+                     &flag_entropy_ICs, &high_res_DM_mass, with_hydro,
+                     (with_external_gravity || with_self_gravity), with_stars,
+                     with_black_holes, cleanup_h, cleanup_sqrt_a, cosmo.h,
+                     cosmo.a, myrank, nr_nodes, MPI_COMM_WORLD, MPI_INFO_NULL,
+                     nr_threads, dry_run);
 #else
-    read_ic_serial(
-        ICfileName, &us, dim, &parts, &gparts, &sparts, &bparts, &Ngas, &Ngpart,
-        &Ngpart_background, &Nspart, &Nbpart, &flag_entropy_ICs, with_hydro,
-        (with_external_gravity || with_self_gravity), with_stars,
-        with_black_holes, cleanup_h, cleanup_sqrt_a, cosmo.h, cosmo.a, myrank,
-        nr_nodes, MPI_COMM_WORLD, MPI_INFO_NULL, nr_threads, dry_run);
+    read_ic_serial(ICfileName, &us, dim, &parts, &gparts, &sparts, &bparts,
+                   &Ngas, &Ngpart, &Ngpart_background, &Nspart, &Nbpart,
+                   &flag_entropy_ICs, &high_res_DM_mass, with_hydro,
+                   (with_external_gravity || with_self_gravity), with_stars,
+                   with_black_holes, cleanup_h, cleanup_sqrt_a, cosmo.h,
+                   cosmo.a, myrank, nr_nodes, MPI_COMM_WORLD, MPI_INFO_NULL,
+                   nr_threads, dry_run);
 #endif
 #else
     read_ic_single(ICfileName, &us, dim, &parts, &gparts, &sparts, &bparts,
                    &Ngas, &Ngpart, &Ngpart_background, &Nspart, &Nbpart,
-                   &flag_entropy_ICs, with_hydro,
+                   &flag_entropy_ICs, &high_res_DM_mass, with_hydro,
                    (with_external_gravity || with_self_gravity), with_stars,
                    with_black_holes, cleanup_h, cleanup_sqrt_a, cosmo.h,
                    cosmo.a, nr_threads, dry_run);
@@ -889,6 +879,12 @@ int main(int argc, char *argv[]) {
               clocks_diff(&tic, &toc), clocks_getunit());
       fflush(stdout);
     }
+
+    /* Some checks that we are not doing something stupid */
+    if (generate_gas_in_ics && flag_entropy_ICs)
+      error("Can't generate gas if the entropy flag is set in the ICs.");
+    if (generate_gas_in_ics && !with_cosmology)
+      error("Can't generate gas if the run is not cosmological.");
 
 #ifdef SWIFT_DEBUG_CHECKS
     /* Check once and for all that we don't have unwanted links */
@@ -962,6 +958,13 @@ int main(int argc, char *argv[]) {
               clocks_getunit());
       fflush(stdout);
     }
+
+    /* Initialise the gravity properties */
+    if (with_self_gravity)
+      gravity_props_init(&gravity_properties, params, &cosmo, high_res_DM_mass,
+                         with_cosmology, periodic);
+    else
+      bzero(&gravity_properties, sizeof(struct gravity_props));
 
     /* Initialise the external potential properties */
     bzero(&potential, sizeof(struct external_potential));
