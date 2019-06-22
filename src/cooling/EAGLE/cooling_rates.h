@@ -318,7 +318,7 @@ INLINE static double eagle_metal_cooling_rate(
     const struct cooling_function_data *cooling, double *element_lambda, const int recompute_flag) {
 
   /* Temperature */
-  const double log_10_T = eagle_convert_u_to_temp(
+  double log_10_T = eagle_convert_u_to_temp(
       log10_u_cgs, redshift, n_H_index, He_index, d_n_H, d_He, cooling);
 
   /* Get index along temperature dimension of the tables */

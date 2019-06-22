@@ -24,7 +24,7 @@ index = range(len(u_bisection))
 
 relative_error = 2. * (u_bisection - u_jump) / (u_bisection + u_jump)
 max_err_index = np.argmax(relative_error)
-print(np.max(relative_error), max_err_index)
+print(np.max(np.abs(relative_error)), max_err_index)
 print(u_i[max_err_index], nh_i[max_err_index], Z_i[max_err_index])
 print(u_bisection[max_err_index],u_jump[max_err_index])
 

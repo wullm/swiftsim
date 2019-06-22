@@ -324,11 +324,15 @@ INLINE static double bisection_iter(
   // Diagnostics to see why we're taking so many iterations in bisection
   ////double u_record[bisection_max_iterations][3];
   //////int u_record_index[bisection_max_iterations][2];
+    
+  int T_index;
+  float d_T;
 
   do {
 
     /* New guess at the half-point in log-space */
     u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
+    message("first loop u_upper lower next %.5e %.5e %.5e", u_upper_cgs, u_lower_cgs, u_next_cgs);
 
     //u_record[i][0] = u_upper_cgs;
     //u_record[i][1] = u_lower_cgs;
@@ -341,32 +345,35 @@ INLINE static double bisection_iter(
         log10(u_next_cgs), redshift, n_H_index, He_index, d_n_H, d_He, cooling);
 
     /* Get index along temperature dimension of the tables */
-    int T_index;
-    float d_T;
     get_index_1d(cooling->Temp, eagle_cooling_N_temperature, log_10_T, &T_index,
                  &d_T);
+    message("T_index d_T %d %.5e", T_index, d_T);
 
     /* Check if we're in the same grid cell as last iteration */
-    if (T_index != T_index_old) {
+    //if (T_index != T_index_old) {
       // If we're not, set flag to recompute, save current index to old
       recompute_cooling_rate_flag = 2;
+      message("T index %d old %d", T_index, T_index_old);
       T_index_old = T_index;
-    } else {
-      // If we're in the same cell calculate cooling rates at upper and lower grid points
+    //} else {
+    //  // If we're in the same cell calculate cooling rates at upper and lower grid points
       LambdaNet_upper_cgs = eagle_cooling_rate(log10(u_next_cgs), redshift, n_H_cgs,
                                 abundance_ratio, n_H_index, d_n_H,
                                 He_index, d_He, cooling, 1);
       LambdaNet_lower_cgs = eagle_cooling_rate(log10(u_next_cgs), redshift, n_H_cgs,
                                 abundance_ratio, n_H_index, d_n_H,
                                 He_index, d_He, cooling, 0);
-      break;
-    }
+    //  recompute_cooling_rate_flag = 0;
+      message("Lambda lower upper %.5e %.5e", LambdaNet_lower_cgs, LambdaNet_upper_cgs);
+    //  break;
+    //}
 
     /* New rate */
     LambdaNet_cgs = Lambda_He_reion_cgs +
                     eagle_cooling_rate(log10(u_next_cgs), redshift, n_H_cgs,
                                        abundance_ratio, n_H_index, d_n_H,
                                        He_index, d_He, cooling, recompute_cooling_rate_flag);
+    message("Lambda %.5e", LambdaNet_cgs);
 #ifdef SWIFT_DEBUG_CHECKS
     if (u_next_cgs <= 0)
       error(
@@ -386,55 +393,39 @@ INLINE static double bisection_iter(
   } while (fabs(u_upper_cgs - u_lower_cgs) / u_next_cgs > bisection_tolerance &&
            i < bisection_max_iterations);
   
-  if (recompute_cooling_rate_flag != 2) {
-    do {
-      /* New guess at the half-point in log-space */
-      u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
+  //message("should be starting second loop, cooling rate flag %d", recompute_cooling_rate_flag);
+  //if (recompute_cooling_rate_flag != 2) {
+  //  do {
+  //    /* New guess at the half-point in log-space */
+  //    u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
+  //    message("second loop u_upper lower next %.5e %.5e %.5e", u_upper_cgs, u_lower_cgs, u_next_cgs);
 
-      // Get temperature grid cell
-      const double log_10_T = eagle_convert_u_to_temp(
-          log10(u_next_cgs), redshift, n_H_index, He_index, d_n_H, d_He, cooling);
+  //    // Get temperature grid cell
+  //    const double log_10_T = eagle_convert_u_to_temp(
+  //        log10(u_next_cgs), redshift, n_H_index, He_index, d_n_H, d_He, cooling);
 
-      /* Get index along temperature dimension of the tables */
-      int T_index;
-      float d_T;
-      get_index_1d(cooling->Temp, eagle_cooling_N_temperature, log_10_T, &T_index,
-                   &d_T);
-      LambdaNet_cgs = Lambda_He_reion_cgs + d_T * LambdaNet_upper_cgs + (1.f - d_T) * LambdaNet_lower_cgs;
+  //    /* Get index along temperature dimension of the tables */
+  //    get_index_1d(cooling->Temp, eagle_cooling_N_temperature, log_10_T, &T_index,
+  //                 &d_T);
+  //    LambdaNet_cgs = Lambda_He_reion_cgs + d_T * LambdaNet_upper_cgs + (1.f - d_T) * LambdaNet_lower_cgs;
 
-      /* Where do we go next? */
-      if (u_next_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs > 0.0) {
-        u_upper_cgs = u_next_cgs;
-      } else {
-        u_lower_cgs = u_next_cgs;
-      }
+  //    /* Where do we go next? */
+  //    if (u_next_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs > 0.0) {
+  //      u_upper_cgs = u_next_cgs;
+  //    } else {
+  //      u_lower_cgs = u_next_cgs;
+  //    }
 
-    } while (fabs(u_upper_cgs - u_lower_cgs) / u_next_cgs > bisection_tolerance &&
-           i < bisection_max_iterations);
-  }
+  //    i++;
 
-  //if (dt_cgs > 0 && i > 15) {
-  //  for (int j = 0; j < i; j++) message("iter %d u_upper %.5e lower %.5e next %.5e index upper %d lower %d", j, u_record[j][0], u_record[j][1], u_record[j][2], u_record_index[j][0], u_record_index[j][1]);
-  //  message("Many bisection iterations");
-  //}
-  
-  //float max_error = 0;
-  //for (int k = 0; k < i; k++) max_error = max(max_error,
-  //        (fabs(2.*(u_jump_cgs_first - u_record[i-1][0])/(u_jump_cgs_first + u_record[i-1][0])) < 1.9) ? fabs(2.*(u_jump_cgs_first - u_record[i-1][0])/(u_jump_cgs_first + u_record[i-1][0])) : 0);
-  
-  //if (dt_cgs > 0 && fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs > 0.1) {
-  //if (dt_cgs > 0) {
-  //  message("bisection %.5e jump %.5e error %.5e iterations %d f upper lower %.5e %.5e a %.5e b %.5e", u_upper_cgs, u_jump_cgs[i-1], fabs(u_jump_cgs[i-1] - u_upper_cgs)/u_upper_cgs, i, f_upper_cgs, f_lower_cgs, a[i-1], b[i-1]);
-  //  for (int j = 0; j < i; j++)
-  //    message("iteration %d u upper lower mid %.5e %.5e %.5e jump %.5e error %.5e a b %.5e %.5e index upper lower %d %d", j, u_record[j][0], u_record[j][1], u_record[j][2], u_jump_cgs[j], 2.*(u_jump_cgs[j] - u_record[i-1][0])/(u_jump_cgs[j] + u_record[i-1][0]), a[j], b[j], u_upper_index[j], u_lower_index[j]);
+  //  } while (fabs(u_upper_cgs - u_lower_cgs) / u_next_cgs > bisection_tolerance &&
+  //         i < bisection_max_iterations);
   //}
 
   cooling->bisection_iterations += i;
   if (i >= bisection_max_iterations)
     error("Particle id %llu failed to converge", ID);
 
-  //message("u bisection %.5e jump %.5e", u_upper_cgs, u_jump_cgs_first);
-  //return u_jump_cgs_first;
   return u_upper_cgs;
 }
 
