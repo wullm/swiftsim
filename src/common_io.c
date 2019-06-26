@@ -393,8 +393,8 @@ static long long cell_count_non_inhibited_gas(const struct cell* c) {
   struct part* parts = c->hydro.parts;
   long long count = 0;
   for (int i = 0; i < total_count; ++i) {
-    if (!(parts[i].time_bin != time_bin_inhibited) &&
-        !(parts[i].time_bin != time_bin_not_created)) {
+    if ((parts[i].time_bin != time_bin_inhibited) &&
+        (parts[i].time_bin != time_bin_not_created)) {
       ++count;
     }
   }
@@ -406,8 +406,8 @@ static long long cell_count_non_inhibited_dark_matter(const struct cell* c) {
   struct gpart* gparts = c->grav.parts;
   long long count = 0;
   for (int i = 0; i < total_count; ++i) {
-    if (!(gparts[i].time_bin != time_bin_inhibited) &&
-        !(gparts[i].time_bin != time_bin_not_created) &&
+    if ((gparts[i].time_bin != time_bin_inhibited) &&
+        (gparts[i].time_bin != time_bin_not_created) &&
         (gparts[i].type == swift_type_dark_matter)) {
       ++count;
     }
@@ -421,8 +421,8 @@ static long long cell_count_non_inhibited_background_dark_matter(
   struct gpart* gparts = c->grav.parts;
   long long count = 0;
   for (int i = 0; i < total_count; ++i) {
-    if (!(gparts[i].time_bin != time_bin_inhibited) &&
-        !(gparts[i].time_bin != time_bin_not_created) &&
+    if ((gparts[i].time_bin != time_bin_inhibited) &&
+        (gparts[i].time_bin != time_bin_not_created) &&
         (gparts[i].type == swift_type_dark_matter_background)) {
       ++count;
     }
@@ -435,8 +435,8 @@ static long long cell_count_non_inhibited_stars(const struct cell* c) {
   struct spart* sparts = c->stars.parts;
   long long count = 0;
   for (int i = 0; i < total_count; ++i) {
-    if (!(sparts[i].time_bin != time_bin_inhibited) &&
-        !(sparts[i].time_bin != time_bin_not_created)) {
+    if ((sparts[i].time_bin != time_bin_inhibited) &&
+        (sparts[i].time_bin != time_bin_not_created)) {
       ++count;
     }
   }
@@ -448,8 +448,8 @@ static long long cell_count_non_inhibited_black_holes(const struct cell* c) {
   struct bpart* bparts = c->black_holes.parts;
   long long count = 0;
   for (int i = 0; i < total_count; ++i) {
-    if (!(bparts[i].time_bin != time_bin_inhibited) &&
-        !(bparts[i].time_bin != time_bin_not_created)) {
+    if ((bparts[i].time_bin != time_bin_inhibited) &&
+        (bparts[i].time_bin != time_bin_not_created)) {
       ++count;
     }
   }
@@ -465,6 +465,14 @@ void io_write_cell_offsets(hid_t h_grp, const int cdim[3],
                            const struct unit_system* snapshot_units) {
 
   double cell_width[3] = {width[0], width[1], width[2]};
+
+  message("global_counts: %lld %lld %lld %lld %lld %lld", global_counts[0],
+          global_counts[1], global_counts[2], global_counts[3],
+          global_counts[4], global_counts[5]);
+
+  message("global_offsets: %lld %lld %lld %lld %lld %lld", global_offsets[0],
+          global_offsets[1], global_offsets[2], global_offsets[3],
+          global_offsets[4], global_offsets[5]);
 
   /* Temporary memory for the cell-by-cell information */
   double* centres = NULL;
@@ -519,6 +527,10 @@ void io_write_cell_offsets(hid_t h_grp, const int cdim[3],
           cell_count_non_inhibited_background_dark_matter(&cells_top[i]);
       count_spart[i] = cell_count_non_inhibited_stars(&cells_top[i]);
       count_bpart[i] = cell_count_non_inhibited_black_holes(&cells_top[i]);
+
+      if (count_background_gpart[i] == 0)
+        message("count_gpart = %lld count_gpart_back = %lld", count_gpart[i],
+                count_background_gpart[i]);
 
       /* Offsets including the global offset of all particles on this MPI rank
        */
