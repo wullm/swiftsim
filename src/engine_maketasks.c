@@ -1324,6 +1324,118 @@ void engine_make_external_gravity_tasks(struct engine *e) {
 }
 
 /**
+ * @brief Recurse down a pair of cells and mark the cells that have hydro
+ *        interactions.
+ */
+void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
+                                 struct cell *cj) {
+  const int with_feedback = (e->policy & engine_policy_feedback);
+
+  /* If we've even gotten this far, then it means that thes cells have
+     hydro interactions. */
+  cell_set_flag(ci, cell_flag_has_hydro_interactions);
+  if (cj != NULL) cell_set_flag(cj, cell_flag_has_hydro_interactions);
+
+  /* Self-interaction? */
+  if (cj == NULL) {
+    /* Can the cell not be split? */
+    if (!cell_can_split_self_hydro_task(ci)) {
+      return;
+    }
+
+    /* Cell can be split, recurse. */
+    else {
+      for (int k = 0; k < 8; k++) {
+        if (ci->progeny[k] != NULL &&
+            (ci->progeny[k]->hydro.count ||
+             (with_feedback && ci->progeny[k]->stars.count))) {
+          count += engine_mark_hydro_cells_rec(e, ci->progeny[k], NULL);
+          for (int j = k + 1; j < 8; j++) {
+            if (ci->progeny[j] != NULL &&
+                (ci->progeny[j]->hydro.count ||
+                 (with_feedback && ci->progeny[j]->stars.count))) {
+              engine_mark_hydro_cells_rec(e, ci->progeny[k], ci->progeny[j]);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* Pair interaction. */
+  else {
+    /* Can this pair not be split further? */
+    if (!cell_can_split_pair_hydro_task(ci) ||
+        !cell_can_split_pair_hydro_task(cj)) {
+      return;
+    }
+
+    /* This pair can be split, so recurse. */
+    else {
+      double shift[3];
+      const int sid = space_getsid(s->space, &ci, &cj, shift);
+      struct cell_split_pair *csp = &cell_split_pairs[sid];
+      for (int k = 0; k < csp->count; k++) {
+        int pid = csp->pairs[k].pid;
+        int pjd = csp->pairs[k].pjd;
+        if (ci->progeny[pid] != NULL &&
+            (ci->progeny[pid]->hydro.count ||
+             (with_feedback && ci->progeny[pid]->stars.count)) &&
+            cj->progeny[pjd] != NULL &&
+            (cj->progeny[pjd]->hydro.count ||
+             (with_feedback && cj->progeny[pjd]->stars.count))) {
+          engine_mark_hydro_cells_rec(e, ci->progeny[pid], cj->progeny[pjd]);
+        }
+      }
+    }
+  }
+
+  /* If we've made it this far, then we have progeny with hydro interactions. */
+  cell_set_flag(ci, cell_flag_has_hydro_interactions_in_progeny);
+  if (cj != NULL)
+    cell_set_flag(cj, cell_flag_has_hydro_interactions_in_progeny);
+
+  /* Our work here is done. */
+  return;
+}
+
+void engine_mark_hydro_cells(struct engine *e, struct task *t) {
+  /* We are only interested in density/hydro tasks. */
+  if (t->subtype != task_subtype_density) return;
+
+  if (t->type == task_type_self) {
+    cell_set_flag(t->ci, cell_flag_has_hydro_interactions);
+  } else if (t->type == task_type_pair) {
+    cell_set_flag(t->ci, cell_flag_has_hydro_interactions);
+    cell_set_flag(t->cj, cell_flag_has_hydro_interactions);
+  } else if (t->type == task_type_sub_self || t->type == task_type_sub_pair) {
+    engine_mark_hydro_cells_rec(e, t->ci, t->cj);
+  }
+
+  /* Otherwise, baild here. */
+  else {
+    return;
+  }
+
+  /* If we made it this far, then this task's cells have hydro interactions,
+     and so we must tell their parents. */
+  for (struct cell *finger = t->ci->parent;
+       finger != NULL &&
+       !cell_get_flag(finger, cell_flag_has_hydro_interactions_in_progeny);
+       finger = finger->parent) {
+    cell_set_flag(finger, cell_flag_has_hydro_interactions_in_progeny);
+  }
+  if (t->cj != NULL) {
+    for (struct cell *finger = t->cj->parent;
+         finger != NULL &&
+         !cell_get_flag(finger, cell_flag_has_hydro_interactions_in_progeny);
+         finger = finger->parent) {
+      cell_set_flag(finger, cell_flag_has_hydro_interactions_in_progeny);
+    }
+  }
+}
+
+/**
  * @brief Counts the tasks associated with one cell and constructs the links
  *
  * For each hydrodynamic and gravity task, construct the links with
