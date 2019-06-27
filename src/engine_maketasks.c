@@ -1327,8 +1327,7 @@ void engine_make_external_gravity_tasks(struct engine *e) {
  * @brief Counts the tasks associated with one cell and constructs the links
  *
  * For each hydrodynamic and gravity task, construct the links with
- * the corresponding cell.  Similarly, construct the dependencies for
- * all the sorting tasks.
+ * the corresponding cell.
  */
 void engine_count_and_link_tasks_mapper(void *map_data, int num_elements,
                                         void *extra_data) {
