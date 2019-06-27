@@ -288,7 +288,8 @@ enum cell_flags {
   cell_flag_do_stars_drift = (1UL << 9),
   cell_flag_do_stars_sub_drift = (1UL << 10),
   cell_flag_do_bh_drift = (1UL << 11),
-  cell_flag_do_bh_sub_drift = (1UL << 12)
+  cell_flag_do_bh_sub_drift = (1UL << 12),
+  cell_flag_has_hydro_tasks_in_progeny = (1UL << 13)
 };
 
 /**
