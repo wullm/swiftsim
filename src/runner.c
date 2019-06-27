@@ -1307,7 +1307,7 @@ void runner_do_sort_ascending(struct sort_entry *sort, int N) {
   void runner_check_sorts_##TYPE(struct cell *c, int flags) {                  \
                                                                                \
     if (flags & ~c->TYPE.sorted) error("Inconsistent sort flags (downward)!"); \
-    if (c->split)                                                              \
+    if (c->split)          \
       for (int k = 0; k < 8; k++)                                              \
         if (c->progeny[k] != NULL && c->progeny[k]->TYPE.count > 0)            \
           runner_check_sorts_##TYPE(c->progeny[k], c->TYPE.sorted);            \
@@ -1380,31 +1380,9 @@ void runner_do_hydro_sort(struct runner *r, struct cell *c, int flags,
   /* Allocate memory for sorting. */
   cell_malloc_hydro_sorts(c, flags);
 
-  /* Shall we recurse to a lower level? */
-  int recurse = 0;
+  /* Compute the sorts recursively if we do indeed need sorts at any level
+     below the current one. */
   if (c->split) {
-    for (int k = 0; k < 8; k++) {
-
-      const struct cell *cp = c->progeny[k];
-
-      if (cp != NULL && cp->hydro.count > 0) { /* Are there any parts? */
-
-        const int do_sub_sort = cell_get_flag(cp, cell_flag_do_hydro_sub_sort);
-
-        if (cp->hydro.requires_sorts ||    /* Do they need sorting? */
-            (cp->hydro.do_sort | flags) || /* Are we forcing a sort? */
-            do_sub_sort) { /* Do we want a sort at a lower level? */
-
-          /* Ok, recurse */
-          recurse = 1;
-          break;
-        }
-      }
-    }
-  }
-
-  /* Are we going to a lower level? */
-  if (recurse) {
 
     /* Fill in the gaps within the progeny. */
     float dx_max_sort = 0.0f;
