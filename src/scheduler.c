@@ -869,11 +869,9 @@ static void scheduler_splittask_gravity(struct task *t, struct scheduler *s) {
  * @param s The #scheduler we are working in.
  */
 static void scheduler_splittask_fof(struct task *t, struct scheduler *s) {
-
   /* Iterate on this task until we're done with it. */
   int redo = 1;
   while (redo) {
-
     /* Reset the redo flag. */
     redo = 0;
 
@@ -889,7 +887,6 @@ static void scheduler_splittask_fof(struct task *t, struct scheduler *s) {
 
     /* Self-interaction? */
     if (t->type == task_type_fof_self) {
-
       /* Get a handle on the cell involved. */
       struct cell *ci = t->ci;
 
@@ -901,7 +898,6 @@ static void scheduler_splittask_fof(struct task *t, struct scheduler *s) {
 
       /* Is this cell even split? */
       if (cell_can_split_self_fof_task(ci)) {
-
         /* Take a step back (we're going to recycle the current task)... */
         redo = 1;
 
@@ -997,7 +993,6 @@ void scheduler_splittasks_mapper(void *map_data, int num_elements,
  * (0)?
  */
 void scheduler_splittasks(struct scheduler *s, const int fof_tasks) {
-
   if (fof_tasks) {
     /* Call the mapper on each current task. */
     threadpool_map(s->threadpool, scheduler_splittasks_fof_mapper, s->tasks,
@@ -1222,7 +1217,6 @@ void scheduler_ranktasks(struct scheduler *s) {
  * @param size The maximum number of tasks in the #scheduler.
  */
 void scheduler_reset(struct scheduler *s, int size) {
-
   /* Do we need to re-allocate? */
   if (size > s->size) {
     /* Free existing task lists if necessary. */

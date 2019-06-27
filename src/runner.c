@@ -1307,7 +1307,7 @@ void runner_do_sort_ascending(struct sort_entry *sort, int N) {
   void runner_check_sorts_##TYPE(struct cell *c, int flags) {                  \
                                                                                \
     if (flags & ~c->TYPE.sorted) error("Inconsistent sort flags (downward)!"); \
-    if (c->split)          \
+    if (c->split)                                                              \
       for (int k = 0; k < 8; k++)                                              \
         if (c->progeny[k] != NULL && c->progeny[k]->TYPE.count > 0)            \
           runner_check_sorts_##TYPE(c->progeny[k], c->TYPE.sorted);            \
