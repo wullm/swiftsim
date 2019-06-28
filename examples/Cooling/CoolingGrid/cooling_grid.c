@@ -203,19 +203,19 @@ int main(int argc, char **argv) {
   const int n_Z = 100;
 
   // Loop over internal energy
-  //for (int u_i = 0; u_i < n_u; u_i++) {
-  for (int u_i = 27; u_i < 28; u_i++) {
+  for (int u_i = 0; u_i < n_u; u_i++) {
+  //for (int u_i = 99; u_i < 100; u_i++) {
     const double u_ini_cgs = exp10(log10_u_min_cgs + u_i * (log10_u_max_cgs - log10_u_min_cgs)/n_u);
     const double u_ini = u_ini_cgs/units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
 
     // Loop over hydrogen number density
-    //for (int nh_i = 0; nh_i < n_nh; nh_i++) {
-    for (int nh_i = 69; nh_i < 70; nh_i++) {
+    for (int nh_i = 0; nh_i < n_nh; nh_i++) {
+    //for (int nh_i = 98; nh_i < 99; nh_i++) {
       const float nh_cgs = exp10(log10_nh_min_cgs + nh_i * (log10_nh_max_cgs - log10_nh_min_cgs)/n_nh);
 
       // Loop over metallicities
-      //for (int Z_i = 0; Z_i < n_Z; Z_i++) {
-      for (int Z_i = 68; Z_i < 69; Z_i++) {
+      for (int Z_i = 0; Z_i < n_Z; Z_i++) {
+      //for (int Z_i = 82; Z_i < 83; Z_i++) {
         const float Z = exp10(log10_Z_min + Z_i * (log10_Z_max - log10_Z_min)/n_Z);
 
 	    // Update particle data

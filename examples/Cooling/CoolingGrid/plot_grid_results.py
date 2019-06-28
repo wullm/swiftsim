@@ -3,10 +3,10 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-data = np.loadtxt("cooling_energy_evolution_bisection_log.dat")
+data = np.loadtxt("cooling_energy_evolution_bisection_log_newest.dat")
 u_bisection = data[:,1]
 
-data = np.loadtxt("cooling_iterations_bisection_log.dat")
+data = np.loadtxt("cooling_iterations_bisection_log_newest.dat")
 u_ini_bisection = data[:,0]
 iteration_bisection = data[:,1] + data[:,2] + data[:,3]
 
@@ -23,7 +23,7 @@ Z_i = data[:,6]
 index = range(len(u_bisection))
 
 relative_error = 2. * (u_bisection - u_jump) / (u_bisection + u_jump)
-max_err_index = np.argmax(relative_error)
+max_err_index = np.argmax(np.abs(relative_error))
 print(np.max(np.abs(relative_error)), max_err_index)
 print(u_i[max_err_index], nh_i[max_err_index], Z_i[max_err_index])
 print(u_bisection[max_err_index],u_jump[max_err_index])
