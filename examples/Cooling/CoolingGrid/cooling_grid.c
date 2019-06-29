@@ -230,15 +230,16 @@ int main(int argc, char **argv) {
                        // Set to non const for counting, remove for production
                        //const struct cooling_function_data *cooling,
                        &cooling, &p, &xp, dt, dt_therm);
-        const double u_final_cgs = u_final * units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
+        double u_final_cgs = u_final * units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
         
 	    // Update the particle's internal energy
 	    const float du_dt_new = hydro_get_physical_internal_energy_dt(&p, &cosmo);
 	    hydro_set_physical_internal_energy(&p, &xp, &cosmo, u_ini + dt * du_dt_new);
+	    hydro_set_drifted_physical_internal_energy(&p, &cosmo, u_ini + dt * du_dt_new);
 
 	    // Get the final energy of the particle
-	    //const double u_final_cgs = hydro_get_physical_internal_energy(&p,&xp,&cosmo) *
-	    //			   units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
+	    u_final_cgs = hydro_get_physical_internal_energy(&p,&xp,&cosmo) *
+	    	          units_cgs_conversion_factor(&us,UNIT_CONV_ENERGY_PER_UNIT_MASS);
 
 	    // Save relevant data
 	    fprintf(output_iterations_file, "%.5e %d %d %d %d %d %d\n", 

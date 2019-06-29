@@ -208,9 +208,7 @@ INLINE static double bisection_iter(
     const int n_H_index, const float d_n_H, const int He_index,
     const float d_He, const double Lambda_He_reion_cgs,
     const double ratefact_cgs,
-    // Set to non const for counting, remove for production
-    //const struct cooling_function_data *restrict cooling,
-    struct cooling_function_data *restrict cooling,
+    const struct cooling_function_data *restrict cooling,
     const float abundance_ratio[chemistry_element_count + 2],
     const double dt_cgs, const long long ID) {
 
@@ -260,7 +258,6 @@ INLINE static double bisection_iter(
                                          He_index, d_He, cooling, recompute_cooling_rate_flag);
       i++;
     }
-    cooling->bisection_cooling_bound_iterations += i;
 
     if (i >= bisection_max_iterations) {
       error(
@@ -295,7 +292,6 @@ INLINE static double bisection_iter(
                                          He_index, d_He, cooling, recompute_cooling_rate_flag);
       i++;
     }
-    cooling->bisection_heating_bound_iterations += i;
 
     if (i >= bisection_max_iterations) {
       error(
@@ -314,15 +310,20 @@ INLINE static double bisection_iter(
   int i = 0;
   double u_next_cgs;
 
+#define do_not_interpolate_last_grid_cell 1
+
+#ifdef do_not_interpolate_last_grid_cell
   int T_index;
   float d_T;
   double LambdaNet_upper_cgs, LambdaNet_lower_cgs;
+#endif
 
   do {
 
     /* New guess at the half-point in log-space */
     u_next_cgs = sqrt(u_upper_cgs * u_lower_cgs);
 
+#ifdef do_not_interpolate_last_grid_cell
     /* Get temperature corresponding to internal energy upper and lower bounds */
     const double log_10_T_upper = eagle_convert_u_to_temp(
         log10(u_upper_cgs), redshift, n_H_index, He_index, d_n_H, d_He, cooling);
@@ -352,6 +353,11 @@ INLINE static double bisection_iter(
       recompute_cooling_rate_flag = 0;
       break;
     }
+#endif
+
+#ifndef do_not_interpolate_last_grid_cell
+    recompute_cooling_rate_flag = 2;
+#endif
 
     /* New rate */
     LambdaNet_cgs = Lambda_He_reion_cgs +
@@ -377,6 +383,7 @@ INLINE static double bisection_iter(
   } while (fabs(u_upper_cgs - u_lower_cgs) / u_next_cgs > bisection_tolerance &&
            i < bisection_max_iterations);
   
+#ifdef do_not_interpolate_last_grid_cell
   /* Second loop to complete bisection when within one grid cell */
   if (recompute_cooling_rate_flag != 2) {
     do {
@@ -404,8 +411,8 @@ INLINE static double bisection_iter(
     } while (fabs(u_upper_cgs - u_lower_cgs) / u_next_cgs > bisection_tolerance &&
            i < bisection_max_iterations);
   }
+#endif
 
-  cooling->bisection_iterations += i;
   if (i >= bisection_max_iterations)
     error("Particle id %llu failed to converge", ID);
 
@@ -453,9 +460,7 @@ double cooling_cool_part(const struct phys_const *phys_const,
                        const struct cosmology *cosmo,
                        const struct hydro_props *hydro_properties,
                        const struct entropy_floor_properties *floor_props,
-		       // Set to non const for counting, remove for production
-                       //const struct cooling_function_data *cooling,
-                       struct cooling_function_data *cooling,
+                       const struct cooling_function_data *cooling,
                        struct part *restrict p, struct xpart *restrict xp,
                        const float dt, const float dt_therm) {
 
