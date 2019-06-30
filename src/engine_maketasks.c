@@ -50,6 +50,7 @@
 #include "debug.h"
 #include "error.h"
 #include "proxy.h"
+#include "space_getsid.h"
 #include "timers.h"
 
 extern int engine_max_parts_per_ghost;
@@ -1331,15 +1332,11 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
                                  struct cell *cj) {
   const int with_feedback = (e->policy & engine_policy_feedback);
 
-  /* If we've even gotten this far, then it means that thes cells have
-     hydro interactions. */
-  cell_set_flag(ci, cell_flag_has_hydro_interactions);
-  if (cj != NULL) cell_set_flag(cj, cell_flag_has_hydro_interactions);
-
   /* Self-interaction? */
   if (cj == NULL) {
     /* Can the cell not be split? */
     if (!cell_can_split_self_hydro_task(ci)) {
+      cell_set_flag(ci, cell_flag_has_hydro_interactions);
       return;
     }
 
@@ -1349,7 +1346,7 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
         if (ci->progeny[k] != NULL &&
             (ci->progeny[k]->hydro.count ||
              (with_feedback && ci->progeny[k]->stars.count))) {
-          count += engine_mark_hydro_cells_rec(e, ci->progeny[k], NULL);
+          engine_mark_hydro_cells_rec(e, ci->progeny[k], NULL);
           for (int j = k + 1; j < 8; j++) {
             if (ci->progeny[j] != NULL &&
                 (ci->progeny[j]->hydro.count ||
@@ -1367,13 +1364,15 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
     /* Can this pair not be split further? */
     if (!cell_can_split_pair_hydro_task(ci) ||
         !cell_can_split_pair_hydro_task(cj)) {
+      cell_set_flag(ci, cell_flag_has_hydro_interactions);
+      cell_set_flag(cj, cell_flag_has_hydro_interactions);
       return;
     }
 
     /* This pair can be split, so recurse. */
     else {
       double shift[3];
-      const int sid = space_getsid(s->space, &ci, &cj, shift);
+      const int sid = space_getsid(e->s, &ci, &cj, shift);
       struct cell_split_pair *csp = &cell_split_pairs[sid];
       for (int k = 0; k < csp->count; k++) {
         int pid = csp->pairs[k].pid;
@@ -1453,6 +1452,9 @@ void engine_count_and_link_tasks_mapper(void *map_data, int num_elements,
     struct cell *cj = t->cj;
     const enum task_types t_type = t->type;
     const enum task_subtypes t_subtype = t->subtype;
+
+    /* Mark cells as potentially having hydro interactions. */
+    engine_mark_hydro_cells(e, t);
 
     /* Link self tasks to cells. */
     if (t_type == task_type_self) {
