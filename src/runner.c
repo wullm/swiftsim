@@ -1307,7 +1307,8 @@ void runner_do_sort_ascending(struct sort_entry *sort, int N) {
   void runner_check_sorts_##TYPE(struct cell *c, int flags) {                  \
                                                                                \
     if (flags & ~c->TYPE.sorted) error("Inconsistent sort flags (downward)!"); \
-    if (c->split)                                                              \
+    if (c->split &&                                                            \
+        cell_get_flag(c, cell_flag_has_##TYPE##_interactions_in_progeny))      \
       for (int k = 0; k < 8; k++)                                              \
         if (c->progeny[k] != NULL && c->progeny[k]->TYPE.count > 0)            \
           runner_check_sorts_##TYPE(c->progeny[k], c->TYPE.sorted);            \
@@ -1382,7 +1383,12 @@ void runner_do_hydro_sort(struct runner *r, struct cell *c, int flags,
 
   /* Compute the sorts recursively if we do indeed need sorts at any level
      below the current one. */
-  if (c->split) {
+  if (c->split /* &&
+      cell_get_flag(c, cell_flag_has_hydro_interactions_in_progeny) */) {
+      
+    /* Check if we wouldn't want to split here. */
+    if (!cell_get_flag(c, cell_flag_has_hydro_interactions_in_progeny))
+      message("Recursing sort in cell that has no further hydro interactions.");
 
     /* Fill in the gaps within the progeny. */
     float dx_max_sort = 0.0f;
