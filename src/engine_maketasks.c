@@ -1335,7 +1335,7 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
   /* Self-interaction? */
   if (cj == NULL) {
     /* Can the cell not be split? */
-    if (!cell_can_split_self_hydro_task(ci)) {
+    if (!cell_can_recurse_in_self_hydro_task(ci)) {
       cell_set_flag(ci, cell_flag_has_hydro_interactions);
       return;
     }
@@ -1362,8 +1362,8 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
   /* Pair interaction. */
   else {
     /* Can this pair not be split further? */
-    if (!cell_can_split_pair_hydro_task(ci) ||
-        !cell_can_split_pair_hydro_task(cj)) {
+    if (!cell_can_recurse_in_pair_hydro_task(ci) ||
+        !cell_can_recurse_in_pair_hydro_task(cj)) {
       cell_set_flag(ci, cell_flag_has_hydro_interactions);
       cell_set_flag(cj, cell_flag_has_hydro_interactions);
       return;
