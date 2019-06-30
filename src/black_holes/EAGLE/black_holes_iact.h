@@ -84,6 +84,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_bh_density(
   bi->velocity_gas[1] += mj * vj[1] * wi;
   bi->velocity_gas[2] += mj * vj[2] * wi;
 
+  /* Contribution to the circular valocity */
+  const float dv[3] = {bi->v[0] - vj[0], bi->v[1] - vj[1], bi->v[2] - vj[2]};
+  bi->circular_velocity_gas[0] += mj * wi * (dx[1] * dv[2] - dx[2] * dv[1]);
+  bi->circular_velocity_gas[1] += mj * wi * (dx[2] * dv[0] - dx[0] * dv[2]);
+  bi->circular_velocity_gas[2] += mj * wi * (dx[0] * dv[1] - dx[1] * dv[0]);
+
 #ifdef DEBUG_INTERACTIONS_BH
   /* Update ngb counters */
   if (si->num_ngb_density < MAX_NUM_OF_NEIGHBOURS_BH)
@@ -202,7 +208,7 @@ runner_iact_nonsym_bh_feedback(const float r2, const float *dx, const float hi,
       hydro_set_drifted_physical_internal_energy(pj, cosmo, u_new);
 
       /* Impose maximal viscosity */
-      hydro_set_viscosity_alpha_max_feedback(pj);
+      hydro_diffusive_feedback_reset(pj);
 
       /* message( */
       /*     "We did some AGN heating! id %llu BH id %llu probability " */
