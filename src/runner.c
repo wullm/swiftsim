@@ -1383,12 +1383,8 @@ void runner_do_hydro_sort(struct runner *r, struct cell *c, int flags,
 
   /* Compute the sorts recursively if we do indeed need sorts at any level
      below the current one. */
-  if (c->split /* &&
-      cell_get_flag(c, cell_flag_has_hydro_interactions_in_progeny) */) {
-      
-    /* Check if we wouldn't want to split here. */
-    if (!cell_get_flag(c, cell_flag_has_hydro_interactions_in_progeny))
-      message("Recursing sort in cell that has no further hydro interactions.");
+  if (c->split &&
+      cell_get_flag(c, cell_flag_has_hydro_interactions_in_progeny)) {
 
     /* Fill in the gaps within the progeny. */
     float dx_max_sort = 0.0f;
