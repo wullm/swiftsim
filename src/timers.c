@@ -120,7 +120,7 @@ const char* timers_names[timer_count] = {
     "dopair_bh_feedback",
     "dosub_self_bh_feedback",
     "dosub_pair_bh_feedback",
-    "do_black_holes_ghost"
+    "do_black_holes_ghost",
 };
 
 /* File to store the timers */
@@ -131,7 +131,6 @@ static FILE* timers_file;
  *
  */
 void timers_reset_all(void) {
-
   for (int k = 0; k < timer_count; k++) timers[k] = 0;
 }
 
@@ -154,7 +153,6 @@ void timers_print(int step) {
  * @param rank The MPI rank of the file.
  */
 void timers_open_file(int rank) {
-
   char buff[100];
   sprintf(buff, "timers_%d.txt", rank);
   timers_file = fopen(buff, "w");
