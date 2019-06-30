@@ -108,6 +108,19 @@ const char* timers_names[timer_count] = {
     "do_stars_sort",
     "fof_self",
     "fof_pair",
+    "doself_bh_density",
+    "dopair_bh_density",
+    "dosub_self_bh_density",
+    "dosub_pair_bh_density",
+    "doself_bh_swallow",
+    "dopair_bh_swallow",
+    "dosub_self_bh_swallow",
+    "dosub_pair_bh_swallow",
+    "doself_bh_feedback",
+    "dopair_bh_feedback",
+    "dosub_self_bh_feedback",
+    "dosub_pair_bh_feedback",
+    "do_black_holes_ghost"
 };
 
 /* File to store the timers */
