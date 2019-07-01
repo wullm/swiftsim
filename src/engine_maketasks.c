@@ -1336,7 +1336,7 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
   if (cj == NULL) {
     /* Can the cell not be split? */
     if (!cell_can_recurse_in_self_hydro_task(ci)) {
-      cell_set_flag(ci, cell_flag_has_hydro_interactions);
+      cell_set_flag(ci, cell_flag_requires_hydro_sorts);
       return;
     }
 
@@ -1364,8 +1364,8 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
     /* Can this pair not be split further? */
     if (!cell_can_recurse_in_pair_hydro_task(ci) ||
         !cell_can_recurse_in_pair_hydro_task(cj)) {
-      cell_set_flag(ci, cell_flag_has_hydro_interactions);
-      cell_set_flag(cj, cell_flag_has_hydro_interactions);
+      cell_set_flag(ci, cell_flag_requires_hydro_sorts);
+      cell_set_flag(cj, cell_flag_requires_hydro_sorts);
       return;
     }
 
@@ -1390,9 +1390,8 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
   }
 
   /* If we've made it this far, then we have progeny with hydro interactions. */
-  cell_set_flag(ci, cell_flag_has_hydro_interactions_in_progeny);
-  if (cj != NULL)
-    cell_set_flag(cj, cell_flag_has_hydro_interactions_in_progeny);
+  cell_set_flag(ci, cell_flag_requires_hydro_sorts_in_progeny);
+  if (cj != NULL) cell_set_flag(cj, cell_flag_requires_hydro_sorts_in_progeny);
 
   /* Our work here is done. */
   return;
@@ -1403,10 +1402,10 @@ void engine_mark_hydro_cells(struct engine *e, struct task *t) {
   if (t->subtype != task_subtype_density) return;
 
   if (t->type == task_type_self) {
-    cell_set_flag(t->ci, cell_flag_has_hydro_interactions);
+    cell_set_flag(t->ci, cell_flag_requires_hydro_sorts);
   } else if (t->type == task_type_pair) {
-    cell_set_flag(t->ci, cell_flag_has_hydro_interactions);
-    cell_set_flag(t->cj, cell_flag_has_hydro_interactions);
+    cell_set_flag(t->ci, cell_flag_requires_hydro_sorts);
+    cell_set_flag(t->cj, cell_flag_requires_hydro_sorts);
   } else if (t->type == task_type_sub_self || t->type == task_type_sub_pair) {
     engine_mark_hydro_cells_rec(e, t->ci, t->cj);
   }
@@ -1420,16 +1419,16 @@ void engine_mark_hydro_cells(struct engine *e, struct task *t) {
      and so we must tell their parents. */
   for (struct cell *finger = t->ci->parent;
        finger != NULL &&
-       !cell_get_flag(finger, cell_flag_has_hydro_interactions_in_progeny);
+       !cell_get_flag(finger, cell_flag_requires_hydro_sorts_in_progeny);
        finger = finger->parent) {
-    cell_set_flag(finger, cell_flag_has_hydro_interactions_in_progeny);
+    cell_set_flag(finger, cell_flag_requires_hydro_sorts_in_progeny);
   }
   if (t->cj != NULL) {
     for (struct cell *finger = t->cj->parent;
          finger != NULL &&
-         !cell_get_flag(finger, cell_flag_has_hydro_interactions_in_progeny);
+         !cell_get_flag(finger, cell_flag_requires_hydro_sorts_in_progeny);
          finger = finger->parent) {
-      cell_set_flag(finger, cell_flag_has_hydro_interactions_in_progeny);
+      cell_set_flag(finger, cell_flag_requires_hydro_sorts_in_progeny);
     }
   }
 }
