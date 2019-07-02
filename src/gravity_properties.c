@@ -43,6 +43,9 @@ void gravity_props_init(struct gravity_props *p, struct swift_params *params,
                         const double high_res_DM_mass, const int with_cosmology,
                         const int periodic) {
 
+  /* DM particle mass in the zoom region */
+  p->high_res_DM_mass = high_res_DM_mass;
+
   /* Tree updates */
   p->rebuild_frequency =
       parser_get_opt_param_float(params, "Gravity:rebuild_frequency",
