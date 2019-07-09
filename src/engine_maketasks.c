@@ -1334,7 +1334,7 @@ void engine_make_external_gravity_tasks(struct engine *e) {
  *        self-interaction.
  */
 void engine_mark_hydro_sort_cells_rec(struct engine *e, struct cell *ci,
-                                 struct cell *cj) {
+                                      struct cell *cj) {
   const int with_feedback = (e->policy & engine_policy_feedback);
 
   /* Self-interaction? */
@@ -1356,7 +1356,8 @@ void engine_mark_hydro_sort_cells_rec(struct engine *e, struct cell *ci,
             if (ci->progeny[j] != NULL &&
                 (ci->progeny[j]->hydro.count ||
                  (with_feedback && ci->progeny[j]->stars.count))) {
-              engine_mark_hydro_sort_cells_rec(e, ci->progeny[k], ci->progeny[j]);
+              engine_mark_hydro_sort_cells_rec(e, ci->progeny[k],
+                                               ci->progeny[j]);
             }
           }
         }
@@ -1388,7 +1389,8 @@ void engine_mark_hydro_sort_cells_rec(struct engine *e, struct cell *ci,
             cj->progeny[pjd] != NULL &&
             (cj->progeny[pjd]->hydro.count ||
              (with_feedback && cj->progeny[pjd]->stars.count))) {
-          engine_mark_hydro_sort_cells_rec(e, ci->progeny[pid], cj->progeny[pjd]);
+          engine_mark_hydro_sort_cells_rec(e, ci->progeny[pid],
+                                           cj->progeny[pjd]);
         }
       }
     }
