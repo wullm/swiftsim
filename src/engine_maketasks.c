@@ -1326,9 +1326,14 @@ void engine_make_external_gravity_tasks(struct engine *e) {
 
 /**
  * @brief Recurse down a pair of cells and mark the cells that have hydro
- *        interactions.
+ *        interactions requiring sorts.
+ *
+ * @param e The #engine on which we are operating.
+ * @param ci The first #cell in the sub-cell pair.
+ * @param cj The second #cell in the sub-cell pair, can be #NULL if this is a
+ *        self-interaction.
  */
-void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
+void engine_mark_hydro_sort_cells_rec(struct engine *e, struct cell *ci,
                                  struct cell *cj) {
   const int with_feedback = (e->policy & engine_policy_feedback);
 
@@ -1346,12 +1351,12 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
         if (ci->progeny[k] != NULL &&
             (ci->progeny[k]->hydro.count ||
              (with_feedback && ci->progeny[k]->stars.count))) {
-          engine_mark_hydro_cells_rec(e, ci->progeny[k], NULL);
+          engine_mark_hydro_sort_cells_rec(e, ci->progeny[k], NULL);
           for (int j = k + 1; j < 8; j++) {
             if (ci->progeny[j] != NULL &&
                 (ci->progeny[j]->hydro.count ||
                  (with_feedback && ci->progeny[j]->stars.count))) {
-              engine_mark_hydro_cells_rec(e, ci->progeny[k], ci->progeny[j]);
+              engine_mark_hydro_sort_cells_rec(e, ci->progeny[k], ci->progeny[j]);
             }
           }
         }
@@ -1383,7 +1388,7 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
             cj->progeny[pjd] != NULL &&
             (cj->progeny[pjd]->hydro.count ||
              (with_feedback && cj->progeny[pjd]->stars.count))) {
-          engine_mark_hydro_cells_rec(e, ci->progeny[pid], cj->progeny[pjd]);
+          engine_mark_hydro_sort_cells_rec(e, ci->progeny[pid], cj->progeny[pjd]);
         }
       }
     }
@@ -1397,9 +1402,18 @@ void engine_mark_hydro_cells_rec(struct engine *e, struct cell *ci,
   return;
 }
 
-void engine_mark_hydro_cells(struct engine *e, struct task *t) {
+/**
+ * @brief Recurse down a pair of cells and mark the cells that have hydro
+ *        interactions requiring sorts.
+ *
+ * @param e The #engine on which we are operating.
+ * @param t The sub-cell #task over which to recurse.
+ */
+void engine_mark_hydro_sort_cells(struct engine *e, struct task *t) {
   /* We are only interested in density/hydro tasks. */
-  if (t->subtype != task_subtype_density) return;
+  if (t->subtype != task_subtype_density &&
+      t->subtype != task_subtype_stars_density)
+    return;
 
   if (t->type == task_type_self) {
     cell_set_flag(t->ci, cell_flag_requires_hydro_sorts);
@@ -1407,7 +1421,7 @@ void engine_mark_hydro_cells(struct engine *e, struct task *t) {
     cell_set_flag(t->ci, cell_flag_requires_hydro_sorts);
     cell_set_flag(t->cj, cell_flag_requires_hydro_sorts);
   } else if (t->type == task_type_sub_self || t->type == task_type_sub_pair) {
-    engine_mark_hydro_cells_rec(e, t->ci, t->cj);
+    engine_mark_hydro_sort_cells_rec(e, t->ci, t->cj);
   }
 
   /* Otherwise, baild here. */
@@ -1453,7 +1467,7 @@ void engine_count_and_link_tasks_mapper(void *map_data, int num_elements,
     const enum task_subtypes t_subtype = t->subtype;
 
     /* Mark cells as potentially having hydro interactions. */
-    engine_mark_hydro_cells(e, t);
+    engine_mark_hydro_sort_cells(e, t);
 
     /* Link self tasks to cells. */
     if (t_type == task_type_self) {
