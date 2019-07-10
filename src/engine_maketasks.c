@@ -941,10 +941,10 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
 }
 
 /**
- * @brief Recursively add non-implicit ghost tasks to a cell hierarchy.
+ * @brief Recursively add non-implicit ghost hydro tasks to a cell hierarchy.
  */
-void engine_add_ghosts(struct engine *e, struct cell *c, struct task *ghost_in,
-                       struct task *ghost_out) {
+void engine_add_hydro_ghosts(struct engine *e, struct cell *c,
+                             struct task *ghost_in, struct task *ghost_out) {
 
   /* Abort as there are no hydro particles here? */
   if (c->hydro.count_total == 0) return;
@@ -963,7 +963,34 @@ void engine_add_ghosts(struct engine *e, struct cell *c, struct task *ghost_in,
     /* Keep recursing */
     for (int k = 0; k < 8; k++)
       if (c->progeny[k] != NULL)
-        engine_add_ghosts(e, c->progeny[k], ghost_in, ghost_out);
+        engine_add_hydro_ghosts(e, c->progeny[k], ghost_in, ghost_out);
+  }
+}
+
+/**
+ * @brief Recursively add non-implicit ghost star tasks to a cell hierarchy.
+ */
+void engine_add_stars_ghosts(struct engine *e, struct cell *c,
+                             struct task *ghost_in, struct task *ghost_out) {
+
+  /* Abort as there are no stars particles here? */
+  if (c->stars.count_total == 0) return;
+
+  /* If we have reached the leaf OR have to few particles to play with*/
+  if (!c->split || c->stars.count_total < engine_max_parts_per_ghost) {
+
+    /* Add the ghost task and its dependencies */
+    struct scheduler *s = &e->sched;
+    c->stars.ghost = scheduler_addtask(s, task_type_stars_ghost,
+                                       task_subtype_none, 0, 0, c, NULL);
+    scheduler_addunlock(s, ghost_in, c->stars.ghost);
+    scheduler_addunlock(s, c->stars.ghost, ghost_out);
+
+  } else {
+    /* Keep recursing */
+    for (int k = 0; k < 8; k++)
+      if (c->progeny[k] != NULL)
+        engine_add_stars_ghosts(e, c->progeny[k], ghost_in, ghost_out);
   }
 }
 
@@ -1024,7 +1051,8 @@ void engine_make_hierarchical_tasks_hydro(struct engine *e, struct cell *c) {
       c->hydro.ghost_out =
           scheduler_addtask(s, task_type_ghost_out, task_subtype_none, 0,
                             /* implicit = */ 1, c, NULL);
-      engine_add_ghosts(e, c, c->hydro.ghost_in, c->hydro.ghost_out);
+
+      engine_add_hydro_ghosts(e, c, c->hydro.ghost_in, c->hydro.ghost_out);
 
       /* Generate the extra ghost task. */
 #ifdef EXTRA_HYDRO_LOOP
@@ -1070,8 +1098,15 @@ void engine_make_hierarchical_tasks_hydro(struct engine *e, struct cell *c) {
             scheduler_addtask(s, task_type_stars_out, task_subtype_none, 0,
                               /* implicit = */ 1, c, NULL);
 
-        c->stars.ghost = scheduler_addtask(s, task_type_stars_ghost,
-                                           task_subtype_none, 0, 0, c, NULL);
+        /* Generate the ghost tasks. */
+        c->stars.ghost_in =
+            scheduler_addtask(s, task_type_stars_ghost_in, task_subtype_none, 0,
+                              /* implicit = */ 1, c, NULL);
+        c->stars.ghost_out = scheduler_addtask(s, task_type_stars_ghost_out,
+                                               task_subtype_none, 0,
+                                               /* implicit = */ 1, c, NULL);
+
+        engine_add_stars_ghosts(e, c, c->stars.ghost_in, c->stars.ghost_out);
 
         scheduler_addunlock(s, c->super->kick2, c->stars.stars_in);
         scheduler_addunlock(s, c->stars.stars_out, c->super->timestep);
@@ -1831,8 +1866,8 @@ void engine_make_extra_hydroloop_tasks_mapper(void *map_data, int num_elements,
         scheduler_addunlock(sched, ci->hydro.super->stars.stars_in,
                             t_star_density);
         scheduler_addunlock(sched, t_star_density,
-                            ci->hydro.super->stars.ghost);
-        scheduler_addunlock(sched, ci->hydro.super->stars.ghost,
+                            ci->hydro.super->stars.ghost_in);
+        scheduler_addunlock(sched, ci->hydro.super->stars.ghost_out,
                             t_star_feedback);
         scheduler_addunlock(sched, t_star_feedback,
                             ci->hydro.super->stars.stars_out);
@@ -2007,8 +2042,8 @@ void engine_make_extra_hydroloop_tasks_mapper(void *map_data, int num_elements,
           scheduler_addunlock(sched, ci->hydro.super->stars.stars_in,
                               t_star_density);
           scheduler_addunlock(sched, t_star_density,
-                              ci->hydro.super->stars.ghost);
-          scheduler_addunlock(sched, ci->hydro.super->stars.ghost,
+                              ci->hydro.super->stars.ghost_in);
+          scheduler_addunlock(sched, ci->hydro.super->stars.ghost_out,
                               t_star_feedback);
           scheduler_addunlock(sched, t_star_feedback,
                               ci->hydro.super->stars.stars_out);
@@ -2077,8 +2112,8 @@ void engine_make_extra_hydroloop_tasks_mapper(void *map_data, int num_elements,
             scheduler_addunlock(sched, cj->hydro.super->stars.stars_in,
                                 t_star_density);
             scheduler_addunlock(sched, t_star_density,
-                                cj->hydro.super->stars.ghost);
-            scheduler_addunlock(sched, cj->hydro.super->stars.ghost,
+                                cj->hydro.super->stars.ghost_in);
+            scheduler_addunlock(sched, cj->hydro.super->stars.ghost_out,
                                 t_star_feedback);
             scheduler_addunlock(sched, t_star_feedback,
                                 cj->hydro.super->stars.stars_out);
@@ -2237,8 +2272,8 @@ void engine_make_extra_hydroloop_tasks_mapper(void *map_data, int num_elements,
         scheduler_addunlock(sched, ci->hydro.super->stars.stars_in,
                             t_star_density);
         scheduler_addunlock(sched, t_star_density,
-                            ci->hydro.super->stars.ghost);
-        scheduler_addunlock(sched, ci->hydro.super->stars.ghost,
+                            ci->hydro.super->stars.ghost_in);
+        scheduler_addunlock(sched, ci->hydro.super->stars.ghost_out,
                             t_star_feedback);
         scheduler_addunlock(sched, t_star_feedback,
                             ci->hydro.super->stars.stars_out);
@@ -2418,8 +2453,8 @@ void engine_make_extra_hydroloop_tasks_mapper(void *map_data, int num_elements,
           scheduler_addunlock(sched, ci->hydro.super->stars.stars_in,
                               t_star_density);
           scheduler_addunlock(sched, t_star_density,
-                              ci->hydro.super->stars.ghost);
-          scheduler_addunlock(sched, ci->hydro.super->stars.ghost,
+                              ci->hydro.super->stars.ghost_in);
+          scheduler_addunlock(sched, ci->hydro.super->stars.ghost_out,
                               t_star_feedback);
           scheduler_addunlock(sched, t_star_feedback,
                               ci->hydro.super->stars.stars_out);
@@ -2490,8 +2525,8 @@ void engine_make_extra_hydroloop_tasks_mapper(void *map_data, int num_elements,
             scheduler_addunlock(sched, cj->hydro.super->stars.stars_in,
                                 t_star_density);
             scheduler_addunlock(sched, t_star_density,
-                                cj->hydro.super->stars.ghost);
-            scheduler_addunlock(sched, cj->hydro.super->stars.ghost,
+                                cj->hydro.super->stars.ghost_in);
+            scheduler_addunlock(sched, cj->hydro.super->stars.ghost_out,
                                 t_star_feedback);
             scheduler_addunlock(sched, t_star_feedback,
                                 cj->hydro.super->stars.stars_out);
