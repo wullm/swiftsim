@@ -285,7 +285,7 @@ void engine_addtasks_send_stars(struct engine *e, struct cell *ci,
       scheduler_addunlock(s, t_feedback, ci->hydro.super->stars.stars_out);
 
       /* Ghost before you send */
-      scheduler_addunlock(s, ci->hydro.super->stars.ghost, t_feedback);
+      scheduler_addunlock(s, ci->hydro.super->stars.ghost_out, t_feedback);
 
       /* Drift before you send */
       scheduler_addunlock(s, ci->hydro.super->stars.drift, t_feedback);
@@ -977,7 +977,7 @@ void engine_add_stars_ghosts(struct engine *e, struct cell *c,
   if (c->stars.count_total == 0) return;
 
   /* If we have reached the leaf OR have to few particles to play with*/
-  if (!c->split || c->stars.count_total < engine_max_parts_per_ghost) {
+  if (!c->split || c->stars.count_total < engine_max_sparts_per_ghost) {
 
     /* Add the ghost task and its dependencies */
     struct scheduler *s = &e->sched;
