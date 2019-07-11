@@ -293,6 +293,7 @@ enum cell_flags {
   cell_flag_requires_hydro_sorts_in_progeny = (1UL << 14),
   cell_flag_requires_stars_sorts = (1UL << 15),
   cell_flag_requires_stars_sorts_in_progeny = (1UL << 16),
+  cell_flag_do_stars_resort = (1UL << 13)
 };
 
 /**
@@ -380,6 +381,9 @@ struct cell {
 
     /*! Task for star formation */
     struct task *star_formation;
+
+    /*! Task for sorting the stars again after a SF event */
+    struct task *stars_resort;
 
     /*! Max smoothing length in this cell. */
     double h_max;
