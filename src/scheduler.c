@@ -587,7 +587,8 @@ static void scheduler_splittask_hydro(struct task *t, struct scheduler *s) {
       /* Is this cell even split and the task does not violate h ? */
       if (cell_can_split_self_hydro_task(ci)) {
         /* Make a sub? */
-        if (scheduler_dosub && ci->hydro.count < space_subsize_self_hydro) {
+        if (scheduler_dosub && (ci->hydro.count < space_subsize_self_hydro) &&
+            (ci->stars.count < space_subsize_self_stars)) {
           /* convert to a self-subtask. */
           t->type = task_type_sub_self;
 
@@ -664,11 +665,40 @@ static void scheduler_splittask_hydro(struct task *t, struct scheduler *s) {
       /* Should this task be split-up? */
       if (cell_can_split_pair_hydro_task(ci) &&
           cell_can_split_pair_hydro_task(cj)) {
+
+        const int h_count_i = ci->hydro.count;
+        const int h_count_j = cj->hydro.count;
+
+        const int s_count_i = ci->stars.count;
+        const int s_count_j = cj->stars.count;
+
+        int do_sub_hydro = 1;
+        int do_sub_stars_i = 1;
+        int do_sub_stars_j = 1;
+        if (h_count_i > 0 && h_count_j > 0) {
+
+          /* Note: Use division to avoid integer overflow. */
+          do_sub_hydro =
+              h_count_i * sid_scale[sid] < space_subsize_pair_hydro / h_count_j;
+        }
+        if (s_count_i > 0 && h_count_j > 0) {
+
+          /* Note: Use division to avoid integer overflow. */
+          do_sub_stars_i =
+              s_count_i * sid_scale[sid] < space_subsize_pair_stars / h_count_j;
+        }
+        if (s_count_j > 0 && h_count_i > 0) {
+
+          /* Note: Use division to avoid integer overflow. */
+          do_sub_stars_j =
+              s_count_j * sid_scale[sid] < space_subsize_pair_stars / h_count_i;
+        }
+
         /* Replace by a single sub-task? */
-        if (scheduler_dosub && /* Use division to avoid integer overflow. */
-            ci->hydro.count * sid_scale[sid] <
-                space_subsize_pair_hydro / cj->hydro.count &&
+        if (scheduler_dosub &&
+            (do_sub_hydro && do_sub_stars_i && do_sub_stars_j) &&
             !sort_is_corner(sid)) {
+
           /* Make this task a sub task. */
           t->type = task_type_sub_pair;
 
@@ -863,7 +893,100 @@ static void scheduler_splittask_gravity(struct task *t, struct scheduler *s) {
 }
 
 /**
- * @brief Mapper function to split tasks that may be too large.
+ * @brief Split a FOF task if too large.
+ *
+ * @param t The #task
+ * @param s The #scheduler we are working in.
+ */
+static void scheduler_splittask_fof(struct task *t, struct scheduler *s) {
+
+  /* Iterate on this task until we're done with it. */
+  int redo = 1;
+  while (redo) {
+
+    /* Reset the redo flag. */
+    redo = 0;
+
+    /* Non-splittable task? */
+    if ((t->ci == NULL) || (t->type == task_type_fof_pair && t->cj == NULL) ||
+        t->ci->grav.count == 0 || (t->cj != NULL && t->cj->grav.count == 0)) {
+      t->type = task_type_none;
+      t->subtype = task_subtype_none;
+      t->cj = NULL;
+      t->skip = 1;
+      break;
+    }
+
+    /* Self-interaction? */
+    if (t->type == task_type_fof_self) {
+
+      /* Get a handle on the cell involved. */
+      struct cell *ci = t->ci;
+
+      /* Foreign task? */
+      if (ci->nodeID != s->nodeID) {
+        t->skip = 1;
+        break;
+      }
+
+      /* Is this cell even split? */
+      if (cell_can_split_self_fof_task(ci)) {
+
+        /* Take a step back (we're going to recycle the current task)... */
+        redo = 1;
+
+        /* Add the self tasks. */
+        int first_child = 0;
+        while (ci->progeny[first_child] == NULL) first_child++;
+        t->ci = ci->progeny[first_child];
+        for (int k = first_child + 1; k < 8; k++)
+          if (ci->progeny[k] != NULL && ci->progeny[k]->grav.count)
+            scheduler_splittask_fof(
+                scheduler_addtask(s, task_type_fof_self, t->subtype, 0, 0,
+                                  ci->progeny[k], NULL),
+                s);
+
+        /* Make a task for each pair of progeny */
+        for (int j = 0; j < 8; j++)
+          if (ci->progeny[j] != NULL && ci->progeny[j]->grav.count)
+            for (int k = j + 1; k < 8; k++)
+              if (ci->progeny[k] != NULL && ci->progeny[k]->grav.count)
+                scheduler_splittask_fof(
+                    scheduler_addtask(s, task_type_fof_pair, t->subtype, 0, 0,
+                                      ci->progeny[j], ci->progeny[k]),
+                    s);
+      } /* Cell is split */
+
+    } /* Self interaction */
+
+  } /* iterate over the current task. */
+}
+
+/**
+ * @brief Mapper function to split FOF tasks that may be too large.
+ *
+ * @param map_data the tasks to process
+ * @param num_elements the number of tasks.
+ * @param extra_data The #scheduler we are working in.
+ */
+void scheduler_splittasks_fof_mapper(void *map_data, int num_elements,
+                                     void *extra_data) {
+  /* Extract the parameters. */
+  struct scheduler *s = (struct scheduler *)extra_data;
+  struct task *tasks = (struct task *)map_data;
+
+  for (int ind = 0; ind < num_elements; ind++) {
+    struct task *t = &tasks[ind];
+
+    /* Invoke the correct splitting strategy */
+    if (t->type == task_type_fof_self || t->type == task_type_fof_pair) {
+      scheduler_splittask_fof(t, s);
+    }
+  }
+}
+
+/**
+ * @brief Mapper function to split non-FOF tasks that may be too large.
  *
  * @param map_data the tasks to process
  * @param num_elements the number of tasks.
@@ -889,7 +1012,8 @@ void scheduler_splittasks_mapper(void *map_data, int num_elements,
       /* For future use */
     } else {
 #ifdef SWIFT_DEBUG_CHECKS
-      error("Unexpected task sub-type");
+      error("Unexpected task sub-type %s/%s", taskID_names[t->type],
+            subtaskID_names[t->subtype]);
 #endif
     }
   }
@@ -899,11 +1023,21 @@ void scheduler_splittasks_mapper(void *map_data, int num_elements,
  * @brief Splits all the tasks in the scheduler that are too large.
  *
  * @param s The #scheduler.
+ * @param fof_tasks Are we splitting the FOF tasks (1)? Or the regular tasks
+ * (0)?
  */
-void scheduler_splittasks(struct scheduler *s) {
-  /* Call the mapper on each current task. */
-  threadpool_map(s->threadpool, scheduler_splittasks_mapper, s->tasks,
-                 s->nr_tasks, sizeof(struct task), 0, s);
+void scheduler_splittasks(struct scheduler *s, const int fof_tasks) {
+
+  if (fof_tasks) {
+    /* Call the mapper on each current task. */
+    threadpool_map(s->threadpool, scheduler_splittasks_fof_mapper, s->tasks,
+                   s->nr_tasks, sizeof(struct task), 0, s);
+
+  } else {
+    /* Call the mapper on each current task. */
+    threadpool_map(s->threadpool, scheduler_splittasks_mapper, s->tasks,
+                   s->nr_tasks, sizeof(struct task), 0, s);
+  }
 }
 
 /**
@@ -1118,6 +1252,7 @@ void scheduler_ranktasks(struct scheduler *s) {
  * @param size The maximum number of tasks in the #scheduler.
  */
 void scheduler_reset(struct scheduler *s, int size) {
+
   /* Do we need to re-allocate? */
   if (size > s->size) {
     /* Free existing task lists if necessary. */
@@ -1303,7 +1438,7 @@ void scheduler_reweight(struct scheduler *s, int verbose) {
       case task_type_stars_ghost:
         if (t->ci == t->ci->hydro.super) cost = wscale * scount_i;
         break;
-      case task_type_bh_ghost:
+      case task_type_bh_density_ghost:
         if (t->ci == t->ci->hydro.super) cost = wscale * bcount_i;
         break;
       case task_type_drift_part:
@@ -1567,6 +1702,14 @@ void scheduler_enqueue(struct scheduler *s, struct task *t) {
               t->ci->mpi.pcell_size * sizeof(struct pcell_step_black_holes),
               MPI_BYTE, t->ci->nodeID, t->flags, subtaskMPI_comms[t->subtype],
               &t->req);
+        } else if (t->subtype == task_subtype_part_swallow) {
+          t->buff = (struct black_holes_part_data *)malloc(
+              sizeof(struct black_holes_part_data) * t->ci->hydro.count);
+          err = MPI_Irecv(
+              t->buff,
+              t->ci->hydro.count * sizeof(struct black_holes_part_data),
+              MPI_BYTE, t->ci->nodeID, t->flags, subtaskMPI_comms[t->subtype],
+              &t->req);
         } else if (t->subtype == task_subtype_xv ||
                    t->subtype == task_subtype_rho ||
                    t->subtype == task_subtype_gradient) {
@@ -1581,7 +1724,9 @@ void scheduler_enqueue(struct scheduler *s, struct task *t) {
           err = MPI_Irecv(t->ci->stars.parts, t->ci->stars.count,
                           spart_mpi_type, t->ci->nodeID, t->flags,
                           subtaskMPI_comms[t->subtype], &t->req);
-        } else if (t->subtype == task_subtype_bpart) {
+        } else if (t->subtype == task_subtype_bpart_rho ||
+                   t->subtype == task_subtype_bpart_swallow ||
+                   t->subtype == task_subtype_bpart_feedback) {
           err = MPI_Irecv(t->ci->black_holes.parts, t->ci->black_holes.count,
                           bpart_mpi_type, t->ci->nodeID, t->flags,
                           subtaskMPI_comms[t->subtype], &t->req);
@@ -1686,6 +1831,27 @@ void scheduler_enqueue(struct scheduler *s, struct task *t) {
                 MPI_BYTE, t->cj->nodeID, t->flags, subtaskMPI_comms[t->subtype],
                 &t->req);
           }
+        } else if (t->subtype == task_subtype_part_swallow) {
+          t->buff = (struct black_holes_part_data *)malloc(
+              sizeof(struct black_holes_part_data) * t->ci->hydro.count);
+          cell_pack_part_swallow(t->ci,
+                                 (struct black_holes_part_data *)t->buff);
+
+          if (t->ci->hydro.count * sizeof(struct black_holes_part_data) >
+              s->mpi_message_limit) {
+            err = MPI_Isend(
+                t->buff,
+                t->ci->hydro.count * sizeof(struct black_holes_part_data),
+                MPI_BYTE, t->cj->nodeID, t->flags, subtaskMPI_comms[t->subtype],
+                &t->req);
+          } else {
+            err = MPI_Issend(
+                t->buff,
+                t->ci->hydro.count * sizeof(struct black_holes_part_data),
+                MPI_BYTE, t->cj->nodeID, t->flags, subtaskMPI_comms[t->subtype],
+                &t->req);
+          }
+
         } else if (t->subtype == task_subtype_xv ||
                    t->subtype == task_subtype_rho ||
                    t->subtype == task_subtype_gradient) {
@@ -1716,7 +1882,9 @@ void scheduler_enqueue(struct scheduler *s, struct task *t) {
             err = MPI_Issend(t->ci->stars.parts, t->ci->stars.count,
                              spart_mpi_type, t->cj->nodeID, t->flags,
                              subtaskMPI_comms[t->subtype], &t->req);
-        } else if (t->subtype == task_subtype_bpart) {
+        } else if (t->subtype == task_subtype_bpart_rho ||
+                   t->subtype == task_subtype_bpart_swallow ||
+                   t->subtype == task_subtype_bpart_feedback) {
           if ((t->ci->black_holes.count * sizeof(struct bpart)) >
               s->mpi_message_limit)
             err = MPI_Isend(t->ci->black_holes.parts, t->ci->black_holes.count,

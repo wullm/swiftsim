@@ -324,8 +324,8 @@ void DO_SYM_PAIR1_STARS(struct runner *r, struct cell *ci, struct cell *cj,
   if (do_ci_stars) {
 
     /* Pick-out the sorted lists. */
-    const struct entry *restrict sort_j = cj->hydro.sort[sid];
-    const struct entry *restrict sort_i = ci->stars.sort[sid];
+    const struct sort_entry *restrict sort_j = cj->hydro.sort[sid];
+    const struct sort_entry *restrict sort_i = ci->stars.sort[sid];
 
 #ifdef SWIFT_DEBUG_CHECKS
     /* Some constants used to checks that the parts are in the right frame */
@@ -452,8 +452,8 @@ void DO_SYM_PAIR1_STARS(struct runner *r, struct cell *ci, struct cell *cj,
 
   if (do_cj_stars) {
     /* Pick-out the sorted lists. */
-    const struct entry *restrict sort_i = ci->hydro.sort[sid];
-    const struct entry *restrict sort_j = cj->stars.sort[sid];
+    const struct sort_entry *restrict sort_i = ci->hydro.sort[sid];
+    const struct sort_entry *restrict sort_j = cj->stars.sort[sid];
 
 #ifdef SWIFT_DEBUG_CHECKS
     /* Some constants used to checks that the parts are in the right frame */
@@ -640,7 +640,7 @@ void DOPAIR1_SUBSET_STARS(struct runner *r, struct cell *restrict ci,
   if (count_j == 0) return;
 
   /* Pick-out the sorted lists. */
-  const struct entry *restrict sort_j = cj->hydro.sort[sid];
+  const struct sort_entry *restrict sort_j = cj->hydro.sort[sid];
   const float dxj = cj->hydro.dx_max_sort;
 
   /* Sparts are on the left? */
@@ -1129,7 +1129,7 @@ void DOSELF1_BRANCH_STARS(struct runner *r, struct cell *c) {
 
 #define RUNNER_CHECK_SORT(TYPE, PART, cj, ci, sid)                          \
   ({                                                                        \
-    const struct entry *restrict sort_j = cj->TYPE.sort[sid];               \
+    const struct sort_entry *restrict sort_j = cj->TYPE.sort[sid];          \
                                                                             \
     for (int pjd = 0; pjd < cj->TYPE.count; pjd++) {                        \
       const struct PART *p = &cj->TYPE.parts[sort_j[pjd].i];                \
@@ -1221,12 +1221,14 @@ void DOPAIR1_BRANCH_STARS(struct runner *r, struct cell *ci, struct cell *cj) {
 
 #ifdef SWIFT_DEBUG_CHECKS
   if (do_ci) {
-    RUNNER_CHECK_SORT(hydro, part, cj, ci, sid);
+    // MATTHIEU: This test is faulty. To be fixed...
+    // RUNNER_CHECK_SORT(hydro, part, cj, ci, sid);
     RUNNER_CHECK_SORT(stars, spart, ci, cj, sid);
   }
 
   if (do_cj) {
-    RUNNER_CHECK_SORT(hydro, part, ci, cj, sid);
+    // MATTHIEU: This test is faulty. To be fixed...
+    // RUNNER_CHECK_SORT(hydro, part, ci, cj, sid);
     RUNNER_CHECK_SORT(stars, spart, cj, ci, sid);
   }
 #endif /* SWIFT_DEBUG_CHECKS */

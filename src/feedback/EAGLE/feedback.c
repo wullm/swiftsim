@@ -110,11 +110,11 @@ double eagle_feedback_energy_fraction(const struct spart* sp,
 
   /* Physical density of the gas at the star's birth time */
   const double rho_birth = sp->birth_density;
-  double n_birth = rho_birth * props->rho_to_n_cgs;
+  const double n_birth = rho_birth * props->rho_to_n_cgs;
 
   /* Calculate f_E */
   const double Z_term = pow(max(Z_smooth, 1e-6) / Z_0, n_Z);
-  const double n_term = pow(max(n_birth, 1e-6) / n_0, -n_n);
+  const double n_term = pow(n_birth / n_0, -n_n);
   const double denonimator = 1. + Z_term * n_term;
 
   return f_E_min + (f_E_max - f_E_min) / denonimator;
@@ -140,9 +140,13 @@ INLINE static void compute_SNII_feedback(
   /* Time after birth considered for SNII feedback (internal units) */
   const double SNII_wind_delay = feedback_props->SNII_wind_delay;
 
-  /* Are we doing feedback this step? */
-  if (star_age <= SNII_wind_delay && (star_age + dt) > SNII_wind_delay) {
+  /* Are we doing feedback this step?
+   * Note that since the ages are calculated using an interpolation table we
+   * must allow some tolerance here*/
+  if (star_age <= SNII_wind_delay &&
+      (star_age + 1.0001 * dt) > SNII_wind_delay) {
 
+    /* Make sure a star does not do feedback twice! */
     if (sp->f_E != -1.f) {
 #ifdef SWIFT_DEBUG_CHECKS
       message("Star has already done feedback! sp->id=%lld age=%e d=%e", sp->id,
@@ -180,6 +184,11 @@ INLINE static void compute_SNII_feedback(
       prob = 1.;
       delta_u = f_E * E_SNe * N_SNe / ngb_gas_mass;
     }
+
+#ifdef SWIFT_DEBUG_CHECKS
+    if (f_E < feedback_props->f_E_min || f_E > feedback_props->f_E_max)
+      error("f_E is not in the valid range! f_E=%f sp->id=%lld", f_E, sp->id);
+#endif
 
     /* Store all of this in the star for delivery onto the gas */
     sp->f_E = f_E;
@@ -309,11 +318,16 @@ INLINE static void determine_bin_yield_SNII(
 INLINE static void evolve_SNIa(const float log10_min_mass,
                                const float log10_max_mass,
                                const struct feedback_props* props,
-                               struct spart* sp, float star_age_Gyr,
-                               float dt_Gyr) {
+                               struct spart* sp, double star_age_Gyr,
+                               double dt_Gyr) {
 
   /* Check if we're outside the mass range for SNIa */
   if (log10_min_mass >= props->log10_SNIa_max_mass_msun) return;
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (dt_Gyr < 0.) error("Negative time-step length!");
+  if (star_age_Gyr < 0.) error("Negative age!");
+#endif
 
   /* If the max mass is outside the mass range update it to be the maximum
    * and use updated values for the star's age and timestep in this function */
@@ -323,14 +337,9 @@ INLINE static void evolve_SNIa(const float log10_min_mass,
     const float max_mass = exp10f(props->log10_SNIa_max_mass_msun);
     const float lifetime_Gyr = lifetime_in_Gyr(max_mass, Z, props);
 
-    dt_Gyr = star_age_Gyr + dt_Gyr - lifetime_Gyr;
+    dt_Gyr = max(star_age_Gyr + dt_Gyr - lifetime_Gyr, 0.);
     star_age_Gyr = lifetime_Gyr;
   }
-
-#ifdef SWIFT_DEBUG_CHECKS
-  if (dt_Gyr < 0.) error("Negative time-step length!");
-  if (star_age_Gyr < 0.) error("Negative age!");
-#endif
 
   /* Compute the number of SNIa */
   const float num_SNIa = eagle_feedback_number_of_SNIa(
@@ -704,9 +713,9 @@ void compute_stellar_evolution(const struct feedback_props* feedback_props,
   /* Convert dt and stellar age from internal units to Gyr. */
   const double Gyr_in_cgs = 1e9 * 365. * 24. * 3600.;
   const double time_to_cgs = units_cgs_conversion_factor(us, UNIT_CONV_TIME);
-  const float conversion_factor = time_to_cgs / Gyr_in_cgs;
-  const float dt_Gyr = dt * conversion_factor;
-  const float star_age_Gyr = age * conversion_factor;
+  const double conversion_factor = time_to_cgs / Gyr_in_cgs;
+  const double dt_Gyr = dt * conversion_factor;
+  const double star_age_Gyr = age * conversion_factor;
 
   /* Get the metallicity */
   const float Z = sp->chemistry_data.metal_mass_fraction_total;
@@ -841,6 +850,11 @@ void feedback_props_init(struct feedback_props* fp,
   fp->imf_min_mass_msun =
       parser_get_param_double(params, "EAGLEFeedback:IMF_min_mass_Msun");
 
+  /* Check that it makes sense. */
+  if (fp->imf_max_mass_msun < fp->imf_min_mass_msun) {
+    error("Can't have the max IMF mass smaller than the min IMF mass!");
+  }
+
   fp->log10_imf_max_mass_msun = log10(fp->imf_max_mass_msun);
   fp->log10_imf_min_mass_msun = log10(fp->imf_min_mass_msun);
 
@@ -870,6 +884,11 @@ void feedback_props_init(struct feedback_props* fp,
   const double SNII_max_mass_msun =
       parser_get_param_double(params, "EAGLEFeedback:SNII_max_mass_Msun");
 
+  /* Check that it makes sense. */
+  if (SNII_max_mass_msun < SNII_min_mass_msun) {
+    error("Can't have the max SNII mass smaller than the min SNII mass!");
+  }
+
   fp->log10_SNII_min_mass_msun = log10(SNII_min_mass_msun);
   fp->log10_SNII_max_mass_msun = log10(SNII_max_mass_msun);
 
@@ -886,6 +905,11 @@ void feedback_props_init(struct feedback_props* fp,
       parser_get_param_double(params, "EAGLEFeedback:SNII_energy_fraction_n_n");
   fp->n_Z =
       parser_get_param_double(params, "EAGLEFeedback:SNII_energy_fraction_n_Z");
+
+  /* Check that it makes sense. */
+  if (fp->f_E_max < fp->f_E_min) {
+    error("Can't have the maximal energy fraction smaller than the minimal!");
+  }
 
   /* Properties of the SNII enrichment model -------------------------------- */
 

@@ -189,9 +189,12 @@ TASKTYPES = [
     "stars_ghost",
     "stars_ghost_out",
     "stars_sort",
+    "stars_resort",
     "bh_in",
     "bh_out",
     "bh_ghost",
+    "fof_self",
+    "fof_pair",
     "count",
 ]
 
@@ -217,6 +220,8 @@ SUBTYPES = [
     "sf_counts",
     "bpart",
     "bh_density",
+    "bh_swallow",
+    "do_swallow",
     "bh_feedback",
     "count",
 ]
@@ -273,6 +278,14 @@ FULLTYPES = [
     "pair/bh_density",
     "sub_self/bh_density",
     "sub_pair/bh_density",
+    "self/bh_swallow",
+    "pair/bh_swallow",
+    "sub_self/bh_swallow",
+    "sub_pair/bh_swallow",
+    "self/do_swallow",
+    "pair/do_swallow",
+    "sub_self/do_swallow",
+    "sub_pair/do_swallow",
     "self/bh_feedback",
     "pair/bh_feedback",
     "sub_self/bh_feedback",
@@ -477,11 +490,13 @@ for rank in ranks:
             toc = int(data[line, toccol]) / CPU_CLOCK
             tasks[thread][-1]["tic"] = tic
             tasks[thread][-1]["toc"] = toc
-            if (
-                "self" in tasktype
-                or "pair" in tasktype
-                or "recv" in tasktype
-                or "send" in tasktype
+            if ("fof" in tasktype):
+                tasks[thread][-1]["colour"] = TASKCOLOURS[tasktype]
+            elif(
+                 "self" in tasktype
+                 or "pair" in tasktype
+                 or "recv" in tasktype
+                 or "send" in tasktype
             ):
                 fulltype = tasktype + "/" + subtype
                 if fulltype in SUBCOLOURS:

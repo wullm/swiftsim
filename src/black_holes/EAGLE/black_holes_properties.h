@@ -49,6 +49,9 @@ struct black_holes_props {
 
   /* ----- Initialisation properties  ------ */
 
+  /*! Mass of a BH seed at creation time */
+  float subgrid_seed_mass;
+
   /* ----- Properties of the accretion model ------ */
 
   /*! Maximal fraction of the Eddington rate allowed. */
@@ -59,6 +62,9 @@ struct black_holes_props {
 
   /*! Feedback coupling efficiency of the black holes. */
   float epsilon_f;
+
+  /*! Normalisation of the viscuous angular momentum accretion reduction */
+  float alpha_visc;
 
   /* ---- Properties of the feedback model ------- */
 
@@ -126,6 +132,14 @@ INLINE static void black_holes_props_init(struct black_holes_props *bp,
   else
     bp->log_max_h_change = logf(powf(max_volume_change, hydro_dimension_inv));
 
+  /* Initialisation properties  ---------------------------- */
+
+  bp->subgrid_seed_mass =
+      parser_get_param_float(params, "EAGLEAGN:subgrid_seed_mass_Msun");
+
+  /* Convert to internal units */
+  bp->subgrid_seed_mass *= phys_const->const_solar_mass;
+
   /* Accretion parameters ---------------------------------- */
 
   bp->f_Edd = parser_get_param_float(params, "EAGLEAGN:max_eddington_fraction");
@@ -133,6 +147,7 @@ INLINE static void black_holes_props_init(struct black_holes_props *bp,
       parser_get_param_float(params, "EAGLEAGN:radiative_efficiency");
   bp->epsilon_f =
       parser_get_param_float(params, "EAGLEAGN:coupling_efficiency");
+  bp->alpha_visc = parser_get_param_float(params, "EAGLEAGN:viscous_alpha");
 
   /* Feedback parameters ---------------------------------- */
 

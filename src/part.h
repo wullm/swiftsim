@@ -32,6 +32,7 @@
 
 /* Local headers. */
 #include "align.h"
+#include "fof.h"
 #include "part_type.h"
 #include "timeline.h"
 
@@ -60,6 +61,7 @@
 #define hydro_need_extra_init_loop 0
 #elif defined(DEFAULT_SPH)
 #include "./hydro/Default/hydro_part.h"
+#define EXTRA_HYDRO_LOOP
 #define hydro_need_extra_init_loop 0
 #elif defined(GIZMO_MFV_SPH)
 #include "./hydro/GizmoMFV/hydro_part.h"
@@ -76,6 +78,10 @@
 #elif defined(PLANETARY_SPH)
 #include "./hydro/Planetary/hydro_part.h"
 #define hydro_need_extra_init_loop 0
+#elif defined(ANARCHY_DU_SPH)
+#include "./hydro/AnarchyDU/hydro_part.h"
+#define hydro_need_extra_init_loop 0
+#define EXTRA_HYDRO_LOOP
 #elif defined(ANARCHY_PU_SPH)
 #include "./hydro/AnarchyPU/hydro_part.h"
 #define hydro_need_extra_init_loop 0
