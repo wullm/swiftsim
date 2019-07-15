@@ -173,7 +173,10 @@ void DOPAIR1_NAIVE(struct runner *r, struct cell *restrict ci,
     if (part_is_inhibited(pi, e)) continue;
 
     /* Skip decoupled particles. */
-    //if (part_is_decoupled(pi)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(pi)) continue;
+#endif
 
     const int pi_active = part_is_active(pi, e);
     const float hi = pi->h;
@@ -192,7 +195,10 @@ void DOPAIR1_NAIVE(struct runner *r, struct cell *restrict ci,
       if (part_is_inhibited(pj, e)) continue;
 
       /* Skip decoupled particles. */
-      //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+      if (part_is_decoupled(pj)) continue;
+#endif
 
       const float hj = pj->h;
       const float hjg2 = hj * hj * kernel_gamma2;
@@ -289,7 +295,10 @@ void DOPAIR2_NAIVE(struct runner *r, struct cell *restrict ci,
     if (part_is_inhibited(pi, e)) continue;
 
     /* Skip decoupled particles. */
-    //if (part_is_decoupled(pi)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(pi)) continue;
+#endif
 
     const int pi_active = part_is_active(pi, e);
     const float hi = pi->h;
@@ -308,7 +317,10 @@ void DOPAIR2_NAIVE(struct runner *r, struct cell *restrict ci,
       if (part_is_inhibited(pj, e)) continue;
 
       /* Skip decoupled particles. */
-      //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+      if (part_is_decoupled(pj)) continue;
+#endif
 
       const int pj_active = part_is_active(pj, e);
       const float hj = pj->h;
@@ -400,7 +412,10 @@ void DOSELF1_NAIVE(struct runner *r, struct cell *restrict c) {
     if (part_is_inhibited(pi, e)) continue;
 
     /* Skip decoupled particles. */
-    //if (part_is_decoupled(pi)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(pi)) continue;
+#endif
 
     const int pi_active = part_is_active(pi, e);
     const float hi = pi->h;
@@ -419,7 +434,10 @@ void DOSELF1_NAIVE(struct runner *r, struct cell *restrict c) {
       if (part_is_inhibited(pj, e)) continue;
 
       /* Skip decoupled particles. */
-      //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+      if (part_is_decoupled(pj)) continue;
+#endif
 
       const float hj = pj->h;
       const float hjg2 = hj * hj * kernel_gamma2;
@@ -511,7 +529,10 @@ void DOSELF2_NAIVE(struct runner *r, struct cell *restrict c) {
     if (part_is_inhibited(pi, e)) continue;
 
     /* Skip decoupled particles. */
-    //if (part_is_decoupled(pi)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(pi)) continue;
+#endif
 
     const int pi_active = part_is_active(pi, e);
     const float hi = pi->h;
@@ -530,7 +551,10 @@ void DOSELF2_NAIVE(struct runner *r, struct cell *restrict c) {
       if (part_is_inhibited(pj, e)) continue;
 
       /* Skip decoupled particles. */
-      //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+      if (part_is_decoupled(pj)) continue;
+#endif
 
       const float hj = pj->h;
       const float hjg2 = hj * hj * kernel_gamma2;
@@ -643,7 +667,10 @@ void DOPAIR_SUBSET_NAIVE(struct runner *r, struct cell *restrict ci,
       if (part_is_inhibited(pj, e)) continue;
 
       /* Skip decoupled particles. */
-      //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+      if (part_is_decoupled(pj)) continue;
+#endif
 
       /* Compute the pairwise distance. */
       float r2 = 0.0f;
@@ -737,7 +764,10 @@ void DOPAIR_SUBSET(struct runner *r, struct cell *restrict ci,
         if (part_is_inhibited(pj, e)) continue;
 
         /* Skip decoupled particles. */
-        //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+        if (part_is_decoupled(pj)) continue;
+#endif
 
         const float hj = pj->h;
         const double pjx = pj->x[0];
@@ -796,7 +826,10 @@ void DOPAIR_SUBSET(struct runner *r, struct cell *restrict ci,
         if (part_is_inhibited(pj, e)) continue;
 
         /* Skip decoupled particles. */
-        //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+        if (part_is_decoupled(pj)) continue;
+#endif
 
         const float hj = pj->h;
         const double pjx = pj->x[0];
@@ -943,7 +976,10 @@ void DOSELF_SUBSET(struct runner *r, struct cell *restrict ci,
       if (part_is_inhibited(pj, e)) continue;
 
       /* Skip decoupled particles. */
-      //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+      if (part_is_decoupled(pj)) continue;
+#endif
 
       const float hj = pj->h;
 
@@ -1084,7 +1120,10 @@ void DOPAIR1(struct runner *r, struct cell *ci, struct cell *cj, const int sid,
         if (part_is_inhibited(pj, e)) continue;
 
         /* Skip decoupled particles. */
-        //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+        if (part_is_decoupled(pj)) continue;
+#endif
 
         const float hj = pj->h;
         const float pjx = pj->x[0] - cj->loc[0];
@@ -1175,7 +1214,10 @@ void DOPAIR1(struct runner *r, struct cell *ci, struct cell *cj, const int sid,
         if (part_is_inhibited(pi, e)) continue;
 
         /* Skip decoupled particles. */
-        //if (part_is_decoupled(pi)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+        if (part_is_decoupled(pi)) continue;
+#endif
 
         const float hi = pi->h;
         const float pix = pi->x[0] - (cj->loc[0] + shift[0]);
@@ -1281,7 +1323,10 @@ void DOPAIR1_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
   for (int pid = 0; pid < ci->hydro.count; pid++) {
     const struct part *p = &ci->hydro.parts[sort_i[pid].i];
     if (part_is_inhibited(p, e)) continue;
-    //if (part_is_decoupled(p, e)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(p, e)) continue;
+#endif
 
 
     const float d = p->x[0] * runner_shift[sid][0] +
@@ -1301,7 +1346,10 @@ void DOPAIR1_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
   for (int pjd = 0; pjd < cj->hydro.count; pjd++) {
     const struct part *p = &cj->hydro.parts[sort_j[pjd].i];
     if (part_is_inhibited(p, e)) continue;
-    //if (part_is_decoupled(p, e)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(p, e)) continue;
+#endif
 
 
     const float d = p->x[0] * runner_shift[sid][0] +
@@ -1448,7 +1496,10 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj, const int sid,
     if (part_is_inhibited(pi, e)) continue;
     
     /* Skip decoupled particles. */
-    //if (part_is_decoupled(pi)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(pi)) continue;
+#endif
 
     const float hi = pi->h;
 
@@ -1541,7 +1592,10 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj, const int sid,
         if (part_is_inhibited(pj, e)) continue;
 
         /* Skip decoupled particles. */
-        //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+        if (part_is_decoupled(pj)) continue;
+#endif
 
         const float hj = pj->h;
 
@@ -1624,7 +1678,10 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj, const int sid,
     if (part_is_inhibited(pj, e)) continue;
 
     /* Skip decoupled particles. */
-    //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(pj)) continue;
+#endif
 
     const float hj = pj->h;
 
@@ -1719,7 +1776,10 @@ void DOPAIR2(struct runner *r, struct cell *ci, struct cell *cj, const int sid,
         if (part_is_inhibited(pi, e)) continue;
 
         /* Skip decoupled particles. */
-        //if (part_is_decoupled(pi)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+        if (part_is_decoupled(pi)) continue;
+#endif
 
         const float hi = pi->h;
         const float hig2 = hi * hi * kernel_gamma2;
@@ -1844,7 +1904,10 @@ void DOPAIR2_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
   for (int pid = 0; pid < ci->hydro.count; pid++) {
     const struct part *p = &ci->hydro.parts[sort_i[pid].i];
     if (part_is_inhibited(p, e)) continue;
-    //if (part_is_decoupled(p, e)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(p, e)) continue;
+#endif
 
     const float d = p->x[0] * runner_shift[sid][0] +
                     p->x[1] * runner_shift[sid][1] +
@@ -1863,7 +1926,10 @@ void DOPAIR2_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
   for (int pjd = 0; pjd < cj->hydro.count; pjd++) {
     const struct part *p = &cj->hydro.parts[sort_j[pjd].i];
     if (part_is_inhibited(p, e)) continue;
-    //if (part_is_decoupled(p, e)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(p, e)) continue;
+#endif
 
     const float d = p->x[0] * runner_shift[sid][0] +
                     p->x[1] * runner_shift[sid][1] +
@@ -1936,7 +2002,10 @@ void DOSELF1(struct runner *r, struct cell *restrict c) {
     if (part_is_inhibited(pi, e)) continue;
     
     /* Skip decoupled particles. */
-    //if (part_is_decoupled(pi)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(pi)) continue;
+#endif
 
     /* Get the particle position and radius. */
     double pix[3];
@@ -1998,7 +2067,10 @@ void DOSELF1(struct runner *r, struct cell *restrict c) {
         if (part_is_inhibited(pj, e)) continue;
 
         /* Skip decoupled particles. */
-        //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+        if (part_is_decoupled(pj)) continue;
+#endif
 
         const float hj = pj->h;
 
@@ -2138,7 +2210,10 @@ void DOSELF2(struct runner *r, struct cell *restrict c) {
     if (part_is_inhibited(pi, e)) continue;
 
     /* Skip decoupled particles. */
-    //if (part_is_decoupled(pi)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+    if (part_is_decoupled(pi)) continue;
+#endif
 
     /* Get the particle position and radius. */
     double pix[3];
@@ -2200,7 +2275,10 @@ void DOSELF2(struct runner *r, struct cell *restrict c) {
         if (part_is_inhibited(pj, e)) continue;
 
         /* Skip decoupled particles. */
-        //if (part_is_decoupled(pj)) continue;
+    // ALEXEI: improve this implementation!!!
+#if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
+        if (part_is_decoupled(pj)) continue;
+#endif
 
         const float hj = pj->h;
 
