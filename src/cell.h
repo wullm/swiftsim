@@ -998,6 +998,41 @@ __attribute__((always_inline)) INLINE static double cell_min_dist2_same_size(
  * @brief Can a sub-pair hydro task recurse to a lower level based
  * on the status of the particles in the cell.
  *
+ * This function assumes dx_max is zero and gives the upper bound on recursion
+ * depth.
+ *
+ * @param c The #cell.
+ */
+__attribute__((always_inline)) INLINE static int
+cell_can_recurse_in_pair_hydro_task_bound(const struct cell *c) {
+
+  /* Is the cell split ? */
+  /* If so, is the cut-off radius plus the max distance the parts have moved */
+  /* smaller than the sub-cell sizes ? */
+  /* Note: We use the _old values as these might have been updated by a drift */
+  return c->split && (kernel_gamma * c->hydro.h_max < 0.5f * c->dmin);
+}
+
+/**
+ * @brief Can a sub-self hydro task recurse to a lower level based
+ * on the status of the particles in the cell.
+ *
+ * This function assumes dx_max is zero and gives the upper bound on recursion
+ * depth.
+ *
+ * @param c The #cell.
+ */
+__attribute__((always_inline)) INLINE static int
+cell_can_recurse_in_self_hydro_task_bound(const struct cell *c) {
+
+  /* Is the cell split and not smaller than the smoothing length? */
+  return c->split && (kernel_gamma * c->hydro.h_max < 0.5f * c->dmin);
+}
+
+/**
+ * @brief Can a sub-pair hydro task recurse to a lower level based
+ * on the status of the particles in the cell.
+ *
  * @param c The #cell.
  */
 __attribute__((always_inline)) INLINE static int

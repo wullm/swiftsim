@@ -1347,7 +1347,7 @@ void engine_mark_hydro_sort_cells_rec(struct engine *e, struct cell *ci,
   /* Self-interaction? */
   if (cj == NULL) {
     /* Can the cell not be split? */
-    if (!cell_can_recurse_in_self_hydro_task(ci)) {
+    if (!cell_can_recurse_in_self_hydro_task_bound(ci)) {
       cell_set_flag(ci, cell_flag_requires_hydro_sorts);
       return;
     }
@@ -1375,8 +1375,8 @@ void engine_mark_hydro_sort_cells_rec(struct engine *e, struct cell *ci,
   /* Pair interaction. */
   else {
     /* Can this pair not be split further? */
-    if (!cell_can_recurse_in_pair_hydro_task(ci) ||
-        !cell_can_recurse_in_pair_hydro_task(cj)) {
+    if (!cell_can_recurse_in_pair_hydro_task_bound(ci) ||
+        !cell_can_recurse_in_pair_hydro_task_bound(cj)) {
       cell_set_flag(ci, cell_flag_requires_hydro_sorts);
       cell_set_flag(cj, cell_flag_requires_hydro_sorts);
       return;
@@ -1433,7 +1433,7 @@ void engine_mark_hydro_sort_cells(struct engine *e, struct task *t) {
     engine_mark_hydro_sort_cells_rec(e, t->ci, t->cj);
   }
 
-  /* Otherwise, baild here. */
+  /* Otherwise, bail here. */
   else {
     return;
   }
