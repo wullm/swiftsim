@@ -619,16 +619,6 @@ struct cell {
      */
     integertime_t ti_beg_max;
 
-    /*! Maximum end of (integer) time step in this cell for feedback tasks. */
-    integertime_t ti_feedback_end_min;
-
-    /*! Maximum end of (integer) time step in this cell for feedback tasks. */
-    integertime_t ti_feedback_end_max;
-
-    /*! Maximum beginning of (integer) time step in this cell for feedback
-     * tasks. */
-    integertime_t ti_feedback_beg_max;
-
     /*! Number of #spart updated in this cell. */
     int updated;
 

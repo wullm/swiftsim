@@ -3087,8 +3087,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
                 ti_gravity_beg_max = 0;
   integertime_t ti_stars_end_min = max_nr_timesteps, ti_stars_end_max = 0,
                 ti_stars_beg_max = 0;
-  integertime_t ti_feedback_end_min = max_nr_timesteps, ti_feedback_end_max = 0,
-                ti_feedback_beg_max = 0;
   integertime_t ti_black_holes_end_min = max_nr_timesteps,
                 ti_black_holes_end_max = 0, ti_black_holes_beg_max = 0;
 
@@ -3260,17 +3258,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
         /* Get new time-step */
         const integertime_t ti_new_step = get_spart_timestep(sp, e);
 
-        double age_of_star;
-        if (with_cosmology) {
-          age_of_star = cosmology_get_delta_time_from_scale_factors(
-              e->cosmology, (double)sp->birth_scale_factor, e->cosmology->a);
-        } else {
-          age_of_star = (float)e->time - sp->birth_time;
-        }
-
-        const int do_feedback =
-            feedback_will_do_feedback(sp, e->feedback_props, age_of_star);
-
         /* Update particle */
         sp->time_bin = get_time_bin(ti_new_step);
         sp->gpart->time_bin = get_time_bin(ti_new_step);
@@ -3287,17 +3274,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
         /* What is the next starting point for this cell ? */
         ti_stars_beg_max = max(ti_current, ti_stars_beg_max);
         ti_gravity_beg_max = max(ti_current, ti_gravity_beg_max);
-
-        if (do_feedback) {
-
-          ti_feedback_end_min =
-              min(ti_current + ti_new_step, ti_feedback_end_min);
-          ti_feedback_end_max =
-              max(ti_current + ti_new_step, ti_feedback_end_max);
-
-          /* What is the next starting point for this cell ? */
-          ti_feedback_beg_max = max(ti_current, ti_feedback_beg_max);
-        }
 
         /* star particle is inactive but not inhibited */
       } else {
@@ -3412,13 +3388,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
         ti_stars_end_max = max(cp->stars.ti_end_max, ti_stars_end_max);
         ti_stars_beg_max = max(cp->stars.ti_beg_max, ti_stars_beg_max);
 
-        ti_feedback_end_min =
-            min(cp->stars.ti_feedback_end_min, ti_feedback_end_min);
-        ti_feedback_end_max =
-            max(cp->stars.ti_feedback_end_max, ti_feedback_end_max);
-        ti_feedback_beg_max =
-            max(cp->stars.ti_feedback_beg_max, ti_feedback_beg_max);
-
         ti_black_holes_end_min =
             min(cp->black_holes.ti_end_min, ti_black_holes_end_min);
         ti_black_holes_end_max =
@@ -3444,9 +3413,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
   c->stars.ti_end_min = ti_stars_end_min;
   c->stars.ti_end_max = ti_stars_end_max;
   c->stars.ti_beg_max = ti_stars_beg_max;
-  c->stars.ti_feedback_end_min = ti_feedback_end_min;
-  c->stars.ti_feedback_end_max = ti_feedback_end_max;
-  c->stars.ti_feedback_beg_max = ti_feedback_beg_max;
   c->black_holes.ti_end_min = ti_black_holes_end_min;
   c->black_holes.ti_end_max = ti_black_holes_end_max;
   c->black_holes.ti_beg_max = ti_black_holes_beg_max;
