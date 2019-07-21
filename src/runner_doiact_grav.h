@@ -265,6 +265,12 @@ static INLINE void runner_dopair_grav_pp_full(
       if (pjd < gcount_j && !gpart_is_inhibited(&gparts_j[pjd], e))
         gparts_i[pid].num_interacted++;
 #endif
+
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+      /* Update the p2p interaction counter if it's not a padded gpart */
+      if (pjd < gcount_j && !gpart_is_inhibited(&gparts_j[pjd], e))
+        gparts_i[pid].num_interacted_p2p++;
+#endif
     }
 
     /* Store everything back in cache */
@@ -272,6 +278,12 @@ static INLINE void runner_dopair_grav_pp_full(
     ci_cache->a_y[pid] += a_y;
     ci_cache->a_z[pid] += a_z;
     ci_cache->pot[pid] += pot;
+
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+    gparts_i[pid].a_grav_p2p[0] += a_x;
+    gparts_i[pid].a_grav_p2p[1] += a_y;
+    gparts_i[pid].a_grav_p2p[2] += a_z;
+#endif
   }
 }
 
@@ -409,6 +421,12 @@ static INLINE void runner_dopair_grav_pp_truncated(
       if (pjd < gcount_j && !gpart_is_inhibited(&gparts_j[pjd], e))
         gparts_i[pid].num_interacted++;
 #endif
+
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+      /* Update the p2p interaction counter if it's not a padded gpart */
+      if (pjd < gcount_j && !gpart_is_inhibited(&gparts_j[pjd], e))
+        gparts_i[pid].num_interacted_p2p++;
+#endif
     }
 
     /* Store everything back in cache */
@@ -416,6 +434,12 @@ static INLINE void runner_dopair_grav_pp_truncated(
     ci_cache->a_y[pid] += a_y;
     ci_cache->a_z[pid] += a_z;
     ci_cache->pot[pid] += pot;
+
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+    gparts_i[pid].a_grav_p2p[0] += a_x;
+    gparts_i[pid].a_grav_p2p[1] += a_y;
+    gparts_i[pid].a_grav_p2p[2] += a_z;
+#endif
   }
 }
 
