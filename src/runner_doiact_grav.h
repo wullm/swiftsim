@@ -566,6 +566,15 @@ static INLINE void runner_dopair_grav_pm_full(
     if (pid < gcount_i)
       gparts_i[pid].num_interacted += cj->grav.multipole->m_pole.num_gpart;
 #endif
+
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+    if (pid < gcount_i) {
+      gparts_i[pid].num_interacted_p2m += cj->grav.multipole->m_pole.num_gpart;
+      gparts_i[pid].a_grav_p2m[0] += f_x;
+      gparts_i[pid].a_grav_p2m[1] += f_y;
+      gparts_i[pid].a_grav_p2m[2] += f_z;
+    }
+#endif
   }
 }
 
@@ -696,6 +705,15 @@ static INLINE void runner_dopair_grav_pm_truncated(
     /* Update the interaction counter */
     if (pid < gcount_i)
       gparts_i[pid].num_interacted += cj->grav.multipole->m_pole.num_gpart;
+#endif
+
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+    if (pid < gcount_i) {
+      gparts_i[pid].num_interacted_p2m += cj->grav.multipole->m_pole.num_gpart;
+      gparts_i[pid].a_grav_p2m[0] += f_x;
+      gparts_i[pid].a_grav_p2m[1] += f_y;
+      gparts_i[pid].a_grav_p2m[2] += f_z;
+    }
 #endif
   }
 }

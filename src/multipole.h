@@ -168,7 +168,7 @@ struct multipole {
 #error "Missing implementation for order >5"
 #endif
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
 
   /* Total number of gpart in this multipole */
   long long num_gpart;
@@ -596,7 +596,7 @@ INLINE static void gravity_multipole_add(struct multipole *restrict ma,
 #error "Missing implementation for order >5"
 #endif
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
   ma->num_gpart += mb->num_gpart;
 #endif
 }
@@ -1318,7 +1318,7 @@ INLINE static void gravity_P2M(struct gravity_tensors *multi,
 #error "Missing implementation for order >5"
 #endif
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
   multi->m_pole.num_gpart = gcount;
 #endif
 }
@@ -1575,7 +1575,7 @@ INLINE static void gravity_M2M(struct multipole *restrict m_a,
 #error "Missing implementation for order >5"
 #endif
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
   m_a->num_gpart = m_b->num_gpart;
 #endif
 }
@@ -1593,7 +1593,7 @@ INLINE static void gravity_M2L_apply(
     struct grav_tensor *restrict l_b, const struct multipole *restrict m_a,
     const struct potential_derivatives_M2L *pot) {
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
   /* Count interactions */
   l_b->num_interacted += m_a->num_gpart;
 #endif
