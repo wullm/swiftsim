@@ -199,9 +199,12 @@ __attribute__((always_inline)) INLINE static void gravity_end_force(
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   gp->potential_PM *= const_G;
-  gp->a_grav_PM[0] *= const_G;
-  gp->a_grav_PM[1] *= const_G;
-  gp->a_grav_PM[2] *= const_G;
+  for (int i = 0; i < 3; i++) {
+    gp->a_grav_PM[i] *= const_G;
+    gp->a_grav_p2p[i] *= const_G;
+    gp->a_grav_p2m[i] *= const_G;
+    gp->a_grav_m2m[i] *= const_G;
+  }
 #endif
 
 #ifdef SWIFT_DEBUG_CHECKS
