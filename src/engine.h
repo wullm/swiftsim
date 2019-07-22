@@ -473,6 +473,11 @@ struct engine {
 
   /* Label of the run */
   char run_name[PARSER_MAX_LINE_SIZE];
+
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+  /* Keeps track of which timesteps we perform brute force gravity checks */
+  int brute_force_gravity_flag;
+#endif
 };
 
 /* Function prototypes, engine.c. */

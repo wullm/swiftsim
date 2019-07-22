@@ -3681,6 +3681,9 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
   e->step = 0;
   e->forcerebuild = 1;
   e->wallclock_time = (float)clocks_diff(&time1, &time2);
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+  e->brute_force_gravity_flag = 0;
+#endif
 
   if (e->verbose) message("took %.3f %s.", e->wallclock_time, clocks_getunit());
 }
@@ -3844,7 +3847,22 @@ void engine_step(struct engine *e) {
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   /* Run the brute-force gravity calculation for some gparts */
-  if (e->policy & engine_policy_self_gravity)
+
+  /* Only do the brute force check on timesteps where all gparts are active */
+  size_t nr_gparts = e->s->nr_gparts;
+  long long gpart_active_count = 0;
+
+  /* Count active gparts */
+  for (long long i=0; i < nr_gparts; ++i) {
+    struct gpart *gp = &e->s->gparts[i];
+
+    if (gpart_is_active(gp, e)) gpart_active_count += 1;
+  }
+
+  /* Only run the checks on snapshot output_list timesteps */
+  if (e->policy & engine_policy_self_gravity &&
+        gpart_active_count == e->total_nr_gparts &&
+        e->brute_force_gravity_flag == 1)
     gravity_exact_force_compute(e->s, e);
 #endif
 
@@ -3855,8 +3873,13 @@ void engine_step(struct engine *e) {
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   /* Check the accuracy of the gravity calculation */
-  if (e->policy & engine_policy_self_gravity)
+  if (e->policy & engine_policy_self_gravity &&
+        gpart_active_count == e->total_nr_gparts &&
+        e->brute_force_gravity_flag == 1)
     gravity_exact_force_check(e->s, e, 1e-1);
+
+    /* Reset flag waiting for next output time */
+    e->brute_force_gravity_flag = 0;
 #endif
 
 #ifdef SWIFT_DEBUG_CHECKS
@@ -3974,6 +3997,11 @@ void engine_check_for_dumps(struct engine *e) {
     /* Write some form of output */
     switch (type) {
       case output_snapshot:
+
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+        /* Indicate we are allowed to do a brute force calculation now */
+        e->brute_force_gravity_flag = 1;
+#endif
 
         /* Do we want a corresponding VELOCIraptor output? */
         if (with_stf && e->snapshot_invoke_stf) {
