@@ -47,6 +47,11 @@ struct gpart {
   /* Particle group ID and size in the FOF. */
   size_t group_id, group_size;
 
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* The norm of the acceleration (computed at the previous timestep) */
+  float a_grav_norm;
+#endif
+
 #ifdef SWIFT_DEBUG_CHECKS
 
   /* Time of the last drift */
