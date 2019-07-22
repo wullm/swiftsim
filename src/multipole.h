@@ -2781,4 +2781,53 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
   return (r2 * theta_crit2 > r_max2) && (r2 > epsilon * epsilon);
 }
 
+__attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advanced(
+    const struct multipole *m_a, const struct multipole *m_b,
+    const double r_crit_a, const double r_crit_b, const double theta_crit2,
+    const double r2, const int step, const double const_G) {
+
+  if (step == 0) {
+    /* Need to use classical critetia on the first timestep
+     * as we have no accelerations yet */
+    return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
+
+  } else {
+#ifdef ADVANCED_OPENING_CRITERIA
+    /* Advanced criteria, taken from Dehnen 2014 (eq. 12--16) */
+  
+    /* Some constatnts for the calculation */
+    const double M_a = m_a->M_000;
+    const double min_a_grav_norm = m_b->min_a_grav_norm;
+    const double r = sqrt(r2);
+    const double r_p = pow(r, SELF_GRAVITY_MULTIPOLE_ORDER);
+  
+    /* Binomial coefficients for m=0-5 */
+    const int binom_coefficient[6][6] = {{1,0,0,0,0,0},
+                                         {1,1,0,0,0,0},
+                                         {1,2,1,0,0,0},
+                                         {1,3,3,1,0,0},
+                                         {1,4,6,4,1,0},
+                                         {1,5,10,10,5,1}};
+  
+    /* Sum over each multipole order to evaluate E_a->b (eq. 13 from Dehnen 2014) */
+    double E = 0.0;
+    for (int i=0; i <= SELF_GRAVITY_MULTIPOLE_ORDER; i++) {
+      E += binom_coefficient[SELF_GRAVITY_MULTIPOLE_ORDER][i] *
+              sqrt(m_a->power[i]) *
+              pow(r_crit_b, SELF_GRAVITY_MULTIPOLE_ORDER-i);   
+    }
+    E /= M_a;
+    E /= r_p;
+  
+    /* Compute E_a->b_bar (eq. 15 from Dehnen 2014)
+     * This predicts the maximum(ish) relative force error (da/a) that you would expect
+     * between the two multipoles via an M2L interaction i.e., da/a <= E_bar */
+    double E_bar = E * ((8 * max(r_crit_a, r_crit_b)) / (r_crit_a + r_crit_b));
+
+    return (E_bar * const_G * M_a / r2) < (1.e-3 * min_a_grav_norm);
+#else
+    return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
+#endif
+  }
+}
 #endif /* SWIFT_MULTIPOLE_H */
