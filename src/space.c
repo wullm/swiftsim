@@ -3497,6 +3497,9 @@ void space_split_recursive(struct space *s, struct cell *c,
       c->grav.multipole->m_pole.M_001 = 0.f;
 
 #ifdef ADVANCED_OPENING_CRITERIA
+      /* Compute multipole power */
+      compute_multipole_power(&c->grav.multipole->m_pole);
+
       /* Store the minimum acceleration */
       c->grav.multipole->m_pole.min_a_grav_norm = min_a_grav_norm;
 #endif
@@ -3617,6 +3620,10 @@ void space_split_recursive(struct space *s, struct cell *c,
 
         gravity_P2M(c->grav.multipole, c->grav.parts, c->grav.count,
                     e->gravity_properties);
+#ifdef ADVANCED_OPENING_CRITERIA
+        /* Compute multipole power */
+        compute_multipole_power(&c->grav.multipole->m_pole);
+#endif
 
       } else {
 
