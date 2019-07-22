@@ -5777,7 +5777,9 @@ int cell_can_use_pair_mm(const struct cell *ci, const struct cell *cj,
   }
   const double r2 = dx * dx + dy * dy + dz * dz;
 
-  return gravity_M2L_accept(multi_i->r_max, multi_j->r_max, theta_crit2, r2);
+  return gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+        multi_i->r_max, multi_j->r_max, theta_crit2, r2,e->step,
+        e->physical_constants->const_newton_G);
 }
 
 /**
@@ -5839,6 +5841,8 @@ int cell_can_use_pair_mm_rebuild(const struct cell *ci, const struct cell *cj,
   }
   const double r2 = dx * dx + dy * dy + dz * dz;
 
-  return gravity_M2L_accept(multi_i->r_max_rebuild, multi_j->r_max_rebuild,
-                            theta_crit2, r2);
+  if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+      multi_i->r_max_rebuild, multi_j->r_max_rebuild, theta_crit2, r2, e->step,
+      e->physical_constants->const_newton_G) == 10) printf("hello"); /* STU */
+  return 0;
 }

@@ -256,6 +256,7 @@ __attribute__((always_inline)) INLINE static void gravity_cache_populate(
 
     /* Check whether we can use the multipole instead of P-P */
     use_mpole[i] = allow_mpole && gravity_M2P_accept(r_max2, theta_crit2, r2);
+    use_mpole[i] = 0; /* STU */
   }
 
 #ifdef SWIFT_DEBUG_CHECKS

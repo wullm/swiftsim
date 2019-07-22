@@ -1395,6 +1395,23 @@ static INLINE void runner_dopair_grav_mm_nonsym(
         "Undrifted multipole cj->grav.ti_old_multipole=%lld cj->nodeID=%d "
         "ci->nodeID=%d e->ti_current=%lld",
         cj->grav.ti_old_multipole, cj->nodeID, ci->nodeID, e->ti_current);
+
+  /* Get the distance between the CoMs */
+  /*double dx_r = ci->grav.multipole->CoM[0] - cj->grav.multipole->CoM[0];
+  double dy_r = ci->grav.multipole->CoM[1] - cj->grav.multipole->CoM[1];
+  double dz_r = ci->grav.multipole->CoM[2] - cj->grav.multipole->CoM[2];
+
+  if (periodic) {
+    dx_r = nearest(dx_r, dim[0]);
+    dy_r = nearest(dy_r, dim[1]);
+    dz_r = nearest(dz_r, dim[2]);
+  }
+  const double r2 = dx_r * dx_r + dy_r * dy_r + dz_r * dz_r;
+
+  if (gravity_M2L_accept_advanced(&ci->grav.multipole->m_pole, multi_j,
+        ci->grav.multipole->r_max, cj->grav.multipole->r_max,
+        e->gravity_properties->theta_crit2, r2, e->step))
+    error("Using M2L when the cells can be opened");*/
 #endif
 
   /* Let's interact at this level */
@@ -1630,7 +1647,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   /* Are we beyond the distance where the truncated forces are 0? */
   if (periodic && r_lr_check > max_distance) {
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
     /* Need to account for the interactions we missed */
     if (cell_is_active_gravity(ci, e))
       multi_i->pot.num_not_interacted += multi_j->m_pole.num_gpart;
@@ -1644,7 +1661,9 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
    * option... */
 
   /* Can we use M-M interactions ? */
-  if (gravity_M2L_accept(multi_i->r_max, multi_j->r_max, theta_crit2, r2)) {
+  if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+            multi_i->r_max, multi_j->r_max, theta_crit2, r2, e->step,
+            e->physical_constants->const_newton_G)) {
 
     /* Go M-M */
     runner_dopair_grav_mm(r, ci, cj);
@@ -1652,7 +1671,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   } else if (!ci->split && !cj->split) {
 
     /* We have two leaves. Go P-P. */
-    runner_dopair_grav_pp(r, ci, cj, /*symmetric*/ 1, /*allow_mpoles*/ 1);
+    runner_dopair_grav_pp(r, ci, cj, /*symmetric*/ 1, /*allow_mpoles STU*/ 0);
 
   } else {
 
@@ -1838,7 +1857,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
       /* Are we beyond the distance where the truncated forces are 0 ?*/
       if (min_radius2 > max_distance2) {
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
         /* Need to account for the interactions we missed */
         multi_i->pot.num_not_interacted += multi_j->m_pole.num_gpart;
 #endif
@@ -1865,15 +1884,16 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
     const double r2_rebuild = dx_r * dx_r + dy_r * dy_r + dz_r * dz_r;
 
     /* Are we in charge of this cell pair? */
-    if (gravity_M2L_accept(multi_top->r_max_rebuild, multi_j->r_max_rebuild,
-                           theta_crit2, r2_rebuild)) {
+    if (gravity_M2L_accept_advanced(&multi_top->m_pole, &multi_j->m_pole,
+            multi_top->r_max_rebuild, multi_j->r_max_rebuild,
+            theta_crit2, r2_rebuild, e->step, e->physical_constants->const_newton_G)) {
 
       /* Call the PM interaction fucntion on the active sub-cells of ci */
-      runner_dopair_grav_mm_nonsym(r, ci, cj);
+      // STU runner_dopair_grav_mm_nonsym(r, ci, cj);
       // runner_dopair_recursive_grav_pm(r, ci, cj);
 
       /* Record that this multipole received a contribution */
-      multi_i->pot.interacted = 1;
+      // STU multi_i->pot.interacted = 1;
 
     } /* We are in charge of this pair */
   }   /* Loop over top-level cells */
