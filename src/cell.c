@@ -2249,6 +2249,10 @@ void cell_make_multipoles(struct cell *c, integertime_t ti_current,
     /* Take minimum of both limits */
     c->grav.multipole->r_max = min(r_max, sqrt(dx * dx + dy * dy + dz * dz));
 
+#ifdef ADVANCED_OPENING_CRITERIA
+    /* Compute multipole power */
+    compute_multipole_power(&c->grav.multipole->m_pole);
+#endif
   } else {
     if (c->grav.count > 0) {
       gravity_P2M(c->grav.multipole, c->grav.parts, c->grav.count, grav_props);
@@ -2273,6 +2277,11 @@ void cell_make_multipoles(struct cell *c, integertime_t ti_current,
       c->grav.multipole->r_max = 0.;
     }
   }
+
+#ifdef ADVANCED_OPENING_CRITERIA
+     /* Compute multipole power */
+      compute_multipole_power(&c->grav.multipole->m_pole);
+#endif
 
   /* Also update the values at rebuild time */
   c->grav.multipole->r_max_rebuild = c->grav.multipole->r_max;
