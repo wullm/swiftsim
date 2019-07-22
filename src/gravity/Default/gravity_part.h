@@ -51,6 +51,11 @@ struct gpart {
   /*! Type of the #gpart (DM, gas, star, ...) */
   enum part_type type;
 
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* The norm of the acceleration (computed at the previous timestep) */
+  float a_grav_norm;
+#endif
+
 #ifdef SWIFT_DEBUG_CHECKS
 
   /* Time of the last drift */

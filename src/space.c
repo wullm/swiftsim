@@ -3442,6 +3442,9 @@ void space_split_recursive(struct space *s, struct cell *c,
       /* Now shift progeny multipoles and add them up */
       struct multipole temp;
       double r_max = 0.;
+#ifdef ADVANCED_OPENING_CRITERIA
+      float min_a_grav_norm = FLT_MAX;
+#endif
       for (int k = 0; k < 8; ++k) {
         if (c->progeny[k] != NULL) {
           const struct cell *cp = c->progeny[k];
@@ -3461,6 +3464,12 @@ void space_split_recursive(struct space *s, struct cell *c,
               c->grav.multipole->CoM[2] - cp->grav.multipole->CoM[2];
           const double r2 = dx * dx + dy * dy + dz * dz;
           r_max = max(r_max, cp->grav.multipole->r_max + sqrt(r2));
+
+#ifdef ADVANCED_OPENING_CRITERIA
+          /* Keep track of the gpart with the minimum acceleration */
+          min_a_grav_norm = min(min_a_grav_norm, m->min_a_grav_norm);
+#endif
+
         }
       }
 
@@ -3491,6 +3500,11 @@ void space_split_recursive(struct space *s, struct cell *c,
       c->grav.multipole->m_pole.M_100 = 0.f;
       c->grav.multipole->m_pole.M_010 = 0.f;
       c->grav.multipole->m_pole.M_001 = 0.f;
+
+#ifdef ADVANCED_OPENING_CRITERIA
+      /* Store the minimum acceleration */
+      c->grav.multipole->m_pole.min_a_grav_norm = min_a_grav_norm;
+#endif
 
     } /* Deal with gravity */
   }   /* Split or let it be? */

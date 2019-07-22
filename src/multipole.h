@@ -127,6 +127,11 @@ struct multipole {
   /*! Maximal co-moving softening of all the #gpart in the mulipole */
   float max_softening;
 
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* Minimum (norm of the) acceleration of the gparts in the cell */
+  float min_a_grav_norm;
+#endif
+
   /* 0th order term */
   float M_000;
 
@@ -1058,6 +1063,9 @@ INLINE static void gravity_P2M(struct gravity_tensors *multi,
   double mass = 0.0;
   double com[3] = {0.0, 0.0, 0.0};
   double vel[3] = {0.f, 0.f, 0.f};
+#ifdef ADVANCED_OPENING_CRITERIA
+  float min_a_grav_norm = FLT_MAX;
+#endif
 
   /* Collect the particle data for CoM. */
   for (int k = 0; k < gcount; k++) {
@@ -1077,6 +1085,10 @@ INLINE static void gravity_P2M(struct gravity_tensors *multi,
     vel[0] += gparts[k].v_full[0] * m;
     vel[1] += gparts[k].v_full[1] * m;
     vel[2] += gparts[k].v_full[2] * m;
+
+#ifdef ADVANCED_OPENING_CRITERIA
+    min_a_grav_norm = min(min_a_grav_norm, gparts[k].a_grav_norm);
+#endif
   }
 
   /* Final operation on CoM */
@@ -1248,6 +1260,9 @@ INLINE static void gravity_P2M(struct gravity_tensors *multi,
   multi->m_pole.min_delta_vel[0] = min_delta_vel[0];
   multi->m_pole.min_delta_vel[1] = min_delta_vel[1];
   multi->m_pole.min_delta_vel[2] = min_delta_vel[2];
+#ifdef ADVANCED_OPENING_CRITERIA
+  multi->m_pole.min_a_grav_norm = sqrt(min_a_grav_norm);
+#endif
 
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
 
