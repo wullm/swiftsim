@@ -1325,7 +1325,7 @@ void DOPAIR1_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
     if (part_is_inhibited(p, e)) continue;
     // ALEXEI: improve this implementation!!!
 #if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
-    if (part_is_decoupled(p, e)) continue;
+    if (part_is_decoupled(p)) continue;
 #endif
 
 
@@ -1348,7 +1348,7 @@ void DOPAIR1_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
     if (part_is_inhibited(p, e)) continue;
     // ALEXEI: improve this implementation!!!
 #if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
-    if (part_is_decoupled(p, e)) continue;
+    if (part_is_decoupled(p)) continue;
 #endif
 
 
@@ -1906,7 +1906,7 @@ void DOPAIR2_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
     if (part_is_inhibited(p, e)) continue;
     // ALEXEI: improve this implementation!!!
 #if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
-    if (part_is_decoupled(p, e)) continue;
+    if (part_is_decoupled(p)) continue;
 #endif
 
     const float d = p->x[0] * runner_shift[sid][0] +
@@ -1928,7 +1928,7 @@ void DOPAIR2_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
     if (part_is_inhibited(p, e)) continue;
     // ALEXEI: improve this implementation!!!
 #if (FUNCTION_TASK_LOOP != TASK_LOOP_DENSITY)
-    if (part_is_decoupled(p, e)) continue;
+    if (part_is_decoupled(p)) continue;
 #endif
 
     const float d = p->x[0] * runner_shift[sid][0] +
