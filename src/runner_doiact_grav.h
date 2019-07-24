@@ -1671,7 +1671,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   } else if (!ci->split && !cj->split) {
 
     /* We have two leaves. Go P-P. */
-    runner_dopair_grav_pp(r, ci, cj, /*symmetric*/ 1, /*allow_mpoles STU*/ 0);
+    runner_dopair_grav_pp(r, ci, cj, /*symmetric*/ 1, /*allow_mpoles*/ 1);
 
   } else {
 
@@ -1883,17 +1883,28 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
     }
     const double r2_rebuild = dx_r * dx_r + dy_r * dy_r + dz_r * dz_r;
 
-    /* Are we in charge of this cell pair? */
-    if (gravity_M2L_accept_advanced(&multi_top->m_pole, &multi_j->m_pole,
-            multi_top->r_max_rebuild, multi_j->r_max_rebuild,
-            theta_crit2, r2_rebuild, e->step, e->physical_constants->const_newton_G)) {
+    /* Do we accept from cell i to cell j? */
+    const int accept_ij = gravity_M2L_accept_advanced(&multi_top->m_pole, &multi_j->m_pole,
+      multi_top->r_max_rebuild, multi_j->r_max_rebuild, theta_crit2, r2_rebuild, e->step,
+      e->physical_constants->const_newton_G);
 
+#ifdef ADVANCED_OPENING_CRITERIA
+    /* Do we accept from cell j to cell i? */
+    const int accept_ji = gravity_M2L_accept_advanced(&multi_j->m_pole, &multi_top->m_pole,
+        multi_j->r_max_rebuild, multi_top->r_max_rebuild, theta_crit2, r2_rebuild, e->step,
+        e->physical_constants->const_newton_G);
+
+    /* Are we in charge of this cell pair? */
+    if (accept_ij && accept_ji) {
+#else
+    if (accept_ij) {
+#endif
       /* Call the PM interaction fucntion on the active sub-cells of ci */
-      // STU runner_dopair_grav_mm_nonsym(r, ci, cj);
+      runner_dopair_grav_mm_nonsym(r, ci, cj);
       // runner_dopair_recursive_grav_pm(r, ci, cj);
 
       /* Record that this multipole received a contribution */
-      // STU multi_i->pot.interacted = 1;
+      multi_i->pot.interacted = 1;
 
     } /* We are in charge of this pair */
   }   /* Loop over top-level cells */

@@ -5777,9 +5777,21 @@ int cell_can_use_pair_mm(const struct cell *ci, const struct cell *cj,
   }
   const double r2 = dx * dx + dy * dy + dz * dz;
 
-  return gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
-        multi_i->r_max, multi_j->r_max, theta_crit2, r2,e->step,
-        e->physical_constants->const_newton_G);
+  /* Do we accept from cell i to cell j? */
+  const int accept_ij = gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+      multi_i->r_max, multi_j->r_max, theta_crit2, r2, e->step,
+      e->physical_constants->const_newton_G);
+
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* Do we accept from cell j to cell i? */
+  const int accept_ji = gravity_M2L_accept_advanced(&multi_j->m_pole, &multi_i->m_pole,
+      multi_j->r_max_rebuild, multi_i->r_max_rebuild, theta_crit2, r2, e->step,
+      e->physical_constants->const_newton_G);
+
+  return accept_ij && accept_ji;
+#else
+  return accept_ij;
+#endif
 }
 
 /**
@@ -5841,8 +5853,19 @@ int cell_can_use_pair_mm_rebuild(const struct cell *ci, const struct cell *cj,
   }
   const double r2 = dx * dx + dy * dy + dz * dz;
 
-  if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+  /* Do we accept from cell i to cell j? */
+  const int accept_ij = gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
       multi_i->r_max_rebuild, multi_j->r_max_rebuild, theta_crit2, r2, e->step,
-      e->physical_constants->const_newton_G) == 10) printf("hello"); /* STU */
-  return 0;
+      e->physical_constants->const_newton_G);
+
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* Do we accept from cell j to cell i? */
+  const int accept_ji = gravity_M2L_accept_advanced(&multi_j->m_pole, &multi_i->m_pole,
+      multi_j->r_max_rebuild, multi_i->r_max_rebuild, theta_crit2, r2, e->step,
+      e->physical_constants->const_newton_G);
+
+  return accept_ij && accept_ji;
+#else
+  return accept_ij;
+#endif
 }
