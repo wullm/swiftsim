@@ -2816,7 +2816,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
     const double size2 = size * size;
 
     if ((E_bar * const_G * M_a / r2) < (1.e-3 * min_a_grav_norm)) printf("%f %f %f\n", E_bar * const_G * M_a / r2, min_a_grav_norm,  size2/r2);*/
-    return ((E_bar * const_G * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta < 1.0));
+    return ((E_bar * const_G * M_a / r2) < (1.e-2 * min_a_grav_norm) && (theta < 1.0));
 #else
     return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
 #endif

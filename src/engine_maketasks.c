@@ -1158,7 +1158,7 @@ void engine_make_self_gravity_tasks_mapper(void *map_data, int num_elements,
 
   /* Compute how many cells away we need to walk */
   const double distance = 2.5 * cells[0].width[0] / theta_crit;
-  int delta = (int)(distance / cells[0].width[0]) + 500 /*STU*/;
+  int delta = (int)(distance / cells[0].width[0]) + 1;
   int delta_m = delta;
   int delta_p = delta;
 
@@ -1235,7 +1235,8 @@ void engine_make_self_gravity_tasks_mapper(void *map_data, int num_elements,
           /* Are we beyond the distance where the truncated forces are 0 ?*/
           if (periodic && min_radius2 > max_distance2) continue;
           
-          /* Are the cells too close for a MM interaction ? */
+          /* Are the cells too close for a MM interaction? OR
+           * Do the cells contain to few gparts to make an MM interaction worth it? */
           if (!cell_can_use_pair_mm_rebuild(ci, cj, e, s)) {
 
             /* Ok, we need to add a direct pair calculation */

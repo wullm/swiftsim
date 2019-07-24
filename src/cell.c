@@ -5759,10 +5759,15 @@ int cell_can_use_pair_mm(const struct cell *ci, const struct cell *cj,
   const double theta_crit2 = e->gravity_properties->theta_crit2;
   const int periodic = s->periodic;
   const double dim[3] = {s->dim[0], s->dim[1], s->dim[2]};
+  const int p3 = e->gravity_properties->p3;
 
   /* Recover the multipole information */
   const struct gravity_tensors *const multi_i = ci->grav.multipole;
   const struct gravity_tensors *const multi_j = cj->grav.multipole;
+  const int count_ij = ci->grav.count * cj->grav.count;
+
+  /* If the cells have too few gparts, don't use MM */
+  if (count_ij < p3) return 0;
 
   /* Get the distance between the CoMs */
   double dx = multi_i->CoM[0] - multi_j->CoM[0];
@@ -5811,10 +5816,15 @@ int cell_can_use_pair_mm_rebuild(const struct cell *ci, const struct cell *cj,
   const double theta_crit2 = e->gravity_properties->theta_crit2;
   const int periodic = s->periodic;
   const double dim[3] = {s->dim[0], s->dim[1], s->dim[2]};
+  const int p3 = e->gravity_properties->p3;
 
   /* Recover the multipole information */
   const struct gravity_tensors *const multi_i = ci->grav.multipole;
   const struct gravity_tensors *const multi_j = cj->grav.multipole;
+  const int count_ij = ci->grav.count * cj->grav.count;
+
+  /* If the cells have too few gparts, don't use MM */
+  if (count_ij < p3) return 0;
 
 #ifdef SWIFT_DEBUG_CHECKS
 

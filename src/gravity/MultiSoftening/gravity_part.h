@@ -46,10 +46,12 @@ struct gpart {
 
   unsigned char group_id, group_size;
 
-#ifdef SWIFT_DEBUG_CHECKS
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* The norm of the acceleration (computed at the previous timestep) */
+  float a_grav_norm;
+#endif
 
-  /* Numer of gparts this gpart interacted with */
-  long long num_interacted;
+#ifdef SWIFT_DEBUG_CHECKS
 
   /* Time of the last drift */
   integertime_t ti_drift;
@@ -62,6 +64,11 @@ struct gpart {
 
 #endif
 
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
+  /* Total number of gparts this gpart interacted with */
+  long long num_interacted;
+#endif
+
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
 
   /*! Acceleration taken from the mesh only */
@@ -70,11 +77,24 @@ struct gpart {
   /*! Potential taken from the mesh only */
   float potential_PM;
 
-  /* Brute-force particle acceleration. */
+  /* Acceleration taken from each component of the tree */
+  float a_grav_p2p[3];
+  float a_grav_p2m[3];
+  float a_grav_m2m[3];
+
+  /* Brute-force particle accelerations */
   double a_grav_exact[3];
+  double a_grav_exact_long[3];
+  double a_grav_exact_short[3];
 
   /* Brute-force particle potential. */
   double potential_exact;
+
+  /* Type specific interaction counters */
+  long long num_interacted_p2m;
+  long long num_interacted_m2m;
+  long long num_interacted_p2p;
+  long long num_not_interacted;
 #endif
 
 } SWIFT_STRUCT_ALIGN;

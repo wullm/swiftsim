@@ -90,6 +90,11 @@ void gravity_props_init(struct gravity_props *p, struct swift_params *params,
   p->theta_crit2 = p->theta_crit * p->theta_crit;
   p->theta_crit_inv = 1. / p->theta_crit;
 
+  /* The multipole order cubed, we do not let two cells with Ni * Nj gparts 
+   * less this number interact via multipole interactions */
+  p->p3 = 0;/* STU SELF_GRAVITY_MULTIPOLE_ORDER * SELF_GRAVITY_MULTIPOLE_ORDER
+      * SELF_GRAVITY_MULTIPOLE_ORDER;*/
+
   /* Softening parameters */
   if (with_cosmology) {
 

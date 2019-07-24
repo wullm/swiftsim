@@ -1344,6 +1344,10 @@ static INLINE void runner_dopair_grav_mm_symmetric(struct runner *r,
         "Undrifted multipole cj->grav.ti_old_multipole=%lld cj->nodeID=%d "
         "ci->nodeID=%d e->ti_current=%lld",
         cj->grav.ti_old_multipole, cj->nodeID, ci->nodeID, e->ti_current);
+
+  if (ci->grav.count * cj->grav.count < props->p3)
+    error("Should not be doing MM interaction between two cells with so few "
+          "gparts (Ni*Nj=%i p3=%i)", ci->grav.count*cj->grav.count, props->p3);
 #endif
 
   /* Let's interact at this level */
@@ -1396,22 +1400,9 @@ static INLINE void runner_dopair_grav_mm_nonsym(
         "ci->nodeID=%d e->ti_current=%lld",
         cj->grav.ti_old_multipole, cj->nodeID, ci->nodeID, e->ti_current);
 
-  /* Get the distance between the CoMs */
-  /*double dx_r = ci->grav.multipole->CoM[0] - cj->grav.multipole->CoM[0];
-  double dy_r = ci->grav.multipole->CoM[1] - cj->grav.multipole->CoM[1];
-  double dz_r = ci->grav.multipole->CoM[2] - cj->grav.multipole->CoM[2];
-
-  if (periodic) {
-    dx_r = nearest(dx_r, dim[0]);
-    dy_r = nearest(dy_r, dim[1]);
-    dz_r = nearest(dz_r, dim[2]);
-  }
-  const double r2 = dx_r * dx_r + dy_r * dy_r + dz_r * dz_r;
-
-  if (gravity_M2L_accept_advanced(&ci->grav.multipole->m_pole, multi_j,
-        ci->grav.multipole->r_max, cj->grav.multipole->r_max,
-        e->gravity_properties->theta_crit2, r2, e->step))
-    error("Using M2L when the cells can be opened");*/
+  if (ci->grav.count * cj->grav.count < props->p3)
+    error("Should not be doing MM interaction between two cells with so few "
+          "gparts (Ni*Nj=%i p3=%i)", ci->grav.count*cj->grav.count, props->p3);
 #endif
 
   /* Let's interact at this level */
@@ -1596,6 +1587,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   const double dim[3] = {e->mesh->dim[0], e->mesh->dim[1], e->mesh->dim[2]};
   const double theta_crit2 = e->gravity_properties->theta_crit2;
   const double max_distance = e->mesh->r_cut_max;
+  const int p3 = e->gravity_properties->p3;
 
   /* Anything to do here? */
   if (!((cell_is_active_gravity(ci, e) && ci->nodeID == nodeID) ||
@@ -1627,6 +1619,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   /* Recover the multipole information */
   struct gravity_tensors *const multi_i = ci->grav.multipole;
   struct gravity_tensors *const multi_j = cj->grav.multipole;
+  const int count_ij = ci->grav.count * cj->grav.count;
 
   /* Get the distance between the CoMs */
   double dx = multi_i->CoM[0] - multi_j->CoM[0];
@@ -1660,8 +1653,14 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   /* OK, we actually need to compute this pair. Let's find the cheapest
    * option... */
 
+  /* Two cells with very few particles go P-P */
+  if (count_ij < p3) {
+
+    /* We have two mini-cells. Go P-P. */
+    runner_dopair_grav_pp(r, ci, cj, /*symmetric*/ 1, /*allow_mpoles*/ 0);
+
   /* Can we use M-M interactions ? */
-  if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+  } else if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
             multi_i->r_max, multi_j->r_max, theta_crit2, r2, e->step,
             e->physical_constants->const_newton_G)) {
 
@@ -1803,6 +1802,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
   const double dim[3] = {e->mesh->dim[0], e->mesh->dim[1], e->mesh->dim[2]};
   const double theta_crit2 = e->gravity_properties->theta_crit2;
   const double max_distance2 = e->mesh->r_cut_max * e->mesh->r_cut_max;
+  const int p3 = e->gravity_properties->p3;
 
   TIMER_TIC;
 
@@ -1840,6 +1840,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
     /* Handle on the top-level cell and it's gravity business*/
     const struct cell *cj = &cells[cells_with_particles[n]];
     const struct gravity_tensors *const multi_j = cj->grav.multipole;
+    const int count_ij = ci->grav.count * cj->grav.count;
 
     /* Avoid self contributions */
     if (top == cj) continue;
@@ -1869,6 +1870,9 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
         continue;
       }
     }
+
+    /* Two cells with too few particles should not interact via the multipole */
+    if (count_ij < p3) continue;
 
     /* Get the distance between the CoMs at the last rebuild*/
     double dx_r = CoM_rebuild_top[0] - multi_j->CoM_rebuild[0];

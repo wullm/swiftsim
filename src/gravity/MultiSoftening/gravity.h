@@ -152,13 +152,24 @@ __attribute__((always_inline)) INLINE static void gravity_init_gpart(
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   gp->potential_PM = 0.f;
-  gp->a_grav_PM[0] = 0.f;
-  gp->a_grav_PM[1] = 0.f;
-  gp->a_grav_PM[2] = 0.f;
+  for (int i=0; i<3; i++) {
+      gp->a_grav_PM[i] = 0.f;
+      gp->a_grav_p2p[i] = 0.f;
+      gp->a_grav_p2m[i] = 0.f;
+      gp->a_grav_m2m[i] = 0.f;
+  }
+
+  gp->num_interacted_p2m = 0;
+  gp->num_interacted_m2m = 0;
+  gp->num_interacted_p2p = 0;
+  gp->num_not_interacted = 0;
+#endif
+
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
+  gp->num_interacted = 0;
 #endif
 
 #ifdef SWIFT_DEBUG_CHECKS
-  gp->num_interacted = 0;
   gp->initialised = 1;
 #endif
 }
@@ -188,13 +199,24 @@ __attribute__((always_inline)) INLINE static void gravity_end_force(
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   gp->potential_PM *= const_G;
-  gp->a_grav_PM[0] *= const_G;
-  gp->a_grav_PM[1] *= const_G;
-  gp->a_grav_PM[2] *= const_G;
+  for (int i = 0; i < 3; i++) {
+    gp->a_grav_PM[i] *= const_G;
+    gp->a_grav_p2p[i] *= const_G;
+    gp->a_grav_p2m[i] *= const_G;
+    gp->a_grav_m2m[i] *= const_G;
+  }
 #endif
 
 #ifdef SWIFT_DEBUG_CHECKS
   gp->initialised = 0; /* Ready for next step */
+#endif
+
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* Record the norm of the acceleration for the advanced opening criteria
+   * (will always be an (active) timestep behind) */
+  gp->a_grav_norm = gp->a_grav[0] * gp->a_grav[0] +
+                    gp->a_grav[1] * gp->a_grav[1] +
+                    gp->a_grav[2] * gp->a_grav[2];
 #endif
 }
 
