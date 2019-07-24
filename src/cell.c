@@ -5922,8 +5922,21 @@ int cell_can_use_pair_mm(const struct cell *ci, const struct cell *cj,
   const double epsilon_i = multi_i->m_pole.max_softening;
   const double epsilon_j = multi_j->m_pole.max_softening;
 
-  return gravity_M2L_accept(multi_i->r_max, multi_j->r_max, theta_crit2, r2,
-                            epsilon_i, epsilon_j);
+  /* Do we accept from cell i to cell j? */
+  const int accept_ij = gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+      multi_i->r_max, multi_j->r_max, theta_crit2, r2, e->step,
+      e->physical_constants->const_newton_G, epsilon_i, epsilon_j);
+
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* Do we accept from cell j to cell i? */
+  const int accept_ji = gravity_M2L_accept_advanced(&multi_j->m_pole, &multi_i->m_pole,
+      multi_j->r_max_rebuild, multi_i->r_max_rebuild, theta_crit2, r2, e->step,
+      e->physical_constants->const_newton_G, epsilon_i, epsilon_j);
+
+  return accept_ij && accept_ji;
+#else
+  return accept_ij;
+#endif
 }
 
 /**
@@ -5988,6 +6001,19 @@ int cell_can_use_pair_mm_rebuild(const struct cell *ci, const struct cell *cj,
   const double epsilon_i = multi_i->m_pole.max_softening;
   const double epsilon_j = multi_j->m_pole.max_softening;
 
-  return gravity_M2L_accept(multi_i->r_max_rebuild, multi_j->r_max_rebuild,
-                            theta_crit2, r2, epsilon_i, epsilon_j);
+  /* Do we accept from cell i to cell j? */
+  const int accept_ij = gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+      multi_i->r_max_rebuild, multi_j->r_max_rebuild, theta_crit2, r2, e->step,
+      e->physical_constants->const_newton_G, epsilon_i, epsilon_j);
+
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* Do we accept from cell j to cell i? */
+  const int accept_ji = gravity_M2L_accept_advanced(&multi_j->m_pole, &multi_i->m_pole,
+      multi_j->r_max_rebuild, multi_i->r_max_rebuild, theta_crit2, r2, e->step,
+      e->physical_constants->const_newton_G, epsilon_i, epsilon_j);
+
+  return accept_ij && accept_ji;
+#else
+  return accept_ij;
+#endif
 }

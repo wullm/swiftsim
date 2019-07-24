@@ -2784,12 +2784,13 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
 __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advanced(
     const struct multipole *m_a, const struct multipole *m_b,
     const double r_crit_a, const double r_crit_b, const double theta_crit2,
-    const double r2, const int step, const double const_G) {
+    const double r2, const int step, const double const_G, const double epsilon_a,
+    const double epsilon_b) {
 
-  if (step == 0) {
+  if (step < 1) {
     /* Need to use classical critetia on the first timestep
      * as we have no accelerations yet */
-    return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
+    return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2, epsilon_a, epsilon_b);
 
   } else {
 #ifdef ADVANCED_OPENING_CRITERIA
@@ -2800,7 +2801,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
     const double min_a_grav_norm = m_b->min_a_grav_norm;
     const double r = sqrt(r2);
     const double r_p = pow(r, SELF_GRAVITY_MULTIPOLE_ORDER);
-  
+    const float theta = (r_crit_a + r_crit_b) / r;
     /* Binomial coefficients for m=0-5 */
     const int binom_coefficient[6][6] = {{1,0,0,0,0,0},
                                          {1,1,0,0,0,0},
@@ -2822,9 +2823,13 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
     /* Compute E_a->b_bar (eq. 15 from Dehnen 2014)
      * This predicts the maximum(ish) relative force error (da/a) that you would expect
      * between the two multipoles via an M2L interaction i.e., da/a <= E_bar */
-    double E_bar = E * ((8 * max(r_crit_a, r_crit_b)) / (r_crit_a + r_crit_b));
+    const double E_bar = E * ((8 * max(r_crit_a, r_crit_b)) / (r_crit_a + r_crit_b));
 
-    return (E_bar * const_G * M_a / r2) < (1.e-3 * min_a_grav_norm);
+    /*const double size = r_crit_a + r_crit_b;
+    const double size2 = size * size;
+
+    if ((E_bar * const_G * M_a / r2) < (1.e-3 * min_a_grav_norm)) printf("%f %f %f\n", E_bar * const_G * M_a / r2, min_a_grav_norm,  size2/r2);*/
+    return ((E_bar * const_G * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta < 1.0));
 #else
     return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
 #endif
