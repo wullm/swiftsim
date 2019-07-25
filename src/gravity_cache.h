@@ -201,7 +201,7 @@ __attribute__((always_inline)) INLINE static void gravity_cache_populate(
     const struct gpart *restrict gparts, const int gcount,
     const int gcount_padded, const double shift[3], const float CoM[3],
     const float r_max2, const struct cell *cell,
-    const struct gravity_props *grav_props) {
+    const struct gravity_props *grav_props, const int step) {
 
   const float theta_crit2 = grav_props->theta_crit2;
 
@@ -255,8 +255,8 @@ __attribute__((always_inline)) INLINE static void gravity_cache_populate(
     const float r2 = dx * dx + dy * dy + dz * dz;
 
     /* Check whether we can use the multipole instead of P-P */
-    use_mpole[i] =
-        allow_mpole && gravity_M2P_accept(r_max2, theta_crit2, r2, epsilon[i]);
+    use_mpole[i] = allow_mpole && gravity_M2P_accept_advanced
+        (&gparts[i], r_max2, theta_crit2, r2, step, epsilon[i]);
   }
 
 #ifdef SWIFT_DEBUG_CHECKS
@@ -390,7 +390,8 @@ gravity_cache_populate_all_mpole(const timebin_t max_active_bin,
                                  const int gcount, const int gcount_padded,
                                  const struct cell *cell, const float CoM[3],
                                  const float r_max2,
-                                 const struct gravity_props *grav_props) {
+                                 const struct gravity_props *grav_props,
+                                 const int step) {
 
 #ifdef SWIFT_DEBUG_CHECKS
   if (gcount_padded < gcount) error("Invalid padded cache size. Too small.");
@@ -437,8 +438,13 @@ gravity_cache_populate_all_mpole(const timebin_t max_active_bin,
     }
     const float r2 = dx * dx + dy * dy + dz * dz;
 
+<<<<<<< HEAD
     if (!gravity_M2P_accept(r_max2, theta_crit2, r2, epsilon[i]))
       error("Using m-pole where the test fails");
+=======
+    if (!gravity_M2P_accept_advanced(&gparts[i], r_max2, theta_crit2,
+                r2, step)) error("Using m-pole where the test fails");
+>>>>>>> fc4d194... Implementing P2M with new criteria
 #endif
   }
 
