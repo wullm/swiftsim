@@ -2769,12 +2769,48 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
   return (r2 * theta_crit2 > r_max2);
 }
 
+__attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advanced(
+    const struct gpart *gp_a, const double r_crit_b, const double theta_crit2,
+    const double r2, const int step) {
+
+  if (step == 0) {
+#ifdef ADVANCED_OPENING_CRITERIA
+    /* Never accept P2M on the first timestep */
+    return 0;
+#else
+    /* Classic criteria */
+    return gravity_M2P_accept(r_crit_b*r_crit_b, theta_crit2, r2);
+#endif
+
+  } else {
+#ifdef ADVANCED_OPENING_CRITERIA
+    /* gpart information */
+    const double min_a_grav_norm = gp_a->a_grav_norm;
+    const double M_a = gp_a->mass;
+
+    /* Advanced acceptance criteria */
+    const double r_p = r2 * pow(r2, SELF_GRAVITY_MULTIPOLE_ORDER-2);
+    const double r_crit_b_p = pow(r_crit_b, SELF_GRAVITY_MULTIPOLE_ORDER);
+
+    const double E = r_crit_b_p / r_p;
+    const double E_bar = 8 * E;
+
+    const double theta2 = (r_crit_b * r_crit_b) / r2;
+
+    return ((E_bar * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta2 < 1.0));
+#else
+    /* Classic criteria */
+    return gravity_M2P_accept(r_crit_b*r_crit_b, theta_crit2, r2);
+#endif
+  }
+}
+
 __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advanced(
     const struct multipole *m_a, const struct multipole *m_b,
     const double r_crit_a, const double r_crit_b, const double theta_crit2,
-    const double r2, const int step, const double const_G) {
+    const double r2, const int step) {
 
-  if (step < 1) {
+  if (step == 0) {
     /* Need to use classical critetia on the first timestep
      * as we have no accelerations yet */
     return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
@@ -2788,7 +2824,8 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
     const double min_a_grav_norm = m_b->min_a_grav_norm;
     const double r = sqrt(r2);
     const double r_p = pow(r, SELF_GRAVITY_MULTIPOLE_ORDER);
-    const float theta = (r_crit_a + r_crit_b) / r;
+    const double theta = (r_crit_a + r_crit_b) / r;
+    
     /* Binomial coefficients for m=0-5 */
     const int binom_coefficient[6][6] = {{1,0,0,0,0,0},
                                          {1,1,0,0,0,0},
@@ -2812,11 +2849,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
      * between the two multipoles via an M2L interaction i.e., da/a <= E_bar */
     const double E_bar = E * ((8 * max(r_crit_a, r_crit_b)) / (r_crit_a + r_crit_b));
 
-    /*const double size = r_crit_a + r_crit_b;
-    const double size2 = size * size;
-
-    if ((E_bar * const_G * M_a / r2) < (1.e-3 * min_a_grav_norm)) printf("%f %f %f\n", E_bar * const_G * M_a / r2, min_a_grav_norm,  size2/r2);*/
-    return ((E_bar * const_G * M_a / r2) < (1.e-2 * min_a_grav_norm) && (theta < 1.0));
+    return ((E_bar * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta < 1.0));
 #else
     return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
 #endif

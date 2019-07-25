@@ -532,7 +532,7 @@ static INLINE void runner_dopair_grav_pm_full(
 
     const float r2 = dx * dx + dy * dy + dz * dz;
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if 0 // STU SWIFT_DEBUG_CHECKS
     const float r_max_j = cj->grav.multipole->r_max;
     const float r_max2 = r_max_j * r_max_j;
     const float theta_crit2 = e->gravity_properties->theta_crit2;
@@ -673,7 +673,7 @@ static INLINE void runner_dopair_grav_pm_truncated(
 
     const float r2 = dx * dx + dy * dy + dz * dz;
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if 0 // STU SWIFT_DEBUG_CHECKS
     const float r_max_j = cj->grav.multipole->r_max;
     const float r_max2 = r_max_j * r_max_j;
     const float theta_crit2 = e->gravity_properties->theta_crit2;
@@ -809,10 +809,12 @@ static INLINE void runner_dopair_grav_pp(struct runner *r, struct cell *ci,
   /* Fill the caches */
   gravity_cache_populate(e->max_active_bin, allow_mpole, periodic, dim,
                          ci_cache, ci->grav.parts, gcount_i, gcount_padded_i,
-                         shift_i, CoM_j, rmax2_j, ci, e->gravity_properties);
+                         shift_i, CoM_j, rmax2_j, ci, e->gravity_properties,
+                         e->step);
   gravity_cache_populate(e->max_active_bin, allow_mpole, periodic, dim,
                          cj_cache, cj->grav.parts, gcount_j, gcount_padded_j,
-                         shift_j, CoM_i, rmax2_i, cj, e->gravity_properties);
+                         shift_j, CoM_i, rmax2_i, cj, e->gravity_properties,
+                         e->step);
 
   /* Can we use the Newtonian version or do we need the truncated one ? */
   if (!periodic) {
@@ -1540,7 +1542,8 @@ static INLINE void runner_dopair_recursive_grav_pm(struct runner *r,
     /* Fill the cache */
     gravity_cache_populate_all_mpole(
         e->max_active_bin, periodic, dim, ci_cache, ci->grav.parts, gcount_i,
-        gcount_padded_i, ci, CoM_j, r_max * r_max, e->gravity_properties);
+        gcount_padded_i, ci, CoM_j, r_max * r_max, e->gravity_properties,
+        e->step);
 
     /* Can we use the Newtonian version or do we need the truncated one ? */
     if (!periodic) {
@@ -1587,7 +1590,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   const double dim[3] = {e->mesh->dim[0], e->mesh->dim[1], e->mesh->dim[2]};
   const double theta_crit2 = e->gravity_properties->theta_crit2;
   const double max_distance = e->mesh->r_cut_max;
-  const int p3 = e->gravity_properties->p3;
+  //const int p3 = e->gravity_properties->p3;
 
   /* Anything to do here? */
   if (!((cell_is_active_gravity(ci, e) && ci->nodeID == nodeID) ||
@@ -1619,7 +1622,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   /* Recover the multipole information */
   struct gravity_tensors *const multi_i = ci->grav.multipole;
   struct gravity_tensors *const multi_j = cj->grav.multipole;
-  const int count_ij = ci->grav.count * cj->grav.count;
+  //const int count_ij = ci->grav.count * cj->grav.count;
 
   /* Get the distance between the CoMs */
   double dx = multi_i->CoM[0] - multi_j->CoM[0];
@@ -1654,15 +1657,14 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
    * option... */
 
   /* Two cells with very few particles go P-P */
-  if (count_ij < p3) {
+  //if (count_ij < p3) {
 
     /* We have two mini-cells. Go P-P. */
-    runner_dopair_grav_pp(r, ci, cj, /*symmetric*/ 1, /*allow_mpoles*/ 0);
+    //runner_dopair_grav_pp(r, ci, cj, /*symmetric*/ 1, /*allow_mpoles*/ 0);
 
   /* Can we use M-M interactions ? */
-  } else if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
-            multi_i->r_max, multi_j->r_max, theta_crit2, r2, e->step,
-            e->physical_constants->const_newton_G)) {
+  if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+            multi_i->r_max, multi_j->r_max, theta_crit2, r2, e->step)) {
 
     /* Go M-M */
     runner_dopair_grav_mm(r, ci, cj);
@@ -1802,7 +1804,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
   const double dim[3] = {e->mesh->dim[0], e->mesh->dim[1], e->mesh->dim[2]};
   const double theta_crit2 = e->gravity_properties->theta_crit2;
   const double max_distance2 = e->mesh->r_cut_max * e->mesh->r_cut_max;
-  const int p3 = e->gravity_properties->p3;
+  //const int p3 = e->gravity_properties->p3;
 
   TIMER_TIC;
 
@@ -1840,7 +1842,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
     /* Handle on the top-level cell and it's gravity business*/
     const struct cell *cj = &cells[cells_with_particles[n]];
     const struct gravity_tensors *const multi_j = cj->grav.multipole;
-    const int count_ij = ci->grav.count * cj->grav.count;
+    //const int count_ij = ci->grav.count * cj->grav.count;
 
     /* Avoid self contributions */
     if (top == cj) continue;
@@ -1872,7 +1874,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
     }
 
     /* Two cells with too few particles should not interact via the multipole */
-    if (count_ij < p3) continue;
+    //if (count_ij < p3) continue;
 
     /* Get the distance between the CoMs at the last rebuild*/
     double dx_r = CoM_rebuild_top[0] - multi_j->CoM_rebuild[0];
@@ -1889,14 +1891,12 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
 
     /* Do we accept from cell i to cell j? */
     const int accept_ij = gravity_M2L_accept_advanced(&multi_top->m_pole, &multi_j->m_pole,
-      multi_top->r_max_rebuild, multi_j->r_max_rebuild, theta_crit2, r2_rebuild, e->step,
-      e->physical_constants->const_newton_G);
+      multi_top->r_max_rebuild, multi_j->r_max_rebuild, theta_crit2, r2_rebuild, e->step);
 
 #ifdef ADVANCED_OPENING_CRITERIA
     /* Do we accept from cell j to cell i? */
     const int accept_ji = gravity_M2L_accept_advanced(&multi_j->m_pole, &multi_top->m_pole,
-        multi_j->r_max_rebuild, multi_top->r_max_rebuild, theta_crit2, r2_rebuild, e->step,
-        e->physical_constants->const_newton_G);
+        multi_j->r_max_rebuild, multi_top->r_max_rebuild, theta_crit2, r2_rebuild, e->step);
 
     /* Are we in charge of this cell pair? */
     if (accept_ij && accept_ji) {

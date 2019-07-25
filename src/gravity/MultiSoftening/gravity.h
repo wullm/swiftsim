@@ -192,6 +192,15 @@ __attribute__((always_inline)) INLINE static void gravity_end_force(
     struct gpart* gp, float const_G, const float potential_normalisation,
     const int periodic) {
 
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* Record the norm of the acceleration for the advanced opening criteria.
+   * Will always be an (active) timestep behind).
+   * Do this before *const_G. */
+  gp->a_grav_norm = gp->a_grav[0] * gp->a_grav[0] +
+                    gp->a_grav[1] * gp->a_grav[1] +
+                    gp->a_grav[2] * gp->a_grav[2];
+#endif
+
   /* Let's get physical... */
   gp->a_grav[0] *= const_G;
   gp->a_grav[1] *= const_G;
@@ -209,14 +218,6 @@ __attribute__((always_inline)) INLINE static void gravity_end_force(
 
 #ifdef SWIFT_DEBUG_CHECKS
   gp->initialised = 0; /* Ready for next step */
-#endif
-
-#ifdef ADVANCED_OPENING_CRITERIA
-  /* Record the norm of the acceleration for the advanced opening criteria
-   * (will always be an (active) timestep behind) */
-  gp->a_grav_norm = gp->a_grav[0] * gp->a_grav[0] +
-                    gp->a_grav[1] * gp->a_grav[1] +
-                    gp->a_grav[2] * gp->a_grav[2];
 #endif
 }
 
