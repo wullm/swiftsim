@@ -815,11 +815,11 @@ static INLINE void runner_dopair_grav_pp(struct runner *r, struct cell *ci,
   gravity_cache_populate(e->max_active_bin, allow_mpole, periodic, dim,
                          ci_cache, ci->grav.parts, gcount_i, gcount_padded_i,
                          shift_i, CoM_j, rmax2_j, ci, e->gravity_properties,
-                         e->step);
+                         e->step, multi_j);
   gravity_cache_populate(e->max_active_bin, allow_mpole, periodic, dim,
                          cj_cache, cj->grav.parts, gcount_j, gcount_padded_j,
                          shift_j, CoM_i, rmax2_i, cj, e->gravity_properties,
-                         e->step);
+                         e->step, multi_i);
 
   /* Can we use the Newtonian version or do we need the truncated one ? */
   if (!periodic) {
@@ -1562,7 +1562,7 @@ static INLINE void runner_dopair_recursive_grav_pm(struct runner *r,
     gravity_cache_populate_all_mpole(
         e->max_active_bin, periodic, dim, ci_cache, ci->grav.parts, gcount_i,
         gcount_padded_i, ci, CoM_j, r_max * r_max, e->gravity_properties,
-        e->step);
+        e->step, multi_j);
 
     /* Can we use the Newtonian version or do we need the truncated one ? */
     if (!periodic) {

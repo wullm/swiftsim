@@ -2782,12 +2782,12 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
 }
 
 __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advanced(
-    const struct gpart *gp_a, const double r_crit_b, const double theta_crit2,
-    const double r2, const int step) {
+    const struct gpart *gp_a, const struct multipole *m_b, const double r_crit_b,
+    const double theta_crit2, const double r2, const int step) {
 
   if (step == 0) {
 #ifdef ADVANCED_OPENING_CRITERIA
-    /* Never accept P2M on the first timestep */
+    /* Never accept M2P on the first timestep */
     return 0;
 #else
     /* Classic criteria */
@@ -2796,8 +2796,8 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
 
   } else {
 #ifdef ADVANCED_OPENING_CRITERIA
-    /* gpart information */
-    const double min_a_grav_norm = gp_a->a_grav_norm;
+    /* gpart and multipole information */
+    const double min_a_grav_norm = m_b->min_a_grav_norm;
     const double M_a = gp_a->mass;
 
     /* Advanced acceptance criteria */
@@ -2809,7 +2809,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
 
     const double theta2 = (r_crit_b * r_crit_b) / r2;
 
-    return ((E_bar * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta2 < 1.0));
+    return ((E_bar * M_a / r2) < (1.e-4 * min_a_grav_norm) && (theta2 < 1.0));
 #else
     /* Classic criteria */
     return gravity_M2P_accept(r_crit_b*r_crit_b, theta_crit2, r2);
