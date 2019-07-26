@@ -73,7 +73,7 @@ int space_subsize_pair_stars = space_subsize_pair_stars_default;
 int space_subsize_self_stars = space_subsize_self_stars_default;
 int space_subsize_pair_grav = space_subsize_pair_grav_default;
 int space_subsize_self_grav = space_subsize_self_grav_default;
-int space_subdepth_diff_grav = space_subdepth_diff_grav_default;
+int space_subdepth_grav = space_subdepth_grav_default;
 int space_maxsize = space_maxsize_default;
 
 /*! Number of extra #part we allocate memory for per top-level cell */
@@ -4656,9 +4656,8 @@ void space_init(struct space *s, struct swift_params *params,
                                space_subsize_self_grav_default);
   space_splitsize = parser_get_opt_param_int(
       params, "Scheduler:cell_split_size", space_splitsize_default);
-  space_subdepth_diff_grav =
-      parser_get_opt_param_int(params, "Scheduler:cell_subdepth_diff_grav",
-                               space_subdepth_diff_grav_default);
+  space_subdepth_grav = parser_get_opt_param_int(
+      params, "Scheduler:cell_subdepth_grav", space_subdepth_grav_default);
   space_extra_parts = parser_get_opt_param_int(
       params, "Scheduler:cell_extra_parts", space_extra_parts_default);
   space_extra_sparts = parser_get_opt_param_int(
@@ -4678,7 +4677,7 @@ void space_init(struct space *s, struct swift_params *params,
   if (verbose) {
     message("max_size set to %d split_size set to %d", space_maxsize,
             space_splitsize);
-    message("subdepth_grav set to %d", space_subdepth_diff_grav);
+    message("subdepth_grav set to %d", space_subdepth_grav);
     message("sub_size_pair_hydro set to %d, sub_size_self_hydro set to %d",
             space_subsize_pair_hydro, space_subsize_self_hydro);
     message("sub_size_pair_grav set to %d, sub_size_self_grav set to %d",
@@ -5404,8 +5403,8 @@ void space_struct_dump(struct space *s, FILE *stream) {
                        "space_subsize_pair_grav", "space_subsize_pair_grav");
   restart_write_blocks(&space_subsize_self_grav, sizeof(int), 1, stream,
                        "space_subsize_self_grav", "space_subsize_self_grav");
-  restart_write_blocks(&space_subdepth_diff_grav, sizeof(int), 1, stream,
-                       "space_subdepth_diff_grav", "space_subdepth_diff_grav");
+  restart_write_blocks(&space_subdepth_grav, sizeof(int), 1, stream,
+                       "space_subdepth_grav", "space_subdepth_grav");
   restart_write_blocks(&space_extra_parts, sizeof(int), 1, stream,
                        "space_extra_parts", "space_extra_parts");
   restart_write_blocks(&space_extra_gparts, sizeof(int), 1, stream,
@@ -5462,8 +5461,8 @@ void space_struct_restore(struct space *s, FILE *stream) {
                       "space_subsize_pair_grav");
   restart_read_blocks(&space_subsize_self_grav, sizeof(int), 1, stream, NULL,
                       "space_subsize_self_grav");
-  restart_read_blocks(&space_subdepth_diff_grav, sizeof(int), 1, stream, NULL,
-                      "space_subdepth_diff_grav");
+  restart_read_blocks(&space_subdepth_grav, sizeof(int), 1, stream, NULL,
+                      "space_subdepth_grav");
   restart_read_blocks(&space_extra_parts, sizeof(int), 1, stream, NULL,
                       "space_extra_parts");
   restart_read_blocks(&space_extra_gparts, sizeof(int), 1, stream, NULL,
