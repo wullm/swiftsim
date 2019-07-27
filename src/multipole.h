@@ -2769,6 +2769,23 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
   return (r2 * theta_crit2 > r_max2);
 }
 
+/**
+ * @brief Checks whether a particle-cell interaction can be appromixated by a
+ * M2P interaction using an advanced opening criteria.
+ *
+ * We use the multipole acceptance criterion of Dehnen, 2014, Computational 
+ * Astrophysics and Cosmology, Volume 1, article id.1 24pp equations 12->16.
+ *
+ * Always use the classical criteria on the 0th timestep (as we have no 
+ * accelerations yet). 
+ *
+ * If ADVANCED_OPENING_CRITERIA is not defined, always use the classical case.
+ *
+ * @param r_max2 The square of the size of the multipole.
+ * @param theta_crit2 The square of the critical opening angle.
+ * @param r2 Square of the distance (periodically wrapped) between the
+ * particle and the multipole.
+ */
 __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advanced(
     const struct gpart *gp_a, const struct multipole *m_b, const double r_crit_b,
     const double theta_crit2, const double r2, const int step) {
@@ -2797,7 +2814,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
 
     const double theta2 = (r_crit_b * r_crit_b) / r2;
 
-    return ((E_bar * M_a / r2) < (1.e-4 * min_a_grav_norm) && (theta2 < 1.0));
+    return ((E_bar * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta2 < 1.0));
 #else
     /* Classic criteria */
     return gravity_M2P_accept(r_crit_b*r_crit_b, theta_crit2, r2);
@@ -2805,6 +2822,31 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
   }
 }
 
+/**
+ * @brief Checks whether a cell-cell interaction can be appromixated by a M-M
+ * interaction using an advanced opening criteria.
+ *
+ * We use the multipole acceptance criterion of Dehnen, 2014, Computational 
+ * Astrophysics and Cosmology, Volume 1, article id.1 24pp equations 12->16.
+ *
+ * Rather than the pure geometrical version of Dehnen 2002, this attempts to 
+ * estimate the opening criteria based upon the relative force error, using the 
+ * accelerations from the previous timestep.
+ *
+ * We therefore cannot use this criteria on the 0th timestep, and revert to the
+ * 'classical' criteria to obtain the initial accelerations.
+ *
+ * If ADVANCED_OPENING_CRITERIA is not defined, always use the classical case.
+ *
+ * @param m_a The m_pole of cell A.
+ * @param m_b The m_pole of cell B.
+ * @param r_crit_a The size of the multipole A.
+ * @param r_crit_b The size of the multipole B.
+ * @param theta_crit2 The square of the critical opening angle.
+ * @param r2 Square of the distance (periodically wrapped) between the
+ * multipoles.
+ * @param step The current timestep.
+ */
 __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advanced(
     const struct multipole *m_a, const struct multipole *m_b,
     const double r_crit_a, const double r_crit_b, const double theta_crit2,
@@ -2817,14 +2859,13 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
 
   } else {
 #ifdef ADVANCED_OPENING_CRITERIA
-    /* Advanced criteria, taken from Dehnen 2014 (eq. 12--16) */
-  
     /* Some constatnts for the calculation */
     const double M_a = m_a->M_000;
     const double min_a_grav_norm = m_b->min_a_grav_norm;
-    const double r = sqrt(r2);
-    const double r_p = pow(r, SELF_GRAVITY_MULTIPOLE_ORDER);
-    const double theta = (r_crit_a + r_crit_b) / r;
+    const double size = r_crit_a + r_crit_b;
+    const double size2 = size * size;
+    const double r_p = r2 * pow(r2, SELF_GRAVITY_MULTIPOLE_ORDER-2);
+    const double theta2 = size2 / r2;
     
     /* Binomial coefficients for m=0-5 */
     const int binom_coefficient[6][6] = {{1,0,0,0,0,0},
@@ -2834,7 +2875,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
                                          {1,4,6,4,1,0},
                                          {1,5,10,10,5,1}};
   
-    /* Sum over each multipole order to evaluate E_a->b (eq. 13 from Dehnen 2014) */
+    /* Sum over each multipole order to evaluate E_a->b (eq. 13) */
     double E = 0.0;
     for (int i=0; i <= SELF_GRAVITY_MULTIPOLE_ORDER; i++) {
       E += binom_coefficient[SELF_GRAVITY_MULTIPOLE_ORDER][i] *
@@ -2844,12 +2885,12 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
     E /= M_a;
     E /= r_p;
   
-    /* Compute E_a->b_bar (eq. 15 from Dehnen 2014)
+    /* Compute E_a->b_bar (eq. 15)
      * This predicts the maximum(ish) relative force error (da/a) that you would expect
      * between the two multipoles via an M2L interaction i.e., da/a <= E_bar */
     const double E_bar = E * ((8 * max(r_crit_a, r_crit_b)) / (r_crit_a + r_crit_b));
 
-    return ((E_bar * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta < 1.0));
+    return ((E_bar * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta2 < 1.0));
 #else
     return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
 #endif
