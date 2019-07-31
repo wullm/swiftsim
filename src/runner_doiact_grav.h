@@ -537,7 +537,7 @@ static INLINE void runner_dopair_grav_pm_full(
 
     const float r2 = dx * dx + dy * dy + dz * dz;
 
-#if 0 // STU SWIFT_DEBUG_CHECKS
+#if SWIFT_DEBUG_CHECKS 
     const float r_max_j = cj->grav.multipole->r_max;
     const float r_max2 = r_max_j * r_max_j;
     const float theta_crit2 = e->gravity_properties->theta_crit2;
@@ -678,7 +678,7 @@ static INLINE void runner_dopair_grav_pm_truncated(
 
     const float r2 = dx * dx + dy * dy + dz * dz;
 
-#if 0 // STU SWIFT_DEBUG_CHECKS
+#if SWIFT_DEBUG_CHECKS
     const float r_max_j = cj->grav.multipole->r_max;
     const float r_max2 = r_max_j * r_max_j;
     const float theta_crit2 = e->gravity_properties->theta_crit2;
@@ -1407,23 +1407,6 @@ static INLINE void runner_dopair_grav_mm_nonsym(
         "Undrifted multipole cj->grav.ti_old_multipole=%lld cj->nodeID=%d "
         "ci->nodeID=%d e->ti_current=%lld",
         cj->grav.ti_old_multipole, cj->nodeID, ci->nodeID, e->ti_current);
-
-  /* Get the distance between the CoMs */
-  /*double dx_r = ci->grav.multipole->CoM[0] - cj->grav.multipole->CoM[0];
-  double dy_r = ci->grav.multipole->CoM[1] - cj->grav.multipole->CoM[1];
-  double dz_r = ci->grav.multipole->CoM[2] - cj->grav.multipole->CoM[2];
-
-  if (periodic) {
-    dx_r = nearest(dx_r, dim[0]);
-    dy_r = nearest(dy_r, dim[1]);
-    dz_r = nearest(dz_r, dim[2]);
-  }
-  const double r2 = dx_r * dx_r + dy_r * dy_r + dz_r * dz_r;
-
-  if (gravity_M2L_accept_advanced(&ci->grav.multipole->m_pole, multi_j,
-        ci->grav.multipole->r_max, cj->grav.multipole->r_max,
-        e->gravity_properties->theta_crit2, r2, e->step))
-    error("Using M2L when the cells can be opened");*/
 #endif
 
   /* Let's interact at this level */
