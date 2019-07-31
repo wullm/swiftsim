@@ -400,8 +400,6 @@ gravity_cache_populate_all_mpole(const timebin_t max_active_bin,
     error("Padded gravity cache size invalid. Not a multiple of SIMD length.");
   if (c->count < gcount_padded)
     error("Size of the gravity cache is not large enough.");
-
-  const float theta_crit2 = grav_props->theta_crit2;
 #endif
 
   /* Make the compiler understand we are in happy vectorization land */
@@ -440,6 +438,7 @@ gravity_cache_populate_all_mpole(const timebin_t max_active_bin,
       dz = nearestf(dz, dim[2]);
     }
     const float r2 = dx * dx + dy * dy + dz * dz;
+    const float theta_crit2 = grav_props->theta_crit2;
 
 /*<<<<<<< HEAD
 <<<<<<< HEAD
