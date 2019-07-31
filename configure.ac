@@ -1923,6 +1923,18 @@ AC_ARG_WITH([multipole-order],
 )
 AC_DEFINE_UNQUOTED([SELF_GRAVITY_MULTIPOLE_ORDER], [$with_multipole_order], [Multipole order])
 
+# Advanced opening criteria
+AC_ARG_ENABLE([advanced-opening-criteria],
+   [AS_HELP_STRING([--enable-advanced-opening-criteria],
+     [Use the advanced opening criteria for multipole interactions @<:@yes/no@:>@]
+   )],
+   [advanced_opening_criteria="$enableval"],
+   [advanced_opening_criteria="no"]
+)
+if test "$advanced_opening_criteria" = "yes"; then
+   AC_DEFINE([ADVANCED_OPENING_CRITERIA],1,[Multipole interactions use the advanced opening criteria])
+fi
+
 # Check for git, needed for revision stamps.
 AC_PATH_PROG([GIT_CMD], [git])
 AC_SUBST([GIT_CMD])
@@ -2006,6 +2018,7 @@ AC_MSG_RESULT([
    No gravity below ID : $no_gravity_below_id
    Make gravity glass  : $gravity_glass_making
    External potential  : $with_potential
+   Advanced opening    : $advanced_opening_criteria
 
    Entropy floor        : $with_entropy_floor
    Cooling function     : $with_cooling
