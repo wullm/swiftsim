@@ -87,6 +87,9 @@ void gravity_props_init(struct gravity_props *p, struct swift_params *params,
   if (p->theta_crit >= 1.) error("Theta too large. FMM won't converge.");
   p->theta_crit2 = p->theta_crit * p->theta_crit;
   p->theta_crit_inv = 1. / p->theta_crit;
+#ifdef ADVANCED_OPENING_CRITERIA
+  p->rel_force_error = parser_get_param_double(params, "Gravity:rel_force_error");
+#endif
 
   /* Softening parameters */
   if (with_cosmology) {
