@@ -60,6 +60,11 @@ struct gravity_props {
   /*! Inverse of opening angle */
   double theta_crit_inv;
 
+#ifdef ADVANCED_OPENING_CRITERIA
+  /* The relative force error we are aiming for */
+  double rel_force_error;
+#endif
+
   /* ------------- Properties of the softened gravity ------------------ */
 
   /*! Fraction of the mean inter particle separation corresponding to the
