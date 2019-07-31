@@ -60,9 +60,6 @@ struct gravity_props {
   /*! Inverse of opening angle */
   double theta_crit_inv;
 
-  /* The multipole power cubed */
-  int p3;
-
   /* ------------- Properties of the softened gravity ------------------ */
 
   /*! Fraction of the mean inter particle separation corresponding to the
