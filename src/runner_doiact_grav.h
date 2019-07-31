@@ -537,7 +537,8 @@ static INLINE void runner_dopair_grav_pm_full(
 
     const float r2 = dx * dx + dy * dy + dz * dz;
 
-#if SWIFT_DEBUG_CHECKS 
+#if defined(SWIFT_DEBUG_CHECKS) && !defined(ADVANCED_OPENING_CRITERIA)
+    // Stuart: need to think about this check when using advanced criteria.
     const float r_max_j = cj->grav.multipole->r_max;
     const float r_max2 = r_max_j * r_max_j;
     const float theta_crit2 = e->gravity_properties->theta_crit2;
@@ -678,7 +679,8 @@ static INLINE void runner_dopair_grav_pm_truncated(
 
     const float r2 = dx * dx + dy * dy + dz * dz;
 
-#if SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) && !defined(ADVANCED_OPENING_CRITERIA)
+    // Stuart: need to think about this check when using advanced criteria.
     const float r_max_j = cj->grav.multipole->r_max;
     const float r_max2 = r_max_j * r_max_j;
     const float theta_crit2 = e->gravity_properties->theta_crit2;

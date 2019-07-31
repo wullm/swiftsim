@@ -425,7 +425,9 @@ gravity_cache_populate_all_mpole(const timebin_t max_active_bin,
     active[i] = (int)(gparts[i].time_bin <= max_active_bin);
     use_mpole[i] = 1;
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) && !defined(ADVANCED_OPENING_CRITERIA)
+    // Stuart: need to think about this check for advanced criteria.
+
     /* Distance to the CoM of the other cell. */
     float dx = x[i] - CoM[0];
     float dy = y[i] - CoM[1];
@@ -450,7 +452,10 @@ gravity_cache_populate_all_mpole(const timebin_t max_active_bin,
 >>>>>>> 920689c... Update to M2P accept criteria
                 r2, step)) error("Using m-pole where the test fails");
 >>>>>>> fc4d194... Implementing P2M with new criteria
-#endif*/
+#endif
+    if (!gravity_M2P_accept(r_max2, theta_crit2, r2))
+        error("Using m-pole where the test fails");*/
+#endif
   }
 
 #ifdef SWIFT_DEBUG_CHECKS

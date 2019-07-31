@@ -2793,13 +2793,16 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
  *
  * If ADVANCED_OPENING_CRITERIA is not defined, always use the classical case.
  *
+ * @param gp_a The reference gpart.
+ * @param m_b The multipole of the cell we are interacting with.
  * @param r_max2 The square of the size of the multipole.
  * @param theta_crit2 The square of the critical opening angle.
  * @param r2 Square of the distance (periodically wrapped) between the
  * particle and the multipole.
+ * @param step The current timestep.
  */
 __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advanced(
-    const struct gpart *gp_a, const struct multipole *m_b, const double r_crit_b,
+    const struct gpart *gp_a, const struct multipole *m_b, const double r_max2,
     const double theta_crit2, const double r2, const int step) {
 
   if (step == 0) {
@@ -2808,7 +2811,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
     return 0;
 #else
     /* Classic criteria */
-    return gravity_M2P_accept(r_crit_b*r_crit_b, theta_crit2, r2);
+    return gravity_M2P_accept(r_max2, theta_crit2, r2);
 #endif
 
   } else {
@@ -2819,17 +2822,17 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
 
     /* Advanced acceptance criteria */
     const double r_p = r2 * pow(r2, SELF_GRAVITY_MULTIPOLE_ORDER-2);
-    const double r_crit_b_p = pow(r_crit_b, SELF_GRAVITY_MULTIPOLE_ORDER);
+    const double r_max_p = pow(r_max2, SELF_GRAVITY_MULTIPOLE_ORDER-2);
 
-    const double E = r_crit_b_p / r_p;
+    const double E = r_max_p / r_p;
     const double E_bar = 8 * E;
 
-    const double theta2 = (r_crit_b * r_crit_b) / r2;
+    const double theta2 = r_max2 / r2;
 
     return ((E_bar * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta2 < 1.0));
 #else
     /* Classic criteria */
-    return gravity_M2P_accept(r_crit_b*r_crit_b, theta_crit2, r2);
+    return gravity_M2P_accept(r_max2, theta_crit2, r2);
 #endif
   }
 }
