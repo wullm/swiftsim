@@ -60,6 +60,10 @@ struct gravity_props {
   /*! Inverse of opening angle */
   double theta_crit_inv;
 
+  /* For M2P interactions, if N_gparts(cell j) is less than this number,
+   * force P-P interactions with that cell */
+  int min_j_M2P;
+
 #ifdef ADVANCED_OPENING_CRITERIA
   /* The relative force error we are aiming for */
   double rel_force_error;

@@ -5756,7 +5756,6 @@ void cell_reorder_extra_gparts(struct cell *c, struct part *parts,
  */
 int cell_can_use_pair_mm(const struct cell *ci, const struct cell *cj,
                          const struct engine *e, const struct space *s) {
-  const double theta_crit2 = e->gravity_properties->theta_crit2;
   const int periodic = s->periodic;
   const double dim[3] = {s->dim[0], s->dim[1], s->dim[2]};
 
@@ -5779,12 +5778,12 @@ int cell_can_use_pair_mm(const struct cell *ci, const struct cell *cj,
 
   /* Do we accept from cell i to cell j? */
   const int accept_ij = gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
-      multi_i->r_max, multi_j->r_max, theta_crit2, r2, e->step);
+      multi_i->r_max, multi_j->r_max, r2, e->gravity_properties, e->step);
 
 #ifdef ADVANCED_OPENING_CRITERIA
   /* Do we accept from cell j to cell i? */
   const int accept_ji = gravity_M2L_accept_advanced(&multi_j->m_pole, &multi_i->m_pole,
-      multi_j->r_max_rebuild, multi_i->r_max_rebuild, theta_crit2, r2, e->step);
+      multi_j->r_max_rebuild, multi_i->r_max_rebuild, r2, e->gravity_properties, e->step);
 
   return accept_ij && accept_ji;
 #else
@@ -5806,7 +5805,6 @@ int cell_can_use_pair_mm(const struct cell *ci, const struct cell *cj,
 int cell_can_use_pair_mm_rebuild(const struct cell *ci, const struct cell *cj,
                                  const struct engine *e,
                                  const struct space *s) {
-  const double theta_crit2 = e->gravity_properties->theta_crit2;
   const int periodic = s->periodic;
   const double dim[3] = {s->dim[0], s->dim[1], s->dim[2]};
 
@@ -5853,12 +5851,12 @@ int cell_can_use_pair_mm_rebuild(const struct cell *ci, const struct cell *cj,
 
   /* Do we accept from cell i to cell j? */
   const int accept_ij = gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
-      multi_i->r_max_rebuild, multi_j->r_max_rebuild, theta_crit2, r2, e->step);
+      multi_i->r_max_rebuild, multi_j->r_max_rebuild, r2, e->gravity_properties, e->step);
 
 #ifdef ADVANCED_OPENING_CRITERIA
   /* Do we accept from cell j to cell i? */
   const int accept_ji = gravity_M2L_accept_advanced(&multi_j->m_pole, &multi_i->m_pole,
-      multi_j->r_max_rebuild, multi_i->r_max_rebuild, theta_crit2, r2, e->step);
+      multi_j->r_max_rebuild, multi_i->r_max_rebuild, r2, e->gravity_properties, e->step);
 
   return accept_ij && accept_ji;
 #else
