@@ -2796,14 +2796,14 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
  * @param gp_a The reference gpart.
  * @param m_b The multipole of the cell we are interacting with.
  * @param r_max2 The square of the size of the multipole.
- * @param theta_crit2 The square of the critical opening angle.
  * @param r2 Square of the distance (periodically wrapped) between the
  * particle and the multipole.
+ * @param gravity_props The gravity properties struct, for some constants.
  * @param step The current timestep.
  */
 __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advanced(
     const struct gpart *gp_a, const struct multipole *m_b, const double r_max2,
-    const double theta_crit2, const double r2, const int step) {
+    const double r2, const struct gravity_props *gravity_props, const int step) {
 
   if (step == 0) {
 #ifdef ADVANCED_OPENING_CRITERIA
@@ -2811,6 +2811,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
     return 0;
 #else
     /* Classic criteria */
+    const double theta_crit2 = gravity_props->theta_crit2;
     return gravity_M2P_accept(r_max2, theta_crit2, r2);
 #endif
 
@@ -2828,10 +2829,12 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
     const double E_bar = 8 * E;
 
     const double theta2 = r_max2 / r2;
+    const double rel_force_error = gravity_props->rel_force_error;
 
-    return ((E_bar * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta2 < 1.0));
+    return ((E_bar * M_a / r2) < (rel_force_error * min_a_grav_norm) && (theta2 < 1.0));
 #else
     /* Classic criteria */
+    const double theta_crit2 = gravity_props->theta_crit2;
     return gravity_M2P_accept(r_max2, theta_crit2, r2);
 #endif
   }
@@ -2857,9 +2860,9 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
  * @param m_b The m_pole of cell B.
  * @param r_crit_a The size of the multipole A.
  * @param r_crit_b The size of the multipole B.
- * @param theta_crit2 The square of the critical opening angle.
  * @param r2 Square of the distance (periodically wrapped) between the
  * multipoles.
+ * @param gravity_props The gravity_properties struct, for some constants.
  * @param step The current timestep.
  */
 __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advanced(
@@ -2867,6 +2870,11 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
     const double r_crit_a, const double r_crit_b, const double theta_crit2,
     const double r2, const int step, const double epsilon_a,
     const double epsilon_b) {
+    const double r_crit_a, const double r_crit_b, const double r2,
+    const struct gravity_props *gravity_props, const int step) {
+
+  /* Get some constants from the engine */
+  const double theta_crit2 = gravity_props->theta_crit2;
 
   if (step == 0) {
     /* Need to use classical critetia on the first timestep
@@ -2882,7 +2890,8 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
     const double size2 = size * size;
     const double r_p = r2 * pow(r2, SELF_GRAVITY_MULTIPOLE_ORDER-2);
     const double theta2 = size2 / r2;
-    
+    const double rel_force_error = gravity_props->rel_force_error;
+
     /* Binomial coefficients for m=0-5 */
     const int binom_coefficient[6][6] = {{1,0,0,0,0,0},
                                          {1,1,0,0,0,0},
@@ -2906,7 +2915,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
      * between the two multipoles via an M2L interaction i.e., da/a <= E_bar */
     const double E_bar = E * ((8 * max(r_crit_a, r_crit_b)) / (r_crit_a + r_crit_b));
 
-    return ((E_bar * M_a / r2) < (1.e-3 * min_a_grav_norm) && (theta2 < 1.0));
+    return ((E_bar * M_a / r2) < (rel_force_error * min_a_grav_norm) && (theta2 < 1.0));
 #else
     return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
 #endif

@@ -202,9 +202,7 @@ __attribute__((always_inline)) INLINE static void gravity_cache_populate(
     const int gcount_padded, const double shift[3], const float CoM[3],
     const float r_max2, const struct cell *cell,
     const struct gravity_props *grav_props, const int step,
-    const struct multipole *mpole) {
-
-  const float theta_crit2 = grav_props->theta_crit2;
+    const struct multipole *mpole, const int gcount_j) {
 
 #ifdef SWIFT_DEBUG_CHECKS
   if (gcount_padded < gcount) error("Invalid padded cache size. Too small.");
@@ -254,7 +252,7 @@ __attribute__((always_inline)) INLINE static void gravity_cache_populate(
       dz = nearestf(dz, dim[2]);
     }
     const float r2 = dx * dx + dy * dy + dz * dz;
-
+    
     /* Check whether we can use the multipole instead of P-P */
     use_mpole[i] = allow_mpole && gravity_M2P_accept_advanced
         (&gparts[i], r_max2, theta_crit2, r2, step, epsilon[i]);

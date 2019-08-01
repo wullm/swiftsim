@@ -817,11 +817,11 @@ static INLINE void runner_dopair_grav_pp(struct runner *r, struct cell *ci,
   gravity_cache_populate(e->max_active_bin, allow_mpole, periodic, dim,
                          ci_cache, ci->grav.parts, gcount_i, gcount_padded_i,
                          shift_i, CoM_j, rmax2_j, ci, e->gravity_properties,
-                         e->step, multi_j);
+                         e->step, multi_j, gcount_j);
   gravity_cache_populate(e->max_active_bin, allow_mpole, periodic, dim,
                          cj_cache, cj->grav.parts, gcount_j, gcount_padded_j,
                          shift_j, CoM_i, rmax2_i, cj, e->gravity_properties,
-                         e->step, multi_i);
+                         e->step, multi_i, gcount_j);
 
   /* Can we use the Newtonian version or do we need the truncated one ? */
   if (!periodic) {
@@ -1592,7 +1592,6 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   const int nodeID = e->nodeID;
   const int periodic = e->mesh->periodic;
   const double dim[3] = {e->mesh->dim[0], e->mesh->dim[1], e->mesh->dim[2]};
-  const double theta_crit2 = e->gravity_properties->theta_crit2;
   const double max_distance = e->mesh->r_cut_max;
 
   /* Anything to do here? */
@@ -1663,6 +1662,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
             multi_i->r_max, multi_j->r_max, theta_crit2, r2, e->step,
             multi_i->m_pole.max_softening,
                                      multi_j->m_pole.max_softening)) {
+            multi_i->r_max, multi_j->r_max, r2, e->gravity_properties, e->step)) {
 
     /* Go M-M */
     runner_dopair_grav_mm(r, ci, cj);
@@ -1800,7 +1800,6 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
   const struct engine *e = r->e;
   const int periodic = e->mesh->periodic;
   const double dim[3] = {e->mesh->dim[0], e->mesh->dim[1], e->mesh->dim[2]};
-  const double theta_crit2 = e->gravity_properties->theta_crit2;
   const double max_distance2 = e->mesh->r_cut_max * e->mesh->r_cut_max;
 
   TIMER_TIC;
@@ -1887,6 +1886,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
       multi_top->r_max_rebuild, multi_j->r_max_rebuild, theta_crit2, r2_rebuild, e->step,
       multi_top->m_pole.max_softening,
                                  multi_j->m_pole.max_softening);
+      multi_top->r_max_rebuild, multi_j->r_max_rebuild, r2_rebuild, e->gravity_properties, e->step);
 
 #ifdef ADVANCED_OPENING_CRITERIA
     /* Do we accept from cell j to cell i? */
@@ -1894,6 +1894,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
         multi_j->r_max_rebuild, multi_top->r_max_rebuild, theta_crit2, r2_rebuild, e->step,
         multi_top->m_pole.max_softening,
                                    multi_j->m_pole.max_softening);
+        multi_j->r_max_rebuild, multi_top->r_max_rebuild, r2_rebuild, e->gravity_properties, e->step);
 
     /* Are we in charge of this cell pair? */
     if (accept_ij && accept_ji) {
