@@ -1357,6 +1357,10 @@ static INLINE void runner_dopair_grav_mm_symmetric(struct runner *r,
         "ci->nodeID=%d e->ti_current=%lld",
         cj->grav.ti_old_multipole, cj->nodeID, ci->nodeID, e->ti_current);
 
+  const long long count_ij = (long long)ci->grav.count * (long long)cj->grav.count;
+  if (count_ij < props->min_ij_M2L)
+    error("Should not be doing MM interaction between two cells with so few "
+          "gparts (Ni*Nj=%lld < %i)", count_ij, props->min_ij_M2L);
 #endif
 
   /* Let's interact at this level */
@@ -1409,6 +1413,10 @@ static INLINE void runner_dopair_grav_mm_nonsym(
         "ci->nodeID=%d e->ti_current=%lld",
         cj->grav.ti_old_multipole, cj->nodeID, ci->nodeID, e->ti_current);
 
+  const long long count_ij = (long long)ci->grav.count * (long long)cj->grav.count;
+  if (count_ij < props->min_ij_M2L)
+    error("Should not be doing MM interaction between two cells with so few "
+          "gparts (Ni*Nj=%lld < %i)", count_ij, props->min_ij_M2L);
 #endif
 
   /* Let's interact at this level */
