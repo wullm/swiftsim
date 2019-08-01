@@ -508,6 +508,10 @@ static INLINE void runner_dopair_grav_pm_full(
       error("Adding forces to an un-initialised gpart.");
 
     if (pid >= gcount_i) error("Adding forces to padded particle");
+
+    /* If cell j has few particles, we shouldn't be doing P2M */
+    if (multi_j->num_gpart < e->gravity_properties->min_j_M2P) 
+        error("Should not be doing P2M with so few particles in cell");
 #endif
 
     const float x_i = x[pid];
@@ -652,6 +656,10 @@ static INLINE void runner_dopair_grav_pm_truncated(
       error("Adding forces to an un-initialised gpart.");
 
     if (pid >= gcount_i) error("Adding forces to padded particle");
+
+    /* If cell j has few particles, we shouldn't be doing P2M */
+    if (multi_j->num_gpart < e->gravity_properties->min_j_M2P)
+        error("Should not be doing P2M with so few particles in cell");
 #endif
 
     const float x_i = x[pid];
@@ -816,7 +824,7 @@ static INLINE void runner_dopair_grav_pp(struct runner *r, struct cell *ci,
   gravity_cache_populate(e->max_active_bin, allow_mpole, periodic, dim,
                          cj_cache, cj->grav.parts, gcount_j, gcount_padded_j,
                          shift_j, CoM_i, rmax2_i, cj, e->gravity_properties,
-                         e->step, multi_i, gcount_j);
+                         e->step, multi_i, gcount_i);
 
   /* Can we use the Newtonian version or do we need the truncated one ? */
   if (!periodic) {

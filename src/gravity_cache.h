@@ -254,9 +254,9 @@ __attribute__((always_inline)) INLINE static void gravity_cache_populate(
     const float r2 = dx * dx + dy * dy + dz * dz;
     
     /* Check whether we can use the multipole instead of P-P */
-    use_mpole[i] = allow_mpole && (gcount_j >= grav_props->min_j_M2P &&
+    use_mpole[i] = allow_mpole && (gcount_j >= grav_props->min_j_M2P) &&
                    gravity_M2P_accept_advanced
-                   (&gparts[i], mpole, r_max2, r2, grav_props, step));
+                   (&gparts[i], mpole, r_max2, r2, grav_props, step);
   }
 
 #ifdef SWIFT_DEBUG_CHECKS
