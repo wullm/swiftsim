@@ -93,9 +93,11 @@ void gravity_props_init(struct gravity_props *p, struct swift_params *params,
   p->rel_force_error = parser_get_param_double(params, "Gravity:rel_force_error");
 #endif
 
-  /* We avoid M2P interactions with cells less than this number of gparts.
-   * Instead we force P-P interactions with the cell. */
+  /* Numbers below which we force P-P interactions, instead of M2P and M2L */
   p->min_j_M2P = SELF_GRAVITY_MULTIPOLE_ORDER * SELF_GRAVITY_MULTIPOLE_ORDER;
+  p->min_ij_M2L = SELF_GRAVITY_MULTIPOLE_ORDER *
+                  SELF_GRAVITY_MULTIPOLE_ORDER *
+                  SELF_GRAVITY_MULTIPOLE_ORDER;
 
   /* Softening parameters */
   if (with_cosmology) {

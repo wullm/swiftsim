@@ -64,6 +64,10 @@ struct gravity_props {
    * force P-P interactions with that cell */
   int min_j_M2P;
 
+  /* For M2L interactions, if N_gparts(cell_i) * N_gparts(cell j) is less 
+   * than this number, force P-P interactions between the cells */
+  int min_ij_M2L;
+
 #ifdef ADVANCED_OPENING_CRITERIA
   /* The relative force error we are aiming for */
   double rel_force_error;

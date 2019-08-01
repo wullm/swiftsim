@@ -768,8 +768,8 @@ static INLINE void runner_dopair_grav_pp(struct runner *r, struct cell *ci,
   if (!ci_active && !cj_active) return;
   if (!ci_active && !symmetric) return;
 
-  /* Check that we are not doing something stupid */
-  if (ci->split || cj->split) error("Running P-P on splitable cells");
+  /* Check that we are not doing something stupid (Stuart: this is now ok) */
+  // if (ci->split || cj->split) error("Running P-P on splitable cells");
 
   /* Let's start by checking things are drifted */
   if (!cell_are_gpart_drifted(ci, e)) error("Un-drifted gparts");
@@ -1593,6 +1593,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   const int periodic = e->mesh->periodic;
   const double dim[3] = {e->mesh->dim[0], e->mesh->dim[1], e->mesh->dim[2]};
   const double max_distance = e->mesh->r_cut_max;
+  const int min_ij_M2L = e->gravity_properties->min_ij_M2L; 
 
   /* Anything to do here? */
   if (!((cell_is_active_gravity(ci, e) && ci->nodeID == nodeID) ||
@@ -1624,6 +1625,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   /* Recover the multipole information */
   struct gravity_tensors *const multi_i = ci->grav.multipole;
   struct gravity_tensors *const multi_j = cj->grav.multipole;
+  const long long count_ij = (long long)ci->grav.count * (long long)cj->grav.count;
 
   /* Get the distance between the CoMs */
   double dx = multi_i->CoM[0] - multi_j->CoM[0];
@@ -1657,9 +1659,14 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   /* OK, we actually need to compute this pair. Let's find the cheapest
    * option... */
 
+  /* Two cells with very few particles go P-P */
+  if (count_ij < min_ij_M2L) {
+    runner_dopair_grav_pp(r, ci, cj, /*symmetric*/ 1, /*allow_mpoles*/ 0);
+  
   /* Can we use M-M interactions ? */
-  if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
-            multi_i->r_max, multi_j->r_max, r2, e->gravity_properties, e->step)) {
+  } else if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
+             multi_i->r_max, multi_j->r_max, r2, e->gravity_properties,
+             e->step)) {
 
     /* Go M-M */
     runner_dopair_grav_mm(r, ci, cj);
@@ -1798,6 +1805,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
   const int periodic = e->mesh->periodic;
   const double dim[3] = {e->mesh->dim[0], e->mesh->dim[1], e->mesh->dim[2]};
   const double max_distance2 = e->mesh->r_cut_max * e->mesh->r_cut_max;
+  const int min_ij_M2L = e->gravity_properties->min_ij_M2L;
 
   TIMER_TIC;
 
@@ -1835,6 +1843,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
     /* Handle on the top-level cell and it's gravity business*/
     const struct cell *cj = &cells[cells_with_particles[n]];
     const struct gravity_tensors *const multi_j = cj->grav.multipole;
+    const long long count_ij = (long long)ci->grav.count * (long long)cj->grav.count;
 
     /* Avoid self contributions */
     if (top == cj) continue;
@@ -1864,6 +1873,9 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
         continue;
       }
     }
+
+    /* Two cells with so few particles should not interact via the multipole */
+    if (count_ij < min_ij_M2L) continue;
 
     /* Get the distance between the CoMs at the last rebuild*/
     double dx_r = CoM_rebuild_top[0] - multi_j->CoM_rebuild[0];
