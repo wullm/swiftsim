@@ -572,12 +572,7 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   }
 
   /* What is the snapshot number? */
-  int snapnum;
-  if (linked_with_snap) {
-    snapnum = e->snapshot_output_count;
-  } else {
-    snapnum = e->stf_output_count;
-  }
+  int snapnum = e->stf_output_count;
 
   tic = getticks();
 
