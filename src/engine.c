@@ -5692,8 +5692,10 @@ void engine_config(int restart, int fof, struct engine *e,
     /* Allocate particle caches. */
     e->runners[k].ci_gravity_cache.count = 0;
     e->runners[k].cj_gravity_cache.count = 0;
-    gravity_cache_init(&e->runners[k].ci_gravity_cache, space_splitsize);
-    gravity_cache_init(&e->runners[k].cj_gravity_cache, space_splitsize);
+    gravity_cache_init(&e->runners[k].ci_gravity_cache,
+      max(space_splitsize, e->gravity_properties->min_ij_M2L));
+    gravity_cache_init(&e->runners[k].cj_gravity_cache,
+      max(space_splitsize, e->gravity_properties->min_ij_M2L));
 #ifdef WITH_VECTORIZATION
     e->runners[k].ci_cache.count = 0;
     e->runners[k].cj_cache.count = 0;

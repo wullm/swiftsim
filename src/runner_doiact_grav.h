@@ -812,8 +812,9 @@ static INLINE void runner_dopair_grav_pp(struct runner *r, struct cell *ci,
 #ifdef SWIFT_DEBUG_CHECKS
   /* Check that we fit in cache */
   if (gcount_i > ci_cache->count || gcount_j > cj_cache->count)
-    error("Not enough space in the caches! gcount_i=%d gcount_j=%d", gcount_i,
-          gcount_j);
+    error("Not enough space in the caches! gcount_i=%d gcount_j=%d "
+          "ci_cache=%d cj_cache=%d", gcount_i, gcount_j, ci_cache->count,
+          cj_cache->count);
 #endif
 
   /* Fill the caches */
