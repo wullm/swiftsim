@@ -191,6 +191,12 @@ struct part {
     } force;
   };
 
+  int done_init;
+  int done_density;
+  int done_gradient;
+  int done_force;
+  int done_cooling;
+  
   /* Chemistry information */
   struct chemistry_part_data chemistry_data;
 

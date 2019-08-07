@@ -44,6 +44,9 @@ runner_iact_nonsym_feedback_density(const float r2, const float *dx,
                                     const struct cosmology *restrict cosmo,
                                     const integertime_t ti_current) {
 
+  if(pj->done_force != 1)
+    error("Doing star density loop before force calculation is done!");
+  
   /* Get the gas mass. */
   const float mj = hydro_get_mass(pj);
 
@@ -93,6 +96,9 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
                                   const struct cosmology *restrict cosmo,
                                   const integertime_t ti_current) {
 
+  if(pj->done_force != 1)
+    error("Doing enrichment/feedback before force calculation is done!");
+  
   /* Get r and 1/r. */
   const float r_inv = 1.0f / sqrtf(r2);
   const float r = r2 * r_inv;
@@ -292,10 +298,10 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
       /* Impose maximal viscosity */
       hydro_diffusive_feedback_reset(pj);
 
-      /* message( */
-      /*     "We did some heating! id %llu star id %llu probability %.5e " */
-      /*     "random_num %.5e du %.5e du/ini %.5e", */
-      /*     pj->id, si->id, prob, rand, delta_u, delta_u / u_init); */
+      message(
+          "We did some heating! id %llu star id %llu probability %.5e "
+          "random_num %.5e du %.5e du/ini %.5e",
+          pj->id, si->id, prob, rand, delta_u, delta_u / u_init);
     }
   }
 }

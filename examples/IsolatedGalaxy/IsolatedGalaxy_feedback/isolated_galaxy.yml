@@ -33,10 +33,13 @@ Statistics:
 
 # Parameters related to the initial conditions
 InitialConditions:
-  file_name:               lowres8.hdf5 # The file to read
+  file_name:               fid.hdf5 # The file to read
   periodic:                0        # Are we running with periodic ICs?
   stars_smoothing_length:  0.5
-  
+
+Scheduler:
+  links_per_tasks: 100
+
 # Parameters for the hydrodynamics scheme
 SPH:
   resolution_eta:        1.2348   # Target smoothing length in units of the mean inter-particle separation (1.2348 == 48Ngbs with the cubic spline kernel).
@@ -120,7 +123,7 @@ EAGLEFeedback:
   IMF_max_mass_Msun:              100.0             # Maximal stellar mass considered for the Chabrier IMF in solar masses.
   SNII_min_mass_Msun:               6.0             # Minimal mass considered for SNII feedback (not SNII enrichment!) in solar masses.
   SNII_max_mass_Msun:             100.0             # Maximal mass considered for SNII feedback (not SNII enrichment!) in solar masses.
-  SNII_wind_delay_Gyr:              0.03            # Time in Gyr between a star's birth and the SNII thermal feedback event.
+  SNII_wind_delay_Gyr:              0.003            # Time in Gyr between a star's birth and the SNII thermal feedback event.
   SNII_delta_T_K:                   3.16228e7       # Change in temperature to apply to the gas particle in a SNII thermal feedback event in Kelvin.
   SNII_energy_erg:                  1.0e51          # Energy of one SNII explosion in ergs.
   SNII_energy_fraction_min:         1.0             # Minimal fraction of energy applied in a SNII feedback event.

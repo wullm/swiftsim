@@ -516,6 +516,8 @@ void cooling_cool_part(const struct phys_const *phys_const,
 
   /* Store the radiated energy */
   xp->cooling_data.radiated_energy -= hydro_get_mass(p) * cooling_du_dt * dt;
+
+  p->done_cooling = 1;
 }
 
 /**

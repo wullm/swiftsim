@@ -512,6 +512,12 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
 
   p->viscosity.div_v = 0.f;
   p->diffusion.laplace_u = 0.f;
+
+  p->done_init = 1;
+  p->done_density = 0;
+  p->done_gradient = 0;
+  p->done_force = 0;
+  p->done_cooling = 0;
 }
 
 /**
@@ -623,6 +629,8 @@ __attribute__((always_inline)) INLINE static void hydro_reset_gradient(
 
   p->viscosity.v_sig = 2.f * p->force.soundspeed;
   p->force.alpha_visc_max_ngb = p->viscosity.alpha;
+
+  p->done_density = 1;
 }
 
 /**
@@ -799,6 +807,8 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_force(
   new_diffusion_alpha = min(new_diffusion_alpha, viscous_diffusion_limit);
 
   p->diffusion.alpha = new_diffusion_alpha;
+
+  p->done_gradient = 1;
 }
 
 /**
@@ -937,6 +947,8 @@ __attribute__((always_inline)) INLINE static void hydro_end_force(
     struct part *restrict p, const struct cosmology *cosmo) {
 
   p->force.h_dt *= p->h * hydro_dimension_inv;
+
+  p->done_force = 1;
 }
 
 /**
