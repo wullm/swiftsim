@@ -5448,13 +5448,13 @@ void engine_config(int restart, int fof, struct engine *e,
         error("Time between statistics (%e) must be > 1.",
               e->delta_time_statistics);
 
-      if (e->a_first_snapshot < e->cosmology->a_begin)
+      if (e->a_first_snapshot < e->cosmology->a_begin && !e->output_list_snapshots)
         error(
             "Scale-factor of first snapshot (%e) must be after the simulation "
             "start a=%e.",
             e->a_first_snapshot, e->cosmology->a_begin);
 
-      if (e->a_first_statistics < e->cosmology->a_begin)
+      if (e->a_first_statistics < e->cosmology->a_begin && !e->output_list_stats)
         error(
             "Scale-factor of first stats output (%e) must be after the "
             "simulation start a=%e.",
@@ -5465,7 +5465,7 @@ void engine_config(int restart, int fof, struct engine *e,
         if (e->delta_time_stf == -1. && !e->snapshot_invoke_stf)
           error("A value for `StructureFinding:delta_time` must be specified");
 
-        if (e->a_first_stf_output < e->cosmology->a_begin)
+        if (e->a_first_stf_output < e->cosmology->a_begin && !e->output_list_stf)
           error(
               "Scale-factor of first stf output (%e) must be after the "
               "simulation start a=%e.",
@@ -5495,13 +5495,13 @@ void engine_config(int restart, int fof, struct engine *e,
               e->delta_time_statistics);
 
       /* Find the time of the first output */
-      if (e->time_first_snapshot < e->time_begin)
+      if (e->time_first_snapshot < e->time_begin && !e->output_list_snapshots)
         error(
             "Time of first snapshot (%e) must be after the simulation start "
             "t=%e.",
             e->time_first_snapshot, e->time_begin);
 
-      if (e->time_first_statistics < e->time_begin)
+      if (e->time_first_statistics < e->time_begin && !e->output_list_stats)
         error(
             "Time of first stats output (%e) must be after the simulation "
             "start t=%e.",
@@ -5515,7 +5515,7 @@ void engine_config(int restart, int fof, struct engine *e,
         if (e->delta_time_stf <= 0. && e->delta_time_stf != -1.)
           error("Time between STF (%e) must be positive.", e->delta_time_stf);
 
-        if (e->time_first_stf_output < e->time_begin)
+        if (e->time_first_stf_output < e->time_begin && !e->output_list_stf)
           error(
               "Time of first STF (%e) must be after the simulation start t=%e.",
               e->time_first_stf_output, e->time_begin);
