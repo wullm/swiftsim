@@ -136,9 +136,9 @@ for i in range(order+1):
                 count += 1
                 if first:
                     first = False
-                    print "   ",
+                    print "     ",
                 else:
-                    print "  +",
+                    print "    +",
                 print "fabsf(ma->M_%d%d%d)"%(i,j,k),
                 if count == scipy.special.binom(order+2, 2):
                     print "+ fabsf(mb->M_%d%d%d);"%(i,j,k)
@@ -342,7 +342,6 @@ for l in range(order + 1):
     
 if order > 0:
     print "#endif"
-sys.exit()
 print ""
 print "-------------------------------------------------"
 
@@ -399,7 +398,7 @@ if order > 0:
     print "  /* %s order contributions */"%(ordinal(order-1))
 
     for r in range(3):
-        print "  gp->a_grav[%d] +="%(r),
+        print "  a_grav[%d] +="%(r),
 
         supercount = 0
         for iiii in range(2):
@@ -443,6 +442,28 @@ if order > 0:
                                         print "X_%d%d%d(dx) * lb->F_%d%d%d"%(i,j,k,ii,jj,kk),
 
     print ""
+
+# Contribution to particle potential.
+print "  pot -=",
+count = 0
+first = True
+for i in range(order+1):
+    for j in range(order+1):
+        for k in range(order+1):
+            if i + j + k == order:
+                count += 1
+                if first:
+                    first = False
+                else:
+                    if count % 2 != 0:
+                        print "    +",
+                    else:
+                        print "+",
+                if count % 2 == 0:
+                    print "X_%d%d%d(dx) * lb->F_%d%d%d"%(i,j,k,i,j,k)
+                else:
+                    print "X_%d%d%d(dx) * lb->F_%d%d%d"%(i,j,k,i,j,k),
+print ""
 if order > 0:
     print "#endif"
 print ""
