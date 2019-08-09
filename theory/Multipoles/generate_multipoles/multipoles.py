@@ -21,32 +21,6 @@ print "Generating code for multipoles of order", order, "(only)."
 print "-------------------------------------------------\n"
 
 print "-------------------------------------------------"
-print "Multipole structure:"
-print "-------------------------------------------------\n"
-
-if order > 0:
-    print "#if SELF_GRAVITY_MULTIPOLE_ORDER > %d\n"%(order-1)
-
-print "  /* %s order terms */"%ordinal(order)
-    
-# Create all the terms relevent for this order
-count = 0
-tmp_str = '  float'
-for i in range(order+1):
-    for j in range(order+1):
-        for k in range(order+1):
-            if i + j + k == order:
-                tmp_str = tmp_str + " M_%d%d%d,"%(i,j,k)
-                count += 1
-                if count == 3:
-                    tmp_str = tmp_str[:-1]
-                    print tmp_str + ';'
-                    count = 0
-                    tmp_str = '  float'
-if order > 0:
-    print "#endif"
-print ""
-print "-------------------------------------------------"
 
 print "Field tensor structure:"
 print "-------------------------------------------------\n"
@@ -64,6 +38,34 @@ for i in range(order+1):
         for k in range(order+1):
             if i + j + k == order:
                 tmp_str = tmp_str + " F_%d%d%d,"%(i,j,k)
+                count += 1
+                if count == 3:
+                    tmp_str = tmp_str[:-1]
+                    print tmp_str + ';'
+                    count = 0
+                    tmp_str = '  float'
+if order > 0:
+    print "#endif"
+
+print ""
+
+print "-------------------------------------------------"
+print "Multipole structure:"
+print "-------------------------------------------------\n"
+
+if order > 0:
+    print "#if SELF_GRAVITY_MULTIPOLE_ORDER > %d\n"%(order-1)
+
+print "  /* %s order terms */"%ordinal(order)
+    
+# Create all the terms relevent for this order
+count = 0
+tmp_str = '  float'
+for i in range(order+1):
+    for j in range(order+1):
+        for k in range(order+1):
+            if i + j + k == order:
+                tmp_str = tmp_str + " M_%d%d%d,"%(i,j,k)
                 count += 1
                 if count == 3:
                     tmp_str = tmp_str[:-1]
@@ -196,9 +198,9 @@ for i in range(order+1):
         for k in range(order+1):
             if i + j + k == order:
                 if order % 2 == 0:
-                    print "  M_%d%d%d += m * X_%d%d%d(dx);"%(i,j,k,i,j,k)
+                    print "    M_%d%d%d += m * X_%d%d%d(dx);"%(i,j,k,i,j,k)
                 else:
-                    print "  M_%d%d%d += -m * X_%d%d%d(dx);"%(i,j,k,i,j,k)
+                    print "    M_%d%d%d += -m * X_%d%d%d(dx);"%(i,j,k,i,j,k)
 if order > 0:
     print "#endif"
 print ""
@@ -217,7 +219,7 @@ for i in range(order+1):
     for j in range(order+1):
         for k in range(order+1):
             if i + j + k == order:
-                print "  m->m_pole.M_%d%d%d = M_%d%d%d;"%(i,j,k,i,j,k)
+                print "  multi->m_pole.M_%d%d%d = M_%d%d%d;"%(i,j,k,i,j,k)
 if order > 0:
     print "#endif"
 
@@ -286,6 +288,21 @@ print "-------------------------------------------------\n"
 if order > 0:
     print "#if SELF_GRAVITY_MULTIPOLE_ORDER > %d\n"%(order-1)
 
+assert order > 0, 'M2L not right for order = 0'
+for i in range(order+1):
+    for j in range(order+1):
+        for k in range(order+1):
+            if i + j + k == order:
+                print "  const float M_%d%d%d = m_a->M_%d%d%d;"%(i,j,k,i,j,k)
+print ""
+
+for i in range(order+1):
+    for j in range(order+1):
+        for k in range(order+1):
+            if i + j + k == order:
+                print "  const float D_%d%d%d = pot->D_%d%d%d;"%(i,j,k,i,j,k)
+print ""
+
 # Loop over LHS order
 for l in range(order + 1):
     print "  /* Compute %s order field tensor terms (addition to rank %d) */"%(ordinal(order), l)
@@ -308,17 +325,24 @@ for l in range(order + 1):
                                         if first:
                                             first = False
                                         else:
-                                            if iiii == 1: print "    +",
+                                            if iiii == 1:
+                                                if (count + 2)% 3 == 0:
+                                                    print "    +",
+                                                else:
+                                                    print "+",
                                         if iiii == 1:
                                             if count == final_count:
-                                                print "m_a->M_%d%d%d * D_%d%d%d(dx, dy, dz, r_inv);"%(ii,jj,kk,i+ii,j+jj,k+kk)
+                                                print "M_%d%d%d * D_%d%d%d;"%(ii,jj,kk,i+ii,j+jj,k+kk)
                                             else:
-                                                print "m_a->M_%d%d%d * D_%d%d%d(dx, dy, dz, r_inv)"%(ii,jj,kk,i+ii,j+jj,k+kk)
+                                                if count % 3 == 0:
+                                                    print "M_%d%d%d * D_%d%d%d"%(ii,jj,kk,i+ii,j+jj,k+kk)
+                                                else:
+                                                    print "M_%d%d%d * D_%d%d%d"%(ii,jj,kk,i+ii,j+jj,k+kk),
     print ""
     
 if order > 0:
     print "#endif"
-
+sys.exit()
 print ""
 print "-------------------------------------------------"
 
