@@ -159,6 +159,48 @@ for i in range(order+1):
 if order > 0:
     print "#endif"
 
+
+print ""
+print "-------------------------------------------------"
+print "compute_multipole_power()"
+print "-------------------------------------------------\n"
+
+"""
+Multipole power is defined as:
+
+    Power = C[k] = SUM(k_bar!/k! |M[k]|**2)
+
+    The sum is over all kx,ky,kz, where
+
+    M[k] = Multipole moments
+    k_bar! = k_x! * k_y! * k_z!
+    k! = (k_x + k_y + k_z)!
+"""
+def k_bar_fac_over_k_fac(kx,ky,kz):
+    A = factorial(kx) * factorial(ky) * factorial(kz)
+    B = factorial(kx + ky + kz)
+
+    return np.true_divide(A,B)
+
+if order > 0:
+    print "#if SELF_GRAVITY_MULTIPOLE_ORDER > %d"%(order-1)
+print ""
+print "  /* %s order terms */"%ordinal(order)
+print "  multi->power[%d] = 0.0;"%order
+# Create all the terms relevent for this order
+for i in range(order+1):
+    for j in range(order+1):
+        for k in range(order+1):
+            if i + j + k == order:
+                fac = k_bar_fac_over_k_fac(i,j,k)
+                if fac == 1.0:
+                    print  "  multi->power[%d] += multi->M_%d%d%d * multi->M_%d%d%d;"%(order,i,j,k,i,j,k)
+                else:
+                    print  "  multi->power[%d] += %.8f * multi->M_%d%d%d * multi->M_%d%d%d;"%(order,fac,i,j,k,i,j,k)
+if order > 0:
+    print "#endif"
+
+sys.exit()
 print ""
 print "-------------------------------------------------"
 print "gravity_P2M(): (init)"

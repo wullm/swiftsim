@@ -1309,10 +1309,15 @@ INLINE static int gravity_multipole_equal(const struct gravity_tensors *ga,
 }
 
 /**
- * @brief XXX 
+ * @brief Computes the 'power' of a multipole 
  * 
+ * Power is defined as C[k] = SUM(k_bar!/k! |M[k]|**2)
  *
- * Corresponds to equation (XXX).
+ * The sum is over all kx,ky,kz, where
+ *
+ * M[k] = Multipole moments
+ * k_bar! = k_x! * k_y! * k_z!
+ * k! = (k_x + k_y + k_z)!
  *
  * @param multi The #multipole we are computing the power for.
  */
@@ -1323,96 +1328,120 @@ INLINE static void compute_multipole_power(struct multipole *multi) {
   multi->power[0] = multi->M_000 * multi->M_000;
 
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
-  /* 1st order contributions */
+
+  /* 1st order terms */
   multi->power[1] = 0.0;
-  multi->power[1] += multi->M_100 * multi->M_100;
-  multi->power[1] += multi->M_010 * multi->M_010;
   multi->power[1] += multi->M_001 * multi->M_001;
+  multi->power[1] += multi->M_010 * multi->M_010;
+  multi->power[1] += multi->M_100 * multi->M_100;
 #endif
-
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
-  /* 2nd order contributions */
+
+  /* 2nd order terms */
   multi->power[2] = 0.0;
-  multi->power[2] += multi->M_200 * multi->M_200;
-  multi->power[2] += multi->M_020 * multi->M_020;
   multi->power[2] += multi->M_002 * multi->M_002;
-
-  multi->power[2] += 0.5 * (multi->M_110 * multi->M_110);
-  multi->power[2] += 0.5 * (multi->M_101 * multi->M_101);
-  multi->power[2] += 0.5 * (multi->M_011 * multi->M_011);
+  multi->power[2] += 0.50000000 * multi->M_011 * multi->M_011;
+  multi->power[2] += multi->M_020 * multi->M_020;
+  multi->power[2] += 0.50000000 * multi->M_101 * multi->M_101;
+  multi->power[2] += 0.50000000 * multi->M_110 * multi->M_110;
+  multi->power[2] += multi->M_200 * multi->M_200;
 #endif
-
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 2
-  /* 3nd order contributions */
+
+  /* 3rd order terms */
   multi->power[3] = 0.0;
-  multi->power[3] += 2.0 * (multi->M_300 * multi->M_300);
-  multi->power[3] += 2.0 * (multi->M_030 * multi->M_030);
-  multi->power[3] += 2.0 * (multi->M_003 * multi->M_003);
-
-  multi->power[3] += 0.6666666666666667 * (multi->M_210 * multi->M_210);
-  multi->power[3] += 0.6666666666666667 * (multi->M_201 * multi->M_201);
-  multi->power[3] += 0.6666666666666667 * (multi->M_120 * multi->M_120);
-  multi->power[3] += 0.6666666666666667 * (multi->M_021 * multi->M_021);
-  multi->power[3] += 0.6666666666666667 * (multi->M_102 * multi->M_102);
-  multi->power[3] += 0.6666666666666667 * (multi->M_021 * multi->M_021);
-
-  multi->power[3] += 0.3333333333333333 * (multi->M_111 * multi->M_111);
+  multi->power[3] += multi->M_003 * multi->M_003;
+  multi->power[3] += 0.33333333 * multi->M_012 * multi->M_012;
+  multi->power[3] += 0.33333333 * multi->M_021 * multi->M_021;
+  multi->power[3] += multi->M_030 * multi->M_030;
+  multi->power[3] += 0.33333333 * multi->M_102 * multi->M_102;
+  multi->power[3] += 0.16666667 * multi->M_111 * multi->M_111;
+  multi->power[3] += 0.33333333 * multi->M_120 * multi->M_120;
+  multi->power[3] += 0.33333333 * multi->M_201 * multi->M_201;
+  multi->power[3] += 0.33333333 * multi->M_210 * multi->M_210;
+  multi->power[3] += multi->M_300 * multi->M_300;
 #endif
-
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 3
-  /*4th order contributions */
+
+  /* 4th order terms */
   multi->power[4] = 0.0;
-  multi->power[4] += 6.0 * (multi->M_400 * multi->M_400);
-  multi->power[4] += 6.0 * (multi->M_040 * multi->M_040);
-  multi->power[4] += 6.0 * (multi->M_004 * multi->M_004);
-
-  multi->power[4] += 1.5 * (multi->M_310 * multi->M_310);
-  multi->power[4] += 1.5 * (multi->M_301 * multi->M_301);
-  multi->power[4] += 1.5 * (multi->M_130 * multi->M_130);
-  multi->power[4] += 1.5 * (multi->M_031 * multi->M_031);
-  multi->power[4] += 1.5 * (multi->M_103 * multi->M_103);
-  multi->power[4] += 1.5 * (multi->M_013 * multi->M_013);
-
-  multi->power[4] += multi->M_220 * multi->M_220;
-  multi->power[4] += multi->M_202 * multi->M_202;
-  multi->power[4] += multi->M_022 * multi->M_022;
-
-  multi->power[4] += 0.5 * (multi->M_211 * multi->M_211);
-  multi->power[4] += 0.5 * (multi->M_121 * multi->M_121);
-  multi->power[4] == 0.5 * (multi->M_112 * multi->M_112);
+  multi->power[4] += multi->M_004 * multi->M_004;
+  multi->power[4] += 0.25000000 * multi->M_013 * multi->M_013;
+  multi->power[4] += 0.16666667 * multi->M_022 * multi->M_022;
+  multi->power[4] += 0.25000000 * multi->M_031 * multi->M_031;
+  multi->power[4] += multi->M_040 * multi->M_040;
+  multi->power[4] += 0.25000000 * multi->M_103 * multi->M_103;
+  multi->power[4] += 0.08333333 * multi->M_112 * multi->M_112;
+  multi->power[4] += 0.08333333 * multi->M_121 * multi->M_121;
+  multi->power[4] += 0.25000000 * multi->M_130 * multi->M_130;
+  multi->power[4] += 0.16666667 * multi->M_202 * multi->M_202;
+  multi->power[4] += 0.08333333 * multi->M_211 * multi->M_211;
+  multi->power[4] += 0.16666667 * multi->M_220 * multi->M_220;
+  multi->power[4] += 0.25000000 * multi->M_301 * multi->M_301;
+  multi->power[4] += 0.25000000 * multi->M_310 * multi->M_310;
+  multi->power[4] += multi->M_400 * multi->M_400;
 #endif
-
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 4
-  /*5th order contributions */
+
+  /* 5th order terms */
   multi->power[5] = 0.0;
-  multi->power[5] += 24. * (multi->M_005 * multi->M_005);
-  multi->power[5] += 24. * (multi->M_050 * multi->M_050);
-  multi->power[5] += 24. * (multi->M_500 * multi->M_500);
-
-  multi->power[5] += 4.8 * (multi->M_014 * multi->M_014);
-  multi->power[5] += 4.8 * (multi->M_104 * multi->M_104);
-  multi->power[5] += 4.8 * (multi->M_041 * multi->M_041);
-  multi->power[5] += 4.8 * (multi->M_140 * multi->M_140);
-  multi->power[5] += 4.8 * (multi->M_401 * multi->M_401);
-  multi->power[5] += 4.8 * (multi->M_410 * multi->M_410);
-
-  multi->power[5] += 2.4 * (multi->M_032 * multi->M_032);
-  multi->power[5] += 2.4 * (multi->M_023 * multi->M_023);
-  multi->power[5] += 2.4 * (multi->M_203 * multi->M_203);
-  multi->power[5] += 2.4 * (multi->M_230 * multi->M_230);
-  multi->power[5] += 2.4 * (multi->M_302 * multi->M_302);
-  multi->power[5] += 2.4 * (multi->M_320 * multi->M_320);
-
-  multi->power[5] += 0.8 * (multi->M_122 * multi->M_122);
-  multi->power[5] += 0.8 * (multi->M_221 * multi->M_221);
-  multi->power[5] += 0.8 * (multi->M_212 * multi->M_212);
-
-  multi->power[5] += 1.2 * (multi->M_113 * multi->M_113);
-  multi->power[5] += 1.2 * (multi->M_131 * multi->M_131);
-  multi->power[5] += 1.2 * (multi->M_311 * multi->M_311);
+  multi->power[5] += multi->M_005 * multi->M_005;
+  multi->power[5] += 0.20000000 * multi->M_014 * multi->M_014;
+  multi->power[5] += 0.10000000 * multi->M_023 * multi->M_023;
+  multi->power[5] += 0.10000000 * multi->M_032 * multi->M_032;
+  multi->power[5] += 0.20000000 * multi->M_041 * multi->M_041;
+  multi->power[5] += multi->M_050 * multi->M_050;
+  multi->power[5] += 0.20000000 * multi->M_104 * multi->M_104;
+  multi->power[5] += 0.05000000 * multi->M_113 * multi->M_113;
+  multi->power[5] += 0.03333333 * multi->M_122 * multi->M_122;
+  multi->power[5] += 0.05000000 * multi->M_131 * multi->M_131;
+  multi->power[5] += 0.20000000 * multi->M_140 * multi->M_140;
+  multi->power[5] += 0.10000000 * multi->M_203 * multi->M_203;
+  multi->power[5] += 0.03333333 * multi->M_212 * multi->M_212;
+  multi->power[5] += 0.03333333 * multi->M_221 * multi->M_221;
+  multi->power[5] += 0.10000000 * multi->M_230 * multi->M_230;
+  multi->power[5] += 0.10000000 * multi->M_302 * multi->M_302;
+  multi->power[5] += 0.05000000 * multi->M_311 * multi->M_311;
+  multi->power[5] += 0.10000000 * multi->M_320 * multi->M_320;
+  multi->power[5] += 0.20000000 * multi->M_401 * multi->M_401;
+  multi->power[5] += 0.20000000 * multi->M_410 * multi->M_410;
+  multi->power[5] += multi->M_500 * multi->M_500;
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 5
-#error "Missing implementation for order >5"
+
+  /* 6th order terms */
+  multi->power[6] = 0.0;
+  multi->power[6] += multi->M_006 * multi->M_006;
+  multi->power[6] += 0.16666667 * multi->M_015 * multi->M_015;
+  multi->power[6] += 0.06666667 * multi->M_024 * multi->M_024;
+  multi->power[6] += 0.05000000 * multi->M_033 * multi->M_033;
+  multi->power[6] += 0.06666667 * multi->M_042 * multi->M_042;
+  multi->power[6] += 0.16666667 * multi->M_051 * multi->M_051;
+  multi->power[6] += multi->M_060 * multi->M_060;
+  multi->power[6] += 0.16666667 * multi->M_105 * multi->M_105;
+  multi->power[6] += 0.03333333 * multi->M_114 * multi->M_114;
+  multi->power[6] += 0.01666667 * multi->M_123 * multi->M_123;
+  multi->power[6] += 0.01666667 * multi->M_132 * multi->M_132;
+  multi->power[6] += 0.03333333 * multi->M_141 * multi->M_141;
+  multi->power[6] += 0.16666667 * multi->M_150 * multi->M_150;
+  multi->power[6] += 0.06666667 * multi->M_204 * multi->M_204;
+  multi->power[6] += 0.01666667 * multi->M_213 * multi->M_213;
+  multi->power[6] += 0.01111111 * multi->M_222 * multi->M_222;
+  multi->power[6] += 0.01666667 * multi->M_231 * multi->M_231;
+  multi->power[6] += 0.06666667 * multi->M_240 * multi->M_240;
+  multi->power[6] += 0.05000000 * multi->M_303 * multi->M_303;
+  multi->power[6] += 0.01666667 * multi->M_312 * multi->M_312;
+  multi->power[6] += 0.01666667 * multi->M_321 * multi->M_321;
+  multi->power[6] += 0.05000000 * multi->M_330 * multi->M_330;
+  multi->power[6] += 0.06666667 * multi->M_402 * multi->M_402;
+  multi->power[6] += 0.03333333 * multi->M_411 * multi->M_411;
+  multi->power[6] += 0.06666667 * multi->M_420 * multi->M_420;
+  multi->power[6] += 0.16666667 * multi->M_501 * multi->M_501;
+  multi->power[6] += 0.16666667 * multi->M_510 * multi->M_510;
+  multi->power[6] += multi->M_600 * multi->M_600;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 6
+#error "Missing implementation for order >6"
 #endif
 #endif
 }
