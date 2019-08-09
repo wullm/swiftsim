@@ -3870,11 +3870,12 @@ void engine_step(struct engine *e) {
   /* Check the accuracy of the gravity calculation */
   if (e->policy & engine_policy_self_gravity &&
         gpart_active_count == e->total_nr_gparts &&
-        e->brute_force_gravity_flag == 1)
+        e->brute_force_gravity_flag == 1) {
     gravity_exact_force_check(e->s, e, 1e-1);
 
     /* Reset flag waiting for next output time */
     e->brute_force_gravity_flag = 0;
+  }
 #endif
 
 #ifdef SWIFT_DEBUG_CHECKS

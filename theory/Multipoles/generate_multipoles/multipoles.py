@@ -200,7 +200,6 @@ for i in range(order+1):
 if order > 0:
     print "#endif"
 
-sys.exit()
 print ""
 print "-------------------------------------------------"
 print "gravity_P2M(): (init)"
