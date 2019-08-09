@@ -3738,6 +3738,8 @@ void engine_step(struct engine *e) {
   e->ti_current = e->ti_end_min;
   e->max_active_bin = get_max_active_bin(e->ti_end_min);
   e->min_active_bin = get_min_active_bin(e->ti_current, e->ti_old);
+  // ALEXEI: debugging
+  message("min max active bins %d %d", e->min_active_bin, e->max_active_bin);
   e->step += 1;
   engine_current_step = e->step;
   e->step_props = engine_step_prop_none;

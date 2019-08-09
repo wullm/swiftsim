@@ -4963,25 +4963,27 @@ int cell_recouple(struct cell *c,
         // ALEXEI: check that this is the right place to do recoupling based on density
         //if (p->delay_time < 0. || p->rho > e->feedback_props->recoupling_density) {
         if (p->delay_time < 0. ) {
-          p->time_bin = e->min_active_bin;
+          //p->time_bin = e->min_active_bin;
+          timebin_t min_active_bin = get_min_active_bin(e->ti_end_min, e->ti_current);
+          p->time_bin = min_active_bin;
           p->gpart->time_bin = p->time_bin;
-	  c->hydro.ti_end_min = min(c->hydro.ti_end_min, e->ti_current + get_integer_timestep(e->min_active_bin));
-	  
-	  // update parents
-	  struct cell *parent_cell = c->parent;
-	  while (parent_cell != NULL) {
-	    parent_cell->hydro.ti_end_min = min(parent_cell->hydro.ti_end_min, e->ti_current + get_integer_timestep(e->min_active_bin));
-	    parent_cell = parent_cell->parent;
-	  }
+	      c->hydro.ti_end_min = min(c->hydro.ti_end_min, e->ti_current + get_integer_timestep(min_active_bin));
+	      
+	      // update parents
+	      struct cell *parent_cell = c->parent;
+	      while (parent_cell != NULL) {
+	        parent_cell->hydro.ti_end_min = min(parent_cell->hydro.ti_end_min, e->ti_current + get_integer_timestep(min_active_bin));
+	        parent_cell = parent_cell->parent;
+	      }
 #if SWIFT_DEBUG_CHECKS
-          p->ti_kick = e->ti_current + get_integer_timestep(e->min_active_bin)/2;
-	  if (p->id == SIMBA_DEBUG_ID) message("id %llu ti_current %llu half step %llu ti_kick %llu ti_drift %llu", p->id, e->ti_current, get_integer_timestep(e->min_active_bin)/2, p->ti_kick, p->ti_drift);
+          p->ti_kick = e->ti_current + get_integer_timestep(min_active_bin)/2;
+	      if (p->id == SIMBA_DEBUG_ID) message("id %llu ti_current %llu half step %llu ti_kick %llu ti_drift %llu", p->id, e->ti_current, get_integer_timestep(min_active_bin)/2, p->ti_kick, p->ti_drift);
 #endif
           // ALEXEI: debugging print statement
           //if (e->ti_current * e->time_base > 0. && p->id == SIMBA_DEBUG_ID) message("particle %llu recoupled", p->id);
-          if (e->ti_current * e->time_base > 0.) message("particle %llu recoupled", p->id);
+          if (e->ti_current * e->time_base > 0.) message("particle %llu recoupled ti_kick %llu ti_current %llu step/2 %llu ti_end_min %llu recouple min active bin %d timebin %d", p->id, p->ti_kick, e->ti_current, get_integer_timestep(min_active_bin)/2, c->hydro.ti_end_min, min_active_bin, p->time_bin);
 
-	  recoupled = 1;
+	      recoupled = 1;
         }
       }
     }

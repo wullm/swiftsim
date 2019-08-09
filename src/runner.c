@@ -2844,6 +2844,9 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
           dt_kick_corr = (ti_end - (ti_begin + ti_step / 2)) * time_base;
         }
 
+	// ALEXEI: debugging
+	if (p->ti_kick != ti_begin + ti_step/2) message("particle %llu ti_kick %llu ti_begin %llu ti_current %llu ti_step/2 %llu time bin %d min active bin %d", p->id, p->ti_kick, ti_begin, ti_current, ti_step/2, p->time_bin, e->min_active_bin);
+
         /* Finish the time-step with a second half-kick */
         kick_part(p, xp, dt_kick_hydro, dt_kick_grav, dt_kick_therm,
                   dt_kick_corr, cosmo, hydro_props, entropy_floor,
@@ -3433,6 +3436,9 @@ void runner_do_limiter(struct runner *r, struct cell *c, int force, int timer) {
 
       /* Avoid inhibited particles */
       if (part_is_inhibited(p, e)) continue;
+
+      // ALEXEI: do we want to skip decoupled particles?
+      //if (part_is_decoupled(p)) continue;
 
       /* If the particle will be active no need to wake it up */
       if (part_is_active(p, e) && p->wakeup != time_bin_not_awake)
