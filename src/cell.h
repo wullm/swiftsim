@@ -39,6 +39,7 @@
 #include "sort_part.h"
 #include "space.h"
 #include "star_formation_logger_struct.h"
+#include "statistics.h"
 #include "task.h"
 #include "timeline.h"
 
@@ -757,6 +758,9 @@ struct cell {
 
   /*! The logger task */
   struct task *logger;
+
+  /*! The statistics accumulator struct */
+  struct statistics_accumulator stats;
 
   /*! Minimum dimension, i.e. smallest edge of this cell (min(width)). */
   float dmin;

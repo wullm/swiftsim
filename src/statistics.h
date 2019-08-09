@@ -65,12 +65,34 @@ struct statistics {
   swift_lock_type lock;
 };
 
+/**
+ * @brief Quantities collected during the time steps.
+ */
+struct statistics_accumulator {
+  /*! Energy due to the star formation */
+  double E_star_form;
+
+  /*! Energy due to the feedback */
+  double E_feedback;
+
+};
+
 void stats_collect(const struct space* s, struct statistics* stats);
 void stats_add(struct statistics* a, const struct statistics* b);
 void stats_print_to_file(FILE* file, const struct statistics* stats,
+			 const struct statistics_accumulator *acc,
                          double time);
 void stats_init(struct statistics* s);
 void stats_finalize(struct statistics* s);
+
+void stats_accumulator_init(struct statistics_accumulator *s);
+void stats_accumulator_reset_star_formation(struct statistics_accumulator *s);
+void stats_accumulator_log_star_formation(
+  struct statistics_accumulator *s, const struct part *p,
+  const struct xpart *xp, const struct cosmology *cosmo);
+void stats_accumulator_add(struct statistics_accumulator* a,
+			   const struct statistics_accumulator* b);
+void stats_accumulator_collect(const struct space* s, struct statistics_accumulator* stats);
 
 #ifdef WITH_MPI
 extern MPI_Datatype statistics_mpi_type;

@@ -144,6 +144,7 @@ struct end_of_step_data {
       ti_black_holes_beg_max;
   struct engine *e;
   struct star_formation_history sfh;
+  struct statistics_accumulator stats;
 };
 
 /**
@@ -2958,6 +2959,7 @@ void engine_collect_end_of_step_mapper(void *map_data, int num_elements,
   struct space *s = e->s;
   int *local_cells = (int *)map_data;
   struct star_formation_history *sfh_top = &data->sfh;
+  struct statistics_accumulator *stats_top = &data->stats;
 
   /* Local collectible */
   size_t updated = 0, g_updated = 0, s_updated = 0, b_updated = 0;
@@ -2975,6 +2977,12 @@ void engine_collect_end_of_step_mapper(void *map_data, int num_elements,
 
   /* Initialize the star formation structs for this engine to zero */
   star_formation_logger_init(&sfh_updated);
+
+  /* Local statistics */
+  struct statistics_accumulator stats;
+
+  /* Initialize the statistics */
+  stats_accumulator_init(&stats);
 
   for (int ind = 0; ind < num_elements; ind++) {
     struct cell *c = &s->cells_top[local_cells[ind]];
@@ -3034,6 +3042,9 @@ void engine_collect_end_of_step_mapper(void *map_data, int num_elements,
        * the star formation history struct */
       star_formation_logger_add(&sfh_updated, &c->stars.sfh);
 
+      /* Get the statistics from the current cell */
+      stats_accumulator_add(&stats, &c->stats);
+
       /* Collected, so clear for next time. */
       c->hydro.updated = 0;
       c->grav.updated = 0;
@@ -3052,6 +3063,9 @@ void engine_collect_end_of_step_mapper(void *map_data, int num_elements,
 
     /* Add the SFH information from this engine to the global data */
     star_formation_logger_add(sfh_top, &sfh_updated);
+
+    /* Add the statistics to the engine */
+    stats_accumulator_add(stats_top, &stats);
 
     if (ti_hydro_end_min > e->ti_current)
       data->ti_hydro_end_min = min(ti_hydro_end_min, data->ti_hydro_end_min);
@@ -3119,6 +3133,9 @@ void engine_collect_end_of_step(struct engine *e, int apply) {
   /* Initialize the total SFH of the simulation to zero */
   star_formation_logger_init(&data.sfh);
 
+  /* Initialize the statistics of the simulation to zero */
+  stats_accumulator_init(&data.stats);
+
   /* Collect information from the local top-level cells */
   threadpool_map(&e->threadpool, engine_collect_end_of_step_mapper,
                  s->local_cells_with_tasks_top, s->nr_local_cells_with_tasks,
@@ -3141,7 +3158,8 @@ void engine_collect_end_of_step(struct engine *e, int apply) {
       data.ti_stars_beg_max, data.ti_black_holes_end_min,
       data.ti_black_holes_end_max, data.ti_black_holes_beg_max, e->forcerebuild,
       e->s->tot_cells, e->sched.nr_tasks,
-      (float)e->sched.nr_tasks / (float)e->s->tot_cells, data.sfh);
+      (float)e->sched.nr_tasks / (float)e->s->tot_cells, data.sfh,
+      data.stats);
 
 /* Aggregate collective data from the different nodes for this step. */
 #ifdef WITH_MPI
@@ -3285,7 +3303,7 @@ void engine_print_stats(struct engine *e) {
 
   /* Print info */
   if (e->nodeID == 0)
-    stats_print_to_file(e->file_stats, &global_stats, e->time);
+    stats_print_to_file(e->file_stats, &global_stats, &e->stats, e->time);
 
   /* Flag that we dumped some statistics */
   e->step_props |= engine_step_prop_statistics;
@@ -4996,6 +5014,9 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->total_nr_cells = 0;
   e->total_nr_tasks = 0;
 
+  /* Initialize the statistics accumulator */
+  stats_accumulator_init(&e->stats);
+
 #if defined(WITH_LOGGER)
   e->logger = (struct logger *)malloc(sizeof(struct logger));
   logger_init(e->logger, params);
@@ -5285,9 +5306,10 @@ void engine_config(int restart, int fof, struct engine *e,
       fprintf(
           e->file_stats,
           "#%14s %14s %14s %14s %14s %14s %14s %14s %14s %14s %14s %14s %14s "
-          "%14s %14s %14s %14s %14s %14s\n",
+          "%14s %14s %14s %14s %14s %14s %14s %14s\n",
           "Time", "Mass", "E_tot", "E_kin", "E_int", "E_pot", "E_pot_self",
-          "E_pot_ext", "E_radcool", "Entropy", "p_x", "p_y", "p_z", "ang_x",
+          "E_pot_ext", "E_radcool", "E_star_form", "E_feedback", "Entropy",
+	  "p_x", "p_y", "p_z", "ang_x",
           "ang_y", "ang_z", "com_x", "com_y", "com_z");
       fflush(e->file_stats);
     }

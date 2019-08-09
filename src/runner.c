@@ -1114,6 +1114,7 @@ void runner_do_star_formation(struct runner *r, struct cell *c, int timer) {
 
   /* Reset the SFR */
   star_formation_logger_init(&c->stars.sfh);
+  stats_accumulator_reset_star_formation(&c->stats);
 
   /* Recurse? */
   if (c->split) {
@@ -1127,6 +1128,9 @@ void runner_do_star_formation(struct runner *r, struct cell *c, int timer) {
 
         /* Update current cell using child cells */
         star_formation_logger_add(&c->stars.sfh, &cp->stars.sfh);
+
+      	/* Log the statistics of the child */
+	stats_accumulator_add(&c->stats, &cp->stats);
       }
   } else {
 
@@ -1169,6 +1173,9 @@ void runner_do_star_formation(struct runner *r, struct cell *c, int timer) {
           /* Are we forming a star particle from this SF rate? */
           if (star_formation_should_convert_to_star(p, xp, sf_props, e,
                                                     dt_star)) {
+
+	    /* Log the internal energy of the particle */
+	    stats_accumulator_log_star_formation(&c->stats, p, xp, cosmo);
 
             /* Convert the gas particle to a star particle */
             struct spart *sp = cell_convert_part_to_spart(e, c, p, xp);
@@ -2700,7 +2707,9 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
   /* Recurse? */
   if (c->split) {
     for (int k = 0; k < 8; k++)
-      if (c->progeny[k] != NULL) runner_do_kick1(r, c->progeny[k], 0);
+      if (c->progeny[k] != NULL) {
+	runner_do_kick1(r, c->progeny[k], 0);
+      }
   } else {
 
     /* Loop over the parts in this cell. */

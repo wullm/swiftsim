@@ -49,6 +49,7 @@
 #include "scheduler.h"
 #include "space.h"
 #include "star_formation_logger.h"
+#include "statistics.h"
 #include "task.h"
 #include "units.h"
 #include "velociraptor_interface.h"
@@ -238,6 +239,9 @@ struct engine {
 
   /* Star formation logger information */
   struct star_formation_history sfh;
+
+  /* Statistics accumulator */
+  struct statistics_accumulator stats;
 
   /* Properties of the previous step */
   int step_props;

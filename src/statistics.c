@@ -351,10 +351,12 @@ void stats_finalize(struct statistics *stats) {
  * @brief Prints the content of a #statistics aggregator to a file
  *
  * @param file File to write to.
- * @param stats The #statistics object to write to the file
+ * @param stats The #statistics object to write to the file.
+ * @param acc The #statistics_accumulator object to write to the file.
  * @param time The current physical time.
  */
 void stats_print_to_file(FILE *file, const struct statistics *stats,
+			 const struct statistics_accumulator *acc,
                          double time) {
 
   const double E_pot = stats->E_pot_self + stats->E_pot_ext;
@@ -362,9 +364,10 @@ void stats_print_to_file(FILE *file, const struct statistics *stats,
 
   fprintf(file,
           " %14e %14e %14e %14e %14e %14e %14e %14e %14e %14e %14e %14e %14e "
-          "%14e %14e %14e %14e %14e %14e\n",
+          "%14e %14e %14e %14e %14e %14e %14e %14e\n",
           time, stats->mass, E_tot, stats->E_kin, stats->E_int, E_pot,
-          stats->E_pot_self, stats->E_pot_ext, stats->E_rad, stats->entropy,
+          stats->E_pot_self, stats->E_pot_ext, stats->E_rad, acc->E_star_form,
+	  acc->E_feedback, stats->entropy,
           stats->mom[0], stats->mom[1], stats->mom[2], stats->ang_mom[0],
           stats->ang_mom[1], stats->ang_mom[2], stats->centre_of_mass[0],
           stats->centre_of_mass[1], stats->centre_of_mass[2]);
@@ -415,3 +418,69 @@ void stats_create_mpi_type(void) {
   MPI_Op_create(stats_add_mpi, 1, &statistics_mpi_reduce_op);
 }
 #endif
+
+
+
+/**
+ * @brief Initialises a statistics accumulator to a valid state.
+ *
+ * @param s The #statistics_accumulator to initialise
+ */
+void stats_accumulator_init(struct statistics_accumulator *s) {
+
+  /* Zero everything */
+  bzero(s, sizeof(struct statistics_accumulator));
+}
+
+/**
+ * @brief Reset a statistics accumulator to a valid state for the star formation.
+ *
+ * @param s The #statistics_accumulator to initialise
+ */
+void stats_accumulator_reset_star_formation(struct statistics_accumulator *s) {
+
+  /* Zero the star formation */
+  s->E_star_form = 0;
+}
+
+
+/**
+ * @brief Add the energy of a star forming particle to the accumulator.
+ *
+ * @param s The #statistics_accumulator.
+ * @param p The #part to log.
+ */
+void stats_accumulator_log_star_formation(
+    struct statistics_accumulator *s, const struct part *p,
+    const struct xpart *xp, const struct cosmology *cosmo) {
+  s->E_star_form += p->mass * hydro_get_physical_internal_energy(p, xp, cosmo);
+}
+
+/**
+ * @brief Adds the content of one #statistics_accumulator to another one.
+ *
+ * Performs a += b;
+ *
+ * @param a The #statistics_accumulator structure to update.
+ * @param b The #statistics_accumulator structure to add to a.
+ */
+void stats_accumulator_add(struct statistics_accumulator *a, const struct statistics_accumulator *b) {
+
+  /* Add everything */
+  a->E_feedback += b->E_feedback;
+  a->E_star_form += b->E_star_form;
+}
+
+/**
+ * @brief Collect physical statistics over the top cells in a #space.
+ *
+ * @param s The #space to collect from.
+ * @param stats The #statistics_accumulator to fill.
+ */
+void stats_accumulator_collect(const struct space* s, struct statistics_accumulator* stats) {
+  for(int i = 0; i < s->nr_cells; i++) {
+    struct cell *c = &s->cells_top[i];
+
+    stats_accumulator_add(stats, &c->stats);
+  }
+}
