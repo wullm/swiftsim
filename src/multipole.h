@@ -513,7 +513,7 @@ INLINE static void gravity_field_tensors_print(const struct grav_tensor *l) {
          l->F_112);
 #endif
   printf("-------------------------\n");
-#if SELF_GRAVITY_MULTIPOLE_ORDER > 4
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 6
 #error "Missing gravity_field_tensors_print() implementation for order >4"
 #endif
 }
@@ -577,7 +577,7 @@ INLINE static void gravity_multipole_print(const struct multipole *m) {
          m->M_112);
 #endif
   printf("-------------------------\n");
-#if SELF_GRAVITY_MULTIPOLE_ORDER > 4
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 6
 #error "Missing gravity_multipole_print() implementation for order >4"
 #endif
 }
