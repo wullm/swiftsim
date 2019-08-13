@@ -27,6 +27,10 @@
 
 #include "./hydro_parameters.h"
 
+/* TODO: temp */
+#include "todo_temporary_globals.h"
+// #include "error.h"
+
 #define GIZMO_VOLUME_CORRECTION
 
 /**
@@ -307,7 +311,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   /* Compute (square of) area */
   /* eqn. (7) */
   float Anorm2 = 0.0f;
-  float A[3];
+  // float A[3];
+// TODO: temp
+  float A[3] = { 0.0f, 0.0f, 0.0f };
   if (pi->density.wcorr > const_gizmo_min_wcorr &&
       pj->density.wcorr > const_gizmo_min_wcorr) {
     /* in principle, we use Vi and Vj as weights for the left and right
@@ -331,6 +337,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
                  wj * hj_inv_dim;
       Anorm2 += A[k] * A[k];
     }
+
+if (pi->id == 1){
+  fprintf(mladen_globs.outfilep, "ID %5lld | A %10.4f %10.4f | x %10.4f %10.4f | h %10.4f %10.4f | V %10.4f %10.4f\n",
+      pj->id, A[0], A[1], pj->x[0], pj->x[1], pj->h, pi->h, Vi, Vj);
+}
+
   } else {
     /* ill condition gradient matrix: revert to SPH face area */
     const float Anorm =
