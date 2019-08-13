@@ -80,7 +80,10 @@ AM_SOURCES = space.c runner.c queue.c task.c cell.c engine.c engine_maketasks.c 
     chemistry.c cosmology.c restart.c mesh_gravity.c velociraptor_interface.c \
     outputlist.c velociraptor_dummy.c logger_io.c memuse.c fof.c \
     hashmap.c \
+	todo_temporary_globals.c \
     $(EAGLE_COOLING_SOURCES) $(EAGLE_FEEDBACK_SOURCES)
+
+#TODO: temporarily added globals
 
 # Include files for distribution, not installation.
 nobase_noinst_HEADERS = align.h approx_math.h atomic.h barrier.h cycle.h error.h inline.h kernel_hydro.h kernel_gravity.h \
@@ -221,7 +224,8 @@ nobase_noinst_HEADERS = align.h approx_math.h atomic.h barrier.h cycle.h error.h
                  black_holes/Default/black_holes_struct.h \
                  black_holes/EAGLE/black_holes.h black_holes/EAGLE/black_holes_io.h \
 		 black_holes/EAGLE/black_holes_part.h black_holes/EAGLE/black_holes_iact.h \
-                 black_holes/EAGLE/black_holes_properties.h 
+                 black_holes/EAGLE/black_holes_properties.h \
+		 todo_temporary_globals.h
 
 
 # Sources and flags for regular library
