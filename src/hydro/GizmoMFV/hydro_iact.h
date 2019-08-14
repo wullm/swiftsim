@@ -31,7 +31,7 @@
 #include "todo_temporary_globals.h"
 // #include "error.h"
 
-#define GIZMO_VOLUME_CORRECTION
+// #define GIZMO_VOLUME_CORRECTION
 
 /**
  * @brief Calculate the volume interaction between particle i and particle j
@@ -339,8 +339,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
     }
 
 if (pi->id == 1){
-  fprintf(mladen_globs.outfilep, "ID %5lld | A %10.4f %10.4f | x %10.4f %10.4f | h %10.4f %10.4f | V %10.4f %10.4f\n",
-      pj->id, A[0], A[1], pj->x[0], pj->x[1], pj->h, pi->h, Vi, Vj);
+  float dist = sqrtf((pi->x[0]-pj->x[0])*(pi->x[0]-pj->x[0]) + (pi->x[1]-pj->x[1])*(pi->x[1]-pj->x[1]));
+  float maxdist = 1.778002*pi->h;
+  fprintf(mladen_globs.outfilep, "ID_j %5lld | Aij_x %10.4f  Aij_y %10.4f | xj %10.4f yj %10.4f | hj %10.4f hi %10.4f | dist_ij %10.4f  max_dist %10.4f \n", //"| Vi %10.4f Vj%10.4f\n",
+      pj->id, A[0], A[1], pj->x[0], pj->x[1], pj->h, pi->h, dist, maxdist); //Vi, Vj);
 }
 
   } else {
