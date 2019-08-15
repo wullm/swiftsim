@@ -64,11 +64,26 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 
   /* Compute density of pi. */
   const float hi_inv = 1.f / hi;
+  const float hidp1 = pow_dimension_plus_one(hi_inv);
   const float xi = r * hi_inv;
   kernel_deval(xi, &wi, &wi_dx);
+  // TODO: temp
+  const float hj_inv = 1.f / hj;
+  const float hjdp1 = pow_dimension_plus_one(hj_inv);
+  const float xj = r * hj_inv;
+  kernel_deval(xj, &wj, &wj_dx);
 
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + xi * wi_dx);
+  // TODO: new, IVANOVA only
+  // check why it always is += wi for the volume/normalization?!
+  // for now, oblige the trend.
+  pi->density.wgrads[0] += hidp1 * wi_dx * dx[0] / r;
+  pi->density.wgrads[1] += hidp1 * wi_dx * dx[1] / r;
+  pi->density.wgrads[2] += hidp1 * wi_dx * dx[2] / r;
+  pj->density.wgrads[0] -= hjdp1 * wj_dx * dx[0] / r;
+  pj->density.wgrads[1] -= hjdp1 * wj_dx * dx[1] / r;
+  pj->density.wgrads[2] -= hjdp1 * wj_dx * dx[2] / r;
 
   /* these are eqns. (1) and (2) in the summary */
   pi->geometry.volume += wi;
@@ -81,9 +96,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pi->geometry.centroid[2] -= dx[2] * wi;
 
   /* Compute density of pj. */
-  const float hj_inv = 1.f / hj;
-  const float xj = r * hj_inv;
-  kernel_deval(xj, &wj, &wj_dx);
+  // TODO: temp
+  // const float hj_inv = 1.f / hj;
+  // const float xj = r * hj_inv;
+  // kernel_deval(xj, &wj, &wj_dx);
 
   pj->density.wcount += wj;
   pj->density.wcount_dh -= (hydro_dimension * wj + xj * wj_dx);
@@ -230,14 +246,16 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   const float r = r2 * r_inv;
 
   /* Initialize local variables */
-  float Bi[3][3];
-  float Bj[3][3];
+  // TODO: temp
+  // float Bi[3][3];
+  // float Bj[3][3];
   float vi[3], vj[3];
   for (int k = 0; k < 3; k++) {
-    for (int l = 0; l < 3; l++) {
-      Bi[k][l] = pi->geometry.matrix_E[k][l];
-      Bj[k][l] = pj->geometry.matrix_E[k][l];
-    }
+    // TODO: temp
+    // for (int l = 0; l < 3; l++) {
+    //   Bi[k][l] = pi->geometry.matrix_E[k][l];
+    //   Bj[k][l] = pj->geometry.matrix_E[k][l];
+    // }
     vi[k] = pi->v[k]; /* particle velocities */
     vj[k] = pj->v[k];
   }
@@ -254,6 +272,14 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   Wj[2] = pj->primitives.v[1];
   Wj[3] = pj->primitives.v[2];
   Wj[4] = pj->primitives.P;
+  // TODO: ivanova only
+  float dWidx_sum[3], dWjdx_sum[3];
+  dWidx_sum[0] = pi->density.wgrads[0];
+  dWidx_sum[1] = pi->density.wgrads[1];
+  dWidx_sum[2] = pi->density.wgrads[2];
+  dWjdx_sum[0] = pj->density.wgrads[0];
+  dWjdx_sum[1] = pj->density.wgrads[1];
+  dWjdx_sum[2] = pj->density.wgrads[2];
 
   /* calculate the maximal signal velocity */
   float vmax;
@@ -297,6 +323,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   const float xj = r * hj_inv;
   kernel_deval(xj, &wj, &wj_dx);
 
+
+
   /* Compute h_dt. We are going to use an SPH-like estimate of div_v for that */
   const float hidp1 = pow_dimension_plus_one(hi_inv);
   const float hjdp1 = pow_dimension_plus_one(hj_inv);
@@ -331,19 +359,40 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
 #endif
     for (int k = 0; k < 3; k++) {
       /* we add a minus sign since dx is pi->x - pj->x */
-      A[k] = -Xi * (Bi[k][0] * dx[0] + Bi[k][1] * dx[1] + Bi[k][2] * dx[2]) *
-                 wi * hi_inv_dim -
-             Xj * (Bj[k][0] * dx[0] + Bj[k][1] * dx[1] + Bj[k][2] * dx[2]) *
-                 wj * hj_inv_dim;
+      // TODO: temp. Restore when done.
+      // A[k] = -Xi * (Bi[k][0] * dx[0] + Bi[k][1] * dx[1] + Bi[k][2] * dx[2]) *
+      //            wi * hi_inv_dim -
+      //        Xj * (Bj[k][0] * dx[0] + Bj[k][1] * dx[1] + Bj[k][2] * dx[2]) *
+      //            wj * hj_inv_dim;
+      // Anorm2 += A[k] * A[k];
+      A[k] = Xj * ( -Xj * wi_dr * dx[k] / r - Xj * Xj * wi * hi_inv_dim * dWjdx_sum[k]) 
+            - Xi * ( Xi * wj_dr * dx[k] / r - Xi * Xi * wj * hj_inv_dim * dWidx_sum[k]);
       Anorm2 += A[k] * A[k];
     }
 
-if (pi->id == 1){
-  float dist = sqrtf((pi->x[0]-pj->x[0])*(pi->x[0]-pj->x[0]) + (pi->x[1]-pj->x[1])*(pi->x[1]-pj->x[1]));
-  float maxdist = 1.778002*pi->h;
-  fprintf(mladen_globs.outfilep, "ID_j %5lld | Aij_x %10.4f  Aij_y %10.4f | xj %10.4f yj %10.4f | hj %10.4f hi %10.4f | dist_ij %10.4f  max_dist %10.4f \n", //"| Vi %10.4f Vj%10.4f\n",
+// TODO: temp
+float dist = sqrtf((pi->x[0]-pj->x[0])*(pi->x[0]-pj->x[0]) + (pi->x[1]-pj->x[1])*(pi->x[1]-pj->x[1]));
+float maxdist;
+if (pi->id == 1 || pi->id == 100 || pi->id == 200){
+
+
+  printf("Got sum of gradients for particle %lld : %10.6f %10.6f\n", pi->id, dWidx_sum[0], dWidx_sum[1]);
+  printf("Got sum of gradients for particle %lld : %10.6f %10.6f\n", pj->id, dWjdx_sum[0], dWjdx_sum[1]);
+
+  printf("Typical values: Xi %10.4f Xj %10.4f wi_dr %10.4f wj_dr %10.4f, A %10.4f %10.4f\n",
+    Xi, wi_dr, Xj, wj_dr, A[0], A[1]);
+
+  maxdist = 1.778002*pi->h;
+  fprintf(mladen_globs.outfilep,
+      "ID_j %5lld | Aij_x %10.4f  Aij_y %10.4f | xj %10.4f yj %10.4f | hj %10.4f hi %10.4f | dist_ij %10.4f  max_dist %10.4f \n", //"| Vi %10.4f Vj%10.4f\n",
       pj->id, A[0], A[1], pj->x[0], pj->x[1], pj->h, pi->h, dist, maxdist); //Vi, Vj);
 }
+// if (pj->id == 1){
+  // maxdist = 1.778002*pj->h;
+  // fprintf(mladen_globs.outfilep,
+  //     "ID_j %5lld | Aij_x %10.4f  Aij_y %10.4f | xj %10.4f yj %10.4f | hj %10.4f hi %10.4f | dist_ij %10.4f  max_dist %10.4f \n", //"| Vi %10.4f Vj%10.4f\n",
+  //     pi->id, -A[0], -A[1], pi->x[0], pi->x[1], pi->h, pj->h, dist, maxdist); //Vi, Vj);
+// }
 
   } else {
     /* ill condition gradient matrix: revert to SPH face area */

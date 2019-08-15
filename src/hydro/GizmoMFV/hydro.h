@@ -199,6 +199,10 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
 
   p->density.wcount = 0.0f;
   p->density.wcount_dh = 0.0f;
+  // TODO: ivanova only
+  p->density.wgrads[0] = 0.0f;
+  p->density.wgrads[1] = 0.0f;
+  p->density.wgrads[2] = 0.0f;
   p->geometry.volume = 0.0f;
   p->geometry.matrix_E[0][0] = 0.0f;
   p->geometry.matrix_E[0][1] = 0.0f;
