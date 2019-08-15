@@ -183,6 +183,10 @@ struct part {
     /* Correction factor for wcount. */
     float wcorr;
 
+    /* kernel gradients. */
+    /* TODO: Ivanova only */
+    float wgrads[3];
+
   } density;
 
   /* Quantities used during the force loop. */
