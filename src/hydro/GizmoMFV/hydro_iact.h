@@ -386,10 +386,34 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
 
   // TODO: temp
   if (pi->id == 1){
-
     fprintf(mladen_globs.outfilep,
-        "ID_j %5lld | Aij_x %10.4f  Aij_y %10.4f | xj %10.4f yj %10.4f | hj %10.4f hi %10.4f\n",
-        pj->id, A[0], A[1], pj->x[0], pj->x[1], pj->h, pi->h);
+        "Particle 1: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
+        pj->id, A[0], A[1]);
+  }
+  if (pj->id == 1){
+    fprintf(mladen_globs.outfilep,
+        "Particle 1: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
+        pi->id, A[0], A[1]);
+  }
+  if (pi->id == 50){
+    fprintf(mladen_globs.outfilep,
+        "Particle 50: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
+        pj->id, A[0], A[1]);
+  }
+  if (pj->id == 50){
+    fprintf(mladen_globs.outfilep,
+        "Particle 50: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
+        pi->id, A[0], A[1]);
+  }
+  if (pi->id == 200){
+    fprintf(mladen_globs.outfilep,
+        "Particle 200: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
+        pj->id, A[0], A[1]);
+  }
+  if (pj->id == 200){
+    fprintf(mladen_globs.outfilep,
+        "Particle 200: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
+        pi->id, A[0], A[1]);
   }
 
   } else {
