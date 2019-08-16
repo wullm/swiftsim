@@ -184,7 +184,8 @@ INLINE static void hydro_write_particles(const struct part* parts,
                                          const struct xpart* xparts,
                                          struct io_props* list,
                                          int* num_fields) {
-  *num_fields = 11;
+  // TODO: TEMP OUTPUT; reduce to 11
+  *num_fields = 12;
 
   /* List what we want to write */
   list[0] = io_make_output_field_convert_part(
@@ -233,6 +234,10 @@ INLINE static void hydro_write_particles(const struct part* parts,
   list[10] = io_make_output_field_convert_part(
       "Potentials", FLOAT, 1, UNIT_CONV_POTENTIAL, -1.f, parts, xparts,
       convert_part_potential, "Gravitational potentials of the particles");
+
+  // TODO: TEMP OUTPUT
+  list[11] = io_make_output_field("GradientSum", FLOAT, 3, UNIT_CONV_NO_UNITS, 0.f, 
+      parts, density.wgrads_store, "Sum of gradients");
 }
 
 /**

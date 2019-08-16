@@ -76,14 +76,13 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + xi * wi_dx);
   // TODO: new, IVANOVA only
-  // check why it always is += wi for the volume/normalization?!
-  // for now, oblige the trend.
   pi->density.wgrads[0] += hidp1 * wi_dx * dx[0] / r;
   pi->density.wgrads[1] += hidp1 * wi_dx * dx[1] / r;
   pi->density.wgrads[2] += hidp1 * wi_dx * dx[2] / r;
   pj->density.wgrads[0] -= hjdp1 * wj_dx * dx[0] / r;
   pj->density.wgrads[1] -= hjdp1 * wj_dx * dx[1] / r;
   pj->density.wgrads[2] -= hjdp1 * wj_dx * dx[2] / r;
+
 
   /* these are eqns. (1) and (2) in the summary */
   pi->geometry.volume += wi;
@@ -146,13 +145,21 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   const float r = sqrtf(r2);
 
   const float hi_inv = 1.f / hi;
+  // TODO: ivanova only
+  const float hidp1 = pow_dimension_plus_one(hi_inv);
   const float xi = r * hi_inv;
   kernel_deval(xi, &wi, &wi_dx);
 
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + xi * wi_dx);
+  // TODO: don't forget about the sym part!
+  // TODO: new, IVANOVA only
+  // check why it always is += wi for the volume/normalization?!
+  // for now, oblige the trend.
+  pi->density.wgrads[0] += hidp1 * wi_dx * dx[0] / r;
+  pi->density.wgrads[1] += hidp1 * wi_dx * dx[1] / r;
+  pi->density.wgrads[2] += hidp1 * wi_dx * dx[2] / r;
 
-  /* these are eqns. (1) and (2) in the summary */
   pi->geometry.volume += wi;
   for (int k = 0; k < 3; k++)
     for (int l = 0; l < 3; l++)
@@ -281,6 +288,13 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   dWjdx_sum[1] = pj->density.wgrads[1];
   dWjdx_sum[2] = pj->density.wgrads[2];
 
+  pi->density.wgrads_store[0] = pi->density.wgrads[0];
+  pi->density.wgrads_store[1] = pi->density.wgrads[1];
+  pi->density.wgrads_store[2] = pi->density.wgrads[2];
+  pj->density.wgrads_store[0] = pj->density.wgrads[0];
+  pj->density.wgrads_store[1] = pj->density.wgrads[1];
+  pj->density.wgrads_store[2] = pj->density.wgrads[2];
+
   /* calculate the maximal signal velocity */
   float vmax;
   if (Wi[0] > 0.0f && Wj[0] > 0.0f) {
@@ -365,34 +379,18 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
       //        Xj * (Bj[k][0] * dx[0] + Bj[k][1] * dx[1] + Bj[k][2] * dx[2]) *
       //            wj * hj_inv_dim;
       // Anorm2 += A[k] * A[k];
-      A[k] = Xj * ( -Xj * wi_dr * dx[k] / r - Xj * Xj * wi * hi_inv_dim * dWjdx_sum[k]) 
-            - Xi * ( Xi * wj_dr * dx[k] / r - Xi * Xi * wj * hj_inv_dim * dWidx_sum[k]);
+      A[k] = Xj * ( -Xj * wj_dr * dx[k] / r - Xj * Xj * wj * hj_inv_dim * dWjdx_sum[k]) 
+            - Xi * ( Xi * wi_dr * dx[k] / r - Xi * Xi * wi * hi_inv_dim * dWidx_sum[k]);
       Anorm2 += A[k] * A[k];
     }
 
-// TODO: temp
-float dist = sqrtf((pi->x[0]-pj->x[0])*(pi->x[0]-pj->x[0]) + (pi->x[1]-pj->x[1])*(pi->x[1]-pj->x[1]));
-float maxdist;
-if (pi->id == 1 || pi->id == 100 || pi->id == 200){
+  // TODO: temp
+  if (pi->id == 1){
 
-
-  printf("Got sum of gradients for particle %lld : %10.6f %10.6f\n", pi->id, dWidx_sum[0], dWidx_sum[1]);
-  printf("Got sum of gradients for particle %lld : %10.6f %10.6f\n", pj->id, dWjdx_sum[0], dWjdx_sum[1]);
-
-  printf("Typical values: Xi %10.4f Xj %10.4f wi_dr %10.4f wj_dr %10.4f, A %10.4f %10.4f\n",
-    Xi, wi_dr, Xj, wj_dr, A[0], A[1]);
-
-  maxdist = 1.778002*pi->h;
-  fprintf(mladen_globs.outfilep,
-      "ID_j %5lld | Aij_x %10.4f  Aij_y %10.4f | xj %10.4f yj %10.4f | hj %10.4f hi %10.4f | dist_ij %10.4f  max_dist %10.4f \n", //"| Vi %10.4f Vj%10.4f\n",
-      pj->id, A[0], A[1], pj->x[0], pj->x[1], pj->h, pi->h, dist, maxdist); //Vi, Vj);
-}
-// if (pj->id == 1){
-  // maxdist = 1.778002*pj->h;
-  // fprintf(mladen_globs.outfilep,
-  //     "ID_j %5lld | Aij_x %10.4f  Aij_y %10.4f | xj %10.4f yj %10.4f | hj %10.4f hi %10.4f | dist_ij %10.4f  max_dist %10.4f \n", //"| Vi %10.4f Vj%10.4f\n",
-  //     pi->id, -A[0], -A[1], pi->x[0], pi->x[1], pi->h, pj->h, dist, maxdist); //Vi, Vj);
-// }
+    fprintf(mladen_globs.outfilep,
+        "ID_j %5lld | Aij_x %10.4f  Aij_y %10.4f | xj %10.4f yj %10.4f | hj %10.4f hi %10.4f\n",
+        pj->id, A[0], A[1], pj->x[0], pj->x[1], pj->h, pi->h);
+  }
 
   } else {
     /* ill condition gradient matrix: revert to SPH face area */
