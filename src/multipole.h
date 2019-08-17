@@ -2463,7 +2463,7 @@ INLINE static void gravity_L2P(const struct grav_tensor *lb,
   gp->num_interacted += lb->num_interacted + lb->num_not_interacted;
 #endif
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
-  gp->num_interacted_m2m += lb->num_interacted;
+  gp->num_interacted_m2l += lb->num_interacted;
   gp->num_not_interacted += lb->num_not_interacted;
 #endif
 
@@ -2587,9 +2587,9 @@ INLINE static void gravity_L2P(const struct grav_tensor *lb,
   gravity_add_comoving_potential(gp, pot);
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
-  gp->a_grav_m2m[0] += a_grav[0];
-  gp->a_grav_m2m[1] += a_grav[1];
-  gp->a_grav_m2m[2] += a_grav[2];
+  gp->a_grav_m2l[0] += a_grav[0];
+  gp->a_grav_m2l[1] += a_grav[1];
+  gp->a_grav_m2l[2] += a_grav[2];
 #endif
 }
 

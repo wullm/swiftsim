@@ -155,12 +155,12 @@ __attribute__((always_inline)) INLINE static void gravity_init_gpart(
   for (int i=0; i<3; i++) {
       gp->a_grav_PM[i] = 0.f;
       gp->a_grav_p2p[i] = 0.f;
-      gp->a_grav_p2m[i] = 0.f;
-      gp->a_grav_m2m[i] = 0.f;
+      gp->a_grav_m2p[i] = 0.f;
+      gp->a_grav_m2l[i] = 0.f;
   }
   
-  gp->num_interacted_p2m = 0;
-  gp->num_interacted_m2m = 0;
+  gp->num_interacted_m2p = 0;
+  gp->num_interacted_m2l = 0;
   gp->num_interacted_p2p = 0;
   gp->num_not_interacted = 0;
 #endif
@@ -202,8 +202,8 @@ __attribute__((always_inline)) INLINE static void gravity_end_force(
   for (int i = 0; i < 3; i++) {
     gp->a_grav_PM[i] *= const_G;
     gp->a_grav_p2p[i] *= const_G;
-    gp->a_grav_p2m[i] *= const_G;
-    gp->a_grav_m2m[i] *= const_G;
+    gp->a_grav_m2p[i] *= const_G;
+    gp->a_grav_m2l[i] *= const_G;
   }
 #endif
 

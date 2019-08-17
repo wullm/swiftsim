@@ -79,8 +79,8 @@ struct gpart {
 
   /* Acceleration taken from each component of the tree */
   float a_grav_p2p[3];
-  float a_grav_p2m[3];
-  float a_grav_m2m[3];
+  float a_grav_m2p[3];
+  float a_grav_m2l[3];
 
   /* Brute-force particle accelerations */
   double a_grav_exact[3];
@@ -91,8 +91,8 @@ struct gpart {
   double potential_exact;
 
   /* Type specific interaction counters */
-  long long num_interacted_p2m;
-  long long num_interacted_m2m;
+  long long num_interacted_m2p;
+  long long num_interacted_m2l;
   long long num_interacted_p2p;
   long long num_not_interacted;
 #endif
