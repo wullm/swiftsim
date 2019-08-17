@@ -570,10 +570,10 @@ static INLINE void runner_dopair_grav_pm_full(
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
     /* Update the P2M interaction counter */
     if (pid < gcount_i) {
-      gparts_i[pid].num_interacted_p2m += cj->grav.multipole->m_pole.num_gpart;
-      gparts_i[pid].a_grav_p2m[0] += f_x;
-      gparts_i[pid].a_grav_p2m[1] += f_y;
-      gparts_i[pid].a_grav_p2m[2] += f_z;
+      gparts_i[pid].num_interacted_m2p += cj->grav.multipole->m_pole.num_gpart;
+      gparts_i[pid].a_grav_m2p[0] += f_x;
+      gparts_i[pid].a_grav_m2p[1] += f_y;
+      gparts_i[pid].a_grav_m2p[2] += f_z;
     }
 #endif
   }
@@ -711,10 +711,10 @@ static INLINE void runner_dopair_grav_pm_truncated(
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
     /* Update the P2M interaction counter */
     if (pid < gcount_i) {
-      gparts_i[pid].num_interacted_p2m += cj->grav.multipole->m_pole.num_gpart;
-      gparts_i[pid].a_grav_p2m[0] += f_x;
-      gparts_i[pid].a_grav_p2m[1] += f_y;
-      gparts_i[pid].a_grav_p2m[2] += f_z;
+      gparts_i[pid].num_interacted_m2p += cj->grav.multipole->m_pole.num_gpart;
+      gparts_i[pid].a_grav_m2p[0] += f_x;
+      gparts_i[pid].a_grav_m2p[1] += f_y;
+      gparts_i[pid].a_grav_m2p[2] += f_z;
     }
 #endif
   }

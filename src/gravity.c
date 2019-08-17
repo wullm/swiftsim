@@ -690,8 +690,8 @@ void gravity_exact_force_check(struct space *s, const struct engine *e,
           "id", "pos[0]", "pos[1]", "pos[2]", "a_swift[0]", "a_swift[1]",
           "a_swift[2]", "potential", "a_PM[0]", "a_PM[1]", "a_PM[2]",
           "potentialPM", "a_p2p[0]", "a_p2p[1]", "a_p2p[2]",
-          "a_p2m[0]", "a_p2m[1]", "a_p2m[2]", "a_m2m[0]", "a_m2m[1]", "a_m2m[2]",
-          "n_p2p", "n_p2m", "n_m2m", "n_PM");
+          "a_m2p[0]", "a_m2p[1]", "a_m2p[2]", "a_m2l[0]", "a_m2l[1]", "a_m2l[2]",
+          "n_p2p", "n_m2p", "n_m2l", "n_PM");
 
   /* Output particle SWIFT accelerations  */
   for (size_t i = 0; i < s->nr_gparts; ++i) {
@@ -720,10 +720,10 @@ void gravity_exact_force_check(struct space *s, const struct engine *e,
               gravity_get_comoving_potential(gpi), gpi->a_grav_PM[0],
               gpi->a_grav_PM[1], gpi->a_grav_PM[2], gpi->potential_PM,
               gpi->a_grav_p2p[0], gpi->a_grav_p2p[1], gpi->a_grav_p2p[2],
-              gpi->a_grav_p2m[0], gpi->a_grav_p2m[1], gpi->a_grav_p2m[2],
-              gpi->a_grav_m2m[0], gpi->a_grav_m2m[1], gpi->a_grav_m2m[2],
-              gpi->num_interacted_p2p, gpi->num_interacted_p2m,
-              gpi->num_interacted_m2m, gpi->num_not_interacted);
+              gpi->a_grav_m2p[0], gpi->a_grav_m2p[1], gpi->a_grav_m2p[2],
+              gpi->a_grav_m2l[0], gpi->a_grav_m2l[1], gpi->a_grav_m2l[2],
+              gpi->num_interacted_p2p, gpi->num_interacted_m2p,
+              gpi->num_interacted_m2l, gpi->num_not_interacted);
     }
   }
 
