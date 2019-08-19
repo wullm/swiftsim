@@ -31,7 +31,7 @@
 #include "todo_temporary_globals.h"
 // #include "error.h"
 
-// #define GIZMO_VOLUME_CORRECTION
+#define GIZMO_VOLUME_CORRECTION
 
 /**
  * @brief Calculate the volume interaction between particle i and particle j
@@ -370,6 +370,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
       Xi = (Vi * hj + Vj * hi) / (hi + hj);
       Xj = Xi;
     }
+    fprintf(mladen_globs.outfilep, "CALLED GIZMO VOLUME CORRECTION\n");
 #endif
     for (int k = 0; k < 3; k++) {
       /* we add a minus sign since dx is pi->x - pj->x */
@@ -383,38 +384,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
             - Xi * ( Xi * wi_dr * dx[k] / r - Xi * Xi * wi * hi_inv_dim * dWidx_sum[k]);
       Anorm2 += A[k] * A[k];
     }
-
-  // TODO: temp
-  if (pi->id == 1){
-    fprintf(mladen_globs.outfilep,
-        "Particle 1: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
-        pj->id, A[0], A[1]);
-  }
-  if (pj->id == 1){
-    fprintf(mladen_globs.outfilep,
-        "Particle 1: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
-        pi->id, A[0], A[1]);
-  }
-  if (pi->id == 50){
-    fprintf(mladen_globs.outfilep,
-        "Particle 50: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
-        pj->id, A[0], A[1]);
-  }
-  if (pj->id == 50){
-    fprintf(mladen_globs.outfilep,
-        "Particle 50: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
-        pi->id, A[0], A[1]);
-  }
-  if (pi->id == 200){
-    fprintf(mladen_globs.outfilep,
-        "Particle 200: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
-        pj->id, A[0], A[1]);
-  }
-  if (pj->id == 200){
-    fprintf(mladen_globs.outfilep,
-        "Particle 200: ID_j %5lld | Aij_x %14.8f  Aij_y %14.8f\n",
-        pi->id, A[0], A[1]);
-  }
 
   } else {
     /* ill condition gradient matrix: revert to SPH face area */
