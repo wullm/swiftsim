@@ -1659,10 +1659,9 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
 
   /* Can we use M-M interactions ? */
   if (gravity_M2L_accept_advanced(&multi_i->m_pole, &multi_j->m_pole,
-            multi_i->r_max, multi_j->r_max, theta_crit2, r2, e->step,
-            multi_i->m_pole.max_softening,
-                                     multi_j->m_pole.max_softening)) {
-            multi_i->r_max, multi_j->r_max, r2, e->gravity_properties, e->step)) {
+            multi_i->r_max, multi_j->r_max, r2, e->step,
+            e->gravity_properties, multi_i->m_pole.max_softening,
+            multi_j->m_pole.max_softening)) {
 
     /* Go M-M */
     runner_dopair_grav_mm(r, ci, cj);
@@ -1883,18 +1882,14 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
 
     /* Do we accept from cell i to cell j? */
     const int accept_ij = gravity_M2L_accept_advanced(&multi_top->m_pole, &multi_j->m_pole,
-      multi_top->r_max_rebuild, multi_j->r_max_rebuild, theta_crit2, r2_rebuild, e->step,
-      multi_top->m_pole.max_softening,
-                                 multi_j->m_pole.max_softening);
-      multi_top->r_max_rebuild, multi_j->r_max_rebuild, r2_rebuild, e->gravity_properties, e->step);
+      multi_top->r_max_rebuild, multi_j->r_max_rebuild, r2_rebuild, e->step,
+      e->gravity_properties, multi_top->m_pole.max_softening, multi_j->m_pole.max_softening);
 
 #ifdef ADVANCED_OPENING_CRITERIA
     /* Do we accept from cell j to cell i? */
     const int accept_ji = gravity_M2L_accept_advanced(&multi_j->m_pole, &multi_top->m_pole,
-        multi_j->r_max_rebuild, multi_top->r_max_rebuild, theta_crit2, r2_rebuild, e->step,
-        multi_top->m_pole.max_softening,
-                                   multi_j->m_pole.max_softening);
-        multi_j->r_max_rebuild, multi_top->r_max_rebuild, r2_rebuild, e->gravity_properties, e->step);
+        multi_j->r_max_rebuild, multi_top->r_max_rebuild, r2_rebuild, e->step,
+        e->gravity_properties, multi_j->m_pole.max_softening, multi_top->m_pole.max_softening);
 
     /* Are we in charge of this cell pair? */
     if (accept_ij && accept_ji) {

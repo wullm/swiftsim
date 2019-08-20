@@ -2793,6 +2793,10 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
  *
  * If ADVANCED_OPENING_CRITERIA is not defined, always use the classical case.
  *
+ * We also additionally check that the distance between the particle and the
+ * multipole is larger than the softening length (here the distance at which
+ * the gravity becomes Newtonian again, not the Plummer-equivalent quantity).
+ *
  * @param gp_a The reference gpart.
  * @param m_b The multipole of the cell we are interacting with.
  * @param r_max2 The square of the size of the multipole.
@@ -2800,10 +2804,12 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept(
  * particle and the multipole.
  * @param gravity_props The gravity properties struct, for some constants.
  * @param step The current timestep.
+ * @param epsilon_a The softening length of the reference gpart.
  */
 __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advanced(
     const struct gpart *gp_a, const struct multipole *m_b, const double r_max2,
-    const double r2, const struct gravity_props *gravity_props, const int step) {
+    const double r2, const struct gravity_props *gravity_props, const int step,
+    const float epsilon_a) {
 
   if (step == 0) {
 #ifdef ADVANCED_OPENING_CRITERIA
@@ -2812,7 +2818,7 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
 #else
     /* Classic criteria */
     const double theta_crit2 = gravity_props->theta_crit2;
-    return gravity_M2P_accept(r_max2, theta_crit2, r2);
+    return gravity_M2P_accept(r_max2, theta_crit2, r2, epsilon_a);
 #endif
 
   } else {
@@ -2831,11 +2837,12 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
     const double theta2 = r_max2 / r2;
     const double rel_force_error = gravity_props->rel_force_error;
 
-    return ((E_bar * M_a / r2) < (rel_force_error * min_a_grav_norm) && (theta2 < 1.0));
+    return ((E_bar * M_a / r2) < (rel_force_error * min_a_grav_norm)
+            && (theta2 < 1.0)) && (r2 > epsilon_a * epsilon_a);
 #else
     /* Classic criteria */
     const double theta_crit2 = gravity_props->theta_crit2;
-    return gravity_M2P_accept(r_max2, theta_crit2, r2);
+    return gravity_M2P_accept(r_max2, theta_crit2, r2, epsilon_a);
 #endif
   }
 }
@@ -2856,30 +2863,32 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2P_accept_advan
  *
  * If ADVANCED_OPENING_CRITERIA is not defined, always use the classical case.
  *
+ * We also additionally check that the distance between the particle and the
+ * multipole is larger than the softening length (here the distance at which
+ * the gravity becomes Newtonian again, not the Plummer-equivalent quantity).
+ *
  * @param m_a The m_pole of cell A.
  * @param m_b The m_pole of cell B.
  * @param r_crit_a The size of the multipole A.
  * @param r_crit_b The size of the multipole B.
  * @param r2 Square of the distance (periodically wrapped) between the
  * multipoles.
- * @param gravity_props The gravity_properties struct, for some constants.
  * @param step The current timestep.
+ * @param gravity_props The gravity_properties struct, for some constants.
+ * @param epsilon_a The maximal softening length of any particle in A.
+ * @param epsilon_b The maximal softening length of any particle in B.
  */
 __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advanced(
     const struct multipole *m_a, const struct multipole *m_b,
-    const double r_crit_a, const double r_crit_b, const double theta_crit2,
-    const double r2, const int step, const double epsilon_a,
-    const double epsilon_b) {
-    const double r_crit_a, const double r_crit_b, const double r2,
-    const struct gravity_props *gravity_props, const int step) {
-
-  /* Get some constants from the engine */
-  const double theta_crit2 = gravity_props->theta_crit2;
+    const double r_crit_a, const double r_crit_b, const double r2, const int step,
+    const struct gravity_props *gravity_props,
+    const double epsilon_a, const double epsilon_b) {
 
   if (step == 0) {
     /* Need to use classical critetia on the first timestep
      * as we have no accelerations yet */
-    return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2, epsilon_a, epsilon_b);
+    return gravity_M2L_accept(r_crit_a, r_crit_b, gravity_props->theta_crit2,
+            r2, epsilon_a, epsilon_b);
 
   } else {
 #ifdef ADVANCED_OPENING_CRITERIA
@@ -2891,6 +2900,8 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
     const double r_p = r2 * pow(r2, SELF_GRAVITY_MULTIPOLE_ORDER-2);
     const double theta2 = size2 / r2;
     const double rel_force_error = gravity_props->rel_force_error;
+    const double epsilon_a2 = epsilon_a * epsilon_a;
+    const double epsilon_b2 = epsilon_b * epsilon_b;
 
     /* Binomial coefficients for m=0-5 */
     const int binom_coefficient[6][6] = {{1,0,0,0,0,0},
@@ -2915,9 +2926,11 @@ __attribute__((always_inline, const)) INLINE static int gravity_M2L_accept_advan
      * between the two multipoles via an M2L interaction i.e., da/a <= E_bar */
     const double E_bar = E * ((8 * max(r_crit_a, r_crit_b)) / (r_crit_a + r_crit_b));
 
-    return ((E_bar * M_a / r2) < (rel_force_error * min_a_grav_norm) && (theta2 < 1.0));
+    return (E_bar * M_a / r2) < (rel_force_error * min_a_grav_norm) && (theta2 < 1.0)
+        && (r2 > epsilon_a2) && (r2 > epsilon_b2);
 #else
-    return gravity_M2L_accept(r_crit_a, r_crit_b, theta_crit2, r2);
+    return gravity_M2L_accept(r_crit_a, r_crit_b, gravity_props->theta_crit2,
+            r2, epsilon_a, epsilon_b);
 #endif
   }
 }

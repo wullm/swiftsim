@@ -255,7 +255,7 @@ __attribute__((always_inline)) INLINE static void gravity_cache_populate(
     
     /* Check whether we can use the multipole instead of P-P */
     use_mpole[i] = allow_mpole && gravity_M2P_accept_advanced
-        (&gparts[i], r_max2, theta_crit2, r2, step, epsilon[i]);
+        (&gparts[i], mpole, r_max2, r2, grav_props, step, epsilon[i]);
   }
 
 #ifdef SWIFT_DEBUG_CHECKS
@@ -423,20 +423,20 @@ gravity_cache_populate_all_mpole(const timebin_t max_active_bin,
 
 #if defined(SWIFT_DEBUG_CHECKS) && !defined(ADVANCED_OPENING_CRITERIA)
     // Stuart: need to think about this check for advanced criteria.
-
+// STU
     /* Distance to the CoM of the other cell. */
-    float dx = x[i] - CoM[0];
-    float dy = y[i] - CoM[1];
-    float dz = z[i] - CoM[2];
+//    float dx = x[i] - CoM[0];
+//    float dy = y[i] - CoM[1];
+//    float dz = z[i] - CoM[2];
 
     /* Apply periodic BC */
-    if (periodic) {
-      dx = nearestf(dx, dim[0]);
-      dy = nearestf(dy, dim[1]);
-      dz = nearestf(dz, dim[2]);
-    }
-    const float r2 = dx * dx + dy * dy + dz * dz;
-    const float theta_crit2 = grav_props->theta_crit2;
+//    if (periodic) {
+//      dx = nearestf(dx, dim[0]);
+//      dy = nearestf(dy, dim[1]);
+//      dz = nearestf(dz, dim[2]);
+//    }
+//    const float r2 = dx * dx + dy * dy + dz * dz;
+//    const float theta_crit2 = grav_props->theta_crit2;
 
 /*<<<<<<< HEAD
 <<<<<<< HEAD
