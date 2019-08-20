@@ -86,7 +86,6 @@ AC_ARG_ENABLE([logger],
 if test "$with_logger" = "yes"; then
    AC_DEFINE([WITH_LOGGER], 1, [logger enabled])
 fi
-
 # Interprocedural optimization support. Needs special handling for linking and
 # archiving as well as compilation with Intels, needs to be done before
 # libtool is configured (to use correct LD).
@@ -1643,6 +1642,20 @@ case "$with_riemann" in
       AC_MSG_ERROR([Unknown Riemann solver: $with_riemann])
    ;;
 esac
+
+# Ivanova effective surfaces instead of Hopkins for gizmo-mfv
+AC_ARG_ENABLE([ivanova-surfaces],
+	[AS_HELP_STRING([--enable-ivanova-surfaces],
+		[Use Ivanova 2013 effective surface definition instead of Hopkins 2015 (gizmo-mfv only)]
+	)],
+	[with_ivanova_surfaces="${enableval}"],
+	[with_ivanova_surfaces="no"]
+)
+
+if test "$with_ivanova_surfaces" = "yes"; then
+   AC_DEFINE([WITH_IVANOVA], 1, [using Ivanova 2013 effective surface definition])
+fi
+
 #  Cooling function
 AC_ARG_WITH([cooling],
    [AS_HELP_STRING([--with-cooling=<function>],

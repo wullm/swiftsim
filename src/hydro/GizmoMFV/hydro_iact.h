@@ -29,7 +29,6 @@
 
 /* TODO: temp */
 #include "todo_temporary_globals.h"
-// #include "error.h"
 
 #define GIZMO_VOLUME_CORRECTION
 
@@ -64,25 +63,18 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 
   /* Compute density of pi. */
   const float hi_inv = 1.f / hi;
-  const float hidp1 = pow_dimension_plus_one(hi_inv);
   const float xi = r * hi_inv;
   kernel_deval(xi, &wi, &wi_dx);
-  // TODO: temp
-  const float hj_inv = 1.f / hj;
-  const float hjdp1 = pow_dimension_plus_one(hj_inv);
-  const float xj = r * hj_inv;
-  kernel_deval(xj, &wj, &wj_dx);
 
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + xi * wi_dx);
-  // TODO: new, IVANOVA only
+#ifdef WITH_IVANOVA
+  /* TODO: don't forget about the sym part! */
+  const float hidp1 = pow_dimension_plus_one(hi_inv);
   pi->density.wgrads[0] += hidp1 * wi_dx * dx[0] / r;
   pi->density.wgrads[1] += hidp1 * wi_dx * dx[1] / r;
   pi->density.wgrads[2] += hidp1 * wi_dx * dx[2] / r;
-  pj->density.wgrads[0] -= hjdp1 * wj_dx * dx[0] / r;
-  pj->density.wgrads[1] -= hjdp1 * wj_dx * dx[1] / r;
-  pj->density.wgrads[2] -= hjdp1 * wj_dx * dx[2] / r;
-
+#endif
 
   /* these are eqns. (1) and (2) in the summary */
   pi->geometry.volume += wi;
@@ -95,13 +87,18 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pi->geometry.centroid[2] -= dx[2] * wi;
 
   /* Compute density of pj. */
-  // TODO: temp
-  // const float hj_inv = 1.f / hj;
-  // const float xj = r * hj_inv;
-  // kernel_deval(xj, &wj, &wj_dx);
+  const float hj_inv = 1.f / hj;
+  const float xj = r * hj_inv;
+  kernel_deval(xj, &wj, &wj_dx);
 
   pj->density.wcount += wj;
   pj->density.wcount_dh -= (hydro_dimension * wj + xj * wj_dx);
+#ifdef WITH_IVANOVA
+  const float hjdp1 = pow_dimension_plus_one(hj_inv);
+  pj->density.wgrads[0] -= hjdp1 * wj_dx * dx[0] / r;
+  pj->density.wgrads[1] -= hjdp1 * wj_dx * dx[1] / r;
+  pj->density.wgrads[2] -= hjdp1 * wj_dx * dx[2] / r;
+#endif
 
   /* these are eqns. (1) and (2) in the summary */
   pj->geometry.volume += wj;
@@ -145,20 +142,18 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   const float r = sqrtf(r2);
 
   const float hi_inv = 1.f / hi;
-  // TODO: ivanova only
-  const float hidp1 = pow_dimension_plus_one(hi_inv);
   const float xi = r * hi_inv;
   kernel_deval(xi, &wi, &wi_dx);
 
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + xi * wi_dx);
-  // TODO: don't forget about the sym part!
-  // TODO: new, IVANOVA only
-  // check why it always is += wi for the volume/normalization?!
-  // for now, oblige the trend.
+#ifdef WITH_IVANOVA
+  /* TODO: don't forget about the sym part! */
+  const float hidp1 = pow_dimension_plus_one(hi_inv);
   pi->density.wgrads[0] += hidp1 * wi_dx * dx[0] / r;
   pi->density.wgrads[1] += hidp1 * wi_dx * dx[1] / r;
   pi->density.wgrads[2] += hidp1 * wi_dx * dx[2] / r;
+#endif
 
   pi->geometry.volume += wi;
   for (int k = 0; k < 3; k++)
@@ -253,19 +248,25 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   const float r = r2 * r_inv;
 
   /* Initialize local variables */
-  // TODO: temp
-  // float Bi[3][3];
-  // float Bj[3][3];
+#ifndef WITH_IVANOVA
+  float Bi[3][3];
+  float Bj[3][3];
   float vi[3], vj[3];
   for (int k = 0; k < 3; k++) {
-    // TODO: temp
-    // for (int l = 0; l < 3; l++) {
-    //   Bi[k][l] = pi->geometry.matrix_E[k][l];
-    //   Bj[k][l] = pj->geometry.matrix_E[k][l];
-    // }
+    for (int l = 0; l < 3; l++) {
+      Bi[k][l] = pi->geometry.matrix_E[k][l];
+      Bj[k][l] = pj->geometry.matrix_E[k][l];
+    }
     vi[k] = pi->v[k]; /* particle velocities */
     vj[k] = pj->v[k];
   }
+#else
+  float vi[3], vj[3];
+  for (int k = 0; k < 3; k++) {
+    vi[k] = pi->v[k]; /* particle velocities */
+    vj[k] = pj->v[k];
+  }
+#endif
   const float Vi = pi->geometry.volume;
   const float Vj = pj->geometry.volume;
   float Wi[5], Wj[5];
@@ -279,7 +280,8 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   Wj[2] = pj->primitives.v[1];
   Wj[3] = pj->primitives.v[2];
   Wj[4] = pj->primitives.P;
-  // TODO: ivanova only
+
+#ifdef WITH_IVANOVA
   float dWidx_sum[3], dWjdx_sum[3];
   dWidx_sum[0] = pi->density.wgrads[0];
   dWidx_sum[1] = pi->density.wgrads[1];
@@ -288,6 +290,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   dWjdx_sum[1] = pj->density.wgrads[1];
   dWjdx_sum[2] = pj->density.wgrads[2];
 
+  // TODO: temporary
   pi->density.wgrads_store[0] = pi->density.wgrads[0];
   pi->density.wgrads_store[1] = pi->density.wgrads[1];
   pi->density.wgrads_store[2] = pi->density.wgrads[2];
@@ -295,6 +298,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   pj->density.wgrads_store[1] = pj->density.wgrads[1];
   pj->density.wgrads_store[2] = pj->density.wgrads[2];
 
+#endif
   /* calculate the maximal signal velocity */
   float vmax;
   if (Wi[0] > 0.0f && Wj[0] > 0.0f) {
@@ -353,9 +357,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   /* Compute (square of) area */
   /* eqn. (7) */
   float Anorm2 = 0.0f;
-  // float A[3];
-// TODO: temp
-  float A[3] = { 0.0f, 0.0f, 0.0f };
+  float A[3];
   if (pi->density.wcorr > const_gizmo_min_wcorr &&
       pj->density.wcorr > const_gizmo_min_wcorr) {
     /* in principle, we use Vi and Vj as weights for the left and right
@@ -370,20 +372,26 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
       Xi = (Vi * hj + Vj * hi) / (hi + hj);
       Xj = Xi;
     }
-    fprintf(mladen_globs.outfilep, "CALLED GIZMO VOLUME CORRECTION\n");
+    // fprintf(mladen_globs.outfilep, "CALLED GIZMO VOLUME CORRECTION\n");
 #endif
+#ifndef WITH_IVANOVA
     for (int k = 0; k < 3; k++) {
       /* we add a minus sign since dx is pi->x - pj->x */
-      // TODO: temp. Restore when done.
-      // A[k] = -Xi * (Bi[k][0] * dx[0] + Bi[k][1] * dx[1] + Bi[k][2] * dx[2]) *
-      //            wi * hi_inv_dim -
-      //        Xj * (Bj[k][0] * dx[0] + Bj[k][1] * dx[1] + Bj[k][2] * dx[2]) *
-      //            wj * hj_inv_dim;
-      // Anorm2 += A[k] * A[k];
+      A[k] = -Xi * (Bi[k][0] * dx[0] + Bi[k][1] * dx[1] + Bi[k][2] * dx[2]) *
+                 wi * hi_inv_dim -
+             Xj * (Bj[k][0] * dx[0] + Bj[k][1] * dx[1] + Bj[k][2] * dx[2]) *
+                 wj * hj_inv_dim;
+      Anorm2 += A[k] * A[k];
+    }
+#else
+    for (int k = 0; k < 3; k++) {
+      /* we add a minus sign since dx is pi->x - pj->x */
       A[k] = Xj * ( -Xj * wj_dr * dx[k] / r - Xj * Xj * wj * hj_inv_dim * dWjdx_sum[k]) 
             - Xi * ( Xi * wi_dr * dx[k] / r - Xi * Xi * wi * hi_inv_dim * dWidx_sum[k]);
       Anorm2 += A[k] * A[k];
     }
+#endif
+
 
   } else {
     /* ill condition gradient matrix: revert to SPH face area */
@@ -402,6 +410,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   /* Compute the area */
   const float Anorm_inv = 1. / sqrtf(Anorm2);
   const float Anorm = Anorm2 * Anorm_inv;
+
 
 #ifdef SWIFT_DEBUG_CHECKS
   /* For stability reasons, we do require A and dx to have opposite

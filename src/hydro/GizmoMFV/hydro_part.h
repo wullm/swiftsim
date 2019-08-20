@@ -184,9 +184,10 @@ struct part {
     float wcorr;
 
     /* kernel gradients: \sum_k \del W(x_i - x_k, h_i)/ \del r * (x_i - x_k)/ r */
-    /* TODO: Ivanova only */
+#ifdef WITH_IVANOVA
     float wgrads[3];
     float wgrads_store[3];
+#endif
 
   } density;
 
