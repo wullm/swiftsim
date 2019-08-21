@@ -3849,20 +3849,9 @@ void engine_step(struct engine *e) {
   /* Run the brute-force gravity calculation for some gparts */
 
   /* Only do the brute force check on timesteps where all gparts are active */
-  size_t nr_gparts = e->s->nr_gparts;
-  long long gpart_active_count = 0;
-
-  /* Count active gparts */
-  for (long long i=0; i < nr_gparts; ++i) {
-    struct gpart *gp = &e->s->gparts[i];
-
-    if (gpart_is_active(gp, e)) gpart_active_count += 1;
-  }
-
-  /* Only run the checks on snapshot output_list timesteps */
   if (e->policy & engine_policy_self_gravity &&
-        gpart_active_count == e->total_nr_gparts &&
-        e->brute_force_gravity_flag == 1)
+      engine_all_gparts_active(e) /* Are all gparts active this timestep? */ && 
+      e->brute_force_gravity_flag == 1 /* Has there been a snapshot dump? */)
     gravity_exact_force_compute(e->s, e);
 #endif
 
@@ -3874,12 +3863,13 @@ void engine_step(struct engine *e) {
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   /* Check the accuracy of the gravity calculation */
   if (e->policy & engine_policy_self_gravity &&
-        gpart_active_count == e->total_nr_gparts &&
-        e->brute_force_gravity_flag == 1)
+      engine_all_gparts_active(e) &&
+      e->brute_force_gravity_flag == 1) {
     gravity_exact_force_check(e->s, e, 1e-1);
 
     /* Reset flag waiting for next output time */
     e->brute_force_gravity_flag = 0;
+  }
 #endif
 
 #ifdef SWIFT_DEBUG_CHECKS
@@ -3918,6 +3908,28 @@ void engine_step(struct engine *e) {
 
   /* Time in ticks at the end of this step. */
   e->toc_step = getticks();
+}
+
+/**
+ * @brief Checks if all gparts are active this timestep.
+ *
+ * @param e The #engine.
+ * @return 1 if all active, 0 otherwise.
+ */
+int engine_all_gparts_active(const struct engine *e) {
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+  size_t nr_gparts = e->s->nr_gparts;
+  long long gpart_active_count = 0;
+
+  /* Count active gparts */
+  for (long long i=0; i < nr_gparts; ++i) {
+    struct gpart *gp = &e->s->gparts[i];
+
+    if (gpart_is_active(gp, e)) gpart_active_count += 1;
+  }
+
+  return gpart_active_count == nr_gparts;
+#endif
 }
 
 /**
