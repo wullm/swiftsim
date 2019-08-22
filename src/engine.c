@@ -3917,7 +3917,6 @@ void engine_step(struct engine *e) {
  * @return 1 if all active, 0 otherwise.
  */
 int engine_all_gparts_active(const struct engine *e) {
-#ifdef SWIFT_GRAVITY_FORCE_CHECKS
   size_t nr_gparts = e->s->nr_gparts;
   long long gpart_active_count = 0;
 
@@ -3929,7 +3928,6 @@ int engine_all_gparts_active(const struct engine *e) {
   }
 
   return gpart_active_count == nr_gparts;
-#endif
 }
 
 /**
