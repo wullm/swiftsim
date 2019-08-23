@@ -577,7 +577,38 @@ __attribute__((always_inline)) INLINE static void runner_iact_limiter(
     float r2, const float* dx, float hi, float hj, struct part* restrict pi,
     struct part* restrict pj, float a, float H) {
 
-  /* Nothing to do here if both particles are active */
+  /* The limiter now resets the signal velocity based on the soundspeeds of the
+   * neighbouring particles. */
+  const float fac_mu = pow_three_gamma_minus_five_over_two(a);
+  const float a2_Hubble = a * a * H;
+
+  const float r = sqrtf(r2);
+  const float r_inv = 1.0f / r;
+
+  /* Compute dv dot r. */
+  const float dvdr = (pi->v[0] - pj->v[0]) * dx[0] +
+                     (pi->v[1] - pj->v[1]) * dx[1] +
+                     (pi->v[2] - pj->v[2]) * dx[2];
+
+  /* Includes the hubble flow term; not used for du/dt */
+  const float dvdr_Hubble = dvdr + a2_Hubble * r2;
+
+  /* Are the particles moving towards each others ? */
+  const float omega_ij = min(dvdr_Hubble, 0.f);
+  const float mu_ij = fac_mu * r_inv * omega_ij; /* This is 0 or negative */
+
+  const float soundspeed_i =
+      gas_soundspeed_from_internal_energy(pi->rho, pi->u);
+  const float soundspeed_j =
+      gas_soundspeed_from_internal_energy(pj->rho, pj->u);
+
+  /* Compute sound speeds and signal velocity */
+  const float v_sig =
+      soundspeed_i + soundspeed_j - const_viscosity_beta * mu_ij;
+
+  /* Update our friendly neighbourhood particles... */
+  pi->viscosity.v_sig = max(pi->viscosity.v_sig, v_sig);
+  pj->viscosity.v_sig = max(pj->viscosity.v_sig, v_sig);
 }
 
 /**
@@ -597,12 +628,47 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_limiter(
     float r2, const float* dx, float hi, float hj, struct part* restrict pi,
     struct part* restrict pj, float a, float H) {
 
-  /* Wake up the neighbour? */
+  /* Wake up the neighbour? Important to do this _first_ as we want it on the
+   * old values of v_sig. */
   if (pi->viscosity.v_sig >
       const_limiter_max_v_sig_ratio * pj->viscosity.v_sig) {
 
     pj->wakeup = time_bin_awake;
   }
+
+  /* The limiter now resets the signal velocity based on the soundspeeds of the
+   * neighbouring particles. */
+  const float fac_mu = pow_three_gamma_minus_five_over_two(a);
+  const float a2_Hubble = a * a * H;
+
+  const float r = sqrtf(r2);
+  const float r_inv = 1.0f / r;
+
+  /* Compute dv dot r. */
+  const float dvdr = (pi->v[0] - pj->v[0]) * dx[0] +
+                     (pi->v[1] - pj->v[1]) * dx[1] +
+                     (pi->v[2] - pj->v[2]) * dx[2];
+
+  /* Includes the hubble flow term; not used for du/dt */
+  const float dvdr_Hubble = dvdr + a2_Hubble * r2;
+
+  /* Are the particles moving towards each others ? */
+  const float omega_ij = min(dvdr_Hubble, 0.f);
+  const float mu_ij = fac_mu * r_inv * omega_ij; /* This is 0 or negative */
+
+  const float soundspeed_i =
+      gas_soundspeed_from_internal_energy(pi->rho, pi->u);
+  const float soundspeed_j =
+      gas_soundspeed_from_internal_energy(pj->rho, pj->u);
+
+  /* Compute sound speeds and signal velocity */
+  const float v_sig =
+      soundspeed_i + soundspeed_j - const_viscosity_beta * mu_ij;
+
+  /* Update our friendly neighbourhood particles... */
+  pi->viscosity.v_sig = max(pi->viscosity.v_sig, v_sig);
+  pj->viscosity.v_sig = max(pj->viscosity.v_sig, v_sig);
+
 }
 
 #endif /* SWIFT_ANARCHY_DU_HYDRO_IACT_H */
