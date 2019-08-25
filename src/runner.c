@@ -4951,22 +4951,15 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
 
         if (logger_should_write(&xp->logger_data, e->logger)) {
           /* Write particle */
-          /* Currently writing everything, should adapt it through time */
-          logger_log_part(e->logger, p,
-                          logger_mask_data[logger_x].mask |
-                              logger_mask_data[logger_v].mask |
-                              logger_mask_data[logger_a].mask |
-                              logger_mask_data[logger_u].mask |
-                              logger_mask_data[logger_h].mask |
-                              logger_mask_data[logger_rho].mask |
-                              logger_mask_data[logger_consts].mask,
+	  const int mask = logger_xpart_flag(e->logger, &xp->logger_data);
+          logger_log_part(e->logger, p, mask,
                           &xp->logger_data.last_offset);
 
           /* Set counter back to zero */
-          xp->logger_data.steps_since_last_output = 0;
+          xp->logger_data.steps_last_full_output = 0;
         } else
           /* Update counter */
-          xp->logger_data.steps_since_last_output += 1;
+          xp->logger_data.steps_last_full_output += 1;
       }
     }
   }

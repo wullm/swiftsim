@@ -86,6 +86,7 @@ enum logger_masks_number {
   logger_count_mask = 8, /* Need to be the last */
 } __attribute__((packed));
 
+
 struct mask_data {
   /* Number of bytes for a mask */
   int size;
@@ -95,6 +96,7 @@ struct mask_data {
   char name[100];
 };
 
+
 extern const struct mask_data logger_mask_data[logger_count_mask];
 
 /* Size of the strings. */
@@ -102,9 +104,6 @@ extern const struct mask_data logger_mask_data[logger_count_mask];
 
 /* structure containing global data */
 struct logger {
-  /* Number of particle steps between dumping a chunk of data */
-  short int delta_step;
-
   /* Logger basename */
   char base_name[logger_string_length];
 
@@ -120,12 +119,25 @@ struct logger {
   /* Size of a chunk if every mask are activated */
   int max_chunk_size;
 
+  /* Information about the output frequency of each fields.
+   * The frequency is given as a multiple of delta_step. */
+  struct {
+    /* Number of particle steps between dumping a chunk of data */
+    short int delta_step;
+
+    /* gpart frequencies */
+    short int gpart[logger_count_mask];
+  
+    /* part frequencies */
+    short int part[logger_count_mask];
+  } output_frequency;
+
 } SWIFT_STRUCT_ALIGN;
 
 /* required structure for each particle type */
 struct logger_part_data {
-  /* Number of particle updates since last output */
-  int steps_since_last_output;
+  /* Number of particle updates since last full output */
+  int steps_last_full_output;
 
   /* offset of last particle log entry */
   size_t last_offset;
@@ -151,6 +163,61 @@ int logger_read_gpart(struct gpart *p, size_t *offset, const char *buff);
 int logger_read_timestamp(unsigned long long int *t, double *time,
                           size_t *offset, const char *buff);
 
+
+
+/**
+ * @brief Check if a field exists in a #gpart.
+ *
+ * @param i The field index.
+ */
+__attribute__((always_inline)) INLINE static int logger_field_in_gpart(
+    const int i) {
+
+  return i == logger_x || i == logger_v || i == logger_a || i == logger_consts;
+}
+
+  /**
+ * @brief Generate the flag that decide which field should be written.
+ *
+ * @param log The #logger.
+ * @param logger_data The #gpart's #logger_part_data.
+ */
+__attribute__((always_inline)) INLINE static int logger_gpart_flag(
+    const struct logger *log, const struct logger_part_data *logger_data) {
+  int mask = 0;
+  int step = logger_data->steps_last_full_output % log->output_frequency.delta_step;
+  /* Skip the timestamp */
+  for(int i = 0; i < logger_count_mask - 1; i++) {
+    /* Skip non gravity fields */
+    if (!logger_field_in_gpart(i)) {
+      continue;
+    }
+    if (step % log->output_frequency.gpart[i] == 0) {
+      mask |= 1 << i;
+    }
+  }
+  return mask;
+}
+
+/**
+ * @brief Generate the flag that decide which field should be written.
+ *
+ * @param log The #logger.
+ * @param logger_data The #xpart's #logger_part_data.
+ */
+__attribute__((always_inline)) INLINE static int logger_xpart_flag(
+    const struct logger *log, const struct logger_part_data *logger_data) {
+  int mask = 0;
+  int step = logger_data->steps_last_full_output % log->output_frequency.delta_step;
+  /* Skip the timestamp */
+  for(int i = 0; i < logger_count_mask; i++) {
+    if (step % log->output_frequency.part[i] == 0) {
+      mask |= 1 << i;
+    }
+  }
+  return mask;
+}
+
 /**
  * @brief Initialize the logger data for a particle.
  *
@@ -158,8 +225,9 @@ int logger_read_timestamp(unsigned long long int *t, double *time,
  */
 INLINE static void logger_part_data_init(struct logger_part_data *logger) {
   logger->last_offset = 0;
-  logger->steps_since_last_output = INT_MAX;
+  logger->steps_last_full_output = INT_MAX;
 }
+
 
 /**
  * @brief Should this particle write its data now ?
@@ -171,7 +239,7 @@ INLINE static void logger_part_data_init(struct logger_part_data *logger) {
 __attribute__((always_inline)) INLINE static int logger_should_write(
     const struct logger_part_data *logger_data, const struct logger *log) {
 
-  return (logger_data->steps_since_last_output > log->delta_step);
+  return (logger_data->steps_last_full_output > log->output_frequency.delta_step);
 }
 
 #endif /* WITH_LOGGER */

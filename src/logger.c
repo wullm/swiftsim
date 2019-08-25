@@ -191,7 +191,7 @@ void logger_log_all(struct logger *log, const struct engine *e) {
   for (long long i = 0; i < e->total_nr_parts; i++) {
     logger_log_part(log, &s->parts[i], mask,
                     &s->xparts[i].logger_data.last_offset);
-    s->xparts[i].logger_data.steps_since_last_output = 0;
+    s->xparts[i].logger_data.steps_last_full_output = 0;
   }
 
   /* loop over all gparts */
@@ -409,14 +409,60 @@ void logger_ensure_size(struct logger *log, size_t total_nr_parts,
 }
 
 /**
+ * @brief Read (and check) the output frequencies.
+ *
+ * @param log The #logger
+ * @param params The #swift_params
+ */
+void logger_read_output_frequencies(struct logger *log, struct swift_params *params) {
+  /* Read the output base frequency */
+  log->output_frequency.delta_step = parser_get_param_int(params, "Logger:delta_step");
+
+  /* Read the derived frequencies */
+  const char *field_names[logger_count_mask-1] = {
+    "Positions",
+    "Velocities",
+    "Accelerations",
+    "InternalEnergies",
+    "SmoothingLengths",
+    "Densities",
+    "Constants",
+  };
+  /* Read the position frequencies */
+  for(int jj = 0; jj < logger_count_mask - 1; jj++) {
+    /* Read for the parts */
+    char txt[FIELD_BUFFER_SIZE];
+    sprintf(txt, "Logger:Hydro%s", field_names[jj]);
+    log->output_frequency.part[jj] =
+      parser_get_opt_param_int(params, txt, 1);
+
+
+    /* Check if field exists in gravity */
+    if (!logger_field_in_gpart(jj)) {
+      continue;
+    }
+
+    /* Read for the gparts */
+    sprintf(txt, "Logger:Gravity%s", field_names[jj]);
+    log->output_frequency.gpart[jj] =
+      parser_get_opt_param_int(params, txt, 1);
+  }
+
+  /* Check the value obtained */
+  error("TODO check values and find smallest common multiplier");
+}
+
+/**
  * @brief intialize the logger structure
  *
  * @param log The #logger
  * @param params The #swift_params
  */
 void logger_init(struct logger *log, struct swift_params *params) {
+  /* Read the output frequencies */
+  logger_read_output_frequencies(log, params);
+  
   /* read parameters */
-  log->delta_step = parser_get_param_int(params, "Logger:delta_step");
   size_t buffer_size =
       parser_get_opt_param_float(params, "Logger:initial_buffer_size", 0.5) *
       1e9;
