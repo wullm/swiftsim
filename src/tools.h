@@ -60,6 +60,9 @@ int compare_particles(struct part *a, struct part *b, double threshold);
 
 long get_maxrss(void);
 
+int greatest_common_divisor(int a, int b);
+int least_common_multiple(int a, int b);
+
 char *trim_leading(char *s);
 char *trim_trailing(char *s);
 char *trim_both(char *s);

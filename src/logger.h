@@ -125,6 +125,9 @@ struct logger {
     /* Number of particle steps between dumping a chunk of data */
     short int delta_step;
 
+    /* Number of steps between two full outputs. */
+    int max_step_full_output;
+
     /* gpart frequencies */
     short int gpart[logger_count_mask];
   
