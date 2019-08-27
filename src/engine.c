@@ -2229,7 +2229,9 @@ void engine_step(struct engine *e) {
   /*****************************************************/
   /* OK, we now know what the next end of time-step is */
   /*****************************************************/
-
+#ifdef WITH_ENGINEERING
+   engine_fix_timestep(e);
+#endif
   /* Update the softening lengths */
   if (e->policy & engine_policy_self_gravity)
     gravity_props_update(e->gravity_properties, e->cosmology);
