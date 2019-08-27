@@ -20,6 +20,9 @@
 #define SWIFT_LOGGER_H
 
 #ifdef WITH_LOGGER
+/* Standard includes */
+#include <limits.h>
+
 
 /* Includes. */
 #include "common_io.h"
@@ -166,7 +169,21 @@ int logger_read_gpart(struct gpart *p, size_t *offset, const char *buff);
 int logger_read_timestamp(unsigned long long int *t, double *time,
                           size_t *offset, const char *buff);
 
-
+/**
+ * @brief Write the binary representation of x in a string.
+ *
+ * @param x The int to represent in bits.
+ * @param buf (output) The binary representation.
+ */
+__attribute__((always_inline)) INLINE static void write_bits(int x, char *buf)
+{
+  unsigned char *ptr = (unsigned char *)&x;
+  int pos = 0;
+  for (int i = sizeof(int) - 1; i >= 0; i--)
+    for (int j = CHAR_BIT - 1; j >= 0; j--)
+      buf[pos++] = '0' + !!(ptr[i] & 1U << j);
+  buf[pos] = '\0';
+}
 
 /**
  * @brief Check if a field exists in a #gpart.
@@ -188,7 +205,7 @@ __attribute__((always_inline)) INLINE static int logger_field_in_gpart(
 __attribute__((always_inline)) INLINE static int logger_gpart_flag(
     const struct logger *log, const struct logger_part_data *logger_data) {
   int mask = 0;
-  int step = logger_data->steps_last_full_output % log->output_frequency.delta_step;
+  int step = logger_data->steps_last_full_output / log->output_frequency.delta_step;
   /* Skip the timestamp */
   for(int i = 0; i < logger_count_mask - 1; i++) {
     /* Skip non gravity fields */
@@ -211,9 +228,9 @@ __attribute__((always_inline)) INLINE static int logger_gpart_flag(
 __attribute__((always_inline)) INLINE static int logger_xpart_flag(
     const struct logger *log, const struct logger_part_data *logger_data) {
   int mask = 0;
-  int step = logger_data->steps_last_full_output % log->output_frequency.delta_step;
+  int step = logger_data->steps_last_full_output / log->output_frequency.delta_step;
   /* Skip the timestamp */
-  for(int i = 0; i < logger_count_mask; i++) {
+  for(int i = 0; i < logger_count_mask - 1; i++) {
     if (step % log->output_frequency.part[i] == 0) {
       mask |= 1 << i;
     }
@@ -228,7 +245,7 @@ __attribute__((always_inline)) INLINE static int logger_xpart_flag(
  */
 INLINE static void logger_part_data_init(struct logger_part_data *logger) {
   logger->last_offset = 0;
-  logger->steps_last_full_output = INT_MAX;
+  logger->steps_last_full_output = 0;
 }
 
 
@@ -242,7 +259,7 @@ INLINE static void logger_part_data_init(struct logger_part_data *logger) {
 __attribute__((always_inline)) INLINE static int logger_should_write(
     const struct logger_part_data *logger_data, const struct logger *log) {
 
-  return (logger_data->steps_last_full_output > log->output_frequency.delta_step);
+  return (logger_data->steps_last_full_output % log->output_frequency.delta_step == 0);
 }
 
 #endif /* WITH_LOGGER */

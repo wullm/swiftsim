@@ -4950,13 +4950,22 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
       if (part_is_active(p, e)) {
 
         if (logger_should_write(&xp->logger_data, e->logger)) {
-          /* Write particle */
+	  /* Get the mask */
 	  const int mask = logger_xpart_flag(e->logger, &xp->logger_data);
-          logger_log_part(e->logger, p, mask,
-                          &xp->logger_data.last_offset);
+
+          /* Write particle */
+	  if (mask != 0) {
+	    logger_log_part(e->logger, p, mask,
+			    &xp->logger_data.last_offset);
+	  }
+
+	  /* Update the counter */
+	  xp->logger_data.steps_last_full_output += 1;
 
           /* Set counter back to zero */
-          xp->logger_data.steps_last_full_output = 0;
+	  if (xp->logger_data.steps_last_full_output > e->logger->output_frequency.max_step_full_output) {
+	    xp->logger_data.steps_last_full_output = 0;
+	  }
         } else
           /* Update counter */
           xp->logger_data.steps_last_full_output += 1;

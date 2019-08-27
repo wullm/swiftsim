@@ -39,6 +39,7 @@
 #include "engine.h"
 #include "error.h"
 #include "part.h"
+#include "tools.h"
 #include "units.h"
 
 /*
@@ -415,6 +416,15 @@ void logger_ensure_size(struct logger *log, size_t total_nr_parts,
  * @param params The #swift_params
  */
 void logger_read_output_frequencies(struct logger *log, struct swift_params *params) {
+  /* Least common multiplier of the frequencies */
+  int n = 1;
+
+  /* Initialize the output frequencies */
+  for(int ii = 0; ii < logger_count_mask - 1; ii++) {
+    log->output_frequency.part[ii] = 1;
+    log->output_frequency.gpart[ii] = 1;
+  }
+
   /* Read the output base frequency */
   log->output_frequency.delta_step = parser_get_param_int(params, "Logger:delta_step");
 
@@ -433,9 +443,21 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
     /* Read for the parts */
     char txt[FIELD_BUFFER_SIZE];
     sprintf(txt, "Logger:Hydro%s", field_names[jj]);
-    log->output_frequency.part[jj] =
+    const int hydro_freq =
       parser_get_opt_param_int(params, txt, 1);
 
+    /* Check that we received a correct value */
+    if (hydro_freq < 0) {
+      error("Negative frequencies are not possible for Hydro%s", txt);
+    }
+
+    /* Get the lcm */
+    if (hydro_freq != 0) {
+      n = least_common_multiple(n, hydro_freq);
+    }
+
+    /* Set the value */
+    log->output_frequency.part[jj] = hydro_freq;
 
     /* Check if field exists in gravity */
     if (!logger_field_in_gpart(jj)) {
@@ -444,12 +466,29 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
 
     /* Read for the gparts */
     sprintf(txt, "Logger:Gravity%s", field_names[jj]);
-    log->output_frequency.gpart[jj] =
+    const int grav_freq =
       parser_get_opt_param_int(params, txt, 1);
+
+    /* Check that we received a correct value */
+    if (grav_freq < 0) {
+      error("Negative frequencies are not possible for Gravity%s", txt);
+    }
+
+    /* Get the lcm */
+    if (grav_freq != 0) {
+      n = least_common_multiple(n, grav_freq);
+    }
+
+    /* Set the value */
+    log->output_frequency.gpart[jj] = grav_freq;
   }
 
-  /* Check the value obtained */
-  error("TODO check values and find smallest common multiplier");
+  /* Store the full output delta step */
+  log->output_frequency.max_step_full_output = n *
+    log->output_frequency.delta_step;
+
+  /* Print the frequency information */
+  message("The particles will be fully written every %i steps", log->output_frequency.max_step_full_output);
 }
 
 /**
