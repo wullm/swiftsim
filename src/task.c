@@ -918,7 +918,7 @@ void task_dump_all(struct engine *e, int step) {
 
       /* Add some information to help with the plots and conversion of ticks to
        * seconds. */
-      fprintf(file_thread, " %03d 0 0 0 0 %lld %lld %lld %lld %lld 0 0 %lld\n",
+      fprintf(file_thread, " %03d 0 0 0 0 %lld %lld %lld %lld %lld 0 0 %lld 0 0 0. 0. 0.\n",
               engine_rank, (long long int)e->tic_step,
               (long long int)e->toc_step, e->updates, e->g_updates,
               e->s_updates, cpufreq);
@@ -926,7 +926,7 @@ void task_dump_all(struct engine *e, int step) {
       for (int l = 0; l < e->sched.nr_tasks; l++) {
         if (!e->sched.tasks[l].implicit && e->sched.tasks[l].toc != 0) {
           fprintf(
-              file_thread, " %03i %i %i %i %i %lli %lli %i %i %i %i %lli %i\n",
+              file_thread, " %03i %i %i %i %i %lli %lli %i %i %i %i %lli %i %i %i %e %e %e\n",
               engine_rank, e->sched.tasks[l].rid, e->sched.tasks[l].type,
               e->sched.tasks[l].subtype, (e->sched.tasks[l].cj == NULL),
               (long long int)e->sched.tasks[l].tic,
@@ -939,7 +939,13 @@ void task_dump_all(struct engine *e, int step) {
                                              : 0,
               (e->sched.tasks[l].cj != NULL) ? e->sched.tasks[l].cj->grav.count
                                              : 0,
-              e->sched.tasks[l].flags, e->sched.tasks[l].sid);
+              e->sched.tasks[l].flags, e->sched.tasks[l].sid,
+	      (e->sched.tasks[l].ci != NULL) ? e->sched.tasks[l].ci->depth : -1,
+	      (e->sched.tasks[l].ci != NULL) ? e->sched.tasks[l].ci->maxdepth : -1,
+	      (e->sched.tasks[l].ci != NULL) ? e->sched.tasks[l].ci->dmin : -1.,
+	      (e->sched.tasks[l].ci != NULL) ? e->sched.tasks[l].ci->hydro.h_max * kernel_gamma : -1.,
+  	      (e->sched.tasks[l].ci != NULL) ? e->sched.tasks[l].ci->hydro.h_max_old * kernel_gamma : -1.)
+	      ;
         }
         count++;
       }
