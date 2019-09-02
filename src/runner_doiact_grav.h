@@ -1640,7 +1640,7 @@ static INLINE void runner_dopair_recursive_grav(struct runner *r,
   /* Are we beyond the distance where the truncated forces are 0? */
   if (periodic && r_lr_check > max_distance) {
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS) 
     /* Need to account for the interactions we missed */
     if (cell_is_active_gravity(ci, e))
       multi_i->pot.num_not_interacted += multi_j->m_pole.num_gpart;
@@ -1850,7 +1850,7 @@ static INLINE void runner_do_grav_long_range(struct runner *r, struct cell *ci,
       /* Are we beyond the distance where the truncated forces are 0 ?*/
       if (min_radius2 > max_distance2) {
 
-#ifdef SWIFT_DEBUG_CHECKS
+#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_GRAVITY_FORCE_CHECKS)
         /* Need to account for the interactions we missed */
         multi_i->pot.num_not_interacted += multi_j->m_pole.num_gpart;
 #endif
