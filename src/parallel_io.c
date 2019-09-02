@@ -413,12 +413,27 @@ void prepareArray(struct engine* e, hid_t grp, char* fileName, FILE* xmfFile,
   const hid_t h_plist_id = H5Pcreate(H5P_DATASET_XFER);
   H5Pset_dxpl_mpio(h_plist_id, H5FD_MPIO_COLLECTIVE);
 
-  /* Set chunk size */
-  /* h_err = H5Pset_chunk(h_prop, rank, chunk_shape); */
-  /* if (h_err < 0) { */
-  /*   error("Error while setting chunk size (%llu, %llu) for field '%s'.", */
-  /*         chunk_shape[0], chunk_shape[1], props.name); */
-  /* } */
+  /* Impose data compression */
+  if (e->snapshot_compression > 0) {
+#if H5_VERSION_GE(1, 10, 2)
+    /* Chunking is required for compressed I/O */
+    h_err = H5Pset_chunk(h_prop, rank, chunk_shape);
+    if (h_err < 0) {
+      error("Error while setting chunk size (%llu, %llu) for field '%s'.",
+            chunk_shape[0], chunk_shape[1], props.name);
+    }
+    /* The shuffle filter can improve compression rates */
+    h_err = H5Pset_shuffle(h_prop);
+    if (h_err < 0)
+      error("Error while setting shuffling options for field '%s'.",
+            props.name);
+    /* Enable compression filter */
+    h_err = H5Pset_deflate(h_prop, e->snapshot_compression);
+    if (h_err < 0)
+      error("Error while setting compression options for field '%s'.",
+            props.name);
+#endif
+  }
 
   /* Create dataset */
   const hid_t h_data =
