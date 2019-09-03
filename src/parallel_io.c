@@ -409,26 +409,25 @@ void prepareArray(struct engine* e, hid_t grp, char* fileName, FILE* xmfFile,
   if (h_err < 0)
     error("Error while changing data space shape for field '%s'.", props.name);
 
-  /* Create property list for collective dataset write.    */
-  const hid_t h_plist_id = H5Pcreate(H5P_DATASET_XFER);
-  H5Pset_dxpl_mpio(h_plist_id, H5FD_MPIO_COLLECTIVE);
-
+  /* Make the dataset creation property list */
+  const hid_t h_plist_id = H5Pcreate(H5P_DATASET_CREATE);
+  
   /* Impose data compression */
   if (e->snapshot_compression > 0) {
 #if H5_VERSION_GE(1, 10, 2)
     /* Chunking is required for compressed I/O */
-    h_err = H5Pset_chunk(h_prop, rank, chunk_shape);
+    h_err = H5Pset_chunk(h_plist_id, rank, chunk_shape);
     if (h_err < 0) {
       error("Error while setting chunk size (%llu, %llu) for field '%s'.",
             chunk_shape[0], chunk_shape[1], props.name);
     }
     /* The shuffle filter can improve compression rates */
-    h_err = H5Pset_shuffle(h_prop);
+    h_err = H5Pset_shuffle(h_plist_id);
     if (h_err < 0)
       error("Error while setting shuffling options for field '%s'.",
             props.name);
     /* Enable compression filter */
-    h_err = H5Pset_deflate(h_prop, e->snapshot_compression);
+    h_err = H5Pset_deflate(h_plist_id, e->snapshot_compression);
     if (h_err < 0)
       error("Error while setting compression options for field '%s'.",
             props.name);
@@ -438,7 +437,7 @@ void prepareArray(struct engine* e, hid_t grp, char* fileName, FILE* xmfFile,
   /* Create dataset */
   const hid_t h_data =
       H5Dcreate(grp, props.name, io_hdf5_type(props.type), h_space, H5P_DEFAULT,
-                H5P_DEFAULT, H5P_DEFAULT);
+                h_plist_id, H5P_DEFAULT);
   if (h_data < 0) error("Error while creating dataspace '%s'.", props.name);
 
   /* Write unit conversion factors for this data set */
@@ -575,6 +574,12 @@ void writeArray_chunk(struct engine* e, hid_t h_data,
      */
     /* 	  (int)(N * props.dimension * typeSize), offset); */
 
+  /* Make a dataset creation property list and set I/O mode to collective */
+  hid_t h_plist_id = H5Pcreate(H5P_DATASET_XFER);
+  if(H5Pset_dxpl_mpio(h_plist_id, H5FD_MPIO_COLLECTIVE) < 0)
+    error("Error while setting collective transfer mode for dataset '%s'.",
+          props.name);
+
 #ifdef IO_SPEED_MEASUREMENT
   MPI_Barrier(MPI_COMM_WORLD);
   tic = getticks();
@@ -582,7 +587,7 @@ void writeArray_chunk(struct engine* e, hid_t h_data,
 
   /* Write temporary buffer to HDF5 dataspace */
   h_err = H5Dwrite(h_data, io_hdf5_type(props.type), h_memspace, h_filespace,
-                   H5P_DEFAULT, temp);
+                   h_plist_id, temp);
   if (h_err < 0) error("Error while writing data array '%s'.", props.name);
 
 #ifdef IO_SPEED_MEASUREMENT
@@ -599,6 +604,7 @@ void writeArray_chunk(struct engine* e, hid_t h_data,
 
   /* Free and close everything */
   swift_free("writebuff", temp);
+  H5Pclose(h_plist_id);
   H5Sclose(h_memspace);
   H5Sclose(h_filespace);
 }
