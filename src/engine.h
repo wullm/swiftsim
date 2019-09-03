@@ -289,6 +289,7 @@ struct engine {
 
   char snapshot_base_name[PARSER_MAX_LINE_SIZE];
   int snapshot_compression;
+  int snapshot_mpi_compression;
   int snapshot_int_time_label_on;
   int snapshot_invoke_stf;
   struct unit_system *snapshot_units;
