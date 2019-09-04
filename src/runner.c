@@ -4965,11 +4965,12 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
 
           /* Set counter back to zero */
 	  if (xp->logger_data.steps_last_full_output >= e->logger->output_frequency.max_step_full_output) {
-	    xp->logger_data.steps_last_full_output = 1;
+	    xp->logger_data.steps_last_full_output = 0;
 	  }
-        } else
-          /* Update counter */
-          xp->logger_data.steps_last_full_output += 1;
+	}
+
+	/* Update counter */
+	xp->logger_data.steps_last_full_output += 1;
       }
     }
   }
