@@ -4954,17 +4954,18 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
 	  const int mask = logger_xpart_flag(e->logger, &xp->logger_data);
 
           /* Write particle */
-	  if (mask != 0) {
-	    logger_log_part(e->logger, p, mask,
-			    &xp->logger_data.last_offset);
+#ifdef SWIFT_DEBUG_CHECKS
+	  if (mask == 0) {
+	    error("Trying to write a 0 mask");
 	  }
-
-	  /* Update the counter */
-	  xp->logger_data.steps_last_full_output += 1;
+#endif
+	  
+	  logger_log_part(e->logger, p, mask,
+			  &xp->logger_data.last_offset);
 
           /* Set counter back to zero */
-	  if (xp->logger_data.steps_last_full_output > e->logger->output_frequency.max_step_full_output) {
-	    xp->logger_data.steps_last_full_output = 0;
+	  if (xp->logger_data.steps_last_full_output >= e->logger->output_frequency.max_step_full_output) {
+	    xp->logger_data.steps_last_full_output = 1;
 	  }
         } else
           /* Update counter */

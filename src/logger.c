@@ -66,7 +66,7 @@
 
 char logger_version[logger_version_size] = "0.1";
 
-const struct mask_data logger_mask_data[logger_count_mask] = {
+const struct mask_data logger_mask_data[logger_mask_count] = {
     /* Particle's position */
     {3 * sizeof(double), 1 << logger_x, "positions"},
     /* Particle's velocity */
@@ -156,7 +156,7 @@ int logger_compute_chunk_size(unsigned int mask) {
 
   } else {
 
-    for (int i = 0; i < logger_count_mask; i++) {
+    for (int i = 0; i < logger_mask_count; i++) {
       if (mask & logger_mask_data[i].mask) {
         size += logger_mask_data[i].size;
       }
@@ -182,12 +182,13 @@ void logger_log_all(struct logger *log, const struct engine *e) {
 
   /* some constants */
   const struct space *s = e->s;
-  const unsigned int mask =
-      logger_mask_data[logger_x].mask | logger_mask_data[logger_v].mask |
-      logger_mask_data[logger_a].mask | logger_mask_data[logger_u].mask |
-      logger_mask_data[logger_h].mask | logger_mask_data[logger_rho].mask |
-      logger_mask_data[logger_consts].mask;
-
+  unsigned int mask = 0;
+  for(int i = 0; i < logger_mask_count - 1; i++) {
+    /* Write only the field that are enabled */
+    if (log->output_frequency.part[i] != 0) {
+      mask |= logger_mask_data[i].mask;
+    }
+  }
   /* loop over all parts */
   for (long long i = 0; i < e->total_nr_parts; i++) {
     logger_log_part(log, &s->parts[i], mask,
@@ -420,36 +421,25 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
   int n = 1;
 
   /* Initialize the output frequencies */
-  for(int ii = 0; ii < logger_count_mask - 1; ii++) {
+  for(int ii = 0; ii < logger_mask_count - 1; ii++) {
+    /* By default do not write anything */
     log->output_frequency.part[ii] = 0;
     log->output_frequency.gpart[ii] = 0;
   }
 
-  /* Read the derived frequencies */
-  const char *field_names[logger_count_mask-1] = {
-    "Positions",
-    "Velocities",
-    "Accelerations",
-    "InternalEnergies",
-    "SmoothingLengths",
-    "Densities",
-    "Constants",
-  };
-
   int freq_min = INT_MAX;
-  int freq_max = 0;
   
   /* Read the position frequencies */
-  for(int jj = 0; jj < logger_count_mask - 1; jj++) {
+  for(int jj = 0; jj < logger_mask_count - 1; jj++) {
     /* Read for the parts */
     char txt[FIELD_BUFFER_SIZE];
-    sprintf(txt, "Logger:Hydro%s", field_names[jj]);
+    sprintf(txt, "Logger:hydro_freq_%s", logger_mask_data[jj].name);
     const int hydro_freq =
-      parser_get_opt_param_int(params, txt, 1);
+      parser_get_opt_param_int(params, txt, 0);
 
     /* Check that we received a correct value */
     if (hydro_freq < 0) {
-      error("Negative frequencies are not possible for Hydro%s", txt);
+      error("Negative frequencies are not possible for hydro_freq_%s", txt);
     }
 
     /* Get the lcm */
@@ -460,12 +450,9 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
     /* Set the value */
     log->output_frequency.part[jj] = hydro_freq;
 
-    /* Save min / max */
+    /* Save min */
     if (hydro_freq < freq_min && hydro_freq != 0) {
       freq_min = hydro_freq;
-    }
-    if (hydro_freq > freq_max) {
-      freq_max = hydro_freq;
     }
 
     /* Check if field exists in gravity */
@@ -474,13 +461,13 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
     }
 
     /* Read for the gparts */
-    sprintf(txt, "Logger:Gravity%s", field_names[jj]);
+    sprintf(txt, "Logger:gravity_freq_%s", logger_mask_data[jj].name);
     const int grav_freq =
-      parser_get_opt_param_int(params, txt, 1);
+      parser_get_opt_param_int(params, txt, 0);
 
     /* Check that we received a correct value */
     if (grav_freq < 0) {
-      error("Negative frequencies are not possible for Gravity%s", txt);
+      error("Negative frequencies are not possible for gravity_freq_%s", txt);
     }
 
     /* Get the lcm */
@@ -491,25 +478,27 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
     /* Set the value */
     log->output_frequency.gpart[jj] = grav_freq;
 
-    /* Save min / max */
+    /* Save min */
     if (grav_freq < freq_min && grav_freq != 0) {
       freq_min = grav_freq;
     }
-    if (grav_freq > freq_max) {
-      freq_max = grav_freq;
-    }
+  }
+
+  /* Check that something will be written */
+  if (freq_min == 0) {
+    error("You need to provide at least the output frequency for one field.");
   }
 
   /* Check that all frequencies are multiples of the freq_min */
-  for(int i = 0; i < logger_count_mask - 1; i++) {
+  for(int i = 0; i < logger_mask_count - 1; i++) {
     if (log->output_frequency.gpart[i] % freq_min != 0) {
       error("All the logger frequencies must be a a multiple of the smallest one "
-	    "(Gravity%s = %i, freq_min = %i)", field_names[i],
+	    "(gravity_freq_%s = %i, freq_min = %i)", logger_mask_data[i].name,
 	    log->output_frequency.gpart[i], freq_min);
     }
     if (log->output_frequency.part[i] % freq_min != 0) {
       error("All the logger frequencies must be a a multiple of the smallest one "
-	    "(Hydro%s = %i, freq_min = %i)", field_names[i],
+	    "(hydro_freq_%s = %i, freq_min = %i)", logger_mask_data[i].name,
 	    log->output_frequency.part[i], freq_min);
     }
   }
@@ -554,7 +543,7 @@ void logger_init(struct logger *log, struct swift_params *params) {
   int max_size = logger_offset_size + logger_mask_size;
 
   /* Loop over all fields except timestamp */
-  for (int i = 0; i < logger_count_mask - 1; i++) {
+  for (int i = 0; i < logger_mask_count - 1; i++) {
     max_size += logger_mask_data[i].size;
   }
   log->max_chunk_size = max_size;
@@ -604,12 +593,12 @@ void logger_write_file_header(struct logger *log, const struct engine *e) {
   logger_write_data(dump, &file_offset, logger_number_size, &label_size);
 
   /* write number of masks */
-  int count_mask = logger_count_mask;
+  int count_mask = logger_mask_count;
   logger_write_data(dump, &file_offset, logger_number_size, &count_mask);
 
   /* write masks */
   // loop over all mask type
-  for (int i = 0; i < logger_count_mask; i++) {
+  for (int i = 0; i < logger_mask_count; i++) {
     // mask name
     logger_write_data(dump, &file_offset, logger_label_size,
                       &logger_mask_data[i].name);

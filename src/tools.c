@@ -1036,8 +1036,12 @@ int least_common_multiple(int a, int b) {
 int greatest_common_divisor(int a, int b) {
 
   /* Special cases */
-  if (a == 0) return a;
-  if (b == 0) return b;
+  if (a == 0) {
+    return a;
+  }
+  else if (b == 0) {
+    return b;
+  }
 
   /* Counter for the power of 2 in the gcd */
   int shift = 0;

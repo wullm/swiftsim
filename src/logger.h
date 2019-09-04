@@ -86,7 +86,7 @@ enum logger_masks_number {
   logger_rho = 5,
   logger_consts = 6,
   logger_timestamp = 7,  /* expect it to be before count */
-  logger_count_mask = 8, /* Need to be the last */
+  logger_mask_count = 8, /* Need to be the last */
 } __attribute__((packed));
 
 
@@ -100,7 +100,7 @@ struct mask_data {
 };
 
 
-extern const struct mask_data logger_mask_data[logger_count_mask];
+extern const struct mask_data logger_mask_data[logger_mask_count];
 
 /* Size of the strings. */
 #define logger_string_length 200
@@ -132,10 +132,10 @@ struct logger {
     int max_step_full_output;
 
     /* gpart frequencies */
-    short int gpart[logger_count_mask];
+    short int gpart[logger_mask_count];
   
     /* part frequencies */
-    short int part[logger_count_mask];
+    short int part[logger_mask_count];
   } output_frequency;
 
 } SWIFT_STRUCT_ALIGN;
@@ -189,14 +189,15 @@ __attribute__((always_inline)) INLINE static int logger_field_in_gpart(
 __attribute__((always_inline)) INLINE static int logger_gpart_flag(
     const struct logger *log, const struct logger_part_data *logger_data) {
   int mask = 0;
-  int step = logger_data->steps_last_full_output / log->output_frequency.delta_step;
   /* Skip the timestamp */
-  for(int i = 0; i < logger_count_mask - 1; i++) {
+  for(int i = 0; i < logger_mask_count - 1; i++) {
     /* Skip non gravity fields */
     if (!logger_field_in_gpart(i)) {
       continue;
     }
-    if (step % log->output_frequency.gpart[i] == 0) {
+
+    /* Check if this step is a multiple of the frequency */
+    if (logger_data->steps_last_full_output % log->output_frequency.gpart[i] == 0) {
       mask |= 1 << i;
     }
   }
@@ -212,10 +213,10 @@ __attribute__((always_inline)) INLINE static int logger_gpart_flag(
 __attribute__((always_inline)) INLINE static int logger_xpart_flag(
     const struct logger *log, const struct logger_part_data *logger_data) {
   int mask = 0;
-  int step = logger_data->steps_last_full_output / log->output_frequency.delta_step;
   /* Skip the timestamp */
-  for(int i = 0; i < logger_count_mask - 1; i++) {
-    if (step % log->output_frequency.part[i] == 0) {
+  for(int i = 0; i < logger_mask_count - 1; i++) {
+    /* Check if this step is a multiple of the frequency */
+    if (logger_data->steps_last_full_output % log->output_frequency.part[i] == 0) {
       mask |= 1 << i;
     }
   }
@@ -229,7 +230,8 @@ __attribute__((always_inline)) INLINE static int logger_xpart_flag(
  */
 INLINE static void logger_part_data_init(struct logger_part_data *logger) {
   logger->last_offset = 0;
-  logger->steps_last_full_output = 0;
+  /* Need to start with 1 otherwise we log during the first step. */
+  logger->steps_last_full_output = 1;
 }
 
 
