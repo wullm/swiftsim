@@ -197,7 +197,8 @@ __attribute__((always_inline)) INLINE static int logger_gpart_flag(
     }
 
     /* Check if this step is a multiple of the frequency */
-    if (logger_data->steps_last_full_output % log->output_frequency.gpart[i] == 0) {
+    if (log->output_frequency.gpart[i] != 0 &&
+	logger_data->steps_last_full_output % log->output_frequency.gpart[i] == 0) {
       mask |= 1 << i;
     }
   }
@@ -216,7 +217,8 @@ __attribute__((always_inline)) INLINE static int logger_xpart_flag(
   /* Skip the timestamp */
   for(int i = 0; i < logger_mask_count - 1; i++) {
     /* Check if this step is a multiple of the frequency */
-    if (logger_data->steps_last_full_output % log->output_frequency.part[i] == 0) {
+    if (log->output_frequency.part[i] != 0 &&
+	logger_data->steps_last_full_output % log->output_frequency.part[i] == 0) {
       mask |= 1 << i;
     }
   }

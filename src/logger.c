@@ -485,8 +485,8 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
   }
 
   /* Check that something will be written */
-  if (freq_min == 0) {
-    error("You need to provide at least the output frequency for one field.");
+  if (freq_min == INT_MAX) {
+    error("You need to provide at least one non zero output frequency.");
   }
 
   /* Check that all frequencies are multiples of the freq_min */
