@@ -5,7 +5,8 @@
 struct mladen_globals {
 
   FILE *outfilep;
-  int testing;
+  FILE *oneTimeFlagFilep;
+  int called_fluxes;
 
 } ;
 

@@ -14,7 +14,8 @@ struct mladen_globals mladen_globs;
 void mladen_setup(void){
 
   mladen_globs.outfilep = fopen("mladen_outputfile_all.txt", "w");  
-  mladen_globs.testing = 23;
+  mladen_globs.oneTimeFlagFilep = fopen("mladen_flags_all.txt", "w");  
+  mladen_globs.called_fluxes = 1;
 
   message("MESSAGE TO MLADEN: calling init your own global temporary stuff.");
 }
@@ -24,6 +25,7 @@ void mladen_setup(void){
 void mladen_cleanup(void){
   
   fclose(mladen_globs.outfilep);
+  fclose(mladen_globs.oneTimeFlagFilep);
 }
 
 
