@@ -67,4 +67,20 @@ char *trim_leading(char *s);
 char *trim_trailing(char *s);
 char *trim_both(char *s);
 
+/**
+ * @brief Write the binary representation of x in a string.
+ *
+ * @param x The int to represent in bits.
+ * @param buf (output) The binary representation.
+ */
+__attribute__((always_inline)) INLINE static void write_bits(int x, char *buf)
+{
+  unsigned char *ptr = (unsigned char *)&x;
+  int pos = 0;
+  for (int i = sizeof(int) - 1; i >= 0; i--)
+    for (int j = CHAR_BIT - 1; j >= 0; j--)
+      buf[pos++] = '0' + !!(ptr[i] & 1U << j);
+  buf[pos] = '\0';
+}
+
 #endif /* SWIFT_TOOL_H */

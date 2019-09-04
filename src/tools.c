@@ -1026,7 +1026,7 @@ int least_common_multiple(int a, int b) {
 /**
  * @brief Compute the greatest common divisor between two numbers.
  *
- * This method use the binary algorithm with the recursive implementation.
+ * This implementation is based on the wikipedia page "Binary GCD algorithm".
  *
  * @param a The first number.
  * @param b The second number.
@@ -1034,51 +1034,53 @@ int least_common_multiple(int a, int b) {
  * @return The greatest common dividor.
  */
 int greatest_common_divisor(int a, int b) {
-  /* If both terms are equal, they are the gcd */
-  if (a == b) {
-    return a;
+
+  /* Special cases */
+  if (a == 0) return a;
+  if (b == 0) return b;
+
+  /* Counter for the power of 2 in the gcd */
+  int shift = 0;
+
+  /* Remove all the power of 2 */
+  /* Check that neither a or b is odd */
+  while (((a | b) & 1) == 0) {
+    /* Increase the counter of factor 2 */
+    shift++;
+    /* Divide by 2 */
+    a = a >> 1;
+    b = b >> 1;
   }
 
-  /* Any number can divide 0 */
-  if (a == 0) {
-    return b;
+  /* Remove the remaining factors 2 in a */
+  while ((a & 1) == 0) {
+    /* Divide by 2 */
+    a = a >> 1;
   }
 
-  /* Any number can divide 0 */
-  if (b == 0) {
-    return a;
-  }
+  /* a is odd now */
+  do {
 
-  /* Check if a, b are odd or even */
-  const int a_is_odd = a & 1;
-  const int b_is_odd = b & 1;
-
-  if (!a_is_odd) {
-    if (!b_is_odd) {
-      /* If both are even, 2 is a common factor */
-      return greatest_common_divisor(a >> 1, b >> 1) << 1;
+    /* Remove the remaining factors 2 in b.
+       This cannot be done outside of the loop due to
+       the future computation b = b - a */
+    while ((b & 1) == 0) {
+      b = b >> 1;
     }
-    else {
-      /* If only one is even, 2 is not a common factor
-	 and can be removed */
-      return greatest_common_divisor(a >> 1, b);
+
+    /* We will need the (positive) difference, therefore
+       we need to identify the largest number between a and b */
+    if (a > b) {
+      /* Swap the two numbers */
+      int c = a; a = b; b = c;
     }
-  }
 
-  if (!b_is_odd) {
-    /* If only one is even, 2 is not a common factor
-       and can be removed */
-    return greatest_common_divisor(a, b >> 1);
-  }
+    /* b - a is also a common divisor */
+    b -= a;
+  } while (b != 0);
 
-  /* The common factor must be a common factor of |b-a| / 2
-     (difference of odd number is even and 2 is not a common factor)
-  */
-  if (b > a) {
-    return greatest_common_divisor(a, (b - a) >> 1);
-  }
-
-  return greatest_common_divisor((a - b) >> 1, b);    
+  /* Add the power of 2 */
+  return a << shift;
 }
 
 /**

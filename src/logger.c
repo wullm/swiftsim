@@ -421,12 +421,9 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
 
   /* Initialize the output frequencies */
   for(int ii = 0; ii < logger_count_mask - 1; ii++) {
-    log->output_frequency.part[ii] = 1;
-    log->output_frequency.gpart[ii] = 1;
+    log->output_frequency.part[ii] = 0;
+    log->output_frequency.gpart[ii] = 0;
   }
-
-  /* Read the output base frequency */
-  log->output_frequency.delta_step = parser_get_param_int(params, "Logger:delta_step");
 
   /* Read the derived frequencies */
   const char *field_names[logger_count_mask-1] = {
@@ -438,6 +435,10 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
     "Densities",
     "Constants",
   };
+
+  int freq_min = INT_MAX;
+  int freq_max = 0;
+  
   /* Read the position frequencies */
   for(int jj = 0; jj < logger_count_mask - 1; jj++) {
     /* Read for the parts */
@@ -458,6 +459,14 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
 
     /* Set the value */
     log->output_frequency.part[jj] = hydro_freq;
+
+    /* Save min / max */
+    if (hydro_freq < freq_min && hydro_freq != 0) {
+      freq_min = hydro_freq;
+    }
+    if (hydro_freq > freq_max) {
+      freq_max = hydro_freq;
+    }
 
     /* Check if field exists in gravity */
     if (!logger_field_in_gpart(jj)) {
@@ -481,11 +490,35 @@ void logger_read_output_frequencies(struct logger *log, struct swift_params *par
 
     /* Set the value */
     log->output_frequency.gpart[jj] = grav_freq;
+
+    /* Save min / max */
+    if (grav_freq < freq_min && grav_freq != 0) {
+      freq_min = grav_freq;
+    }
+    if (grav_freq > freq_max) {
+      freq_max = grav_freq;
+    }
   }
 
-  /* Store the full output delta step */
-  log->output_frequency.max_step_full_output = n *
-    log->output_frequency.delta_step;
+  /* Check that all frequencies are multiples of the freq_min */
+  for(int i = 0; i < logger_count_mask - 1; i++) {
+    if (log->output_frequency.gpart[i] % freq_min != 0) {
+      error("All the logger frequencies must be a a multiple of the smallest one "
+	    "(Gravity%s = %i, freq_min = %i)", field_names[i],
+	    log->output_frequency.gpart[i], freq_min);
+    }
+    if (log->output_frequency.part[i] % freq_min != 0) {
+      error("All the logger frequencies must be a a multiple of the smallest one "
+	    "(Hydro%s = %i, freq_min = %i)", field_names[i],
+	    log->output_frequency.part[i], freq_min);
+    }
+  }
+
+  /* Number of steps between two full outputs. */
+  log->output_frequency.max_step_full_output = n;
+
+  /* Number of steps between two writing */
+  log->output_frequency.delta_step = freq_min;
 
   /* Print the frequency information */
   message("The particles will be fully written every %i steps", log->output_frequency.max_step_full_output);
