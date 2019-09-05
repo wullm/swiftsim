@@ -357,6 +357,7 @@ int cell_link_foreign_parts(struct cell *c, struct part *parts) {
 
 #else
   error("Calling linking of foregin particles in non-MPI mode.");
+  return 0;
 #endif
 }
 
@@ -405,6 +406,7 @@ int cell_link_foreign_gparts(struct cell *c, struct gpart *gparts) {
 
 #else
   error("Calling linking of foregin particles in non-MPI mode.");
+  return 0;
 #endif
 }
 
@@ -443,6 +445,7 @@ int cell_count_parts_for_tasks(const struct cell *c) {
 
 #else
   error("Calling linking of foregin particles in non-MPI mode.");
+  return 0;
 #endif
 }
 
@@ -481,6 +484,7 @@ int cell_count_gparts_for_tasks(const struct cell *c) {
 
 #else
   error("Calling linking of foregin particles in non-MPI mode.");
+  return 0;
 #endif
 }
 

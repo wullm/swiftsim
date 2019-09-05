@@ -44,7 +44,7 @@ runner_iact_nonsym_feedback_density(const float r2, const float *dx,
                                     const struct cosmology *restrict cosmo,
                                     const integertime_t ti_current) {
 
-  if(pj->done_force != 1)
+  if(pj->done_density != 1 && engine_current_step > 0)
     error("Doing star density loop before force calculation is done!");
   
   /* Get the gas mass. */
@@ -98,6 +98,10 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
 
   if(pj->done_force != 1)
     error("Doing enrichment/feedback before force calculation is done!");
+
+  if(pj->done_cooling != 1 && engine_current_step > 1)
+    error("Doing enrichment/feedback before cooling calculation is done! si->ID=%lld pj->ID=%lld",
+	  si->id, pj->id);
   
   /* Get r and 1/r. */
   const float r_inv = 1.0f / sqrtf(r2);

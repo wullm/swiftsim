@@ -37,6 +37,8 @@
 /* This object's header. */
 #include "runner.h"
 
+extern int engine_current_step;
+
 /* Local headers. */
 #include "active.h"
 #include "approx_math.h"

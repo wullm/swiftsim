@@ -48,6 +48,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
     float r2, const float* dx, float hi, float hj, struct part* pi,
     struct part* pj, float a, float H) {
 
+  if(pi->done_init != 1)
+    error("Doing density before init!");
+
+  if(pj->done_init != 1)
+    error("Doing density before init!");
+ 
   float wi, wj, wi_dx, wj_dx;
   float dv[3], curlvr[3];
 
@@ -124,6 +130,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
     float r2, const float* dx, float hi, float hj, struct part* pi,
     const struct part* pj, float a, float H) {
 
+  if(pi->done_init != 1)
+    error("Doing density before init!");
+  
   float wi, wi_dx;
   float dv[3], curlvr[3];
 
@@ -184,6 +193,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_gradient(
     float r2, const float* dx, float hi, float hj, struct part* restrict pi,
     struct part* restrict pj, float a, float H) {
 
+  if(pi->done_density != 1)
+    error("Doing gradient before density!");
+
+  if(pj->done_density != 1)
+    error("Doing gradient before density!");
+  
   /* We need to construct the maximal signal velocity between our particle
    * and all of it's neighbours */
 
@@ -257,6 +272,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_gradient(
     float r2, const float* dx, float hi, float hj, struct part* restrict pi,
     struct part* restrict pj, float a, float H) {
 
+  if(pi->done_density != 1)
+    error("Doing gradient before density!");
+  
   /* We need to construct the maximal signal velocity between our particle
    * and all of it's neighbours */
 
@@ -319,6 +337,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
     float r2, const float* dx, float hi, float hj, struct part* pi,
     struct part* pj, float a, float H) {
 
+  if(pi->done_gradient != 1)
+    error("Doing force before gradient!");
+
+  if(pj->done_gradient != 1)
+    error("Doing force before gradient!");
+  
   /* Cosmological factors entering the EoMs */
   const float fac_mu = pow_three_gamma_minus_five_over_two(a);
   const float a2_Hubble = a * a * H;
@@ -452,6 +476,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
     float r2, const float* dx, float hi, float hj, struct part* pi,
     const struct part* pj, float a, float H) {
 
+  if(pi->done_gradient != 1)
+    error("Doing force before gradient!");
+  
   /* Cosmological factors entering the EoMs */
   const float fac_mu = pow_three_gamma_minus_five_over_two(a);
   const float a2_Hubble = a * a * H;

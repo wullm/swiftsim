@@ -387,6 +387,9 @@ void cooling_cool_part(const struct phys_const *phys_const,
   /* No cooling happens over zero time */
   if (dt == 0.) return;
 
+  if(p->done_force != 1)
+    error("Running cooling before force is done!");
+  
 #ifdef SWIFT_DEBUG_CHECKS
   if (cooling->Redshifts == NULL)
     error(

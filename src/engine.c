@@ -128,7 +128,7 @@ const char *engine_policy_names[] = {"none",
 int engine_rank;
 
 /** The current step of the engine as a global variable (for messages). */
-int engine_current_step;
+int engine_current_step = 0;
 
 extern int engine_max_parts_per_ghost;
 extern int engine_max_sparts_per_ghost;
