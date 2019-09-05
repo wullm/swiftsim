@@ -385,7 +385,10 @@ void cooling_cool_part(const struct phys_const *phys_const,
                        const float dt, const float dt_therm) {
 
   /* No cooling happens over zero time */
-  if (dt == 0.) return;
+  if (dt == 0.) {
+    p->done_cooling = 1;
+    return;
+  }
 
   if(p->done_force != 1)
     error("Running cooling before force is done!");
