@@ -20,6 +20,11 @@ from matplotlib.colors import LogNorm
 
 import unyt
 
+try:
+    plt.style.use("mnras_durham")
+except:
+    pass
+
 # Global constants
 radial_bin_units = unyt.Mpc
 
