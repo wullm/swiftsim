@@ -197,8 +197,31 @@ __attribute__((always_inline)) INLINE static void hydro_first_init_part(
 __attribute__((always_inline)) INLINE static void hydro_init_part(
     struct part* p, const struct hydro_space* hs) {
 
+
+  // TODO: temporary
+  if (p->id == 1){
+    printf("Particle 1 is being reset now.\n");
+  }
+
   p->density.wcount = 0.0f;
   p->density.wcount_dh = 0.0f;
+#ifdef WITH_IVANOVA
+  p->density.wgrads[0] = 0.0f;
+  p->density.wgrads[1] = 0.0f;
+  p->density.wgrads[2] = 0.0f;
+
+  // TODO: temporary
+  for (int i=0; i<200; i++){
+    p->density.neighbour_ids[i] = 0;
+    p->density.neighbour_ids_grad[i] = 0;
+  }
+  for (int i=0; i<400; i++){
+    p->density.Aij[i] = 0.f;
+    p->density.grads_sum_contrib[i] = 0.f;
+  }
+  p->density.nneigh = -1;
+  p->density.nneigh_grads = -1;
+#endif
   p->geometry.volume = 0.0f;
   p->geometry.matrix_E[0][0] = 0.0f;
   p->geometry.matrix_E[0][1] = 0.0f;

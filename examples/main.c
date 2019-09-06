@@ -43,6 +43,7 @@
 /* Local headers. */
 #include "argparse.h"
 #include "swift.h"
+#include "../src/todo_temporary_globals.h"
 
 /* Engine policy flags. */
 #ifndef ENGINE_POLICY
@@ -141,6 +142,9 @@ int main(int argc, char *argv[]) {
   fflush(stdout);
 
 #endif
+
+  /* todo: temp */
+  mladen_setup();
 
   /* Welcome to SWIFT, you made the right choice */
   if (myrank == 0) greetings(/*fof=*/0);
@@ -1376,6 +1380,10 @@ int main(int argc, char *argv[]) {
   if (with_cooling || with_temperature) cooling_clean(&cooling_func);
   engine_clean(&e, /*fof=*/0);
   free(params);
+
+
+  /* todo: temp */
+  mladen_cleanup();
 
   /* Say goodbye. */
   if (myrank == 0) message("done. Bye.");

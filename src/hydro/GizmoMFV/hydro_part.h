@@ -183,6 +183,25 @@ struct part {
     /* Correction factor for wcount. */
     float wcorr;
 
+#ifdef WITH_IVANOVA
+    /* kernel gradients: \sum_k \del W(x_i - x_k, h_i)/ \del r * (x_i - x_k)/ r */
+    float wgrads[3];
+
+    // TODO: temporary
+    float wgrads_store[3];            /* store sum of individual cartesian gradients contributions */
+    float volume_store;               /* particle volume */
+    float omega;                      /* normalization for psi */
+
+    int nneigh;                       /* number of neighbours this particle interacts with */
+    int neighbour_ids[200];           /* IDs of each neighbour this particle interacts with */
+    float Aij[400];                   /* effective surface towards each neighbour */
+
+    int nneigh_grads;
+    int neighbour_ids_grad[200];      /* IDs of neighbour for individual gradient contributions */
+    float grads_sum_contrib[400];     /* contributions to the gradient sum from each neighbour */
+    float dwdr[200];                  /* radial derivative of the kernel */
+#endif
+
   } density;
 
   /* Quantities used during the force loop. */
