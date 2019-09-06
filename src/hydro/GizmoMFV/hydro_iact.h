@@ -27,12 +27,6 @@
 
 #include "./hydro_parameters.h"
 
-/* TODO: temp */
-#include "todo_temporary_globals.h"
-#include "atomic.h"
-
-
-
 #define GIZMO_VOLUME_CORRECTION
 
 /**
@@ -72,31 +66,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + xi * wi_dx);
 #ifdef WITH_IVANOVA
-  /* TODO: don't forget about the nonsym part! */
   const float hidp1 = pow_dimension_plus_one(hi_inv);
   pi->density.wgrads[0] += hidp1 * wi_dx * dx[0] / r;
   pi->density.wgrads[1] += hidp1 * wi_dx * dx[1] / r;
   pi->density.wgrads[2] += hidp1 * wi_dx * dx[2] / r;
-    // TODO: temporary
-    // if (pi->id == 1){
-    //   fprintf(mladen_globs.outfilep, "Particle 1 has now wgrads= %12.8f %12.8f %12.8f\n",
-    //   pi->density.wgrads[0], pi->density.wgrads[1], pi->density.wgrads[2]);
-    //   printf("Particle 1 has now wgrads= %12.8f %12.8f %12.8f\n",
-    //   pi->density.wgrads[0], pi->density.wgrads[1], pi->density.wgrads[2]);
-    // }
-
-    pi->density.nneigh_grads += 1;
-    if (pi->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
-    pi->density.neighbour_ids_grad[pi->density.nneigh_grads] = (int) pj->id;
-    pi->density.grads_sum_contrib[2*pi->density.nneigh_grads] = hidp1 * wi_dx * dx[0]/r;
-    pi->density.grads_sum_contrib[2*pi->density.nneigh_grads+1] = hidp1 * wi_dx * dx[1]/r;
-    pi->density.dwdr[pi->density.nneigh_grads] = hidp1 * wi_dx;
-
-
-    if (pi->id == 12 && pj->id == 34){
-      printf("ID 12->34 %14.8e %14.8e %14.8e dwdr=%14.8e\n", r, pi->h, pj->h, wi_dx);
-    }
-
 #endif
 
   /* these are eqns. (1) and (2) in the summary */
@@ -121,23 +94,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pj->density.wgrads[0] -= hjdp1 * wj_dx * dx[0] / r;
   pj->density.wgrads[1] -= hjdp1 * wj_dx * dx[1] / r;
   pj->density.wgrads[2] -= hjdp1 * wj_dx * dx[2] / r;
-    // TODO: temporary
-    // if (pj->id == 1){
-    //   fprintf(mladen_globs.outfilep, "Particle 1 has now wgrads= %12.8f %12.8f %12.8f\n",
-    //   pj->density.wgrads[0], pj->density.wgrads[1], pj->density.wgrads[2]);
-    //   printf("Particle 1 has now wgrads= %12.8f %12.8f %12.8f\n",
-    //   pj->density.wgrads[0], pj->density.wgrads[1], pj->density.wgrads[2]);
-    // }
-
-    pj->density.nneigh_grads += 1;
-    if (pj->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
-    pj->density.neighbour_ids_grad[pj->density.nneigh_grads] = (int) pi->id;
-    pj->density.grads_sum_contrib[2*pj->density.nneigh_grads] = -hjdp1 * wj_dx * dx[0]/r;
-    pj->density.grads_sum_contrib[2*pj->density.nneigh_grads+1] = -hjdp1 * wj_dx * dx[1]/r;
-    pj->density.dwdr[pj->density.nneigh_grads] = hjdp1 * wj_dx;
-    if (pj->id == 12 && pi->id == 34){
-      printf("ID 12->34 %14.8e %14.8e %14.8e dwdr=%14.8e 1/h^3=%14.8e\n", r, pj->h, pi->h, wj_dx, hjdp1);
-    }
 #endif
 
   /* these are eqns. (1) and (2) in the summary */
@@ -188,30 +144,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + xi * wi_dx);
 #ifdef WITH_IVANOVA
-  /* TODO: don't forget about the sym part! */
   const float hidp1 = pow_dimension_plus_one(hi_inv);
   pi->density.wgrads[0] += hidp1 * wi_dx * dx[0] / r;
   pi->density.wgrads[1] += hidp1 * wi_dx * dx[1] / r;
   pi->density.wgrads[2] += hidp1 * wi_dx * dx[2] / r;
-    
-    // TODO: temporary
-    // if (pi->id == 1){
-    //   fprintf(mladen_globs.outfilep, "Particle 1 has now wgrads= %12.8f %12.8f %12.8f\n",
-    //   pi->density.wgrads[0], pi->density.wgrads[1], pi->density.wgrads[2]);
-    //   printf("Particle 1 has now wgrads= %12.8f %12.8f %12.8f\n",
-    //   pi->density.wgrads[0], pi->density.wgrads[1], pi->density.wgrads[2]);
-    // }
-
-    pi->density.nneigh_grads += 1;
-    if (pi->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
-    pi->density.neighbour_ids_grad[pi->density.nneigh_grads] = (int) pj->id;
-    pi->density.grads_sum_contrib[2*pi->density.nneigh_grads] = hidp1 * wi_dx * dx[0]/r;
-    pi->density.grads_sum_contrib[2*pi->density.nneigh_grads+1] = hidp1 * wi_dx * dx[1]/r;
-    pi->density.dwdr[pi->density.nneigh_grads] = hidp1 * wi_dx;
-
-    if (pi->id == 12 && pj->id == 34){
-      printf("ID 12->34 %14.8e %14.8e %14.8e dwdr=%14.8e\n", r, pi->h, pj->h, wi_dx);
-    }
 #endif
 
   pi->geometry.volume += wi;
@@ -306,16 +242,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   const float r_inv = 1.f / sqrtf(r2);
   const float r = r2 * r_inv;
 
-  if (mladen_globs.called_fluxes){
-    atomic_swap(&mladen_globs.called_fluxes, 0);
-    fprintf(mladen_globs.oneTimeFlagFilep, "Called fluxes common.\n");
-  }
-
-
-
-  /* Initialize local variables */
-#ifndef WITH_IVANOVA
-  float Bi[3][3];
   float Bj[3][3];
   float vi[3], vj[3];
   for (int k = 0; k < 3; k++) {
@@ -327,11 +253,11 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
     vj[k] = pj->v[k];
   }
 #else
-  float vi[3], vj[3];
-  for (int k = 0; k < 3; k++) {
-    vi[k] = pi->v[k]; /* particle velocities */
-    vj[k] = pj->v[k];
-  }
+float vi[3], vj[3];
+for (int k = 0; k < 3; k++) {
+  vi[k] = pi->v[k]; /* particle velocities */
+  vj[k] = pj->v[k];
+}
 #endif
   const float Vi = pi->geometry.volume;
   const float Vj = pj->geometry.volume;
@@ -412,8 +338,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   const float xj = r * hj_inv;
   kernel_deval(xj, &wj, &wj_dx);
 
-
-
   /* Compute h_dt. We are going to use an SPH-like estimate of div_v for that */
   const float hidp1 = pow_dimension_plus_one(hi_inv);
   const float hjdp1 = pow_dimension_plus_one(hj_inv);
@@ -443,7 +367,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
       Xi = (Vi * hj + Vj * hi) / (hi + hj);
       Xj = Xi;
     }
-    // fprintf(mladen_globs.outfilep, "CALLED GIZMO VOLUME CORRECTION\n");
 #endif
 #ifndef WITH_IVANOVA
     for (int k = 0; k < 3; k++) {
@@ -457,26 +380,13 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
 #else
     for (int k = 0; k < 3; k++) {
       /* we add a minus sign since dx is pi->x - pj->x */
-      A[k] = -Xj * ( -Xj * wj_dr * dx[k] / r - Xj * Xj * wj * hj_inv_dim * dWjdx_sum[k]) 
-            + Xi * ( Xi * wi_dr * dx[k] / r - Xi * Xi * wi * hi_inv_dim * dWidx_sum[k]);
+      A[k] = -Xj * (-Xj * wj_dr * dx[k] / r -
+                    Xj * Xj * wj * hj_inv_dim * dWjdx_sum[k]) +
+             Xi * (Xi * wi_dr * dx[k] / r -
+                   Xi * Xi * wi * hi_inv_dim * dWidx_sum[k]);
       Anorm2 += A[k] * A[k];
-
     }
-
-    // TODO: temporary
-    pi->density.nneigh += 1;
-    if (pi->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
-    pi->density.neighbour_ids[pi->density.nneigh] = (int) pj->id;
-    pi->density.Aij[2*pi->density.nneigh] = A[0];
-    pi->density.Aij[2*pi->density.nneigh+1] = A[1];
-
-    pj->density.nneigh += 1;
-    if (pj->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
-    pj->density.neighbour_ids[pj->density.nneigh] = (int) pi->id;
-    pj->density.Aij[2*pj->density.nneigh] = -A[0];
-    pj->density.Aij[2*pj->density.nneigh+1] = -A[1];
 #endif
-
 
   } else {
     /* ill condition gradient matrix: revert to SPH face area */
@@ -496,24 +406,20 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   const float Anorm_inv = 1. / sqrtf(Anorm2);
   const float Anorm = Anorm2 * Anorm_inv;
 
-
 #ifdef SWIFT_DEBUG_CHECKS
   /* For stability reasons, we do require A and dx to have opposite
      directions (basically meaning that the surface normal for the surface
      always points from particle i to particle j, as it would in a real
      moving-mesh code). If not, our scheme is no longer upwind and hence can
      become unstable. */
-  // TODO: temporary
-  // const float dA_dot_dx = A[0] * dx[0] + A[1] * dx[1] + A[2] * dx[2];
+  const float dA_dot_dx = A[0] * dx[0] + A[1] * dx[1] + A[2] * dx[2];
   /* In GIZMO, Phil Hopkins reverts to an SPH integration scheme if this
      happens. We curently just ignore this case and display a message. */
-  // TODO: temporary
-  // const float rdim = pow_dimension(r);
-  // TODO: temporary
-  // if (dA_dot_dx > 1.e-6f * rdim) {
-  //   message("Ill conditioned gradient matrix (%g %g %g %g %g)!", dA_dot_dx,
-  //           Anorm, Vi, Vj, r);
-  // }
+  const float rdim = pow_dimension(r);
+  if (dA_dot_dx > 1.e-6f * rdim) {
+    message("Ill conditioned gradient matrix (%g %g %g %g %g)!", dA_dot_dx,
+            Anorm, Vi, Vj, r);
+  }
 #endif
 
   /* compute the normal vector of the interface */
