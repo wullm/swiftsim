@@ -414,10 +414,12 @@ static const int powers[4] = {1,2,4,8};
 #define VEC_INT int32x4_t
 #define VEC_UINT uint32x4_t
 #define vec_load(a) vld1q_f32(a)
+#define vec_dbl_load(a) vld1q_f64(a)
 #define vec_store(a, addr) vst1q_f32(addr,a)
 #define vec_setzero() vmovq_n_f32(0.0f)
 #define vec_setintzero() vmovq_n_s32(0)
 #define vec_set1(a) vmovq_n_f32(a)
+#define vec_dbl_set1(a) vmovq_n_f64(a)
 #define vec_setint1(a) vmovq_n_s32(a)
 // #define vec_set(a, b, c, d) ({a, b, c, d})
 #define vec_add(a, b) vaddq_f32(a,b)
@@ -427,11 +429,14 @@ static const int powers[4] = {1,2,4,8};
 #define vec_mul(a, b) vmulq_f32(a, b)
 #define vec_div(a, b) vdivq_f32(a, b)
 #define vec_sqrt(a) vsqrtq_f32(a)
+#define vec_dbl_sqrt(a) vsqrtq_f64(a)
 #define vec_rcp(a) vrecpeq_f32(a)
 #define vec_rsqrt(a) vrsqrteq_f32(a)
 #define vec_ftoi(a) vcvtq_s32_f32(a)
 #define vec_fmin(a, b) vminq_f32(a, b)
 #define vec_fmax(a, b) vmaxq_f32(a, b)
+#define vec_dbl_fmin(a, b) vminq_f64(a, b)
+#define vec_dbl_fmax(a, b) vmaxq_f64(a, b)
 #define vec_fabs(a) vabsq_f32(a)
 #define vec_floor(a) vcvtq_f32_s32(vcvtmq_s32_f32(a))
 #define vec_cmp_gt(a, b) vcvtq_f32_u32(vcgtzq_f32(vec_sub(a,b)))
@@ -439,12 +444,14 @@ static const int powers[4] = {1,2,4,8};
 /* No less than on neon so we need to reverse the arguments and do greater than */
 #define vec_cmp_lt(a, b) vcvtq_f32_u32(vcgtzq_f32(vec_sub(b,a)))
 #define vec_cmp_lte(a, b) vcvtq_f32_u32(vcgezq_f32(vec_sub(b,a)))
+#define vec_cmp_result(a) vaddvq_s32(vmulq_s32(vshrq_n_s32(((vector)a).m,30),((vector)vld1q_s32(powers)).m))
 #define vec_is_mask_true(a) vaddvq_s32(vmulq_s32(vshrq_n_s32(a.m,30),((vector)vld1q_s32(powers)).m))
 #define vec_create_mask(mask, cond) ({ mask = (vector)cond; })
 #define vec_and(a, b) ((vector)vandq_s32(((vector)a).m, ((vector)b).m)).v
 #define vec_mask_and(a, b) vec_and(a.v, b.v)
 #define vec_and_mask(a, mask) ((vector)(vec_and(a, mask.v))).v
 #define vec_init_mask_true(mask) mask.m = vec_setint1(0xFFFFFFFF)
+#define vec_is_mask_bit_true(mask, i) (mask.i[i] == -1)
 #define vec_combine_masks(mask1, mask2) \
 	({ mask1.v = vec_mask_and(mask1,mask2); })
 #define vec_zero_mask(mask) mask.v = vec_setzero()
@@ -465,11 +472,22 @@ static const int powers[4] = {1,2,4,8};
 #define vec_fma(a, b, c) vec_add(vec_mul(a,b),c)
 #define vec_fnma(a,b,c) vec_sub(c, vec_mul(a,b))
 
+#elif __ARM_FEATURE_SVE 
+#include <armpl.h>
+#define VEC_SIZE 4
+#define VEC_FLOAT svfloat32x4_t
+#define VEC_DBL svfloat64x2_t
+#define VEC_INT svint32x4_t
+#define VEC_UINT svuint32x4_t
+#define vec_load(a) svld1q_f32(a)
+#define vec_dbl_load(a) svld1q_f64(a)
+
 #else /* __ARM_NEON_FP */
 #define VEC_SIZE 4
 #endif 
 
 /* Define the composite types for element access. */
+#error bannana
 typedef union {
   VEC_FLOAT v;
   VEC_DBL vd;
