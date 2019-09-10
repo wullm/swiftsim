@@ -478,6 +478,12 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
   p->density.rot_v[0] = 0.f;
   p->density.rot_v[1] = 0.f;
   p->density.rot_v[2] = 0.f;
+
+  p->done_init = 1;
+  p->done_density = 0;
+  p->done_gradient = 0;
+  p->done_force = 0;
+  p->done_cooling = 0;
 }
 
 /**
@@ -610,6 +616,8 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_force(
   const float balsara = hydro_props->viscosity.alpha * abs_div_physical_v /
                         (abs_div_physical_v + curl_v +
                          0.0001f * fac_Balsara_eps * soundspeed * h_inv);
+
+  p->done_density = 1;
 
   /* Update variables. */
   p->force.f = grad_h_term;
@@ -754,6 +762,8 @@ __attribute__((always_inline)) INLINE static void hydro_end_force(
     struct part *restrict p, const struct cosmology *cosmo) {
 
   p->force.h_dt *= p->h * hydro_dimension_inv;
+
+  p->done_force = 1;
 }
 
 /**

@@ -32,6 +32,8 @@
 
 #include "./hydro_parameters.h"
 
+extern int engine_min_bin;
+
 /**
  * @brief Density interaction between two particles.
  *
@@ -275,6 +277,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_gradient(
   if(pi->done_density != 1)
     error("Doing gradient before density!");
   
+  if(pj->time_bin <= engine_min_bin && pj->done_density != 1)
+    message("Doing gradient before density! pj->done_init=%d", pj->done_init);
+
   /* We need to construct the maximal signal velocity between our particle
    * and all of it's neighbours */
 
@@ -478,6 +483,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   if(pi->done_gradient != 1)
     error("Doing force before gradient!");
+
+  if(pj->time_bin <= engine_min_bin && pj->done_gradient != 1)
+    message("Doing gradient before density! pj->done_init=%d pj->done_density=%d", 
+	    pj->done_init, pj->done_density);
   
   /* Cosmological factors entering the EoMs */
   const float fac_mu = pow_three_gamma_minus_five_over_two(a);

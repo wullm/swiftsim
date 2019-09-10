@@ -37,6 +37,9 @@
 
 #include "./hydro_parameters.h"
 
+extern int engine_min_bin;
+
+
 /**
  * @brief Density interaction between two particles.
  *
@@ -52,6 +55,14 @@
 __attribute__((always_inline)) INLINE static void runner_iact_density(
     float r2, const float *dx, float hi, float hj, struct part *restrict pi,
     struct part *restrict pj, float a, float H) {
+
+
+  if(pi->done_init != 1)
+    error("Doing density before init!");
+
+  if(pj->done_init != 1)
+    error("Doing density before init!");
+
 
   float wi, wj, wi_dx, wj_dx;
 
@@ -134,6 +145,11 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
     float r2, const float *dx, float hi, float hj, struct part *restrict pi,
     const struct part *restrict pj, float a, float H) {
 
+
+  if(pi->done_init != 1)
+    error("Doing density before init!");
+
+
   float wi, wi_dx;
 
 #ifdef SWIFT_DEBUG_CHECKS
@@ -196,6 +212,14 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
 __attribute__((always_inline)) INLINE static void runner_iact_force(
     float r2, const float *dx, float hi, float hj, struct part *restrict pi,
     struct part *restrict pj, float a, float H) {
+
+
+  if(pi->done_density != 1)
+    error("Doing force before density!");
+
+  if(pj->done_density != 1)
+    error("Doing force before density!");
+
 
 #ifdef SWIFT_DEBUG_CHECKS
   if (pi->time_bin >= time_bin_inhibited)
@@ -330,6 +354,14 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   if (pj->time_bin >= time_bin_inhibited)
     error("Inhibited pj in interaction function!");
 #endif
+
+  if(pi->done_density != 1)
+    error("Doing force before density!");
+
+  if(pj->time_bin <= engine_min_bin && pj->done_density != 1)
+    message("Doing density before density! pj->done_init=%d pj->done_density=%d", 
+	    pj->done_init, pj->done_density);
+
 
   /* Cosmological factors entering the EoMs */
   const float fac_mu = pow_three_gamma_minus_five_over_two(a);
