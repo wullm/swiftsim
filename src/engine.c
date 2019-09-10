@@ -129,6 +129,7 @@ int engine_rank;
 
 /** The current step of the engine as a global variable (for messages). */
 int engine_current_step = 0;
+int engine_min_bin = 0;
 
 extern int engine_max_parts_per_ghost;
 extern int engine_max_sparts_per_ghost;
@@ -3744,7 +3745,10 @@ void engine_step(struct engine *e) {
   e->min_active_bin = get_min_active_bin(e->ti_current, e->ti_old);
   e->step += 1;
   engine_current_step = e->step;
+  engine_min_bin = e->min_active_bin;
   e->step_props = engine_step_prop_none;
+
+  message("min_bin=%d max_bin=%d", e->min_active_bin, e->max_active_bin);
 
   /* When restarting, move everyone to the current time. */
   if (e->restarting) engine_drift_all(e, /*drift_mpole=*/1);
