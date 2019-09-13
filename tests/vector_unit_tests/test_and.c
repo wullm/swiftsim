@@ -16,7 +16,6 @@ int main(){
 
     for(int i = 0; i < VEC_SIZE; i++){
         if(result.f[i] != (float)i){
-	    printf("%f %f\n", result.f[i], (float)i);
             return 1;
         }
     }

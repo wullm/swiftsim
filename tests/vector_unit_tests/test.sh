@@ -1,8 +1,7 @@
 #!/bin/bash
 let fails=0
-#for i in ./*.c; do
-for i in test_cmp_lte.c; do
-  gcc -march=native -mcpu=native $i -lm
+for i in ./*.c; do
+ if  gcc -march=native -mtune=native $i -lm; then
   if ./a.out; then
      :
 #    echo $i success
