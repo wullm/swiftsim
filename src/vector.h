@@ -472,22 +472,11 @@ static const int powers[4] = {1,2,4,8};
 #define vec_fma(a, b, c) vec_add(vec_mul(a,b),c)
 #define vec_fnma(a,b,c) vec_sub(c, vec_mul(a,b))
 
-#elif __ARM_FEATURE_SVE 
-#include <armpl.h>
-#define VEC_SIZE 4
-#define VEC_FLOAT svfloat32x4_t
-#define VEC_DBL svfloat64x2_t
-#define VEC_INT svint32x4_t
-#define VEC_UINT svuint32x4_t
-#define vec_load(a) svld1q_f32(a)
-#define vec_dbl_load(a) svld1q_f64(a)
-
 #else /* __ARM_NEON_FP */
 #define VEC_SIZE 4
 #endif 
 
 /* Define the composite types for element access. */
-#error bannana
 typedef union {
   VEC_FLOAT v;
   VEC_DBL vd;
