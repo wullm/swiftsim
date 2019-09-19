@@ -491,6 +491,9 @@ void engine_reconstruct_multipoles(struct engine *e);
 void engine_allocate_foreign_particles(struct engine *e);
 void engine_print_stats(struct engine *e);
 void engine_check_for_dumps(struct engine *e);
+#ifdef WITH_ENGINEERING
+void engine_fix_timestep(struct engine *e);
+#endif
 void engine_collect_end_of_step(struct engine *e, int apply);
 void engine_dump_snapshot(struct engine *e);
 void engine_init_output_lists(struct engine *e, struct swift_params *params);
