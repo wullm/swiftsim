@@ -246,6 +246,8 @@ nobase_noinst_HEADERS = align.h approx_math.h atomic.h barrier.h cycle.h error.h
 		 pressure_floor/GEAR/pressure_floor.h pressure_floor/none/pressure_floor.h \
 		 pressure_floor/GEAR/pressure_floor_iact.h pressure_floor/none/pressure_floor_iact.h \
 		 pressure_floor/GEAR/pressure_floor_struct.h pressure_floor/none/pressure_floor_struct.h
+                 boundary/fixed_fluid_boundary/boundary.h \
+                 boundary/no_boundary/boundary.h
 
 
 # Sources and flags for regular library
