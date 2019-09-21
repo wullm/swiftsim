@@ -238,7 +238,7 @@ INLINE static void hydro_write_particles(const struct part* parts,
 
   // TODO: TEMPORARY OUTPUT
 #ifdef WITH_IVANOVA
-  *num_fields = 21;
+  *num_fields = 23;
 
   /* store sum of individual cartesian gradients contributions */
   list[11] = io_make_output_field("GradientSum", FLOAT, 3, UNIT_CONV_NO_UNITS, 0.f, 
@@ -289,6 +289,15 @@ INLINE static void hydro_write_particles(const struct part* parts,
   /* radial derivative of the kernel */
   list[20] = io_make_output_field("dwdr", FLOAT, 200,  UNIT_CONV_NO_UNITS, 0.f, 
       parts, density.dwdr, "Radial derivative of kernel");
+
+  /* |pi.x - pj.x| */
+  list[21] = io_make_output_field("r", FLOAT, 200,  UNIT_CONV_NO_UNITS, 0.f, 
+      parts, density.r, "|pi.x - pj.x|");
+
+  /* contributions to the gradient sum from each neighbour */
+  list[22] = io_make_output_field("dx", FLOAT, 400,  UNIT_CONV_NO_UNITS, 0.f, 
+      parts, density.grads_sum_dx, "pi.x - pj.x");
+
 
   
 #endif

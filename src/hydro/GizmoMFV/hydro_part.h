@@ -200,6 +200,9 @@ struct part {
     int neighbour_ids_grad[200];      /* IDs of neighbour for individual gradient contributions */
     float grads_sum_contrib[400];     /* contributions to the gradient sum from each neighbour */
     float dwdr[200];                  /* radial derivative of the kernel */
+
+    float grads_sum_dx[400];          /* pi.x - pj.x*/
+    float r[200];                     /* |pi.x - pj.x | */
 #endif
 
   } density;
