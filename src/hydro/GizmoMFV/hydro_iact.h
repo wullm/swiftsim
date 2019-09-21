@@ -242,6 +242,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   const float r_inv = 1.f / sqrtf(r2);
   const float r = r2 * r_inv;
 
+#ifndef WITH_IVANOVA
   /* Initialize local variables */
   float Bi[3][3];
   float Bj[3][3];
@@ -295,7 +296,6 @@ for (int k = 0; k < 3; k++) {
   pi->density.omega = pi->density.wcount;
   pj->density.volume_store = Vj;
   pj->density.omega = pj->density.wcount;
-
 #endif
 
   /* calculate the maximal signal velocity */
@@ -382,10 +382,10 @@ for (int k = 0; k < 3; k++) {
 #else
     for (int k = 0; k < 3; k++) {
       /* we add a minus sign since dx is pi->x - pj->x */
-      A[k] = -Xj * (-Xj * wj_dr * dx[k] / r -
-                    Xj * Xj * wj * hj_inv_dim * dWjdx_sum[k]) +
-             Xi * (Xi * wi_dr * dx[k] / r -
-                   Xi * Xi * wi * hi_inv_dim * dWidx_sum[k]);
+      A[k] = Xi * (Xi * wi_dr * dx[k] / r -
+                 Xi * Xi * wi * hi_inv_dim * dWidx_sum[k]) -
+             Xj * (Xj * wj_dr * dx[k] / r -
+                    Xj * Xj * wj * hj_inv_dim * dWjdx_sum[k]);
       Anorm2 += A[k] * A[k];
     }
 #endif
