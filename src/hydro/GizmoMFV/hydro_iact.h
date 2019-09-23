@@ -30,6 +30,7 @@
 /* TODO: temp */
 #include "todo_temporary_globals.h"
 #include "atomic.h"
+#define GIZMO_ZERO_TOLERANCE 1.e-10
 
 
 
@@ -61,6 +62,13 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 
   float wi, wj, wi_dx, wj_dx;
 
+  // TODO: TEMP ZERO CHECK/RESET
+  float dx_mladen[3];
+  for (int i=0; i<3; i++){
+    dx_mladen[i] = dx[i];
+    if (fabsf(dx_mladen[i])<GIZMO_ZERO_TOLERANCE) dx_mladen[i] = 0.f;
+  }
+
   /* Get r and h inverse. */
   const float r = sqrtf(r2);
 
@@ -74,19 +82,19 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 #ifdef WITH_IVANOVA
   /* TODO: don't forget about the nonsym part! */
   const float hidp1 = pow_dimension_plus_one(hi_inv);
-  pi->density.wgrads[0] += hidp1 * wi_dx * dx[0] / r;
-  pi->density.wgrads[1] += hidp1 * wi_dx * dx[1] / r;
-  pi->density.wgrads[2] += hidp1 * wi_dx * dx[2] / r;
+  pi->density.wgrads[0] += hidp1 * wi_dx * dx_mladen[0] / r;
+  pi->density.wgrads[1] += hidp1 * wi_dx * dx_mladen[1] / r;
+  pi->density.wgrads[2] += hidp1 * wi_dx * dx_mladen[2] / r;
 
   // TODO: temporary
   pi->density.nneigh_grads += 1;
-  if (pi->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
-  pi->density.neighbour_ids_grad[pi->density.nneigh_grads] = (int) pj->id;
-  pi->density.grads_sum_contrib[2*pi->density.nneigh_grads] = hidp1 * wi_dx * dx[0]/r;
-  pi->density.grads_sum_contrib[2*pi->density.nneigh_grads+1] = hidp1 * wi_dx * dx[1]/r;
-  pi->density.grads_sum_dx[2*pi->density.nneigh_grads] = dx[0];
-  pi->density.grads_sum_dx[2*pi->density.nneigh_grads+1] = dx[1];
-  pi->density.dwdr[pi->density.nneigh_grads] = hidp1 * wi_dx;
+  // if (pi->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
+  // pi->density.neighbour_ids_grad[pi->density.nneigh_grads] = (int) pj->id;
+  // pi->density.grads_sum_contrib[2*pi->density.nneigh_grads] = hidp1 * wi_dx * dx_mladen[0]/r;
+  // pi->density.grads_sum_contrib[2*pi->density.nneigh_grads+1] = hidp1 * wi_dx * dx_mladen[1]/r;
+  // pi->density.grads_sum_dx[2*pi->density.nneigh_grads] = dx_mladen[0];
+  // pi->density.grads_sum_dx[2*pi->density.nneigh_grads+1] = dx_mladen[1];
+  // pi->density.dwdr[pi->density.nneigh_grads] = hidp1 * wi_dx;
   pi->density.r[pi->density.nneigh_grads] = r;
 #endif
 
@@ -109,18 +117,18 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pj->density.wcount_dh -= (hydro_dimension * wj + xj * wj_dx);
 #ifdef WITH_IVANOVA
   const float hjdp1 = pow_dimension_plus_one(hj_inv);
-  pj->density.wgrads[0] -= hjdp1 * wj_dx * dx[0] / r;
-  pj->density.wgrads[1] -= hjdp1 * wj_dx * dx[1] / r;
-  pj->density.wgrads[2] -= hjdp1 * wj_dx * dx[2] / r;
+  pj->density.wgrads[0] -= hjdp1 * wj_dx * dx_mladen[0] / r;
+  pj->density.wgrads[1] -= hjdp1 * wj_dx * dx_mladen[1] / r;
+  pj->density.wgrads[2] -= hjdp1 * wj_dx * dx_mladen[2] / r;
 
   pj->density.nneigh_grads += 1;
-  if (pj->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
-  pj->density.neighbour_ids_grad[pj->density.nneigh_grads] = (int) pi->id;
-  pj->density.grads_sum_contrib[2*pj->density.nneigh_grads] = -hjdp1 * wj_dx * dx[0]/r;
-  pj->density.grads_sum_contrib[2*pj->density.nneigh_grads+1] = -hjdp1 * wj_dx * dx[1]/r;
-  pj->density.grads_sum_dx[2*pj->density.nneigh_grads] = -dx[0];
-  pj->density.grads_sum_dx[2*pj->density.nneigh_grads+1] = -dx[1];
-  pj->density.dwdr[pj->density.nneigh_grads] = hjdp1 * wj_dx;
+  // if (pj->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
+  // pj->density.neighbour_ids_grad[pj->density.nneigh_grads] = (int) pi->id;
+  // pj->density.grads_sum_contrib[2*pj->density.nneigh_grads] = -hjdp1 * wj_dx * dx_mladen[0]/r;
+  // pj->density.grads_sum_contrib[2*pj->density.nneigh_grads+1] = -hjdp1 * wj_dx * dx_mladen[1]/r;
+  // pj->density.grads_sum_dx[2*pj->density.nneigh_grads] = -dx_mladen[0];
+  // pj->density.grads_sum_dx[2*pj->density.nneigh_grads+1] = -dx_mladen[1];
+  // pj->density.dwdr[pj->density.nneigh_grads] = hjdp1 * wj_dx;
   pj->density.r[pj->density.nneigh_grads] = r;
 #endif
 
@@ -162,6 +170,13 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
 
   float wi, wi_dx;
 
+  // TODO: TEMP ZERO CHECK/RESET
+  float dx_mladen[3];
+  for (int i=0; i<3; i++){
+    dx_mladen[i] = dx[i];
+    if (fabsf(dx_mladen[i])<GIZMO_ZERO_TOLERANCE) dx_mladen[i] = 0.f;
+  }
+
   /* Get r and h inverse. */
   const float r = sqrtf(r2);
 
@@ -174,19 +189,19 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
 #ifdef WITH_IVANOVA
   /* TODO: don't forget about the sym part! */
   const float hidp1 = pow_dimension_plus_one(hi_inv);
-  pi->density.wgrads[0] += hidp1 * wi_dx * dx[0] / r;
-  pi->density.wgrads[1] += hidp1 * wi_dx * dx[1] / r;
-  pi->density.wgrads[2] += hidp1 * wi_dx * dx[2] / r;
+  pi->density.wgrads[0] += hidp1 * wi_dx * dx_mladen[0] / r;
+  pi->density.wgrads[1] += hidp1 * wi_dx * dx_mladen[1] / r;
+  pi->density.wgrads[2] += hidp1 * wi_dx * dx_mladen[2] / r;
     
   // TODO: temporary
   pi->density.nneigh_grads += 1;
-  if (pi->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
-  pi->density.neighbour_ids_grad[pi->density.nneigh_grads] = (int) pj->id;
-  pi->density.grads_sum_contrib[2*pi->density.nneigh_grads] = hidp1 * wi_dx * dx[0]/r;
-  pi->density.grads_sum_contrib[2*pi->density.nneigh_grads+1] = hidp1 * wi_dx * dx[1]/r;
-  pi->density.grads_sum_dx[2*pi->density.nneigh_grads] = dx[0];
-  pi->density.grads_sum_dx[2*pi->density.nneigh_grads+1] = dx[1];
-  pi->density.dwdr[pi->density.nneigh_grads] = hidp1 * wi_dx;
+  // if (pi->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
+  // pi->density.neighbour_ids_grad[pi->density.nneigh_grads] = (int) pj->id;
+  // pi->density.grads_sum_contrib[2*pi->density.nneigh_grads] = hidp1 * wi_dx * dx_mladen[0]/r;
+  // pi->density.grads_sum_contrib[2*pi->density.nneigh_grads+1] = hidp1 * wi_dx * dx_mladen[1]/r;
+  // pi->density.grads_sum_dx[2*pi->density.nneigh_grads] = dx_mladen[0];
+  // pi->density.grads_sum_dx[2*pi->density.nneigh_grads+1] = dx_mladen[1];
+  // pi->density.dwdr[pi->density.nneigh_grads] = hidp1 * wi_dx;
   pi->density.r[pi->density.nneigh_grads] = r;
 #endif
 
@@ -281,6 +296,13 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
 
   const float r_inv = 1.f / sqrtf(r2);
   const float r = r2 * r_inv;
+
+  // TODO: TEMP ZERO CHECK/RESET
+  float dx_mladen[3];
+  for (int i=0; i<3; i++){
+    dx_mladen[i] = dx[i];
+    if (fabsf(dx_mladen[i])<GIZMO_ZERO_TOLERANCE) dx_mladen[i] = 0.f;
+  }
 
   /* Initialize local variables */
 #ifndef WITH_IVANOVA
@@ -400,31 +422,31 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   float Xi = Vi;
   float Xj = Vj;
 #ifdef GIZMO_VOLUME_CORRECTION
-  // if (fabsf(Vi - Vj) / min(Vi, Vj) > 1.5f * hydro_dimension) {
-  //   Xi = (Vi * hj + Vj * hi) / (hi + hj);
-  //   Xj = Xi;
-  // }
+  if (fabsf(Vi - Vj) / min(Vi, Vj) > 1.5f * hydro_dimension) {
+    Xi = (Vi * hj + Vj * hi) / (hi + hj);
+    Xj = Xi;
+  }
 #endif
   for (int k = 0; k < 3; k++) {
     /* we add a minus sign since dx is pi->x - pj->x */
-    A[k] = Xi * Xi * (wi_dr * dx[k] / r - Xi * wi * hi_inv_dim * dwidx_sum[k]) -
-           Xj * Xj * (wj_dr * dx[k] / r - Xj * wj * hj_inv_dim * dwjdx_sum[k]);
+    A[k] = Xi * Xi * (wi_dr * dx_mladen[k] / r - Xi * wi * hi_inv_dim * dwidx_sum[k]) -
+           Xj * Xj * (wj_dr * dx_mladen[k] / r - Xj * wj * hj_inv_dim * dwjdx_sum[k]);
     Anorm2 += A[k] * A[k];
 
   }
 
   // TODO: temporary
   pi->density.nneigh += 1;
-  if (pi->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
-  pi->density.neighbour_ids[pi->density.nneigh] = (int) pj->id;
-  pi->density.Aij[2*pi->density.nneigh] = A[0];
-  pi->density.Aij[2*pi->density.nneigh+1] = A[1];
+  // if (pi->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
+  // pi->density.neighbour_ids[pi->density.nneigh] = (int) pj->id;
+  // pi->density.Aij[2*pi->density.nneigh] = A[0];
+  // pi->density.Aij[2*pi->density.nneigh+1] = A[1];
 
   pj->density.nneigh += 1;
-  if (pj->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
-  pj->density.neighbour_ids[pj->density.nneigh] = (int) pi->id;
-  pj->density.Aij[2*pj->density.nneigh] = -A[0];
-  pj->density.Aij[2*pj->density.nneigh+1] = -A[1];
+  // if (pj->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
+  // pj->density.neighbour_ids[pj->density.nneigh] = (int) pi->id;
+  // pj->density.Aij[2*pj->density.nneigh] = -A[0];
+  // pj->density.Aij[2*pj->density.nneigh+1] = -A[1];
 
 #else
   if (pi->density.wcorr > const_gizmo_min_wcorr &&

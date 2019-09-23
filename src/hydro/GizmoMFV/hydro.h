@@ -436,6 +436,12 @@ __attribute__((always_inline)) INLINE static void hydro_part_has_no_neighbours(
   p->geometry.centroid[0] = 0.0f;
   p->geometry.centroid[1] = 0.0f;
   p->geometry.centroid[2] = 0.0f;
+
+#ifdef WITH_IVANOVA
+  p->density.wgrads[0] = 0.0f;
+  p->density.wgrads[1] = 0.0f;
+  p->density.wgrads[2] = 0.0f;
+#endif
 }
 
 /**
