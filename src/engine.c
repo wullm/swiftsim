@@ -1954,7 +1954,8 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
                        &e->logger.logger->timestamp_offset);
   /* Make sure that we have enough space in the particle logger file
    * to store the particles in current time step. */
-  logger_ensure_size(e->logger.logger, e->total_nr_parts, e->total_nr_gparts, 0);
+  logger_ensure_size(e->logger.logger, e->total_nr_parts, e->total_nr_gparts,
+                     0);
   logger_write_description(e->logger.logger, e);
 #endif
 
@@ -2267,7 +2268,8 @@ void engine_step(struct engine *e) {
                        &e->logger.logger->timestamp_offset);
   /* Make sure that we have enough space in the particle logger file
    * to store the particles in current time step. */
-  logger_ensure_size(e->logger.logger, e->total_nr_parts, e->total_nr_gparts, 0);
+  logger_ensure_size(e->logger.logger, e->total_nr_parts, e->total_nr_gparts,
+                     0);
 #endif
 
   /* Are we drifting everything (a la Gadget/GIZMO) ? */
@@ -2455,11 +2457,11 @@ void engine_check_for_dumps(struct engine *e) {
     /* Write some form of output */
     switch (type) {
       case output_index:
-      /* Write a file containing the offsets in the particle logger. */
-      engine_dump_index(e);
-      /* ... and find the next output time */
-      engine_compute_next_index_time(e);
-      break;
+        /* Write a file containing the offsets in the particle logger. */
+        engine_dump_index(e);
+        /* ... and find the next output time */
+        engine_compute_next_index_time(e);
+        break;
 
       case output_snapshot:
 
@@ -2476,7 +2478,7 @@ void engine_check_for_dumps(struct engine *e) {
 #endif
         }
 
-          /* Dump... */
+        /* Dump... */
         engine_dump_snapshot(e);
 
         /* Free the memory allocated for VELOCIraptor i/o. */
@@ -2546,7 +2548,8 @@ void engine_check_for_dumps(struct engine *e) {
     }
 
     /* Do we want an index file? */
-    if (e->ti_end_min > e->logger.ti_next_index && e->logger.ti_next_index > 0) {
+    if (e->ti_end_min > e->logger.ti_next_index &&
+        e->logger.ti_next_index > 0) {
       if (e->logger.ti_next_index < ti_output) {
         ti_output = e->logger.ti_next_index;
         type = output_index;
@@ -3444,15 +3447,16 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->total_nr_tasks = 0;
 
 #if defined(WITH_LOGGER)
-  e->logger.logger = (struct logger_writer *)malloc(sizeof(struct logger_writer));
+  e->logger.logger =
+      (struct logger_writer *)malloc(sizeof(struct logger_writer));
   logger_init(e->logger.logger, params);
 #endif
-  e->logger.a_first_index =
-    parser_get_opt_param_double(params, "Logger:scale_factor_first_index", 0.1);
+  e->logger.a_first_index = parser_get_opt_param_double(
+      params, "Logger:scale_factor_first_index", 0.1);
   e->logger.time_first_index =
-    parser_get_opt_param_double(params, "Logger:time_first_index", 0.);
+      parser_get_opt_param_double(params, "Logger:time_first_index", 0.);
   e->logger.delta_time_index =
-    parser_get_opt_param_double(params, "Logger:delta_time_index", -1.);
+      parser_get_opt_param_double(params, "Logger:delta_time_index", -1.);
 
   /* Make the space link back to the engine. */
   s->e = e;
@@ -3900,9 +3904,10 @@ void engine_config(int restart, int fof, struct engine *e,
 
       if (e->logger.a_first_index < e->cosmology->a_begin)
         error(
-              "Scale-factor of first index file (%e) must be after the simulation "
-              "start a=%e.",
-              e->logger.a_first_index, e->cosmology->a_begin);
+            "Scale-factor of first index file (%e) must be after the "
+            "simulation "
+            "start a=%e.",
+            e->logger.a_first_index, e->cosmology->a_begin);
 
       if (e->policy & engine_policy_structure_finding) {
 
@@ -3957,9 +3962,9 @@ void engine_config(int restart, int fof, struct engine *e,
 
       if (e->logger.time_first_index < e->time_begin)
         error(
-              "Time of first index file (%e) must be after the simulation start "
-              "t=%e.",
-              e->logger.time_first_index, e->time_begin);
+            "Time of first index file (%e) must be after the simulation start "
+            "t=%e.",
+            e->logger.time_first_index, e->time_begin);
 
       if (e->policy & engine_policy_structure_finding) {
 
@@ -4441,7 +4446,8 @@ void engine_compute_next_index_time(struct engine *e) {
 
     /* Output time on the integer timeline */
     if (e->policy & engine_policy_cosmology)
-      e->logger.ti_next_index = log(time / e->cosmology->a_begin) / e->time_base;
+      e->logger.ti_next_index =
+          log(time / e->cosmology->a_begin) / e->time_base;
     else
       e->logger.ti_next_index = (time - e->time_begin) / e->time_base;
 
@@ -5051,7 +5057,7 @@ void engine_struct_restore(struct engine *e, FILE *stream) {
 
   if (e->logger.output_list_index) {
     struct output_list *output_list_index =
-      (struct output_list *)malloc(sizeof(struct output_list));
+        (struct output_list *)malloc(sizeof(struct output_list));
     output_list_struct_restore(output_list_index, stream);
     e->logger.output_list_index = output_list_index;
   }
