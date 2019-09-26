@@ -39,8 +39,15 @@ struct index_data {
 /**
  * @brief Structure dealing with the index files.
  *
- * It contains a single index file.
- * TODO
+ * The structure is initialized with #logger_index_init and
+ * then a file can be read with #logger_index_read_header and
+ * #logger_index_map_file.
+ *
+ * The functions #logger_index_get_particle_offset and
+ * #logger_index_get_data should be used to access the element
+ * stored inside the index file.
+ * The first one access a particle through its ids and the second one
+ * gives a pointer to the first element that can be looped through.
  */
 struct logger_index {
   /* Pointer to the reader */

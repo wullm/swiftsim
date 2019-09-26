@@ -165,7 +165,7 @@ int logger_compute_chunk_size(unsigned int mask) {
 /**
  * @brief log all particles in the engine.
  *
- * @param log The #logger
+ * @param log The #logger_writer
  * @param e The #engine
  */
 void logger_log_all(struct logger_writer *log, const struct engine *e) {
@@ -219,7 +219,7 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
 /**
  * @brief Dump a #part to the log.
  *
- * @param log The #logger
+ * @param log The #logger_writer
  * @param p The #part to dump.
  * @param mask The mask of the data to dump.
  * @param offset Pointer to the offset of the previous log of this particle;
@@ -298,7 +298,7 @@ void logger_log_part(struct logger_writer *log, const struct part *p,
 /**
  * @brief Dump a #gpart to the log.
  *
- * @param log The #logger
+ * @param log The #logger_writer
  * @param p The #gpart to dump.
  * @param mask The mask of the data to dump.
  * @param offset Pointer to the offset of the previous log of this particle;
@@ -360,7 +360,7 @@ void logger_log_gpart(struct logger_writer *log, const struct gpart *p,
 /**
  * @brief write a timestamp
  *
- * @param log The #logger
+ * @param log The #logger_writer
  * @param timestamp time to write
  * @param time time or scale factor
  * @param offset Pointer to the offset of the previous log of this particle;
@@ -400,7 +400,7 @@ void logger_log_timestamp(struct logger_writer *log, integertime_t timestamp,
  * Check if logger parameters are large enough to write all particles
  * and ensure that enough space is available in the buffer.
  *
- * @param log The #logger
+ * @param log The #logger_writer
  * @param total_nr_parts total number of part
  * @param total_nr_gparts total number of gpart
  * @param total_nr_sparts total number of spart
@@ -432,7 +432,7 @@ void logger_ensure_size(struct logger_writer *log, size_t total_nr_parts,
 /**
  * @brief intialize the logger structure
  *
- * @param log The #logger
+ * @param log The #logger_writer
  * @param params The #swift_params
  */
 void logger_init(struct logger_writer *log, struct swift_params *params) {
@@ -469,14 +469,14 @@ void logger_init(struct logger_writer *log, struct swift_params *params) {
 /**
  * @brief Close dump file and desallocate memory
  *
- * @param log The #logger
+ * @param log The #logger_writer
  */
 void logger_free(struct logger_writer *log) { dump_close(&log->dump); }
 
 /**
  * @brief Write a file header to a logger file
  *
- * @param log The #logger
+ * @param log The #logger_writer
  *
  */
 void logger_write_file_header(struct logger_writer *log) {
@@ -540,7 +540,7 @@ void logger_write_file_header(struct logger_writer *log) {
  * @param buff The reading buffer
  * @param mask The mask to read
  * @param offset (return) the offset pointed by this chunk (absolute)
- * @param offset_cur The current chunk offset
+ * @param cur_offset The current chunk offset
  *
  * @return Number of bytes read
  */
@@ -697,6 +697,7 @@ int logger_read_gpart(struct gpart *p, size_t *offset, const char *buff) {
  * @brief Read a logger message for a timestamp.
  *
  * @param t The timestamp in which to store the value.
+ * @param time The time in which to store the value.
  * @param offset Pointer to the offset of the logger message in the buffer,
  *        will be overwritten with the offset of the previous message.
  * @param buff Pointer to the start of an encoded logger message.

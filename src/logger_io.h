@@ -38,7 +38,6 @@ void logger_write_description(struct logger_writer* log, struct engine* e);
  *
  * @param parts The particle array.
  * @param xparts The extra particle array.
- * @param N number of particles.
  * @param list (out) The parameters to write.
  *
  * In this version, we only want the ids and the offset.
@@ -62,7 +61,6 @@ __attribute__((always_inline)) INLINE static int hydro_write_index(
  * @brief Specifies which particle fields to write to a dataset
  *
  * @param gparts The gparticle array.
- * @param N number of particles.
  * @param list (out) The parameters to write.
  *
  * In this version, we only want the ids and the offset.

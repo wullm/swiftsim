@@ -1,6 +1,7 @@
 /*******************************************************************************
  * This file is part of SWIFT.
  * Copyright (c) 2017 Pedro Gonnet (pedro.gonnet@durham.ac.uk)
+ *               2018 Loic Hausammann (loic.hausammann@epfl.ch)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -18,6 +19,8 @@
  ******************************************************************************/
 #ifndef SWIFT_LOGGER_H
 #define SWIFT_LOGGER_H
+
+#include "../config.h"
 
 #ifdef WITH_LOGGER
 
@@ -104,7 +107,9 @@ extern const struct mask_data logger_mask_data[logger_count_mask];
 /* Size of the strings. */
 #define logger_string_length 200
 
-/* structure containing global data. */
+/**
+ * @brief structure containing global data for the particle logger.
+ */
 struct logger_writer {
   /* Number of particle steps between dumping a chunk of data. */
   short int delta_step;
@@ -169,9 +174,10 @@ INLINE static void logger_part_data_init(struct logger_part_data *logger) {
 /**
  * @brief Should this particle write its data now ?
  *
- * @param xp The #xpart.
- * @param delta_step Number of step between two outputs.
- * @return 1 if the #part should write, 0 otherwise.
+ * @param logger_data The #logger_part_data of a particle.
+ * @param log The #logger_writer.
+ *
+ * @return 1 if the particle should be writen, 0 otherwise.
  */
 __attribute__((always_inline)) INLINE static int logger_should_write(
     const struct logger_part_data *logger_data,
