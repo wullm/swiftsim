@@ -305,3 +305,66 @@ void logger_reader_read_from_index(struct logger_reader *reader, double time,
   /* Cleanup the threadpool */
   threadpool_clean(&threadpool);
 }
+
+/**
+ * @brief Get the simulation initial time.
+ *
+ * @param reader The #logger_reader.
+ *
+ * @return The initial time
+ */
+double logger_reader_get_time_begin(struct logger_reader *reader) {
+  return reader->log.times.records[0].time;
+}
+
+/**
+ * @brief Get the simulation final time.
+ *
+ * @param reader The #logger_reader.
+ *
+ * @return The final time
+ */
+double logger_reader_get_time_end(struct logger_reader *reader) {
+  const size_t ind = reader->log.times.size;
+  return reader->log.times.records[ind-1].time;
+}
+
+/**
+ * @brief Get the two particle records around the requested time.
+ *
+ * @param reader The #logger_reader.
+ * @param prev (in) A record before the requested time. (out) The last record before the time.
+ * @param next (out) The first record after the requested time.
+ * @param time_offset The offset of the requested time.
+ */
+void logger_reader_get_next_particle(
+    struct logger_reader *reader,
+    struct logger_particle *prev, struct logger_particle *next,
+    size_t time_offset) {
+
+  void *map = &reader->log.log.map;
+  size_t prev_offset = prev->offset;
+  size_t next_offset = 0;
+
+  while (1) {
+    /* Read the offset to the next particle */
+    logger_loader_io_read_mask(&reader->log.header, map + prev_offset, /* mask */NULL, &next_offset);
+    next_offset += prev_offset;
+
+    /* Have we found the next particle? */
+    if (next->offset > time_offset) {
+      break;
+    }
+
+    /* Update the previous offset */
+    prev_offset = next_offset;
+  }
+
+  /* Read the previous offset if required */
+  if (prev_offset != prev->offset) {
+    logger_particle_read(next, reader, prev_offset, /* Time */ 0, logger_reader_const);
+  }
+
+  /* Read the next particle */
+  logger_particle_read(next, reader, next_offset, /* Time */ 0, logger_reader_const);
+}

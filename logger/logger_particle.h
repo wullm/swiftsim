@@ -78,6 +78,9 @@ struct logger_particle {
 
   /* time of the record. */
   double time;
+
+  /* offset of the particle */
+  size_t offset;
 };
 
 /**

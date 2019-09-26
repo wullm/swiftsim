@@ -21,6 +21,7 @@ else:
 
 # read dump
 data = logger.loadFromIndex(basename, time)
+exit(1)
 
 pos = data["positions"]
 
