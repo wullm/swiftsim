@@ -323,7 +323,7 @@ of particles to use. By default, we use
    n_i = \sum_j W(\|\mathbf{r}_i - \mathbf{r}_j\|, h_i)
 
 but switching on the ``use_mass_weighted_num_ngb`` flag changes the
-defintion to:
+definition to:
 
 .. math::
    n_i = \frac{\rho_i}{m_i}
