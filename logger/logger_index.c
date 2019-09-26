@@ -191,7 +191,7 @@ size_t logger_index_get_particle(struct logger_index *index, long long id,
  * @brief Initialize the #logger_index.
  *
  * @param index The #logger_index.
- * @param reader The #reader.
+ * @param reader The #logger_reader.
  */
 void logger_index_init(struct logger_index *index,
                        struct logger_reader *reader) {

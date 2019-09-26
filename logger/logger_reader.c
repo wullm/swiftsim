@@ -226,11 +226,11 @@ struct extra_data_read {
 };
 
 /**
- * @brief Mapper function of #logger_reader_read_from_index.
+ * @brief Mapper function of logger_reader_read_from_index().
  *
  * @param map_data The array of #logger_particle.
  * @param num_elements The number of element to process.
- * @param extra_data The #read_from_index_mapper.
+ * @param extra_data The read_from_index_mapper().
  */
 void logger_reader_read_from_index_mapper(void *map_data, int num_elements,
                                           void *extra_data) {

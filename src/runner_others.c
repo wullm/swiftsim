@@ -597,8 +597,7 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
     struct gpart *restrict gp = &gparts[k];
 
     /* Write only the dark matter particles */
-    if (gp->type != swift_type_dark_matter)
-      continue;
+    if (gp->type != swift_type_dark_matter) continue;
 
     /* If particle needs to be log */
     /* This is the same function than part_is_active, except for
@@ -610,9 +609,9 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
         /* Currently writing everything, should adapt it through time */
         logger_log_gpart(e->logger.logger, gp,
                          logger_mask_data[logger_x].mask |
-                         logger_mask_data[logger_v].mask |
-                         logger_mask_data[logger_a].mask |
-                         logger_mask_data[logger_consts].mask,
+                             logger_mask_data[logger_v].mask |
+                             logger_mask_data[logger_a].mask |
+                             logger_mask_data[logger_consts].mask,
                          &gp->logger_data.last_offset);
 
         /* Set counter back to zero */
@@ -622,7 +621,7 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
         gp->logger_data.steps_since_last_output += 1;
     }
   }
- 
+
   if (c->stars.count > 0) error("sparts not implemented");
 
   if (timer) TIMER_TOC(timer_logger);
