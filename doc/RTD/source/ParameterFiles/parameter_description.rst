@@ -312,6 +312,8 @@ directly and are all optional:
   ``max_volume_change`` (Default: 1.4)
 * The maximal number of iterations allowed to converge the smoothing
   lengths: ``max_ghost_iterations`` (Default: 30)
+* Whether or not to use the E0 density correction from Dehnen & Aly (2012)
+  if available: ``use_epsilon_density_correction`` (Default: 0)
 
 These parameters all set the accuracy of the smoothing lengths in various
 ways. The first one specified what definition of the local number density
@@ -359,6 +361,13 @@ length is set in terms of the gravitational softening, ``h_min_ratio``, to
 prevent the smoothing length from going below this value in dense
 environments. This will lead to smoothing over more particles than specified
 by :math:`\eta`.
+
+Finally, for the Wendland-CX kernels in 3D, we allow for the use of the E0
+density correction in Dehnen & Aly (2012) Equation 19. We define the
+parameters for this internally in the code, and this option can be switched
+on using the ``use_epsilon_density_correction`` option. In practice, this
+correction makes little difference, but we recommend using it for the kernels
+for which it is available.
 
 The final set of parameters in this section determine the initial and minimum
 temperatures of the particles.
