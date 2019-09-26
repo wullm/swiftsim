@@ -119,7 +119,7 @@ void *logger_particle_read_field(struct logger_particle *part, void *map,
  * @param reader The #logger_reader.
  * @param part The #logger_particle to update.
  * @param offset offset of the record to read.
- * @param time time to interpolate.
+ * @param time time to interpolate (not used if constant interpolation).
  * @param reader_type #logger_reader_type.
  *
  * @return position after the record.
@@ -128,6 +128,9 @@ size_t logger_particle_read(struct logger_particle *part,
                             const struct logger_reader *reader, size_t offset,
                             const double time,
                             const enum logger_reader_type reader_type) {
+
+  /* Save the offset */
+  part->offset = offset;
 
   /* Get a few pointers. */
   const struct header *h = &reader->log.header;
