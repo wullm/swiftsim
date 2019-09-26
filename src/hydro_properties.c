@@ -220,6 +220,8 @@ void hydro_props_print(const struct hydro_props *p) {
   message("Hydrodynamic kernel: %s with eta=%f (%.2f neighbours).", kernel_name,
           p->eta_neighbours, p->target_neighbours);
 
+  message("E0 epsilon correction factor: %f." p->density_correction_epsilon);
+
   message("Hydrodynamic relative tolerance in h: %.5f (+/- %.4f neighbours).",
           p->h_tolerance, p->delta_neighbours);
 
@@ -284,6 +286,8 @@ void hydro_props_print_snapshot(hid_t h_grpsph, const struct hydro_props *p) {
   io_write_attribute_f(h_grpsph, "Kernel target N_ngb", p->target_neighbours);
   io_write_attribute_f(h_grpsph, "Kernel delta N_ngb", p->delta_neighbours);
   io_write_attribute_f(h_grpsph, "Kernel eta", p->eta_neighbours);
+  io_write_attribute_f(h_grpsph, "E0 epsilon correction factor",
+                       p->density_correction_epsilon);
   io_write_attribute_f(h_grpsph, "Smoothing length tolerance", p->h_tolerance);
   io_write_attribute_f(h_grpsph, "Maximal smoothing length [internal units]",
                        p->h_max);
