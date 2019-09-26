@@ -111,7 +111,8 @@ void logger_reader_set_time(struct logger_reader *reader, double time);
 
 double logger_reader_get_time_begin(struct logger_reader *reader);
 double logger_reader_get_time_end(struct logger_reader *reader);
-
+size_t logger_reader_get_offset_from_time(struct logger_reader *reader,
+                                          double time);
 void logger_reader_get_next_particle(struct logger_reader *reader,
                                      struct logger_particle *prev, struct logger_particle *next,
                                      size_t time);
