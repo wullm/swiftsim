@@ -205,21 +205,26 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
  *
  * @param p The particle to act upon.
  * @param cosmo The cosmological model.
+ * @param density_correction_epsilon Density correction epsilon from Dehnen &
+ *        Aly 2012 Equation 19.
  */
 __attribute__((always_inline)) INLINE static void hydro_end_density(
-    struct part* restrict p, const struct cosmology* cosmo) {
+    struct part* restrict p, const struct cosmology* cosmo,
+    const float density_correction_epsilon) {
 
   /* Some smoothing length multiples. */
   const float h = p->h;
   const float ih = 1.0f / h;
   const float ihdim = pow_dimension(ih);
   const float ihdim_plus_one = ihdim * ih;
+  const float one_minus_epsilon = (1.f - density_correction_epsilon);
+  const float corrected_kernel_root = kernel_root * one_minus_epsilon;
 
   /* Final operation on the density. */
-  p->density.wcount += kernel_root;
+  p->density.wcount += corrected_kernel_root;
   p->density.wcount *= ihdim;
 
-  p->density.wcount_dh -= hydro_dimension * kernel_root;
+  p->density.wcount_dh -= hydro_dimension * corrected_kernel_root;
   p->density.wcount_dh *= ihdim_plus_one;
 
   /* Final operation on the geometry. */

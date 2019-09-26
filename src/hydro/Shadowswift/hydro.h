@@ -182,9 +182,13 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
  * This method also initializes the gradient variables (if gradients are used).
  *
  * @param p The particle to act upon.
+ * @param cosmo The cosmological model.
+ * @param density_correction_epsilon Density correction epsilon from Dehnen &
+ *        Aly 2012 Equation 19.
  */
 __attribute__((always_inline)) INLINE static void hydro_end_density(
-    struct part* restrict p, const struct cosmology* cosmo) {
+    struct part* restrict p, const struct cosmology* cosmo,
+    const float density_correction_epsilon) {
 
   float volume;
   float m, momentum[3], energy;

@@ -526,23 +526,29 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
  *
  * @param p The particle to act upon
  * @param cosmo The cosmological model.
+ * @param density_correction_epsilon Density correction epsilon from Dehnen &
+ *        Aly 2012 Equation 19.
  */
 __attribute__((always_inline)) INLINE static void hydro_end_density(
-    struct part *restrict p, const struct cosmology *cosmo) {
+    struct part *restrict p, const struct cosmology *cosmo,
+    const float density_correction_epsilon) {
 
   /* Some smoothing length multiples. */
   const float h = p->h;
   const float h_inv = 1.0f / h;                       /* 1/h */
   const float h_inv_dim = pow_dimension(h_inv);       /* 1/h^d */
   const float h_inv_dim_plus_one = h_inv_dim * h_inv; /* 1/h^(d+1) */
+  const float one_minus_epsilon = (1.f - density_correction_epsilon);
+  const float corrected_kernel_root = kernel_root * one_minus_epsilon;
 
   /* Final operation on the density (add self-contribution). */
-  p->rho += p->mass * kernel_root;
-  p->density.rho_dh -= hydro_dimension * p->mass * kernel_root;
-  p->pressure_bar += p->mass * p->u * kernel_root;
-  p->density.pressure_bar_dh -= hydro_dimension * p->mass * p->u * kernel_root;
-  p->density.wcount += kernel_root;
-  p->density.wcount_dh -= hydro_dimension * kernel_root;
+  p->rho += p->mass * corrected_kernel_root;
+  p->density.rho_dh -= hydro_dimension * p->mass * corrected_kernel_root;
+  p->pressure_bar += p->mass * p->u * corrected_kernel_root;
+  p->density.pressure_bar_dh -=
+      hydro_dimension * p->mass * p->u * corrected_kernel_root;
+  p->density.wcount += corrected_kernel_root;
+  p->density.wcount_dh -= hydro_dimension * corrected_kernel_root;
 
   /* Finish the calculation by inserting the missing h-factors */
   p->rho *= h_inv_dim;
