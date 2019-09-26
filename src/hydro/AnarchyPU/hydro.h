@@ -555,11 +555,10 @@ __attribute__((always_inline)) INLINE static void hydro_end_density(
   const float h_inv_dim = pow_dimension(h_inv);       /* 1/h^d */
   const float h_inv_dim_plus_one = h_inv_dim * h_inv; /* 1/h^(d+1) */
   const float one_minus_epsilon = (1.f - density_correction_epsilon);
-  const float corrected_kernel_root =
-      kernel_root *one_minus_epsilon
+  const float corrected_kernel_root = kernel_root * one_minus_epsilon;
 
-          /* Final operation on the density (add self-contribution). */
-          p->rho += p->mass * corrected_kernel_root;
+  /* Final operation on the density (add self-contribution). */
+  p->rho += p->mass * corrected_kernel_root;
   p->density.rho_dh -= hydro_dimension * p->mass * corrected_kernel_root;
   p->pressure_bar += p->mass * p->u * corrected_kernel_root;
   p->density.pressure_bar_dh -=
