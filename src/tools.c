@@ -738,7 +738,7 @@ void engine_single_density(double *dim, long long int pid,
   }
 
   /* Dump the result. */
-  hydro_end_density(&p, cosmo);
+  hydro_end_density(&p, cosmo, /*density_correction_epsilon=*/0.f);
   message("part %lli (h=%e) has wcount=%e, rho=%e.", p.id, p.h,
           p.density.wcount, hydro_get_comoving_density(&p));
   fflush(stdout);

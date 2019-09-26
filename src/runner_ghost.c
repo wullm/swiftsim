@@ -953,6 +953,8 @@ void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
   const float eps = e->hydro_properties->h_tolerance;
   const float hydro_eta_dim =
       pow_dimension(e->hydro_properties->eta_neighbours);
+  const float density_correction_epsilon =
+      e->hydro_properties->density_correction_epsilon;
   const int use_mass_weighted_num_ngb =
       e->hydro_properties->use_mass_weighted_num_ngb;
   const int max_smoothing_iter = e->hydro_properties->max_smoothing_iterations;
@@ -1041,7 +1043,7 @@ void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
         } else {
 
           /* Finish the density calculation */
-          hydro_end_density(p, cosmo);
+          hydro_end_density(p, cosmo, density_correction_epsilon);
           chemistry_end_density(p, chemistry, cosmo);
           pressure_floor_end_density(p, cosmo);
           star_formation_end_density(p, star_formation, cosmo);

@@ -206,7 +206,8 @@ void zero_particle_fields(struct cell *c) {
  */
 void end_calculation(struct cell *c, const struct cosmology *cosmo) {
   for (int pid = 0; pid < c->hydro.count; pid++) {
-    hydro_end_density(&c->hydro.parts[pid], cosmo);
+    hydro_end_density(&c->hydro.parts[pid], cosmo,
+                      /*density_correction_epsilon=*/0.f);
   }
 }
 

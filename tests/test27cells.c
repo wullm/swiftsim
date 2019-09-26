@@ -239,7 +239,8 @@ void zero_particle_fields(struct cell *c) {
  */
 void end_calculation(struct cell *c, const struct cosmology *cosmo) {
   for (int pid = 0; pid < c->hydro.count; pid++) {
-    hydro_end_density(&c->hydro.parts[pid], cosmo);
+    hydro_end_density(&c->hydro.parts[pid], cosmo,
+                      /*density_correction_epsilon=*/0.f);
 
     /* Recover the common "Neighbour number" definition */
     c->hydro.parts[pid].density.wcount *= pow_dimension(c->hydro.parts[pid].h);
