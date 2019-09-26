@@ -330,6 +330,20 @@ double logger_reader_get_time_end(struct logger_reader *reader) {
 }
 
 /**
+ * @brief Get the offset of the last timestamp before a given time.
+ *
+ * @param reader The #logger_reader.
+ * @param time The requested time.
+ *
+ * @return The offset of the timestamp.
+ */
+size_t logger_reader_get_offset_from_time(struct logger_reader *reader,
+                                          double time) {
+  size_t ind = time_array_get_index_from_time(&reader->log.times, time);
+  return reader->log.times.records[ind].offset;
+}
+
+/**
  * @brief Get the two particle records around the requested time.
  *
  * @param reader The #logger_reader.
