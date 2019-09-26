@@ -220,7 +220,7 @@ void hydro_props_print(const struct hydro_props *p) {
   message("Hydrodynamic kernel: %s with eta=%f (%.2f neighbours).", kernel_name,
           p->eta_neighbours, p->target_neighbours);
 
-  message("E0 epsilon correction factor: %f." p->density_correction_epsilon);
+  message("E0 epsilon correction factor: %f.", p->density_correction_epsilon);
 
   message("Hydrodynamic relative tolerance in h: %.5f (+/- %.4f neighbours).",
           p->h_tolerance, p->delta_neighbours);
