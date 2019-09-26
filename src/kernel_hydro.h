@@ -25,7 +25,8 @@
  * @brief Kernel functions for SPH (scalar and vector version).
  *
  * All constants and kernel coefficients are taken from table 1 of
- * Dehnen & Aly, MNRAS, 425, pp. 1062-1082 (2012).
+ * Dehnen & Aly, MNRAS, 425, pp. 1062-1082 (2012), or from the discussion
+ * under Equation 19 in that paper for the density corrections.
  */
 
 /* Config parameters. */
@@ -48,6 +49,9 @@
 #define kernel_name "Cubic spline (M4)"
 #define kernel_degree 3 /*!< Degree of the polynomial */
 #define kernel_ivals 2  /*!< Number of branches */
+/* Following two parameters are described in Dehnen & Aly 2012, Equation 19 */
+#define kernel_epsilon_100 0.f /*! Epsilon parameter for density correction */
+#define kernel_alpha 0.f       /*! Alpha parameter for density correction */
 #if defined(HYDRO_DIMENSION_3D)
 #define kernel_gamma ((float)(1.825742))
 #define kernel_constant ((float)(16. * M_1_PI))
@@ -68,8 +72,11 @@ static const float kernel_coeffs[(kernel_degree + 1) * (kernel_ivals + 1)]
 
 /* Coefficients for the kernel. */
 #define kernel_name "Quartic spline (M5)"
-#define kernel_degree 4 /* Degree of the polynomial */
-#define kernel_ivals 5  /* Number of branches */
+#define kernel_degree 4        /* Degree of the polynomial */
+#define kernel_ivals 5         /* Number of branches */
+/* Following two parameters are described in Dehnen & Aly 2012, Equation 19 */
+#define kernel_epsilon_100 0.f /*! Epsilon parameter for density correction */
+#define kernel_alpha 0.f       /*! Alpha parameter for density correction */
 #if defined(HYDRO_DIMENSION_3D)
 #define kernel_gamma ((float)(2.018932))
 #define kernel_constant ((float)(15625. * M_1_PI / 512.))
@@ -94,8 +101,11 @@ static const float kernel_coeffs[(kernel_degree + 1) * (kernel_ivals + 1)]
 
 /* Coefficients for the kernel. */
 #define kernel_name "Quintic spline (M6)"
-#define kernel_degree 5 /* Degree of the polynomial */
-#define kernel_ivals 3  /* Number of branches */
+#define kernel_degree 5        /* Degree of the polynomial */
+#define kernel_ivals 3         /* Number of branches */
+/* Following two parameters are described in Dehnen & Aly 2012, Equation 19 */
+#define kernel_epsilon_100 0.f /*! Epsilon parameter for density correction */
+#define kernel_alpha 0.f       /*! Alpha parameter for density correction */
 #if defined(HYDRO_DIMENSION_3D)
 #define kernel_gamma ((float)(2.195775))
 #define kernel_constant ((float)(2187. * M_1_PI / 40.))
@@ -124,8 +134,12 @@ static const float kernel_coeffs[(kernel_degree + 1) * (kernel_ivals + 1)]
 #define kernel_name "Wendland C2"
 #define kernel_degree 5 /* Degree of the polynomial */
 #define kernel_ivals 1  /* Number of branches */
+/* Density correction parameters for this kernel are defined only in
+ * 3D, see Dehnen & Aly 2012 */
 #if defined(HYDRO_DIMENSION_1D)
 /* Wendland C* have different form in 1D than 2D/3D */
+#define kernel_epsilon_100 0.f
+#define kernel_alpha 0.f
 #define kernel_gamma ((float)(1.620185))
 #define kernel_constant ((float)(5. / 4.))
 static const float kernel_coeffs[(kernel_degree + 1) * (kernel_ivals + 1)]
@@ -134,9 +148,13 @@ static const float kernel_coeffs[(kernel_degree + 1) * (kernel_ivals + 1)]
         0.f, 0.f,  0.f, 0.f,  0.f, 0.f};
 #else
 #if defined(HYDRO_DIMENSION_3D)
+#define kernel_epsilon_100 0.0294f
+#define kernel_alpha 0.977f
 #define kernel_gamma ((float)(1.936492))
 #define kernel_constant ((float)(21. * M_1_PI / 2.))
 #elif defined(HYDRO_DIMENSION_2D)
+#define kernel_epsilon_100 0.f
+#define kernel_alpha 0.f
 #define kernel_gamma ((float)(1.897367))
 #define kernel_constant ((float)(7. * M_1_PI))
 #endif
@@ -152,10 +170,16 @@ static const float kernel_coeffs[(kernel_degree + 1) * (kernel_ivals + 1)]
 #define kernel_name "Wendland C4"
 #define kernel_degree 8 /* Degree of the polynomial */
 #define kernel_ivals 1  /* Number of branches */
+/* Density correction parameters for this kernel are defined only in
+ * 3D, see Dehnen & Aly 2012 */
 #if defined(HYDRO_DIMENSION_3D)
+#define kernel_epsilon_100 0.01342f
+#define kernel_alpha 1.579f
 #define kernel_gamma ((float)(2.207940))
 #define kernel_constant ((float)(495. * M_1_PI / 32.))
 #elif defined(HYDRO_DIMENSION_2D)
+#define kernel_epsilon_100 0.f
+#define kernel_alpha 0.f
 #define kernel_gamma ((float)(2.171239))
 #define kernel_constant ((float)(9. * M_1_PI))
 #elif defined(HYDRO_DIMENSION_1D)
@@ -175,10 +199,16 @@ static const float kernel_coeffs[(kernel_degree + 1) * (kernel_ivals + 1)]
 #define kernel_name "Wendland C6"
 #define kernel_degree 11 /* Degree of the polynomial */
 #define kernel_ivals 1   /* Number of branches */
+/* Density correction parameters for this kernel are defined only in
+ * 3D, see Dehnen & Aly 2012 */
 #if defined(HYDRO_DIMENSION_3D)
+#define kernel_epsilon_100 0.0116f
+#define kernel_alpha 2.236f
 #define kernel_gamma ((float)(2.449490))
 #define kernel_constant ((float)(1365. * M_1_PI / 64.))
 #elif defined(HYDRO_DIMENSION_2D)
+#define kernel_epsilon_100 0.f
+#define kernel_alpha 0.f
 #define kernel_gamma ((float)(2.415230))
 #define kernel_constant ((float)(78. * M_1_PI / 7.))
 #elif defined(HYDRO_DIMENSION_1D)

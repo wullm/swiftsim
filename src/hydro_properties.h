@@ -53,6 +53,9 @@ struct hydro_props {
   /*! Target weightd number of neighbours (for info only)*/
   float target_neighbours;
 
+  /*! Density correction epsilon (Equation 19 in Dehnen & Aly 2012) */
+  float density_correction_epsilon;
+
   /*! Smoothing length tolerance */
   float h_tolerance;
 

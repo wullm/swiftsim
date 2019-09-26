@@ -73,6 +73,19 @@ void hydro_props_init(struct hydro_props *p,
       (pow_dimension(delta_eta) - pow_dimension(p->eta_neighbours)) *
       kernel_norm;
 
+  /* Do we use the correction for the density estimate from Dehnen & Aly
+   * 2012, if available (i.e. for the Wendland-CX in 3D)? */
+  const int use_density_correction =
+      parser_get_opt_param_int(params, "SPH:use_epsilon_density_correction", 0);
+
+  if (use_density_correction) {
+    p->density_correction_epsilon =
+        kernel_epsilon_100 *
+        powf(p->target_neighbours / 100.0f, -1.f * kernel_alpha);
+  } else {
+    p->density_correction_epsilon = 0.f;
+  }
+
 #ifdef SHADOWFAX_SPH
   /* change the meaning of target_neighbours and delta_neighbours */
   p->target_neighbours = 1.0f;
