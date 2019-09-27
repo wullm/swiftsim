@@ -61,68 +61,74 @@ __attribute__((always_inline)) INLINE static float imaging_kernel(float r,
 }
 
 /**
- * @brief dumps a projected image.
+ * @brief Mapper function to turn part of the #parts into an image, stored
+ *        in the extra data.
  *
- * @props e, pointer to the engine.
- **/
-void image_dump_image(struct engine* e) {
-  const struct space* s = e->s;
-  const size_t num_parts = s->nr_parts;
-  const double box_size[2] = {s->dim[0], s->dim[1]};
+ * @param map_data The array of #part.
+ * @param num_parts The number of #parts.
+ * @param extra_data Pointer to the image and some extra data.
+ */
+void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
+                                              void* extra_data) {
 
-  /* Should change these to user-defined parameters... */
-  const int number_of_pixels[2] = {NUM_PIXELS, NUM_PIXELS};
+  struct part* restrict parts = (struct part*)map_data;
+  struct image_data* image_data = (struct image_data*)extra_data;
+
+  /* First unpack everything to local variables */
+  float* image = image_data->image;
+
   const size_t total_number_of_pixels =
-      (size_t)number_of_pixels[0] * number_of_pixels[1];
-
-  /* Allocate main image array */
-  float* image = (float*)malloc(total_number_of_pixels * sizeof(float));
-  bzero(image, total_number_of_pixels * sizeof(float));
+      (size_t)image_data->image_size[0] * image_data->image_size[1];
 
   /* Parameters for the imaging */
-  const float pixel_width_x = box_size[0] / number_of_pixels[0];
-  const float pixel_width_y = box_size[1] / number_of_pixels[1];
+  const float pixel_width_x =
+      image_data->box_size[0] / image_data->image_size[0];
+  const float pixel_width_y =
+      image_data->box_size[1] / image_data->image_size[1];
   const float pixel_area = pixel_width_x * pixel_width_y;
 
   /* Conversion factors to number of pixels. Required as float / int comparisons
    * can cause some trickery */
-  const float x_conversion_fac = number_of_pixels[0] / box_size[0];
-  const float y_conversion_fac = number_of_pixels[1] / box_size[1];
+  const float x_conversion_fac =
+      image_data->image_size[0] / image_data->box_size[0];
+  const float y_conversion_fac =
+      image_data->image_size[1] / image_data->box_size[1];
 
   const float drop_to_single_cell = pixel_width_x * 0.5;
 
   /* Perform a scatter over all particles */
   for (size_t particle = 0; particle < num_parts; particle++) {
     /* Grab the particle and extract properties! */
-    const struct part* p = &s->parts[particle];
+    const struct part* p = &parts[particle];
 
     /* Need to make sure the box is wrapped! Especially clear in e.g. a
      * Kelvin Helmholtz test. */
-    const double x_wrapped = box_wrap(p->x[0], 0.0, box_size[0]);
-    const double y_wrapped = box_wrap(p->x[1], 0.0, box_size[1]);
+    const double x_wrapped = box_wrap(p->x[0], 0.0, image_data->box_size[0]);
+    const double y_wrapped = box_wrap(p->x[1], 0.0, image_data->box_size[1]);
 
     /* What we really need is an integer position for comparison to the pixel
      * grid */
     const int x = x_wrapped * x_conversion_fac;
     const int y = y_wrapped * y_conversion_fac;
-    const float kernel_width = kernel_gamma * p->h / box_size[0];
+    const float kernel_width = kernel_gamma * p->h / image_data->box_size[0];
 
     if (kernel_width <= drop_to_single_cell) {
       /* Simple case; we average our mass over the size of the pixel */
-      const int pixel = x + number_of_pixels[0] * y;
+      const int pixel = x + image_data->image_size[0] * y;
       image[pixel] += p->mass / pixel_area;
     } else {
       /* More complex; we need to SPH-smooth the data. This follows the python
        * version in swiftsimio very closely */
 
       /* May run into problems with non-square grids here... */
-      const int cells_spanned = (int)(1.f + kernel_width * number_of_pixels[0]);
+      const int cells_spanned =
+          (int)(1.f + kernel_width * image_data->image_size[0]);
 
       /* Ensure our loop bounds stay within the x, y grid */
       const int starting_x = max(0, x - cells_spanned);
-      const int ending_x = max(x + cells_spanned, number_of_pixels[0]);
+      const int ending_x = max(x + cells_spanned, image_data->image_size[0]);
       const int starting_y = max(0, y - cells_spanned);
-      const int ending_y = max(y + cells_spanned, number_of_pixels[1]);
+      const int ending_y = max(y + cells_spanned, image_data->image_size[1]);
 
       /* Now loop over all cells (the square) that our #part covers in the
        * final image */
@@ -138,19 +144,64 @@ void image_dump_image(struct engine* e) {
           const float r = sqrtf(distance_x_2 + distance_y_2);
           const float kernel_eval = imaging_kernel(r, kernel_width);
 
-          const int pixel = cell_x + number_of_pixels[0] * cell_y;
+          const int pixel = cell_x + image_data->image_size[0] * cell_y;
           image[pixel] += kernel_eval * p->mass;
         }
       }
     }
   }
+}
+
+/**
+ * @brief Creates a projected image of all #parts that are in this
+ *        copy of the #engine.
+ *
+ * @props e, pointer to the engine
+ * @props image_data, pointer to image data.
+ */
+void create_projected_image(struct engine* e, struct image_data* image_data) {
+  const struct space* s = e->s;
+  const size_t num_parts = s->nr_parts;
+  struct part* parts = s->parts;
+
+  create_projected_image_threadpool_mapper(parts, num_parts, image_data);
+}
+
+/**
+ * @brief dumps a projected image.
+ *
+ * @props e, pointer to the engine.
+ **/
+void image_dump_image(struct engine* e) {
+  const double box_size[2] = {e->s->dim[0], e->s->dim[1]};
+  /* Should change these to user-defined parameters... */
+  const int image_size[2] = {NUM_PIXELS, NUM_PIXELS};
+
+  /* Allocate main image array */
+  const size_t total_number_of_pixels = (size_t)image_size[0] * image_size[1];
+  float* image = (float*)malloc(total_number_of_pixels * sizeof(float));
+  bzero(image, total_number_of_pixels * sizeof(float));
+
+  /* Package this in our struct for passing to a threadpool */
+  struct image_data image_data;
+  image_data.image = image;
+  /* There has to be a better way of doing these assignments */
+  image_data.image_size[0] = image_size[0];
+  image_data.image_size[1] = image_size[1];
+  image_data.box_size[0] = box_size[0];
+  image_data.box_size[1] = box_size[1];
+
+  image_data.drop_to_single_cell_factor = 0.5f;
+
+  /* Actually make the image! */
+  create_projected_image(e, &image_data);
 
   // BASIC I/O, Don't keep this lol
   char fileName[FILENAME_BUFFER_SIZE];
   snprintf(fileName, FILENAME_BUFFER_SIZE, "%s_%04i.dump", "image",
            e->snapshot_output_count);
   FILE* f = fopen(fileName, "wb");
-  fwrite(image, sizeof(float), number_of_pixels[0] * number_of_pixels[1], f);
+  fwrite(image, sizeof(float), image_size[0] * image_size[1], f);
   fclose(f);
 
   // HDF5 stuff

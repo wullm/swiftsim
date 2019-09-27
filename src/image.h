@@ -27,6 +27,23 @@
 #include "const.h"
 #include "engine.h"
 
+/**
+ * @brief Image data to pass to threadpool.
+ */
+struct image_data {
+  /*! Pointer to final image */
+  float* image;
+
+  /*! Size of resultant image */
+  int image_size[2];
+
+  /*! Boxsize */
+  double box_size[2];
+
+  /*! Drop to single cell factor */
+  float drop_to_single_cell_factor;
+};
+
 void image_dump_image(struct engine* e);
 
 #endif /* SWIFT_IMAGE_H */
