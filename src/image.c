@@ -145,7 +145,9 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
           const float kernel_eval = imaging_kernel(r, kernel_width);
 
           const int pixel = cell_x + image_data->image_size[0] * cell_y;
-          image[pixel] += kernel_eval * p->mass;
+          const float density_addition = kernel_eval * p->mass;
+
+          image[pixel] += density_addition;
         }
       }
     }
@@ -164,7 +166,8 @@ void create_projected_image(struct engine* e, struct image_data* image_data) {
   const size_t num_parts = s->nr_parts;
   struct part* parts = s->parts;
 
-  create_projected_image_threadpool_mapper(parts, num_parts, image_data);
+  threadpool_map(&e->threadpool, create_projected_image_threadpool_mapper,
+                 s->parts, num_parts, sizeof(struct part), 0, image_data);
 }
 
 /**
