@@ -2458,8 +2458,8 @@ void engine_check_for_dumps(struct engine *e) {
         /* Write a file containing the offsets in the particle logger. */
         engine_dump_index(e);
 #else
-        engine_dump_snapshot(e);
         image_dump_image(e);
+        engine_dump_snapshot(e);
 #endif
 
         /* Free the memory allocated for VELOCIraptor i/o. */

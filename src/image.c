@@ -37,37 +37,40 @@ void image_dump_image(struct engine* e) {
 
   /* Should change these to user-defined parameters... */
   const int number_of_pixels[2] = {128, 128};
+  const size_t total_number_of_pixels = (size_t) number_of_pixels[0] * number_of_pixels[1];
 
   const float pixel_area = (float)(box_size[0] / ((double)number_of_pixels[0]) *
                                    box_size[1] / ((double)number_of_pixels[1]));
 
-  float* image = (float*)malloc(number_of_pixels[0] * number_of_pixels[1] *
+  float* image = (float*)malloc( total_number_of_pixels *
                               sizeof(float));
 
   /* Need to first zero our memory */
-  for (size_t pixel = 0; pixel < ; pixel++) {
+  for (size_t pixel = 0; pixel < total_number_of_pixels; pixel++) {
     image[pixel] = 0.f;
   }
 
   for (size_t particle = 0; particle < num_parts; particle++) {
     /* Grab the particle and extract properties! */
     const struct part* p = &s->parts[particle];
-    const double x = p->x[0];
-    const double y = p->x[1];
+    const int x = number_of_pixels[0] * (p->x[0] / box_size[0]);
+    const int y = number_of_pixels[1] * (p->x[1] / box_size[1]);
     const float density_contribution = p->mass / pixel_area;
 
     /* Now need to figure out which pixel this friendly neighbourhood
      * #part icle belongs in */
 
-    const int pixel =
-        (int)x / box_size[0] + number_of_pixels[0] * (int)y / box_size[1];
+    const int pixel = x + number_of_pixels[0] * y;
 
     /* Add on the density contribution to the individual pixel */
     image[pixel] += density_contribution;
   }
 
   // BASIC I/O, Don't keep this lol
-  FILE *f = fopen("image_dump_test.dump", "wb");
+  char fileName[FILENAME_BUFFER_SIZE];
+  snprintf(fileName, FILENAME_BUFFER_SIZE, "%s_%04i.dump", "image",
+           e->snapshot_output_count);
+  FILE *f = fopen(fileName, "wb");
   fwrite(image, sizeof(float), number_of_pixels[0] * number_of_pixels[1], f);
   fclose(f);
 
