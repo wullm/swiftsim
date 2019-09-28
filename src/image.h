@@ -42,8 +42,14 @@ struct image_data {
 
   /*! Drop to single cell factor */
   float drop_to_single_cell_factor;
+
+  /*! Lock for when merging individual images into larger whole */
+  swift_lock_type lock;
 };
 
+static float imaging_kernel(float r, float H);
+
 void image_dump_image(struct engine* e);
+static void image_add(float* image_from, float* image_to, size_t size);
 
 #endif /* SWIFT_IMAGE_H */

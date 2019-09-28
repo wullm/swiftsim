@@ -29,7 +29,7 @@
 /* Taken from Dehnen & Aly 2012 */
 #define imaging_kernel_gamma 1.897367
 #define imaging_kernel_constant 2.228171
-#define NUM_PIXELS 512
+#define NUM_PIXELS 2048
 
 /**
  * @brief Kernel for imaging. Returns the kernel in correct units (i.e.
@@ -61,6 +61,23 @@ __attribute__((always_inline)) INLINE static float imaging_kernel(float r,
 }
 
 /**
+ * @brief Adds two images together
+ *
+ * @param image_from, the image that remains fixed and values are taken from
+ * @param image_to, the image that is modified and has things added to it
+ * @param size, the size of the images.
+ */
+__attribute__((always_inline)) INLINE static void image_add(float* image_from,
+                                                            float* image_to,
+                                                            size_t size) {
+  for (size_t i = 0; i < size; i++) {
+    image_to[i] += image_from[i];
+  }
+
+  return;
+}
+
+/**
  * @brief Mapper function to turn part of the #parts into an image, stored
  *        in the extra data.
  *
@@ -79,6 +96,10 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
 
   const size_t total_number_of_pixels =
       (size_t)image_data->image_size[0] * image_data->image_size[1];
+
+  /* Create our own threadlocal image */
+  float* thread_image = (float*)malloc(total_number_of_pixels * sizeof(float));
+  bzero(thread_image, total_number_of_pixels * sizeof(float));
 
   /* Parameters for the imaging */
   const float pixel_width_x =
@@ -115,7 +136,7 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
     if (kernel_width <= drop_to_single_cell) {
       /* Simple case; we average our mass over the size of the pixel */
       const int pixel = x + image_data->image_size[0] * y;
-      image[pixel] += p->mass / pixel_area;
+      thread_image[pixel] += p->mass / pixel_area;
     } else {
       /* More complex; we need to SPH-smooth the data. This follows the python
        * version in swiftsimio very closely */
@@ -126,9 +147,13 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
 
       /* Ensure our loop bounds stay within the x, y grid */
       const int starting_x = max(0, x - cells_spanned);
-      const int ending_x = max(x + cells_spanned, image_data->image_size[0]);
+      /* Remove 1 because we want the maximal _index_, and image_size is the
+       * size of the image */
+      const int ending_x =
+          min(x + cells_spanned, image_data->image_size[0] - 1);
       const int starting_y = max(0, y - cells_spanned);
-      const int ending_y = max(y + cells_spanned, image_data->image_size[1]);
+      const int ending_y =
+          min(y + cells_spanned, image_data->image_size[1] - 1);
 
       /* Now loop over all cells (the square) that our #part covers in the
        * final image */
@@ -147,11 +172,22 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
           const int pixel = cell_x + image_data->image_size[0] * cell_y;
           const float density_addition = kernel_eval * p->mass;
 
-          image[pixel] += density_addition;
+          /* We can't write to the main image here; we need to create a
+           * thread-local copy and then write the whole image at one whilst
+           * the main image is locked at the end. */
+          thread_image[pixel] += density_addition;
         }
       }
     }
   }
+
+  /* Now we can merge the images from all threads, assuming we have the lock */
+  if (lock_lock(&image_data->lock) == 0)
+    image_add(thread_image, image, total_number_of_pixels);
+  if (lock_unlock(&image_data->lock) != 0)
+    error("Failed to unlock image_data.");
+
+  free(thread_image);
 }
 
 /**
@@ -195,6 +231,10 @@ void image_dump_image(struct engine* e) {
   image_data.box_size[1] = box_size[1];
 
   image_data.drop_to_single_cell_factor = 0.5f;
+
+  /* Initialise the lock; we can't have everyone writing to the main image
+   * all at once! */
+  lock_init(&image_data.lock);
 
   /* Actually make the image! */
   create_projected_image(e, &image_data);
