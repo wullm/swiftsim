@@ -95,4 +95,7 @@ __attribute__((always_inline)) INLINE static void *logger_loader_io_write_data(
   return data + size;
 };
 
+
+void logger_writeArray(hid_t grp, const struct threadpool *threadpool,
+                       const struct io_props props, size_t N);
 #endif  // LOGGER_LOGGER_LOADER_IO_H

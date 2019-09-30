@@ -125,5 +125,6 @@ void logger_reader_read_from_index_mapper(void *map_data, int num_elements,
 void logger_reader_read_from_index(struct logger_reader *reader, double time,
                                    enum logger_reader_type inter_type,
                                    struct logger_particle *parts, size_t n_tot);
+void logger_reader_write_snapshot(struct logger_reader *reader, double time, const char *output, enum logger_reader_type);
 
 #endif  // LOGGER_LOGGER_READER_H

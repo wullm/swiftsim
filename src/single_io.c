@@ -922,7 +922,7 @@ void write_output_single(struct engine* e, const char* baseName,
   parser_write_params_to_hdf5(e->parameter_file, h_grp, 0);
   H5Gclose(h_grp);
 
-  /* Print the system of Units used in the spashot */
+  /* Print the system of Units used in the snapshot */
   io_write_unit_system(h_file, snapshot_units, "Units");
 
   /* Print the system of Units used internally */

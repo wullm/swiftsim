@@ -25,6 +25,8 @@
 #include <unistd.h>
 
 /* Include local headers */
+#include "io_properties.h"
+#include "logger_particle_io.h"
 #include "threadpool.h"
 
 #define nr_threads get_nprocs()
@@ -381,4 +383,105 @@ void logger_reader_get_next_particle(
 
   /* Read the next particle */
   logger_particle_read(next, reader, next_offset, /* Time */ 0, logger_reader_const);
+}
+
+/**
+ * @brief Write all the particles in a HDF5.
+ *
+ * @param reader The #logger_reader.
+ * @param time The interpolation time.
+ * @param output The output filename.
+ * @param type The type of interpolation.
+ */
+void logger_reader_write_snapshot(
+    struct logger_reader *reader, double time,
+    const char *output, enum logger_reader_type type) {
+
+#ifdef HAVE_HDF5
+  /* Number of particles in the index files */
+  long long n_tot = 0;
+
+  /* Set the reading time */
+  logger_reader_set_time(reader, time);
+
+  /* Get the number of particles */
+  int n_type = 0;
+  const long long *n_parts =
+    logger_reader_get_number_particles(reader, &n_type);
+  long long n_parts_acc[swift_type_count] = {0};
+
+  for (int i = 0; i < n_type; i++) {
+    n_tot += n_parts[i];
+    if (i != 0) {
+      n_parts_acc[i] += n_parts_acc[i-1];
+    }
+  }
+
+  /* Allocate the output memory */
+  struct logger_particle *parts = (struct logger_particle *)
+    malloc(n_tot * sizeof(struct logger_particle));
+
+  /* Read the particle. */
+  logger_reader_read_from_index(reader, time, type,
+                                parts, n_tot);
+
+  /* Initialize the thread pool */
+  struct threadpool threadpool;
+  threadpool_init(&threadpool, nr_threads);
+
+  /* Write a snapshot */
+
+  /* Open file */
+  hid_t h_file = H5Fcreate(output, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (h_file < 0) error("Error while opening file '%s'.", output);
+
+  /* Loop over all particle types */
+  for (int ptype = 0; ptype < swift_type_count; ptype++) {
+    /* Don't do anything if no particle of this kind */
+    if (n_parts[ptype] == 0)
+      continue;
+
+    /* Open the particle group in the file */
+    char partTypeGroupName[PARTICLE_GROUP_BUFFER_SIZE];
+    snprintf(partTypeGroupName, PARTICLE_GROUP_BUFFER_SIZE, "/PartType%d",
+             ptype);
+    hid_t h_grp = H5Gcreate(h_file, partTypeGroupName, H5P_DEFAULT, H5P_DEFAULT,
+                      H5P_DEFAULT);
+    if (h_grp < 0) error("Error while creating particle group.\n");
+
+    int num_fields = 0;
+    struct io_props list[100];
+
+    /* Write particle fields from the particle structure */
+    switch (ptype) {
+
+      case swift_type_gas:
+        logger_hydro_write_particles(parts + n_parts_acc[swift_type_gas],
+                                     list, &num_fields);
+        break;
+
+      case swift_type_dark_matter:
+        logger_darkmatter_write_particles(parts + n_parts_acc[swift_type_dark_matter],
+                                          list, &num_fields);
+        break;
+
+    }
+
+    /* Write everything */
+    for (int i = 0; i < num_fields; ++i) {
+      logger_writeArray(h_grp, &threadpool, list[i], n_parts[ptype]);
+    }
+
+    /* Close particle group */
+    H5Gclose(h_grp);
+  }
+
+  /* Close file */
+  H5Fclose(h_file);
+
+  /* Clean up */
+  threadpool_clean(&threadpool);
+#else
+  error("Cannot write snapshots without HDF5");
+#endif
 }

@@ -47,7 +47,7 @@ PyArray_Descr *logger_particle_descr;
  *
  * <b>verbose</b> Verbose level.
  *
- * <b>returns</b> dictionnary containing the data read.
+ * <b>returns</b> Numpy array with the particles.
  */
 static PyObject *loadFromIndex(__attribute__((unused)) PyObject *self,
                                PyObject *args) {
@@ -89,7 +89,7 @@ static PyObject *loadFromIndex(__attribute__((unused)) PyObject *self,
   Py_BEGIN_ALLOW_THREADS;
 
   /* Read the particle. */
-  logger_reader_read_from_index(&reader, time, logger_reader_const,
+  logger_reader_read_from_index(&reader, time, logger_reader_lin,
                                 PyArray_DATA(out), n_tot);
 
   /* No need of threads anymore */
@@ -99,6 +99,52 @@ static PyObject *loadFromIndex(__attribute__((unused)) PyObject *self,
   logger_reader_free(&reader);
 
   return (PyObject *)out;
+}
+
+
+/**
+ * @brief load data from the index files and write it in an HDF5 file.
+ *
+ * <b>basename</b> Base name of the logger files.
+ *
+ * <b>time</b> The time requested.
+ *
+ * <b>output</b> Output filename.
+ *
+ * <b>verbose</b> Verbose level.
+ */
+static PyObject *writeSnapshot(__attribute__((unused)) PyObject *self,
+                               PyObject *args) {
+
+  /* declare variables. */
+  char *basename = NULL;
+  char *output = NULL;
+
+  double time = 0;
+  int verbose = 2;
+
+  /* parse arguments. */
+  if (!PyArg_ParseTuple(args, "sds|i", &basename, &time, &output, &verbose)) return NULL;
+
+  /* initialize the reader. */
+  struct logger_reader reader;
+  logger_reader_init(&reader, basename, verbose);
+
+  if (verbose > 1) message("Reading particles.");
+
+  /* Allows to use threads */
+  Py_BEGIN_ALLOW_THREADS;
+
+  /* Read the logger file and write the output file */
+  logger_reader_write_snapshot(&reader, time, output, logger_reader_lin);
+
+  /* No need of threads anymore */
+  Py_END_ALLOW_THREADS;
+
+  /* Free the memory. */
+  logger_reader_free(&reader);
+
+  return Py_None;
 }
 
 /**
@@ -134,6 +180,8 @@ static PyMethodDef libloggerMethods[] = {
      "Load snapshot directly from the offset in an index file."},
     {"reverseOffset", pyReverseOffset, METH_VARARGS,
      "Reverse the offset (from pointing backward to forward)."},
+    {"writeSnapshot", writeSnapshot, METH_VARARGS,
+     "Read the logger at a given time and then write a snapshot"},
 
     {NULL, NULL, 0, NULL} /* Sentinel */
 };

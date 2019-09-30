@@ -47,7 +47,8 @@ lib_LTLIBRARIES = liblogger.la
 SUBDIRS = tests
 
 # List required headers
-include_HEADERS = logger_header.h logger_loader_io.h logger_particle.h logger_time.h logger_tools.h logger_reader.h \
+include_HEADERS = logger_header.h logger_loader_io.h logger_particle.h logger_particle_io.h \
+	logger_time.h logger_tools.h logger_reader.h \
 	logger_logfile.h logger_index.h radix_sort.h
 
 # Common source files
