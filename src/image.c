@@ -81,6 +81,9 @@ __attribute__((always_inline)) INLINE static void image_add(float* image_from,
  * @brief Mapper function to turn part of the #parts into an image, stored
  *        in the extra data.
  *
+ *        Creates a threadlocal image and smooths the given #parts onto it.
+ *        At the end, we lock the main image and write back to main memory.
+ *
  * @param map_data The array of #part.
  * @param num_parts The number of #parts.
  * @param extra_data Pointer to the image and some extra data.
@@ -97,7 +100,8 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
   const size_t total_number_of_pixels =
       (size_t)image_data->image_size[0] * image_data->image_size[1];
 
-  /* Create our own threadlocal image */
+  /* Create our own threadlocal image to avoid collision on the main
+   * copy of the image in memory. */
   float* thread_image = (float*)malloc(total_number_of_pixels * sizeof(float));
   bzero(thread_image, total_number_of_pixels * sizeof(float));
 
@@ -115,7 +119,9 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
   const float y_conversion_fac =
       image_data->image_size[1] / image_data->box_size[1];
 
-  const float drop_to_single_cell = pixel_width_x * 0.5;
+  /* May cause some problems when dealing with non-square boxes */
+  const float drop_to_single_cell =
+      pixel_width_x * image_data->drop_to_single_cell_factor;
 
   /* Perform a scatter over all particles */
   for (size_t particle = 0; particle < num_parts; particle++) {
@@ -168,13 +174,12 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
 
           const float r = sqrtf(distance_x_2 + distance_y_2);
           const float kernel_eval = imaging_kernel(r, kernel_width);
-
-          const int pixel = cell_x + image_data->image_size[0] * cell_y;
           const float density_addition = kernel_eval * p->mass;
 
           /* We can't write to the main image here; we need to create a
            * thread-local copy and then write the whole image at one whilst
            * the main image is locked at the end. */
+          const int pixel = cell_x + image_data->image_size[0] * cell_y;
           thread_image[pixel] += density_addition;
         }
       }
@@ -187,6 +192,7 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
   if (lock_unlock(&image_data->lock) != 0)
     error("Failed to unlock image_data.");
 
+  /* Be a good thread and tidy up, will you? */
   free(thread_image);
 }
 
@@ -242,10 +248,12 @@ void image_dump_image(struct engine* e) {
   // BASIC I/O, Don't keep this lol
   char fileName[FILENAME_BUFFER_SIZE];
   snprintf(fileName, FILENAME_BUFFER_SIZE, "%s_%04i.dump", "image",
-           e->snapshot_output_count);
+           e->image_output_count);
   FILE* f = fopen(fileName, "wb");
   fwrite(image, sizeof(float), image_size[0] * image_size[1], f);
   fclose(f);
+
+  e->image_output_count++;
 
   // HDF5 stuff
   // /* For now, we'll just dump this as a single array to HDF5. */

@@ -2381,7 +2381,8 @@ void engine_check_for_dumps(struct engine *e) {
     output_none,
     output_snapshot,
     output_statistics,
-    output_stf
+    output_stf,
+    output_image
   };
 
   /* What kind of output do we want? And at which time ?
@@ -2413,6 +2414,15 @@ void engine_check_for_dumps(struct engine *e) {
         ti_output = e->ti_next_stf;
         type = output_stf;
       }
+    }
+  }
+
+  /* Do we want to make ourselves a pretty image? */
+  if (e->ti_end_min > e->ti_next_image && e->ti_next_image > 0) {
+    if (e->ti_next_image < ti_output) {
+      ti_output = e->ti_next_image;
+      type = output_image;
+      printf("Making image?");
     }
   }
 
@@ -2458,7 +2468,6 @@ void engine_check_for_dumps(struct engine *e) {
         /* Write a file containing the offsets in the particle logger. */
         engine_dump_index(e);
 #else
-        image_dump_image(e);
         engine_dump_snapshot(e);
 #endif
 
@@ -2500,6 +2509,16 @@ void engine_check_for_dumps(struct engine *e) {
 #endif
         break;
 
+      case output_image:
+
+        /* Beauty is in the eye of the beholder */
+        image_dump_image(e);
+
+        /* Can't have been that beautiful, we'd better move on now */
+        engine_compute_next_image_time(e);
+
+        break;
+
       default:
         error("Invalid dump type");
     }
@@ -2533,6 +2552,14 @@ void engine_check_for_dumps(struct engine *e) {
           ti_output = e->ti_next_stf;
           type = output_stf;
         }
+      }
+    }
+
+    /* Do we want to make an image? */
+    if (e->ti_end_min > e->ti_next_image && e->ti_next_image > 0) {
+      if (e->ti_next_image < ti_output) {
+        ti_output = e->ti_next_image;
+        type = output_image;
       }
     }
 
@@ -3378,6 +3405,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   units_init_default(e->snapshot_units, params, "Snapshots", internal_units);
   e->snapshot_output_count = 0;
   e->stf_output_count = 0;
+  e->image_output_count = 0;
   e->dt_min = parser_get_param_double(params, "TimeIntegration:dt_min");
   e->dt_max = parser_get_param_double(params, "TimeIntegration:dt_max");
   e->dt_max_RMS_displacement = FLT_MAX;
@@ -3389,9 +3417,15 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
       parser_get_opt_param_double(params, "Statistics:time_first", 0.);
   e->delta_time_statistics =
       parser_get_param_double(params, "Statistics:delta_time");
+  e->a_first_image_call =
+      parser_get_opt_param_double(params, "Images:scale_factor_first", 0.1);
+  e->time_first_image_call =
+      parser_get_opt_param_double(params, "Images:time_first", 0.);
+  e->delta_time_image = parser_get_param_double(params, "Images:delta_time");
   e->ti_next_stats = 0;
   e->ti_next_stf = 0;
   e->ti_next_fof = 0;
+  e->ti_next_image = 0;
   e->verbose = verbose;
   e->wallclock_time = 0.f;
   e->physical_constants = physical_constants;
@@ -3957,6 +3991,9 @@ void engine_config(int restart, int fof, struct engine *e,
       engine_compute_next_fof_time(e);
     }
 
+    /* Find the time of the first image output */
+    engine_compute_next_image_time(e);
+
     /* Check that we are invoking VELOCIraptor only if we have it */
     if (e->snapshot_invoke_stf &&
         !(e->policy & engine_policy_structure_finding)) {
@@ -4481,6 +4518,69 @@ void engine_compute_next_fof_time(struct engine *e) {
 }
 
 /**
+ * @brief Computes the next time (on the time line) that we want to make
+ *        an image at.
+ *
+ * @param e The #engine.
+ */
+void engine_compute_next_image_time(struct engine *e) {
+  
+  /* Find upper-bound on last output */
+  double time_end;
+  if (e->policy & engine_policy_cosmology)
+    time_end = e->cosmology->a_end * e->delta_time_image;
+  else
+    time_end = e->time_end + e->delta_time_image;
+
+  /* Find next snasphot above current time */
+  double time;
+  if (e->policy & engine_policy_cosmology)
+    time = e->a_first_image_call;
+  else
+    time = e->time_first_image_call;
+
+  int found_image_time = 0;
+  while (time < time_end) {
+
+    /* Output time on the integer timeline */
+    if (e->policy & engine_policy_cosmology)
+      e->ti_next_image = log(time / e->cosmology->a_begin) / e->time_base;
+    else
+      e->ti_next_image = (time - e->time_begin) / e->time_base;
+
+    /* Found it? */
+    if (e->ti_next_image > e->ti_current) {
+      found_image_time = 1;
+      break;
+    }
+
+    if (e->policy & engine_policy_cosmology)
+      time *= e->delta_time_image;
+    else
+      time += e->delta_time_image;
+  }
+
+  /* Deal with last snapshot */
+  if (!found_image_time) {
+    e->ti_next_image = -1;
+    if (e->verbose) message("No further image time.");
+  } else {
+
+    /* Be nice, talk... */
+    if (e->policy & engine_policy_cosmology) {
+      const float next_image_time =
+          exp(e->ti_next_fof * e->time_base) * e->cosmology->a_begin;
+      // if (e->verbose)
+      message("Next image time set to a=%e.", next_image_time);
+    } else {
+      const float next_image_time =
+          e->ti_next_image * e->time_base + e->time_begin;
+      if (e->verbose) message("Next image time set to t=%e.", next_image_time);
+    }
+  }
+}
+
+/**
  * @brief Initialize all the output_list required by the engine
  *
  * @param e The #engine.
@@ -4494,10 +4594,11 @@ void engine_init_output_lists(struct engine *e, struct swift_params *params) {
                    &e->delta_time_snapshot, &snaps_time_first);
 
   if (e->output_list_snapshots) {
-    if (e->policy & engine_policy_cosmology)
+    if (e->policy & engine_policy_cosmology) {
       e->a_first_snapshot = snaps_time_first;
-    else
+    } else {
       e->time_first_snapshot = snaps_time_first;
+    }
   }
 
   /* Deal with stats */
@@ -4507,10 +4608,11 @@ void engine_init_output_lists(struct engine *e, struct swift_params *params) {
                    &e->delta_time_statistics, &stats_time_first);
 
   if (e->output_list_stats) {
-    if (e->policy & engine_policy_cosmology)
+    if (e->policy & engine_policy_cosmology) {
       e->a_first_statistics = stats_time_first;
-    else
+    } else {
       e->time_first_statistics = stats_time_first;
+    }
   }
 
   /* Deal with stf */
@@ -4520,10 +4622,25 @@ void engine_init_output_lists(struct engine *e, struct swift_params *params) {
                    &e->delta_time_stf, &stf_time_first);
 
   if (e->output_list_stf) {
-    if (e->policy & engine_policy_cosmology)
+    if (e->policy & engine_policy_cosmology) {
       e->a_first_stf_output = stf_time_first;
-    else
+    } else {
       e->time_first_stf_output = stf_time_first;
+    }
+  }
+
+  /* Deal with images; this is simple for now! */
+  double image_time_first;
+  e->output_list_images = NULL;
+  output_list_init(&e->output_list_images, e, "Images", &e->delta_time_image,
+                   &image_time_first);
+
+  if (e->output_list_images) {
+    if (e->policy & engine_policy_cosmology) {
+      e->a_first_image_call = image_time_first;
+    } else {
+      e->time_first_image_call = image_time_first;
+    }
   }
 }
 

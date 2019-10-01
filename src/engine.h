@@ -340,6 +340,18 @@ struct engine {
   /* File handle for the SFH logger file */
   FILE *sfh_logger;
 
+  /* Image information */
+  double a_first_image_call;
+  double time_first_image_call;
+  double delta_time_image;
+  int image_output_count;
+
+  /* Integer time of next image output */
+  integertime_t ti_next_image;
+
+  /* Output_List for the images */
+  struct output_list *output_list_images;
+
   /* The current step number. */
   int step;
 
@@ -485,6 +497,7 @@ void engine_barrier(struct engine *e);
 void engine_compute_next_snapshot_time(struct engine *e);
 void engine_compute_next_stf_time(struct engine *e);
 void engine_compute_next_fof_time(struct engine *e);
+void engine_compute_next_image_time(struct engine *e);
 void engine_compute_next_statistics_time(struct engine *e);
 void engine_recompute_displacement_constraint(struct engine *e);
 void engine_unskip(struct engine *e);
