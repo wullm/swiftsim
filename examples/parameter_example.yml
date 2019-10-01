@@ -201,11 +201,19 @@ DomainDecomposition:
 StructureFinding:
   config_file_name:     stf_input.cfg # Name of the STF config file.
   basename:             ./stf         # Common part of the name of output files.
-  scale_factor_first:   0.92          # (Optional) Scale-factor of the first snaphot (cosmological run)
+  scale_factor_first:   0.92          # (Optional) Scale-factor of the first snapshot (cosmological run)
   time_first:           0.01          # (Optional) Time of the first structure finding output (in internal units).
   delta_time:           1.10          # (Optional) Time difference between consecutive structure finding outputs (in internal units) in simulation time intervals.
   output_list_on:       0   	      # (Optional) Enable the output list
   output_list:          stflist.txt   # (Optional) File containing the output times (see documentation in "Parameter File" section)
+
+# Imaging parameters
+Images:
+  time_first:           0.0             # First output time
+  delta_time:           0.01            # (Optional) Time difference between consecutive image outputs (in internal units) 
+  scale_factor_first:   0.1             # (Optional) Scale factor of the first snapshot (cosmological run)
+  output_list_on:       0               # (Optional) Use the outuput list?
+  output_list:          imagelist.txt   # (Optional) File containing the output times (see documentation in "Parameter File" section)
 
 # Parameters related to the equation of state ------------------------------------------
 
