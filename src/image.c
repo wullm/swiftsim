@@ -245,33 +245,74 @@ void image_dump_image(struct engine* e) {
   /* Actually make the image! */
   create_projected_image(e, &image_data);
 
-  // BASIC I/O, Don't keep this lol
-  char fileName[FILENAME_BUFFER_SIZE];
-  snprintf(fileName, FILENAME_BUFFER_SIZE, "%s_%04i.dump", "image",
+  /* HDF5 i/o */
+  /* TODO: Read me in from the command line */
+  char file_name_hdf[FILENAME_BUFFER_SIZE] = "IMAGE_OUT_TEST.hdf5";
+  /* For now, we'll just dump this as a single array to HDF5. */
+  hid_t h_file =
+      H5Fcreate(file_name_hdf, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+
+  if (h_file < 0) {
+    /* Ok, so the file already exists, let's just open it */
+    h_file = H5Fopen(file_name_hdf, H5F_ACC_RDWR, H5P_DEFAULT);
+  }
+
+  if (h_file < 0) {
+    /* If we've still failed we're having a very bad day */
+    error("Failed to open image HDF5 file\n");
+  }
+
+  hid_t h_grp =
+      H5Gcreate(h_file, "/Images", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  if (h_grp < 0) {
+    /* Probably already exists, just open it */
+    h_grp = H5Gopen(h_file, "/Images", H5P_DEFAULT);
+  }
+  if (h_grp < 0) {
+    /* Again, we're having a really bad day... */
+    error("Error while creating group\n");
+  }
+
+  /* Now we want to create the datasets that we're going to use to store
+   * our image, as well as write out some metadata properties. */
+
+  char dataset_name[FILENAME_BUFFER_SIZE];
+  /* TODO: Read me in from the command line */
+  snprintf(dataset_name, FILENAME_BUFFER_SIZE, "PixelGrid%04i",
            e->image_output_count);
-  FILE* f = fopen(fileName, "wb");
-  fwrite(image, sizeof(float), image_size[0] * image_size[1], f);
-  fclose(f);
+
+  /* Create a data space for our dataset to live in (a 2D square array) */
+  hsize_t image_dims[2] = {(hsize_t)image_size[0], (hsize_t)image_size[1]};
+  hid_t h_space = H5Screate_simple(2, image_dims, NULL);
+
+  /* Create our dataset in which we'll store our pixel grid */
+  hid_t h_data = H5Dcreate(h_grp, dataset_name, H5T_NATIVE_FLOAT, h_space,
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  /* Actually write out the data */
+  herr_t write =
+      H5Dwrite(h_data, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, image);
+
+  /* Now we can get started on our metadata! */
+  hsize_t number_of_attributes = (hsize_t)1;
+  hid_t h_space_attr = H5Screate_simple(1, &number_of_attributes, NULL);
+  hid_t h_attr_time = H5Acreate(h_data, "Time", H5T_NATIVE_DOUBLE, h_space_attr,
+                                H5P_DEFAULT, H5P_DEFAULT);
+  const double output_time = e->ti_current * e->time_base;
+  herr_t write_attr = H5Awrite(h_attr_time, H5T_NATIVE_DOUBLE, &output_time);
+
+  /* Close attribute properties */
+  H5Sclose(h_space_attr);
+  H5Aclose(h_attr_time);
+
+  /* Close dataset properties */
+  H5Dclose(h_data);
+  H5Sclose(h_space);
+  H5Gclose(h_grp);
+  H5Fclose(h_file);
 
   e->image_output_count++;
-
-  // HDF5 stuff
-  // /* For now, we'll just dump this as a single array to HDF5. */
-  // h_file = H5Fcreate("IMAGE_OUT_TEST.hdf5", H5F_ACC_TRUNC, H5P_DEFAULT,
-  // H5P_DEFAULT); if (h_file < 0) {
-  //   error("Error while opening file image file");
-  // }
-
-  // h_grp = H5Gcreate(h_file, "/Images", H5P_DEFAULT, H5P_DEFAULT,
-  // H5P_DEFAULT); if (h_grp < 0) error("Error while creating group\n");
-
-  // /* Create data space */
-  // const hid_t h_space = H5Screate(H5S_SIMPLE);
-  // if (h_space < 0)
-  //   error("Error while creating data space for field '%s'.", props.name);
-
-  // H5Gclose(h_grp);
-  // H5Fclose(h_file);
 
   free(image);
 }
