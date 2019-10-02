@@ -51,10 +51,9 @@
  * @param k Index along z.
  * @param N Size of the array along one axis.
  */
-__attribute__((always_inline)) INLINE static int row_major_id_periodic(int i,
-                                                                       int j,
-                                                                       int k,
-                                                                       int N) {
+__attribute__((always_inline, const)) INLINE static int row_major_id_periodic(
+    const int i, const int j, const int k, const int N) {
+
   return (((i + N) % N) * N * N + ((j + N) % N) * N + ((k + N) % N));
 }
 
@@ -109,23 +108,24 @@ __attribute__((always_inline)) INLINE static void CIC_set(
     double* mesh, int N, int i, int j, int k, double tx, double ty, double tz,
     double dx, double dy, double dz, double value) {
 
+#ifdef SWIFT_DEBUG_CHECKS
+  if (i >= N) error("i >= N");
+  if (j >= N) error("j >= N");
+  if (k >= N) error("k >= N");
+  if (i < 0) error("i < 0");
+  if (j < 0) error("j < 0");
+  if (k < 0) error("k < 0");
+#endif
+
   /* Classic CIC interpolation */
-  atomic_add_d(&mesh[row_major_id_periodic(i + 0, j + 0, k + 0, N)],
-               value * tx * ty * tz);
-  atomic_add_d(&mesh[row_major_id_periodic(i + 0, j + 0, k + 1, N)],
-               value * tx * ty * dz);
-  atomic_add_d(&mesh[row_major_id_periodic(i + 0, j + 1, k + 0, N)],
-               value * tx * dy * tz);
-  atomic_add_d(&mesh[row_major_id_periodic(i + 0, j + 1, k + 1, N)],
-               value * tx * dy * dz);
-  atomic_add_d(&mesh[row_major_id_periodic(i + 1, j + 0, k + 0, N)],
-               value * dx * ty * tz);
-  atomic_add_d(&mesh[row_major_id_periodic(i + 1, j + 0, k + 1, N)],
-               value * dx * ty * dz);
-  atomic_add_d(&mesh[row_major_id_periodic(i + 1, j + 1, k + 0, N)],
-               value * dx * dy * tz);
-  atomic_add_d(&mesh[row_major_id_periodic(i + 1, j + 1, k + 1, N)],
-               value * dx * dy * dz);
+  mesh[row_major_id_periodic(i + 0, j + 0, k + 0, N)] = value * tx * ty * tz;
+  mesh[row_major_id_periodic(i + 0, j + 0, k + 1, N)] = value * tx * ty * dz;
+  mesh[row_major_id_periodic(i + 0, j + 1, k + 0, N)] = value * tx * dy * tz;
+  mesh[row_major_id_periodic(i + 0, j + 1, k + 1, N)] = value * tx * dy * dz;
+  mesh[row_major_id_periodic(i + 1, j + 0, k + 0, N)] = value * dx * ty * tz;
+  mesh[row_major_id_periodic(i + 1, j + 0, k + 1, N)] = value * dx * ty * dz;
+  mesh[row_major_id_periodic(i + 1, j + 1, k + 0, N)] = value * dx * dy * tz;
+  mesh[row_major_id_periodic(i + 1, j + 1, k + 1, N)] = value * dx * dy * dz;
 }
 
 /**
@@ -138,7 +138,18 @@ __attribute__((always_inline)) INLINE static void CIC_set(
  * @param dim The dimensions of the simulation box.
  */
 INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho, int N,
-                                     double fac, const double dim[3]) {
+                                     double fac, const double dim[3],
+                                     const int N_local, const int i_min,
+                                     const int j_min, const int k_min) {
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (gp->x[0] > dim[0]) error("x too large!");
+  if (gp->x[1] > dim[1]) error("y too large!");
+  if (gp->x[2] > dim[2]) error("z too large!");
+  if (gp->x[0] < 0.) error("x too small!");
+  if (gp->x[1] < 0.) error("y too small!");
+  if (gp->x[2] < 0.) error("z too small!");
+#endif
 
   /* Box wrap the multipole's position */
   const double pos_x = box_wrap(gp->x[0], 0., dim[0]);
@@ -147,30 +158,42 @@ INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho, int N,
 
   /* Workout the CIC coefficients */
   int i = (int)(fac * pos_x);
-  if (i >= N) i = N - 1;
+  if (i >= N) {
+    error("aaa");
+  }  // i = N - 1;
   const double dx = fac * pos_x - i;
   const double tx = 1. - dx;
 
   int j = (int)(fac * pos_y);
-  if (j >= N) j = N - 1;
+  if (j >= N) {
+    error("bbb");
+  }  // j = N - 1;
   const double dy = fac * pos_y - j;
   const double ty = 1. - dy;
 
   int k = (int)(fac * pos_z);
-  if (k >= N) k = N - 1;
+  if (k >= N) {
+    error("ccc");
+  }  // k = N - 1;
   const double dz = fac * pos_z - k;
   const double tz = 1. - dz;
 
+  /* Get the indices in the local copy of the mesh */
+  const int ii = i - i_min;
+  const int jj = j - j_min;
+  const int kk = k - k_min;
+
 #ifdef SWIFT_DEBUG_CHECKS
-  if (i < 0 || i >= N) error("Invalid gpart position in x");
-  if (j < 0 || j >= N) error("Invalid gpart position in y");
-  if (k < 0 || k >= N) error("Invalid gpart position in z");
+  if (ii < 0 || ii >= N_local) error("Invalid gpart position in x %d", ii);
+  if (jj < 0 || jj >= N_local) error("Invalid gpart position in y %d", jj);
+  if (kk < 0 || kk >= N_local) error("Invalid gpart position in z %d", kk);
 #endif
 
+  /* The mass to add to the mesh */
   const double mass = gp->mass;
 
   /* CIC ! */
-  CIC_set(rho, N, i, j, k, tx, ty, tz, dx, dy, dz, mass);
+  CIC_set(rho, N_local, ii, jj, kk, tx, ty, tz, dx, dy, dz, mass);
 }
 
 /**
@@ -184,13 +207,20 @@ INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho, int N,
  * @param dim The dimensions of the simulation box.
  */
 void cell_gpart_to_mesh_CIC(const struct cell* c, double* rho, int N,
-                            double fac, const double dim[3]) {
+                            double fac, const double dim[3], const int N_local,
+                            const int i_min, const int j_min, const int k_min) {
+
   const int gcount = c->grav.count;
   const struct gpart* gparts = c->grav.parts;
+  const int local_size = N_local * N_local * N_local;
+
+  double local_rho[local_size];
+  bzero(local_rho, local_size * sizeof(double));
 
   /* Assign all the gpart of that cell to the mesh */
   for (int i = 0; i < gcount; ++i)
-    gpart_to_mesh_CIC(&gparts[i], rho, N, fac, dim);
+    gpart_to_mesh_CIC(&gparts[i], local_rho, N, fac, dim, N_local, i_min, j_min,
+                      k_min);
 }
 
 /**
@@ -236,8 +266,30 @@ void cell_gpart_to_mesh_CIC_mapper(void* map_data, int num, void* extra) {
     /* Pointer to local cell */
     const struct cell* c = &cells[local_cells[i]];
 
+    /* Workout local extent of the mesh for this cell */
+    const int i_min = (int)(fac * c->loc[0]);
+    const int j_min = (int)(fac * c->loc[1]);
+    const int k_min = (int)(fac * c->loc[2]);
+
+    const int i_max = (int)(fac * (c->loc[0] + c->width[0])) + 1;
+    const int j_max = (int)(fac * (c->loc[1] + c->width[1])) + 1;
+    const int k_max = (int)(fac * (c->loc[2] + c->width[2])) + 1;
+
+    const int delta_i = i_max - i_min;
+    const int delta_j = j_max - j_min;
+    const int delta_k = k_max - k_min;
+
+    /* Number of local cells along one axis */
+    const int N_local = max3(delta_i, delta_j, delta_k);
+
+#ifdef SWIFT_DEBUG_CHECKS
+    if (N_local < (i_max - i_min)) error("Incorrect local cell count in i");
+    if (N_local < (j_max - j_min)) error("Incorrect local cell count in j");
+    if (N_local < (k_max - k_min)) error("Incorrect local cell count in k");
+#endif
+
     /* Assign this cell's content to the mesh */
-    cell_gpart_to_mesh_CIC(c, rho, N, fac, dim);
+    cell_gpart_to_mesh_CIC(c, rho, N, fac, dim, N_local, i_min, j_min, k_min);
   }
 }
 
