@@ -210,10 +210,14 @@ StructureFinding:
 # Imaging parameters
 Images:
   time_first:           0.0             # First output time
+  image_size_x:         512             # Size in pixels (in the x dimension) of the output images
+  image_size_y:         512             # Size in pixels (in the y dimension) of the output images
   delta_time:           0.01            # (Optional) Time difference between consecutive image outputs (in internal units) 
   scale_factor_first:   0.1             # (Optional) Scale factor of the first snapshot (cosmological run)
   output_list_on:       0               # (Optional) Use the outuput list?
   output_list:          imagelist.txt   # (Optional) File containing the output times (see documentation in "Parameter File" section)
+  basename:             PixelGrid       # (Optional) Basename of images in the output HDF5 file. The images will be called Images/{basename}XXXX
+  filename:             images.hdf5     # (Optional) File name for HDF5 that images will be stored in
 
 # Parameters related to the equation of state ------------------------------------------
 
