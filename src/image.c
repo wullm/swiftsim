@@ -326,16 +326,13 @@ void image_dump_image(struct engine* e) {
       H5Dwrite(h_data, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, image);
 
   /* Now we can get started on our metadata! */
-  hsize_t number_of_attributes = (hsize_t)1;
-  hid_t h_space_attr = H5Screate_simple(1, &number_of_attributes, NULL);
-  hid_t h_attr_time = H5Acreate(h_data, "Time", H5T_NATIVE_DOUBLE, h_space_attr,
-                                H5P_DEFAULT, H5P_DEFAULT);
   const double output_time = e->ti_current * e->time_base;
-  herr_t write_attr = H5Awrite(h_attr_time, H5T_NATIVE_DOUBLE, &output_time);
+  io_write_attribute_d(h_data, "Time", output_time);
 
-  /* Close attribute properties */
-  H5Sclose(h_space_attr);
-  H5Aclose(h_attr_time);
+  if (e->policy & engine_policy_cosmology) {
+    io_write_attribute_d(h_data, "Scale-factor", e->cosmology->a);
+    io_write_attribute_d(h_data, "Redshift", e->cosmology->z);
+  }
 
   /* Close dataset properties */
   H5Dclose(h_data);
