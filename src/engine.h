@@ -41,6 +41,7 @@
 #include "cooling_struct.h"
 #include "dump.h"
 #include "gravity_properties.h"
+#include "image.h"
 #include "mesh_gravity.h"
 #include "parser.h"
 #include "partition.h"
@@ -79,7 +80,8 @@ enum engine_policy {
   engine_policy_feedback = (1 << 18),
   engine_policy_black_holes = (1 << 19),
   engine_policy_fof = (1 << 20),
-  engine_policy_limiter = (1 << 21)
+  engine_policy_limiter = (1 << 21),
+  engine_policy_images = (1 << 22)
 };
 #define engine_maxpolicy 22
 extern const char *engine_policy_names[engine_maxpolicy + 1];
@@ -98,7 +100,8 @@ enum engine_step_properties {
   engine_step_prop_stf = (1 << 6),
   engine_step_prop_fof = (1 << 7),
   engine_step_prop_logger_index = (1 << 8),
-  engine_step_prop_done = (1 << 9)
+  engine_step_prop_image = (1 << 9),
+  engine_step_prop_done = (1 << 10)
 };
 
 /* Some constants */
@@ -346,6 +349,8 @@ struct engine {
   double delta_time_image;
   int image_output_count;
 
+  
+
   /* Integer time of next image output */
   integertime_t ti_next_image;
 
@@ -422,6 +427,9 @@ struct engine {
 
   /* The cosmological model */
   struct cosmology *cosmology;
+
+  /* Properties of the images we're going to make */
+  struct image_props *image_properties;
 
   /* Properties of the hydro scheme */
   struct hydro_props *hydro_properties;
@@ -516,7 +524,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  int policy, int verbose, struct repartition *reparttype,
                  const struct unit_system *internal_units,
                  const struct phys_const *physical_constants,
-                 struct cosmology *cosmo, struct hydro_props *hydro,
+                 struct cosmology *cosmo, struct image_props *image, struct hydro_props *hydro,
                  const struct entropy_floor_properties *entropy_floor,
                  struct gravity_props *gravity, const struct stars_props *stars,
                  const struct black_holes_props *black_holes,

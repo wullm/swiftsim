@@ -26,22 +26,44 @@
 /* Local headers. */
 #include "const.h"
 #include "engine.h"
+#include "lock.h"
+
+/**
+ * @brief Image parameters read from the parameter file.
+ */
+struct image_props {
+
+  /*! Size of the resultant image (in pixels) */
+  int image_size[2];
+
+  /*! HDF5 image filename for images */
+  char image_filename[PARSER_MAX_LINE_SIZE];
+
+  /*! Base name inside snapshots for images */
+  char image_base_name[PARSER_MAX_LINE_SIZE];
+};
+
+/*! Parameters for rendering the image, generally made up of information from
+ * existing structs */
+struct render_properties {
+
+  /*! Boxsize */
+  double box_size[2];
+};
 
 /**
  * @brief Image data to pass to threadpool.
  */
 struct image_data {
+
   /*! Pointer to final image */
   float* image;
 
-  /*! Size of resultant image */
-  int image_size[2];
+  /*! Properties of the output image */
+  struct image_props image_properties;
 
-  /*! Boxsize */
-  double box_size[2];
-
-  /*! Drop to single cell factor */
-  float drop_to_single_cell_factor;
+  /*! Properties used to render the image */
+  struct render_properties render_properties;
 
   /*! Lock for when merging individual images into larger whole */
   swift_lock_type lock;
@@ -50,6 +72,11 @@ struct image_data {
 static float imaging_kernel(float r, float H);
 
 void image_dump_image(struct engine* e);
+
 static void image_add(float* image_from, float* image_to, size_t size);
+
+void image_init(struct swift_params* params, const struct unit_system* us,
+                const struct phys_const* phys_const,
+                struct image_props* image_properties);
 
 #endif /* SWIFT_IMAGE_H */

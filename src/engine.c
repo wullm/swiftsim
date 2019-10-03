@@ -2511,8 +2511,11 @@ void engine_check_for_dumps(struct engine *e) {
 
       case output_image:
 
-        /* Beauty is in the eye of the beholder */
-        image_dump_image(e);
+        if (e->policy & engine_policy_images) {
+          /* Beauty is in the eye of the beholder */
+          image_dump_image(e);
+          e->step_props |= engine_step_prop_image;
+        }
 
         /* Can't have been that beautiful, we'd better move on now */
         engine_compute_next_image_time(e);
@@ -3332,6 +3335,7 @@ void engine_unpin(void) {
  * @param internal_units The system of units used internally.
  * @param physical_constants The #phys_const used for this run.
  * @param cosmo The #cosmology used for this run.
+ * @param image The #image_props used for this run.
  * @param hydro The #hydro_props used for this run.
  * @param entropy_floor The #entropy_floor_properties for this run.
  * @param gravity The #gravity_props used for this run.
@@ -3351,7 +3355,8 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  int policy, int verbose, struct repartition *reparttype,
                  const struct unit_system *internal_units,
                  const struct phys_const *physical_constants,
-                 struct cosmology *cosmo, struct hydro_props *hydro,
+                 struct cosmology *cosmo, struct image_props *image,
+                 struct hydro_props *hydro,
                  const struct entropy_floor_properties *entropy_floor,
                  struct gravity_props *gravity, const struct stars_props *stars,
                  const struct black_holes_props *black_holes,
@@ -3430,6 +3435,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->wallclock_time = 0.f;
   e->physical_constants = physical_constants;
   e->cosmology = cosmo;
+  e->image_properties = image;
   e->hydro_properties = hydro;
   e->entropy_floor = entropy_floor;
   e->gravity_properties = gravity;
@@ -3780,15 +3786,15 @@ void engine_config(int restart, int fof, struct engine *e,
           e->hydro_properties->eta_neighbours, configuration_options(),
           compilation_cflags());
 
-      fprintf(
-          e->file_timesteps,
-          "# Step Properties: Rebuild=%d, Redistribute=%d, Repartition=%d, "
-          "Statistics=%d, Snapshot=%d, Restarts=%d STF=%d, FOF=%d, logger=%d\n",
-          engine_step_prop_rebuild, engine_step_prop_redistribute,
-          engine_step_prop_repartition, engine_step_prop_statistics,
-          engine_step_prop_snapshot, engine_step_prop_restarts,
-          engine_step_prop_stf, engine_step_prop_fof,
-          engine_step_prop_logger_index);
+      fprintf(e->file_timesteps,
+              "# Step Properties: Rebuild=%d, Redistribute=%d, Repartition=%d, "
+              "Statistics=%d, Snapshot=%d, Restarts=%d STF=%d, FOF=%d, "
+              "Logger=%d, Image=%d\n",
+              engine_step_prop_rebuild, engine_step_prop_redistribute,
+              engine_step_prop_repartition, engine_step_prop_statistics,
+              engine_step_prop_snapshot, engine_step_prop_restarts,
+              engine_step_prop_stf, engine_step_prop_fof,
+              engine_step_prop_logger_index, engine_step_prop_image);
 
       fprintf(
           e->file_timesteps,
@@ -4524,7 +4530,7 @@ void engine_compute_next_fof_time(struct engine *e) {
  * @param e The #engine.
  */
 void engine_compute_next_image_time(struct engine *e) {
-  
+
   /* Find upper-bound on last output */
   double time_end;
   if (e->policy & engine_policy_cosmology)

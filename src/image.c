@@ -29,7 +29,8 @@
 /* Taken from Dehnen & Aly 2012 */
 #define imaging_kernel_gamma 1.897367
 #define imaging_kernel_constant 2.228171
-#define NUM_PIXELS 2048
+/* TODO Make this a run-time parameter! */
+#define NUM_PIXELS 512
 
 /**
  * @brief Kernel for imaging. Returns the kernel in correct units (i.e.
@@ -91,6 +92,12 @@ __attribute__((always_inline)) INLINE static void image_add(float* image_from,
 void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
                                               void* extra_data) {
 
+  /* TODO: Do this on a cell-by-cell basis and calculate geometry so
+   * we need much smaller threadlocal allocations; at the moment this is
+   * untenable for very large images. */
+
+  /* TODO: correctly handle periodic boundary conditions */
+
   struct part* restrict parts = (struct part*)map_data;
   struct image_data* image_data = (struct image_data*)extra_data;
 
@@ -98,7 +105,8 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
   float* image = image_data->image;
 
   const size_t total_number_of_pixels =
-      (size_t)image_data->image_size[0] * image_data->image_size[1];
+      (size_t)image_data->image_properties.image_size[0] *
+      image_data->image_properties.image_size[1];
 
   /* Create our own threadlocal image to avoid collision on the main
    * copy of the image in memory. */
@@ -106,22 +114,20 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
   bzero(thread_image, total_number_of_pixels * sizeof(float));
 
   /* Parameters for the imaging */
-  const float pixel_width_x =
-      image_data->box_size[0] / image_data->image_size[0];
-  const float pixel_width_y =
-      image_data->box_size[1] / image_data->image_size[1];
+  const float pixel_width_x = image_data->render_properties.box_size[0] /
+                              image_data->image_properties.image_size[0];
+  const float pixel_width_y = image_data->render_properties.box_size[1] /
+                              image_data->image_properties.image_size[1];
   const float pixel_area = pixel_width_x * pixel_width_y;
 
   /* Conversion factors to number of pixels. Required as float / int comparisons
    * can cause some trickery */
-  const float x_conversion_fac =
-      image_data->image_size[0] / image_data->box_size[0];
-  const float y_conversion_fac =
-      image_data->image_size[1] / image_data->box_size[1];
+  const float x_conversion_fac = 1.f / pixel_width_x;
+  const float y_conversion_fac = 1.f / pixel_width_y;
 
   /* May cause some problems when dealing with non-square boxes */
-  const float drop_to_single_cell =
-      pixel_width_x * image_data->drop_to_single_cell_factor;
+  /* When to ignore the smoothing kernel and just go into MC mode */
+  const float drop_to_single_cell = pixel_width_x * 0.5f;
 
   /* Perform a scatter over all particles */
   for (size_t particle = 0; particle < num_parts; particle++) {
@@ -130,18 +136,25 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
 
     /* Need to make sure the box is wrapped! Especially clear in e.g. a
      * Kelvin Helmholtz test. */
-    const double x_wrapped = box_wrap(p->x[0], 0.0, image_data->box_size[0]);
-    const double y_wrapped = box_wrap(p->x[1], 0.0, image_data->box_size[1]);
+    /* TODO: Allow for offset x, y, z factors so that we can visualise any
+     * arbritary area of the box, like py-sphviewer */
+    const double x_wrapped =
+        box_wrap(p->x[0], 0.0, image_data->render_properties.box_size[0]);
+    const double y_wrapped =
+        box_wrap(p->x[1], 0.0, image_data->render_properties.box_size[1]);
 
     /* What we really need is an integer position for comparison to the pixel
      * grid */
     const int x = x_wrapped * x_conversion_fac;
     const int y = y_wrapped * y_conversion_fac;
-    const float kernel_width = kernel_gamma * p->h / image_data->box_size[0];
+    /* This probably won't work for non-square boxes, we need to be smarter here
+     */
+    const float kernel_width =
+        kernel_gamma * p->h / image_data->render_properties.box_size[0];
 
     if (kernel_width <= drop_to_single_cell) {
       /* Simple case; we average our mass over the size of the pixel */
-      const int pixel = x + image_data->image_size[0] * y;
+      const int pixel = x + image_data->image_properties.image_size[0] * y;
       thread_image[pixel] += p->mass / pixel_area;
     } else {
       /* More complex; we need to SPH-smooth the data. This follows the python
@@ -149,17 +162,18 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
 
       /* May run into problems with non-square grids here... */
       const int cells_spanned =
-          (int)(1.f + kernel_width * image_data->image_size[0]);
+          (int)(1.f +
+                kernel_width * image_data->image_properties.image_size[0]);
 
       /* Ensure our loop bounds stay within the x, y grid */
       const int starting_x = max(0, x - cells_spanned);
       /* Remove 1 because we want the maximal _index_, and image_size is the
        * size of the image */
-      const int ending_x =
-          min(x + cells_spanned, image_data->image_size[0] - 1);
+      const int ending_x = min(x + cells_spanned,
+                               image_data->image_properties.image_size[0] - 1);
       const int starting_y = max(0, y - cells_spanned);
-      const int ending_y =
-          min(y + cells_spanned, image_data->image_size[1] - 1);
+      const int ending_y = min(y + cells_spanned,
+                               image_data->image_properties.image_size[1] - 1);
 
       /* Now loop over all cells (the square) that our #part covers in the
        * final image */
@@ -179,7 +193,8 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
           /* We can't write to the main image here; we need to create a
            * thread-local copy and then write the whole image at one whilst
            * the main image is locked at the end. */
-          const int pixel = cell_x + image_data->image_size[0] * cell_y;
+          const int pixel =
+              cell_x + image_data->image_properties.image_size[0] * cell_y;
           thread_image[pixel] += density_addition;
         }
       }
@@ -218,12 +233,23 @@ void create_projected_image(struct engine* e, struct image_data* image_data) {
  * @props e, pointer to the engine.
  **/
 void image_dump_image(struct engine* e) {
+  /* Be nice if we've been asked to be verboose */
+  if (e->verbose) {
+    if (e->policy & engine_policy_cosmology)
+      message("Dumping an image at a=%e",
+              exp(e->ti_current * e->time_base) * e->cosmology->a_begin);
+    else
+      message("Dumping an image at t=%e",
+              e->ti_current * e->time_base + e->time_begin);
+  }
+
+  /* Extract properties from structs */
   const double box_size[2] = {e->s->dim[0], e->s->dim[1]};
-  /* Should change these to user-defined parameters... */
-  const int image_size[2] = {NUM_PIXELS, NUM_PIXELS};
+  const int image_size[2] = {e->image_properties->image_size[0],
+                             e->image_properties->image_size[1]};
 
   /* Allocate main image array */
-  const size_t total_number_of_pixels = (size_t)image_size[0] * image_size[1];
+  const size_t total_number_of_pixels = image_size[0] * image_size[1];
   float* image = (float*)malloc(total_number_of_pixels * sizeof(float));
   bzero(image, total_number_of_pixels * sizeof(float));
 
@@ -231,12 +257,9 @@ void image_dump_image(struct engine* e) {
   struct image_data image_data;
   image_data.image = image;
   /* There has to be a better way of doing these assignments */
-  image_data.image_size[0] = image_size[0];
-  image_data.image_size[1] = image_size[1];
-  image_data.box_size[0] = box_size[0];
-  image_data.box_size[1] = box_size[1];
-
-  image_data.drop_to_single_cell_factor = 0.5f;
+  image_data.image_properties = *e->image_properties;
+  image_data.render_properties.box_size[0] = box_size[0];
+  image_data.render_properties.box_size[1] = box_size[1];
 
   /* Initialise the lock; we can't have everyone writing to the main image
    * all at once! */
@@ -244,49 +267,59 @@ void image_dump_image(struct engine* e) {
 
   /* Actually make the image! */
   create_projected_image(e, &image_data);
+#ifdef WITH_MPI
+  /* TODO: MPI reduction. */
+#endif
 
-  /* HDF5 i/o */
-  /* TODO: Read me in from the command line */
-  char file_name_hdf[FILENAME_BUFFER_SIZE] = "IMAGE_OUT_TEST.hdf5";
-  /* For now, we'll just dump this as a single array to HDF5. */
+  /* The following assumes that the image file already exists on disk. We should
+   * have asserted this during the images_init call by creating an empty HDF5
+   * file. */
+
   hid_t h_file =
-      H5Fcreate(file_name_hdf, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+      H5Fopen(e->image_properties->image_filename, H5F_ACC_RDWR, H5P_DEFAULT);
 
   if (h_file < 0) {
-    /* Ok, so the file already exists, let's just open it */
-    h_file = H5Fopen(file_name_hdf, H5F_ACC_RDWR, H5P_DEFAULT);
+    /* If we've failed we're having a very bad day */
+    error("Failed to open image HDF5 file at %s.\n",
+          e->image_properties->image_filename);
   }
 
-  if (h_file < 0) {
-    /* If we've still failed we're having a very bad day */
-    error("Failed to open image HDF5 file\n");
-  }
-
-  hid_t h_grp =
-      H5Gcreate(h_file, "/Images", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-  if (h_grp < 0) {
-    /* Probably already exists, just open it */
+  /* Do the 'if-exists-open else create' dance for our group */
+  hid_t h_grp;
+  if (H5Lexists(h_file, "/Images", H5P_DEFAULT)) {
     h_grp = H5Gopen(h_file, "/Images", H5P_DEFAULT);
+  } else {
+    h_grp = H5Gcreate(h_file, "/Images", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   }
+
   if (h_grp < 0) {
-    /* Again, we're having a really bad day... */
-    error("Error while creating group\n");
+    error("Error while creating group /Images in %s.\n",
+          e->image_properties->image_filename);
   }
 
   /* Now we want to create the datasets that we're going to use to store
    * our image, as well as write out some metadata properties. */
 
   char dataset_name[FILENAME_BUFFER_SIZE];
-  /* TODO: Read me in from the command line */
-  snprintf(dataset_name, FILENAME_BUFFER_SIZE, "PixelGrid%04i",
-           e->image_output_count);
+  snprintf(dataset_name, FILENAME_BUFFER_SIZE, "%s%04i",
+           e->image_properties->image_base_name, e->image_output_count);
 
   /* Create a data space for our dataset to live in (a 2D square array) */
   hsize_t image_dims[2] = {(hsize_t)image_size[0], (hsize_t)image_size[1]};
   hid_t h_space = H5Screate_simple(2, image_dims, NULL);
 
-  /* Create our dataset in which we'll store our pixel grid */
+  /* Create our dataset in which we'll store our pixel grid. If it already
+   * exists, we delete the LINK to that dataset and start fresh (as it may have
+   * a size that is incompatible with our own).
+   *
+   * Unfortunately, the HDF5 library as-of-yet does not provide a way to
+   * actually remove data from a dataset, or reclaim that space. So this will
+   * make the file larger than it needs to be. */
+  if (H5Lexists(h_grp, dataset_name, H5P_DEFAULT)) {
+    H5Ldelete(h_grp, dataset_name, H5P_DEFAULT);
+  }
+
+  /* Open up our fresh shiny dataset. */
   hid_t h_data = H5Dcreate(h_grp, dataset_name, H5T_NATIVE_FLOAT, h_space,
                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -312,7 +345,37 @@ void image_dump_image(struct engine* e) {
   H5Gclose(h_grp);
   H5Fclose(h_file);
 
+  /* Increment the output count, otherwise we'll just overwrite our data next
+   * time! */
   e->image_output_count++;
 
   free(image);
+}
+
+void image_init(struct swift_params* params, const struct unit_system* us,
+                const struct phys_const* phys_const,
+                struct image_props* image_properties) {
+
+  image_properties->image_size[0] =
+      parser_get_param_int(params, "Images:image_size_x");
+  image_properties->image_size[1] =
+      parser_get_param_int(params, "Images:image_size_y");
+
+  parser_get_opt_param_string(params, "Images:filename",
+                              image_properties->image_filename, "images.hdf5");
+
+  parser_get_opt_param_string(params, "Images:basename",
+                              image_properties->image_base_name, "PixelGrid");
+
+  /* We must create an empty HDF5 file for our images as we need to open it
+   * and append later in the run. Unfortunately, this is the cleanest way of
+   * doing this without resorting to nasty OS-dependent tricks.
+   *
+   * This also means that we overwrite all of our images every time we start
+   * or restart a run, which perhaps isn't the best strategy. However, as we
+   * do not call this function when restarting, it means that the images
+   * HDF5 should be well preserved. */
+  hid_t images_hdf5_file = H5Fcreate(image_properties->image_filename,
+                                     H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  H5Fclose(images_hdf5_file);
 }

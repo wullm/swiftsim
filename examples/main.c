@@ -94,6 +94,7 @@ int main(int argc, char *argv[]) {
   struct pm_mesh mesh;
   struct gpart *gparts = NULL;
   struct gravity_props gravity_properties;
+  struct image_props image_properties;
   struct hydro_props hydro_properties;
   struct stars_props stars_properties;
   struct feedback_props feedback_properties;
@@ -159,6 +160,7 @@ int main(int argc, char *argv[]) {
   int with_self_gravity = 0;
   int with_hydro = 0;
   int with_stars = 0;
+  int with_images = 0;
   int with_fof = 0;
   int with_star_formation = 0;
   int with_feedback = 0;
@@ -213,6 +215,8 @@ int main(int argc, char *argv[]) {
       OPT_BOOLEAN('S', "stars", &with_stars, "Run with stars.", NULL, 0, 0),
       OPT_BOOLEAN('B', "black-holes", &with_black_holes,
                   "Run with black holes.", NULL, 0, 0),
+      OPT_BOOLEAN('I', "images", &with_images, "Create images during the run.",
+                  NULL, 0, 0),
       OPT_BOOLEAN(
           'u', "fof", &with_fof,
           "Run Friends-of-Friends algorithm to perform black hole seeding.",
@@ -294,7 +298,7 @@ int main(int argc, char *argv[]) {
   }
   param_filename = argv[0];
 
-  /* Checks of options. */
+/* Checks of options. */
 #if !defined(HAVE_SETAFFINITY) || !defined(HAVE_LIBNUMA)
   if (with_aff) {
     printf("Error: no NUMA support for thread affinity\n");
@@ -551,7 +555,7 @@ int main(int argc, char *argv[]) {
   MPI_Bcast(params, sizeof(struct swift_params), MPI_BYTE, 0, MPI_COMM_WORLD);
 #endif
 
-  /* Temporary early aborts for modes not supported over MPI. */
+/* Temporary early aborts for modes not supported over MPI. */
 #ifdef WITH_MPI
   if (with_mpole_reconstruction && nr_nodes > 1)
     error("Cannot reconstruct m-poles every step over MPI (yet).");
@@ -561,7 +565,7 @@ int main(int argc, char *argv[]) {
 #endif
 #endif
 
-  /* Temporary early aborts for modes not supported with hand-vec. */
+/* Temporary early aborts for modes not supported with hand-vec. */
 #if defined(WITH_VECTORIZATION) && defined(GADGET2_SPH) && \
     !defined(CHEMISTRY_NONE)
   error(
@@ -771,6 +775,12 @@ int main(int argc, char *argv[]) {
     else
       cosmology_init_no_cosmo(&cosmo);
     if (myrank == 0 && with_cosmology) cosmology_print(&cosmo);
+
+    /* Initialise the image parameters, if we're going to use them. */
+    if (with_images)
+      image_init(params, &us, &prog_const, &image_properties);
+    else
+      bzero(&image_properties, sizeof(struct image_props));
 
     /* Initialise the hydro properties */
     if (with_hydro)
@@ -1114,6 +1124,7 @@ int main(int argc, char *argv[]) {
     if (with_structure_finding)
       engine_policies |= engine_policy_structure_finding;
     if (with_fof) engine_policies |= engine_policy_fof;
+    if (with_images) engine_policies |= engine_policy_images;
 
     /* Initialize the engine with the space and policies. */
     if (myrank == 0) clocks_gettime(&tic);
@@ -1121,10 +1132,10 @@ int main(int argc, char *argv[]) {
         &e, &s, params, N_total[swift_type_gas], N_total[swift_type_count],
         N_total[swift_type_stars], N_total[swift_type_black_hole],
         N_total[swift_type_dark_matter_background], engine_policies, talking,
-        &reparttype, &us, &prog_const, &cosmo, &hydro_properties,
-        &entropy_floor, &gravity_properties, &stars_properties,
-        &black_holes_properties, &feedback_properties, &mesh, &potential,
-        &cooling_func, &starform, &chemistry, &fof_properties);
+        &reparttype, &us, &prog_const, &cosmo, &image_properties,
+        &hydro_properties, &entropy_floor, &gravity_properties,
+        &stars_properties, &black_holes_properties, &feedback_properties, &mesh,
+        &potential, &cooling_func, &starform, &chemistry, &fof_properties);
     engine_config(/*restart=*/0, /*fof=*/0, &e, params, nr_nodes, myrank,
                   nr_threads, with_aff, talking, restart_file);
 
@@ -1218,7 +1229,7 @@ int main(int argc, char *argv[]) {
   /* unused parameters */
   parser_write_params_to_file(params, "unused_parameters.yml", 0);
 
-  /* Dump memory use report if collected for the 0 step. */
+/* Dump memory use report if collected for the 0 step. */
 #ifdef SWIFT_MEMUSE_REPORTS
   {
     char dumpfile[40];
