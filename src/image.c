@@ -29,8 +29,6 @@
 /* Taken from Dehnen & Aly 2012 */
 #define imaging_kernel_gamma 1.897367
 #define imaging_kernel_constant 2.228171
-/* TODO Make this a run-time parameter! */
-#define NUM_PIXELS 512
 
 /**
  * @brief Kernel for imaging. Returns the kernel in correct units (i.e.
