@@ -379,3 +379,26 @@ void image_init(struct swift_params* params, const struct unit_system* us,
                                      H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   H5Fclose(images_hdf5_file);
 }
+
+/**
+ * @brief Write an image_props struct to the given FILE as a stream of bytes.
+ *
+ * @param p the struct
+ * @param stream the file stream
+ */
+void image_props_struct_dump(const struct image_props* p, FILE* stream) {
+  restart_write_blocks((void*)p, sizeof(struct image_props), 1, stream,
+                       "image props", "image function");
+}
+
+/**
+ * @brief Restore a image_props struct from the given FILE as a stream of
+ * bytes.
+ *
+ * @param p the struct
+ * @param stream the file stream
+ */
+void image_props_struct_restore(const struct image_props* p, FILE* stream) {
+  restart_read_blocks((void*)p, sizeof(struct image_props), 1, stream, NULL,
+                      "image props");
+}

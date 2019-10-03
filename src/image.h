@@ -79,4 +79,7 @@ void image_init(struct swift_params* params, const struct unit_system* us,
                 const struct phys_const* phys_const,
                 struct image_props* image_properties);
 
+void image_props_struct_dump(const struct image_props* p, FILE* stream);
+void image_props_struct_restore(const struct image_props* p, FILE* stream);
+
 #endif /* SWIFT_IMAGE_H */

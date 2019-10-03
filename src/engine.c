@@ -4851,6 +4851,7 @@ void engine_struct_dump(struct engine *e, FILE *stream) {
 #endif
 
   phys_const_struct_dump(e->physical_constants, stream);
+  image_props_struct_dump(e->image_properties, stream);
   hydro_props_struct_dump(e->hydro_properties, stream);
   entropy_floor_struct_dump(e->entropy_floor, stream);
   gravity_props_struct_dump(e->gravity_properties, stream);
@@ -4924,6 +4925,11 @@ void engine_struct_restore(struct engine *e, FILE *stream) {
       (struct phys_const *)malloc(sizeof(struct phys_const));
   phys_const_struct_restore(physical_constants, stream);
   e->physical_constants = physical_constants;
+
+  struct image_props *image_properties =
+      (struct image_props *)malloc(sizeof(struct image_props));
+  image_props_struct_restore(image_properties, stream);
+  e->image_properties = image_properties;
 
   struct hydro_props *hydro_properties =
       (struct hydro_props *)malloc(sizeof(struct hydro_props));
