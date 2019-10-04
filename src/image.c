@@ -152,7 +152,7 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
     /* This probably won't work for non-square boxes, we need to be smarter here
      */
     const float kernel_width =
-        kernel_gamma * p->h / image_data->render_properties.box_size[0];
+        imaging_kernel_gamma * p->h / image_data->render_properties.box_size[0];
 
     if (kernel_width <= drop_to_single_cell) {
       /* Simple case; we average our mass over the size of the pixel */
