@@ -19,8 +19,15 @@
 
 #include <stdio.h>
 
+#ifdef HAVE_HDF5
+#include <hdf5.h>
+#endif
+
+#ifdef WITH_MPI
+#include <mpi.h>
+#endif
+
 #include "engine.h"
-#include "hdf5.h"
 #include "image.h"
 #include "minmax.h"
 #include "part.h"
@@ -237,6 +244,19 @@ void image_dump_image(struct engine* e) {
               e->ti_current * e->time_base + e->time_begin);
   }
 
+#ifndef HAVE_HDF5
+
+  /* There's no point making the image if we cannot dump it to file */
+  message(
+      "Warning: unable to create and dump image due to lack of HDF5 library. "
+      "Please compile with HDF5 support to create image output.");
+
+  /* Increment output count so we can continue on with the run */
+  e->image_output_count++;
+  return;
+
+#else
+
   /* Extract properties from structs */
   const double box_size[2] = {e->s->dim[0], e->s->dim[1]};
   const int image_size[2] = {e->image_properties->image_size[0],
@@ -261,91 +281,115 @@ void image_dump_image(struct engine* e) {
 
   /* Actually make the image! */
   create_projected_image(e, &image_data);
+
 #ifdef WITH_MPI
-  /* TODO: MPI reduction. */
+  /* So we now have an image on each node, that we need to collapse. This is
+   * fine, though, as we can just allow rank 0 to do all of the writes as they
+   * should be (relatively) small */
+
+  int myrank, res = 0;
+
+  if ((res = MPI_Comm_rank(MPI_COMM_WORLD, &myrank)) != MPI_SUCCESS) {
+    error("Call to MPI_Comm_rank failed with error %i.", res)
+  }
+
+  /* Sum everything into our local buffer image */
+  MPI_Reduce(&image, &image, total_number_of_pixels, MPI_FLOAT, MPI_SUM, 0,
+             MPI_COMM_WORLD);
+
+  if (myrank == 0) {
+  /* Only the root rank writes! */
 #endif
 
-  /* The following assumes that the image file already exists on disk. We should
-   * have asserted this during the images_init call by creating an empty HDF5
-   * file. */
+    /* The following assumes that the image file already exists on disk. We
+     * should have asserted this during the images_init call by creating an
+     * empty HDF5 file. */
 
-  hid_t h_file =
-      H5Fopen(e->image_properties->image_filename, H5F_ACC_RDWR, H5P_DEFAULT);
+    hid_t h_file =
+        H5Fopen(e->image_properties->image_filename, H5F_ACC_RDWR, H5P_DEFAULT);
 
-  if (h_file < 0) {
-    /* If we've failed we're having a very bad day */
-    error("Failed to open image HDF5 file at %s.\n",
-          e->image_properties->image_filename);
+    if (h_file < 0) {
+      /* If we've failed we're having a very bad day */
+      error("Failed to open image HDF5 file at %s.\n",
+            e->image_properties->image_filename);
+    }
+
+    /* Do the 'if-exists-open else create' dance for our group */
+    hid_t h_grp;
+    if (H5Lexists(h_file, "/Images", H5P_DEFAULT)) {
+      h_grp = H5Gopen(h_file, "/Images", H5P_DEFAULT);
+    } else {
+      h_grp =
+          H5Gcreate(h_file, "/Images", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    if (h_grp < 0) {
+      error("Error while creating group /Images in %s.\n",
+            e->image_properties->image_filename);
+    }
+
+    /* Now we want to create the datasets that we're going to use to store
+     * our image, as well as write out some metadata properties. */
+
+    char dataset_name[FILENAME_BUFFER_SIZE];
+    snprintf(dataset_name, FILENAME_BUFFER_SIZE, "%s%04i",
+             e->image_properties->image_base_name, e->image_output_count);
+
+    /* Create a data space for our dataset to live in (a 2D square array) */
+    hsize_t image_dims[2] = {(hsize_t)image_size[0], (hsize_t)image_size[1]};
+    hid_t h_space = H5Screate_simple(2, image_dims, NULL);
+
+    /* Create our dataset in which we'll store our pixel grid. If it already
+     * exists, we delete the LINK to that dataset and start fresh (as it may
+     * have a size that is incompatible with our own).
+     *
+     * Unfortunately, the HDF5 library as-of-yet does not provide a way to
+     * actually remove data from a dataset, or reclaim that space. So this will
+     * make the file larger than it needs to be. */
+    if (H5Lexists(h_grp, dataset_name, H5P_DEFAULT)) {
+      H5Ldelete(h_grp, dataset_name, H5P_DEFAULT);
+    }
+
+    /* Open up our fresh shiny dataset. */
+    hid_t h_data = H5Dcreate(h_grp, dataset_name, H5T_NATIVE_FLOAT, h_space,
+                             H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    /* Actually write out the data */
+    herr_t write = H5Dwrite(h_data, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,
+                            H5P_DEFAULT, image);
+
+    if (write < 0) {
+      error("Failed to write image data to %s %s",
+            e->image_properties->image_filename, dataset_name);
+    }
+
+    /* Now we can get started on our metadata! */
+    const double output_time = e->ti_current * e->time_base;
+    io_write_attribute_d(h_data, "Time", output_time);
+
+    if (e->policy & engine_policy_cosmology) {
+      io_write_attribute_d(h_data, "Scale-factor", e->cosmology->a);
+      io_write_attribute_d(h_data, "Redshift", e->cosmology->z);
+    }
+
+    /* Close dataset properties */
+    H5Dclose(h_data);
+    H5Sclose(h_space);
+    H5Gclose(h_grp);
+    H5Fclose(h_file);
+
+#ifdef WITH_MPI
+    /* Close the bracket from only the root rank writing */
   }
-
-  /* Do the 'if-exists-open else create' dance for our group */
-  hid_t h_grp;
-  if (H5Lexists(h_file, "/Images", H5P_DEFAULT)) {
-    h_grp = H5Gopen(h_file, "/Images", H5P_DEFAULT);
-  } else {
-    h_grp = H5Gcreate(h_file, "/Images", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  }
-
-  if (h_grp < 0) {
-    error("Error while creating group /Images in %s.\n",
-          e->image_properties->image_filename);
-  }
-
-  /* Now we want to create the datasets that we're going to use to store
-   * our image, as well as write out some metadata properties. */
-
-  char dataset_name[FILENAME_BUFFER_SIZE];
-  snprintf(dataset_name, FILENAME_BUFFER_SIZE, "%s%04i",
-           e->image_properties->image_base_name, e->image_output_count);
-
-  /* Create a data space for our dataset to live in (a 2D square array) */
-  hsize_t image_dims[2] = {(hsize_t)image_size[0], (hsize_t)image_size[1]};
-  hid_t h_space = H5Screate_simple(2, image_dims, NULL);
-
-  /* Create our dataset in which we'll store our pixel grid. If it already
-   * exists, we delete the LINK to that dataset and start fresh (as it may have
-   * a size that is incompatible with our own).
-   *
-   * Unfortunately, the HDF5 library as-of-yet does not provide a way to
-   * actually remove data from a dataset, or reclaim that space. So this will
-   * make the file larger than it needs to be. */
-  if (H5Lexists(h_grp, dataset_name, H5P_DEFAULT)) {
-    H5Ldelete(h_grp, dataset_name, H5P_DEFAULT);
-  }
-
-  /* Open up our fresh shiny dataset. */
-  hid_t h_data = H5Dcreate(h_grp, dataset_name, H5T_NATIVE_FLOAT, h_space,
-                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-  /* Actually write out the data */
-  herr_t write =
-      H5Dwrite(h_data, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, image);
-
-  if (write < 0) {
-    error("Failed to write image data to %s %s",
-          e->image_properties->image_filename, dataset_name);
-  }
-
-  /* Now we can get started on our metadata! */
-  const double output_time = e->ti_current * e->time_base;
-  io_write_attribute_d(h_data, "Time", output_time);
-
-  if (e->policy & engine_policy_cosmology) {
-    io_write_attribute_d(h_data, "Scale-factor", e->cosmology->a);
-    io_write_attribute_d(h_data, "Redshift", e->cosmology->z);
-  }
-
-  /* Close dataset properties */
-  H5Dclose(h_data);
-  H5Sclose(h_space);
-  H5Gclose(h_grp);
-  H5Fclose(h_file);
+#endif
 
   /* Increment the output count, otherwise we'll just overwrite our data next
    * time! */
   e->image_output_count++;
 
   free(image);
+
+#endif /* HAVE_HDF5 */
 }
 
 void image_init(struct swift_params* params, const struct unit_system* us,
