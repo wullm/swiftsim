@@ -100,8 +100,6 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
    * we need much smaller threadlocal allocations; at the moment this is
    * untenable for very large images. */
 
-  /* TODO: correctly handle periodic boundary conditions */
-
   struct part* restrict parts = (struct part*)map_data;
   struct image_data* image_data = (struct image_data*)extra_data;
 
@@ -169,15 +167,19 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
           (int)(1.f +
                 kernel_width * image_data->image_properties.image_size[0]);
 
-      /* Ensure our loop bounds stay within the x, y grid */
-      const int starting_x = max(0, x - cells_spanned);
-      /* Remove 1 because we want the maximal _index_, and image_size is the
-       * size of the image */
-      const int ending_x = min(x + cells_spanned,
-                               image_data->image_properties.image_size[0] - 1);
-      const int starting_y = max(0, y - cells_spanned);
-      const int ending_y = min(y + cells_spanned,
-                               image_data->image_properties.image_size[1] - 1);
+      // /* Ensure our loop bounds stay within the x, y grid */
+      // const int starting_x = max(0, x - cells_spanned);
+      // /* Remove 1 because we want the maximal _index_, and image_size is the
+      //  * size of the image */
+      // const int ending_x =
+      //     min(x + cells_spanned, image_data->image_properties.image_size[0]);
+      // const int starting_y = max(0, y - cells_spanned);
+      // const int ending_y =
+      //     min(y + cells_spanned, image_data->image_properties.image_size[1]);
+      const int starting_x = x - cells_spanned;
+      const int starting_y = y - cells_spanned;
+      const int ending_x = x + cells_spanned;
+      const int ending_y = y + cells_spanned;
 
       /* Now loop over all cells (the square) that our #part covers in the
        * final image */
@@ -194,11 +196,32 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
           const float kernel_eval = imaging_kernel(r, kernel_width);
           const float density_addition = kernel_eval * p->mass;
 
+          /* Wrap the cells. We do it this way (instead of using abs) to ensure
+           * that particles that have negative cells get correctly wrapped to
+           * the right side of the box (i.e. v.s. using abs(x % size). */
+          const int wrapped_cell_x =
+              (cell_x + image_data->image_properties.image_size[0]) %
+              image_data->image_properties.image_size[0];
+          const int wrapped_cell_y =
+              (cell_y + image_data->image_properties.image_size[1]) %
+              image_data->image_properties.image_size[1];
+
+          const int pixel =
+              wrapped_cell_x +
+              image_data->image_properties.image_size[0] * wrapped_cell_y;
+
+#ifdef SWIFT_DEBUG_CHECKS
+          /* Assert that we're going to write to a valid pixel! */
+          if (pixel > (int)total_number_of_pixels || pixel < 0) {
+            error("Attempting to write to pixel x=%d (max %d) y=%d (max %d)",
+                  wrapped_cell_x, image_data->image_properties.image_size[0],
+                  wrapped_cell_y, image_data->image_properties.image_size[1]);
+          }
+#endif /* SWIFT_DEBUG_CHECKS */
+
           /* We can't write to the main image here; we need to create a
            * thread-local copy and then write the whole image at one whilst
            * the main image is locked at the end. */
-          const int pixel =
-              cell_x + image_data->image_properties.image_size[0] * cell_y;
           thread_image[pixel] += density_addition;
         }
       }
