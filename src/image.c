@@ -167,15 +167,6 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
           (int)(1.f +
                 kernel_width * image_data->image_properties.image_size[0]);
 
-      // /* Ensure our loop bounds stay within the x, y grid */
-      // const int starting_x = max(0, x - cells_spanned);
-      // /* Remove 1 because we want the maximal _index_, and image_size is the
-      //  * size of the image */
-      // const int ending_x =
-      //     min(x + cells_spanned, image_data->image_properties.image_size[0]);
-      // const int starting_y = max(0, y - cells_spanned);
-      // const int ending_y =
-      //     min(y + cells_spanned, image_data->image_properties.image_size[1]);
       const int starting_x = x - cells_spanned;
       const int starting_y = y - cells_spanned;
       const int ending_x = x + cells_spanned;
@@ -188,6 +179,14 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
         const float distance_x = (cell_x + 0.5) * pixel_width_x - x_wrapped;
         const float distance_x_2 = distance_x * distance_x;
 
+        /* Wrap the cells. We do it this way (instead of using abs) to ensure
+         * that particles that have negative cells get correctly wrapped to
+         * the right side of the box (i.e. v.s. using abs(x % size). We could
+         * probably refactor this to avoid the modulo. */
+        const int wrapped_cell_x =
+            (cell_x + image_data->image_properties.image_size[0]) %
+            image_data->image_properties.image_size[0];
+
         for (int cell_y = starting_y; cell_y < ending_y; cell_y++) {
           const float distance_y = (cell_y + 0.5) * pixel_width_y - y_wrapped;
           const float distance_y_2 = distance_y * distance_y;
@@ -196,12 +195,7 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
           const float kernel_eval = imaging_kernel(r, kernel_width);
           const float density_addition = kernel_eval * p->mass;
 
-          /* Wrap the cells. We do it this way (instead of using abs) to ensure
-           * that particles that have negative cells get correctly wrapped to
-           * the right side of the box (i.e. v.s. using abs(x % size). */
-          const int wrapped_cell_x =
-              (cell_x + image_data->image_properties.image_size[0]) %
-              image_data->image_properties.image_size[0];
+          /* Wrap y in the same way as x above (and for same reasons) */
           const int wrapped_cell_y =
               (cell_y + image_data->image_properties.image_size[1]) %
               image_data->image_properties.image_size[1];
