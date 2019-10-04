@@ -39,8 +39,7 @@
  * @props r, radius
  * @props H, kernel cut-off radius
  */
-__attribute__((always_inline)) INLINE static float imaging_kernel(float r,
-                                                                  float H) {
+__attribute__((always_inline)) INLINE float imaging_kernel(float r, float H) {
   const float inverse_H = 1.f / H;
   const float ratio = r * inverse_H;
 
@@ -66,9 +65,9 @@ __attribute__((always_inline)) INLINE static float imaging_kernel(float r,
  * @param image_to, the image that is modified and has things added to it
  * @param size, the size of the images.
  */
-__attribute__((always_inline)) INLINE static void image_add(float* image_from,
-                                                            float* image_to,
-                                                            size_t size) {
+__attribute__((always_inline)) INLINE void image_add(float* image_from,
+                                                     float* image_to,
+                                                     size_t size) {
   for (size_t i = 0; i < size; i++) {
     image_to[i] += image_from[i];
   }
@@ -128,7 +127,7 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
   const float drop_to_single_cell = pixel_width_x * 0.5f;
 
   /* Perform a scatter over all particles */
-  for (size_t particle = 0; particle < num_parts; particle++) {
+  for (int particle = 0; particle < num_parts; particle++) {
     /* Grab the particle and extract properties! */
     const struct part* p = &parts[particle];
 
@@ -217,12 +216,9 @@ void create_projected_image_threadpool_mapper(void* map_data, int num_parts,
  * @props image_data, pointer to image data.
  */
 void create_projected_image(struct engine* e, struct image_data* image_data) {
-  const struct space* s = e->s;
-  const size_t num_parts = s->nr_parts;
-  struct part* parts = s->parts;
-
   threadpool_map(&e->threadpool, create_projected_image_threadpool_mapper,
-                 s->parts, num_parts, sizeof(struct part), 0, image_data);
+                 e->s->parts, e->s->nr_parts, sizeof(struct part), 0,
+                 image_data);
 }
 
 /**
@@ -324,6 +320,11 @@ void image_dump_image(struct engine* e) {
   /* Actually write out the data */
   herr_t write =
       H5Dwrite(h_data, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, image);
+
+  if (write < 0) {
+    error("Failed to write image data to %s %s",
+          e->image_properties->image_filename, dataset_name);
+  }
 
   /* Now we can get started on our metadata! */
   const double output_time = e->ti_current * e->time_base;

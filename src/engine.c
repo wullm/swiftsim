@@ -4531,6 +4531,13 @@ void engine_compute_next_fof_time(struct engine *e) {
  */
 void engine_compute_next_image_time(struct engine *e) {
 
+  /* Do output_list file case */
+  if (e->output_list_images) {
+    output_list_read_next_time(e->output_list_images, e, "images",
+                               &e->ti_next_image);
+    return;
+  }
+
   /* Find upper-bound on last output */
   double time_end;
   if (e->policy & engine_policy_cosmology)

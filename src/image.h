@@ -69,11 +69,11 @@ struct image_data {
   swift_lock_type lock;
 };
 
-static float imaging_kernel(float r, float H);
+float imaging_kernel(float r, float H);
 
 void image_dump_image(struct engine* e);
 
-static void image_add(float* image_from, float* image_to, size_t size);
+void image_add(float* image_from, float* image_to, size_t size);
 
 void image_init(struct swift_params* params, const struct unit_system* us,
                 const struct phys_const* phys_const,
