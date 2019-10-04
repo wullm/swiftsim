@@ -52,6 +52,7 @@ struct threadpool;
  */
 enum IO_DATA_TYPE {
   INT,
+  INT64,
   LONG,
   LONGLONG,
   UINT,

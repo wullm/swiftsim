@@ -77,6 +77,8 @@ hid_t io_hdf5_type(enum IO_DATA_TYPE type) {
   switch (type) {
     case INT:
       return H5T_NATIVE_INT;
+    case INT64:
+      return H5T_NATIVE_INT64;
     case UINT:
       return H5T_NATIVE_UINT;
     case LONG:
@@ -1019,6 +1021,8 @@ size_t io_sizeof_type(enum IO_DATA_TYPE type) {
   switch (type) {
     case INT:
       return sizeof(int);
+    case INT64:
+      return sizeof(int64_t);
     case UINT:
       return sizeof(unsigned int);
     case LONG:
@@ -1646,7 +1650,7 @@ void io_prepare_dm_gparts_mapper(void* restrict data, int Ndm, void* dummy) {
 
     /* Negative ids are not allowed */
     if (gparts[i].id_or_neg_offset < 0)
-      error("Negative ID for DM particle %i: ID=%lld", i,
+      error("Negative ID for DM particle %i: ID=%ld", i,
             gparts[i].id_or_neg_offset);
 
     /* Set gpart type */
@@ -1682,7 +1686,7 @@ void io_prepare_dm_background_gparts_mapper(void* restrict data, int Ndm,
 
     /* Negative ids are not allowed */
     if (gparts[i].id_or_neg_offset < 0)
-      error("Negative ID for DM particle %i: ID=%lld", i,
+      error("Negative ID for DM particle %i: ID=%ld", i,
             gparts[i].id_or_neg_offset);
 
     /* Set gpart type */

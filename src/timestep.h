@@ -98,7 +98,7 @@ __attribute__((always_inline)) INLINE static integertime_t get_gpart_timestep(
   /* Limit timestep within the allowed range */
   new_dt = min(new_dt, e->dt_max);
   if (new_dt < e->dt_min)
-    error("gpart (id=%lld) wants a time-step (%e) below dt_min (%e)",
+    error("gpart (id=%ld) wants a time-step (%e) below dt_min (%e)",
           gp->id_or_neg_offset, new_dt, e->dt_min);
 
   /* Convert to integer time */
@@ -173,7 +173,7 @@ __attribute__((always_inline)) INLINE static integertime_t get_part_timestep(
   new_dt = min(new_dt, e->dt_max);
 
   if (new_dt < e->dt_min)
-    error("part (id=%lld) wants a time-step (%e) below dt_min (%e)", p->id,
+    error("part (id=%ld) wants a time-step (%e) below dt_min (%e)", p->id,
           new_dt, e->dt_min);
 
   /* Convert to integer time */
@@ -219,7 +219,7 @@ __attribute__((always_inline)) INLINE static integertime_t get_spart_timestep(
   /* Limit timestep within the allowed range */
   new_dt = min(new_dt, e->dt_max);
   if (new_dt < e->dt_min) {
-    error("spart (id=%lld) wants a time-step (%e) below dt_min (%e)", sp->id,
+    error("spart (id=%ld) wants a time-step (%e) below dt_min (%e)", sp->id,
           new_dt, e->dt_min);
   }
 
@@ -266,7 +266,7 @@ __attribute__((always_inline)) INLINE static integertime_t get_bpart_timestep(
   /* Limit timestep within the allowed range */
   new_dt = min(new_dt, e->dt_max);
   if (new_dt < e->dt_min) {
-    error("bpart (id=%lld) wants a time-step (%e) below dt_min (%e)", bp->id,
+    error("bpart (id=%ld) wants a time-step (%e) below dt_min (%e)", bp->id,
           new_dt, e->dt_min);
   }
 

@@ -93,7 +93,7 @@ void map_check(struct part *p, struct cell *c, void *data) {
   if (p->x[0] < c->loc[0] || p->x[0] > c->loc[0] + c->width[0] ||
       p->x[0] < c->loc[0] || p->x[0] > c->loc[0] + c->width[0] ||
       p->x[0] < c->loc[0] || p->x[0] > c->loc[0] + c->width[0])
-    printf("map_check: particle %lld is outside of its box.\n", p->id);
+    printf("map_check: particle %ld is outside of its box.\n", p->id);
 }
 
 /**

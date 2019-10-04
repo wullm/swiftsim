@@ -50,7 +50,7 @@ INLINE static void hydro_read_particles(struct part* parts,
                                 UNIT_CONV_LENGTH, parts, h);
   list[4] = io_make_input_field("InternalEnergy", FLOAT, 1, COMPULSORY,
                                 UNIT_CONV_ENERGY_PER_UNIT_MASS, parts, entropy);
-  list[5] = io_make_input_field("ParticleIDs", ULONGLONG, 1, COMPULSORY,
+  list[5] = io_make_input_field("ParticleIDs", INT64, 1, COMPULSORY,
                                 UNIT_CONV_NO_UNITS, parts, id);
   list[6] = io_make_input_field("Accelerations", FLOAT, 3, OPTIONAL,
                                 UNIT_CONV_ACCELERATION, parts, a_hydro);
@@ -168,7 +168,7 @@ INLINE static void hydro_write_particles(const struct part* parts,
       entropy, "Co-moving entropies per unit mass of the particles");
 
   list[5] =
-      io_make_output_field("ParticleIDs", ULONGLONG, 1, UNIT_CONV_NO_UNITS, 0.f,
+      io_make_output_field("ParticleIDs", INT64, 1, UNIT_CONV_NO_UNITS, 0.f,
                            parts, id, "Unique IDs of the particles");
 
   list[6] = io_make_output_field("Densities", FLOAT, 1, UNIT_CONV_DENSITY, -3.f,

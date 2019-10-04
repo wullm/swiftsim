@@ -91,20 +91,20 @@
  * (Should be used for debugging only as it runs in O(N).)
  */
 void printParticle(const struct part *parts, const struct xpart *xparts,
-                   long long int id, size_t N) {
+                   int64_t id, size_t N) {
 
   int found = 0;
 
   /* Look for the particle. */
   for (size_t i = 0; i < N; i++)
     if (parts[i].id == id) {
-      printf("## Particle[%zu]:\n id=%lld ", i, parts[i].id);
+      printf("## Particle[%zu]:\n id=%ld ", i, parts[i].id);
       hydro_debug_particle(&parts[i], &xparts[i]);
       found = 1;
       break;
     }
 
-  if (!found) printf("## Particles[???] id=%lld not found\n", id);
+  if (!found) printf("## Particles[???] id=%ld not found\n", id);
 }
 
 /**
@@ -120,26 +120,26 @@ void printParticle(const struct part *parts, const struct xpart *xparts,
  * (Should be used for debugging only as it runs in O(N).)
  */
 void printgParticle(const struct gpart *gparts, const struct part *parts,
-                    long long int id, size_t N) {
+                    int64_t id, size_t N) {
 
   int found = 0;
 
   /* Look for the particle. */
   for (size_t i = 0; i < N; i++)
     if (gparts[i].id_or_neg_offset == id) {
-      printf("## gParticle[%zu] (DM) :\n id=%lld", i, id);
+      printf("## gParticle[%zu] (DM) :\n id=%ld", i, id);
       gravity_debug_particle(&gparts[i]);
       found = 1;
       break;
     } else if (gparts[i].id_or_neg_offset < 0 &&
                parts[-gparts[i].id_or_neg_offset].id == id) {
-      printf("## gParticle[%zu] (hydro) :\n id=%lld", i, id);
+      printf("## gParticle[%zu] (hydro) :\n id=%ld", i, id);
       gravity_debug_particle(&gparts[i]);
       found = 1;
       break;
     }
 
-  if (!found) printf("## Particles[???] id=%lld not found\n", id);
+  if (!found) printf("## Particles[???] id=%ld not found\n", id);
 }
 
 /**
@@ -150,7 +150,7 @@ void printgParticle(const struct gpart *gparts, const struct part *parts,
  */
 void printParticle_single(const struct part *p, const struct xpart *xp) {
 
-  printf("## Particle: id=%lld ", p->id);
+  printf("## Particle: id=%ld ", p->id);
   hydro_debug_particle(p, xp);
   printf("\n");
 }
@@ -162,7 +162,7 @@ void printParticle_single(const struct part *p, const struct xpart *xp) {
  */
 void printgParticle_single(struct gpart *gp) {
 
-  printf("## g-Particle: id=%lld ", gp->id_or_neg_offset);
+  printf("## g-Particle: id=%ld ", gp->id_or_neg_offset);
   gravity_debug_particle(gp);
   printf("\n");
 }
@@ -227,7 +227,7 @@ int checkSpacehmax(struct space *s) {
 
   for (size_t k = 0; k < s->nr_parts; k++) {
     if (s->parts[k].h > cell_h_max) {
-      message("part %lld is inconsistent (%f > %f)", s->parts[k].id,
+      message("part %ld is inconsistent (%f > %f)", s->parts[k].id,
               s->parts[k].h, cell_h_max);
     }
   }
@@ -244,7 +244,7 @@ int checkSpacehmax(struct space *s) {
 
   for (size_t k = 0; k < s->nr_sparts; k++) {
     if (s->sparts[k].h > cell_stars_h_max) {
-      message("spart %lld is inconsistent (%f > %f)", s->sparts[k].id,
+      message("spart %ld is inconsistent (%f > %f)", s->sparts[k].id,
               s->sparts[k].h, cell_stars_h_max);
     }
   }

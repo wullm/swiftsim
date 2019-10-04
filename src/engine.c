@@ -426,7 +426,7 @@ void engine_exchange_strays(struct engine *e, const size_t offset_parts,
     if (pid < 0) {
       error(
           "Do not have a proxy for the requested nodeID %i for part with "
-          "id=%lld, x=[%e,%e,%e].",
+          "id=%ld, x=[%e,%e,%e].",
           node_id, s->parts[offset_parts + k].id,
           s->parts[offset_parts + k].x[0], s->parts[offset_parts + k].x[1],
           s->parts[offset_parts + k].x[2]);
@@ -462,7 +462,7 @@ void engine_exchange_strays(struct engine *e, const size_t offset_parts,
     if (pid < 0) {
       error(
           "Do not have a proxy for the requested nodeID %i for part with "
-          "id=%lld, x=[%e,%e,%e].",
+          "id=%ld, x=[%e,%e,%e].",
           node_id, s->sparts[offset_sparts + k].id,
           s->sparts[offset_sparts + k].x[0], s->sparts[offset_sparts + k].x[1],
           s->sparts[offset_sparts + k].x[2]);
@@ -497,7 +497,7 @@ void engine_exchange_strays(struct engine *e, const size_t offset_parts,
     if (pid < 0) {
       error(
           "Do not have a proxy for the requested nodeID %i for part with "
-          "id=%lld, x=[%e,%e,%e].",
+          "id=%ld, x=[%e,%e,%e].",
           node_id, s->bparts[offset_bparts + k].id,
           s->bparts[offset_bparts + k].x[0], s->bparts[offset_bparts + k].x[1],
           s->bparts[offset_bparts + k].x[2]);
@@ -532,7 +532,7 @@ void engine_exchange_strays(struct engine *e, const size_t offset_parts,
     if (pid < 0) {
       error(
           "Do not have a proxy for the requested nodeID %i for part with "
-          "id=%lli, x=[%e,%e,%e].",
+          "id=%li, x=[%e,%e,%e].",
           node_id, s->gparts[offset_gparts + k].id_or_neg_offset,
           s->gparts[offset_gparts + k].x[0], s->gparts[offset_gparts + k].x[1],
           s->gparts[offset_gparts + k].x[2]);
@@ -770,7 +770,7 @@ void engine_exchange_strays(struct engine *e, const size_t offset_parts,
              sizeof(struct bpart) * prox->nr_bparts_in);
       /* for (int k = offset; k < offset + count; k++)
          message(
-            "received particle %lli, x=[%.3e %.3e %.3e], h=%.3e, from node %i.",
+            "received particle %li, x=[%.3e %.3e %.3e], h=%.3e, from node %i.",
             s->parts[k].id, s->parts[k].x[0], s->parts[k].x[1],
             s->parts[k].x[2], s->parts[k].h, p->nodeID); */
 
@@ -2046,7 +2046,7 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
     /* Sorting should put the same positions next to each other... */
     int failed = 0;
     double *prev_x = s->parts[0].x;
-    long long *prev_id = &s->parts[0].id;
+    int64_t *prev_id = &s->parts[0].id;
     for (size_t k = 1; k < s->nr_parts; k++) {
 
       /* Ignore fake buffer particles for on-the-fly creation */
@@ -2055,7 +2055,7 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
       if (prev_x[0] == s->parts[k].x[0] && prev_x[1] == s->parts[k].x[1] &&
           prev_x[2] == s->parts[k].x[2]) {
         if (e->verbose)
-          message("Two particles occupy location: %f %f %f id=%lld id=%lld",
+          message("Two particles occupy location: %f %f %f id=%ld id=%ld",
                   prev_x[0], prev_x[1], prev_x[2], *prev_id, s->parts[k].id);
         failed++;
       }
@@ -3097,7 +3097,7 @@ void engine_collect_stars_counter(struct engine *e) {
   /* Update counters */
   struct spart *local_sparts = e->s->sparts;
   for (size_t i = 0; i < e->s->nr_sparts; i++) {
-    const long long id_i = local_sparts[i].id;
+    const int64_t id_i = local_sparts[i].id;
 
     for (int j = 0; j < total; j++) {
       const long long id_j = sparts[j].id;
@@ -3106,7 +3106,7 @@ void engine_collect_stars_counter(struct engine *e) {
         if (j >= displs[engine_rank] &&
             j < displs[engine_rank] + n_sparts_int[engine_rank]) {
           error(
-              "Found a local spart in foreign cell ID=%lli: j=%i, displs=%i, "
+              "Found a local spart in foreign cell ID=%li: j=%i, displs=%i, "
               "n_sparts=%i",
               id_j, j, displs[engine_rank], n_sparts_int[engine_rank]);
         }

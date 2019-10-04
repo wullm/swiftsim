@@ -95,7 +95,7 @@ void runner_do_gas_swallow(struct runner *r, struct cell *c, int timer) {
       if (part_is_inhibited(p, e)) continue;
 
       /* Get the ID of the black holes that will swallow this part */
-      const long long swallow_id =
+      const int64_t swallow_id =
           black_holes_get_part_swallow_id(&p->black_holes_data);
 
       /* Has this particle been flagged for swallowing? */
@@ -107,7 +107,7 @@ void runner_do_gas_swallow(struct runner *r, struct cell *c, int timer) {
 #endif
 
         /* ID of the BH swallowing this particle */
-        const long long BH_id = swallow_id;
+        const int64_t BH_id = swallow_id;
 
         /* Have we found this particle's BH already? */
         int found = 0;
@@ -131,12 +131,12 @@ void runner_do_gas_swallow(struct runner *r, struct cell *c, int timer) {
             if (lock_unlock(&s->lock) != 0)
               error("Failed to unlock the space.");
 
-            message("BH %lld swallowing gas particle %lld", bp->id, p->id);
+            message("BH %ld swallowing gas particle %ld", bp->id, p->id);
 
             /* If the gas particle is local, remove it */
             if (c->nodeID == e->nodeID) {
 
-              message("BH %lld removing gas particle %lld", bp->id, p->id);
+              message("BH %ld removing gas particle %ld", bp->id, p->id);
 
               lock_lock(&e->s->lock);
 
@@ -178,7 +178,7 @@ void runner_do_gas_swallow(struct runner *r, struct cell *c, int timer) {
 
             if (bp->id == BH_id) {
 
-              message("BH %lld removing gas particle %lld (foreign BH case)",
+              message("BH %ld removing gas particle %ld (foreign BH case)",
                       bp->id, p->id);
 
               lock_lock(&e->s->lock);
@@ -204,7 +204,7 @@ void runner_do_gas_swallow(struct runner *r, struct cell *c, int timer) {
         /* If we have a local particle, we must have found the BH in one
          * of our list of black holes. */
         if (c->nodeID == e->nodeID && !found) {
-          error("Gas particle %lld could not find BH %lld to be swallowed",
+          error("Gas particle %ld could not find BH %ld to be swallowed",
                 p->id, swallow_id);
         }
       } /* Part was flagged for swallowing */
@@ -316,10 +316,10 @@ void runner_do_bh_swallow(struct runner *r, struct cell *c, int timer) {
       if (bpart_is_inhibited(cell_bp, e)) continue;
 
       /* Get the ID of the black holes that will swallow this part */
-      const long long swallow_id =
+      const int64_t swallow_id =
           black_holes_get_bpart_swallow_id(&cell_bp->merger_data);
 
-      /* message("OO id=%lld swallow_id = %lld", cell_bp->id, */
+      /* message("OO id=%ld swallow_id = %ld", cell_bp->id, */
       /* 	      swallow_id); */
 
       /* Has this particle been flagged for swallowing? */
@@ -331,7 +331,7 @@ void runner_do_bh_swallow(struct runner *r, struct cell *c, int timer) {
 #endif
 
         /* ID of the BH swallowing this particle */
-        const long long BH_id = swallow_id;
+        const int64_t BH_id = swallow_id;
 
         /* Have we found this particle's BH already? */
         int found = 0;
@@ -355,12 +355,12 @@ void runner_do_bh_swallow(struct runner *r, struct cell *c, int timer) {
             if (lock_unlock(&s->lock) != 0)
               error("Failed to unlock the space.");
 
-            message("BH %lld swallowing BH particle %lld", bp->id, cell_bp->id);
+            message("BH %ld swallowing BH particle %ld", bp->id, cell_bp->id);
 
             /* If the gas particle is local, remove it */
             if (c->nodeID == e->nodeID) {
 
-              message("BH %lld removing BH particle %lld", bp->id, cell_bp->id);
+              message("BH %ld removing BH particle %ld", bp->id, cell_bp->id);
 
               /* Finally, remove the gas particle from the system
                * Recall that the gpart associated with it is also removed
@@ -392,7 +392,7 @@ void runner_do_bh_swallow(struct runner *r, struct cell *c, int timer) {
 
             if (bp->id == BH_id) {
 
-              message("BH %lld removing BH particle %lld (foreign BH case)",
+              message("BH %ld removing BH particle %ld (foreign BH case)",
                       bp->id, cell_bp->id);
 
               /* Finally, remove the gas particle from the system */
@@ -408,7 +408,7 @@ void runner_do_bh_swallow(struct runner *r, struct cell *c, int timer) {
         /* If we have a local particle, we must have found the BH in one
          * of our list of black holes. */
         if (c->nodeID == e->nodeID && !found) {
-          error("BH particle %lld could not find BH %lld to be swallowed",
+          error("BH particle %ld could not find BH %ld to be swallowed",
                 cell_bp->id, swallow_id);
         }
       } /* Part was flagged for swallowing */

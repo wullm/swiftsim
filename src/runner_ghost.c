@@ -261,7 +261,7 @@ void runner_do_stars_ghost(struct runner *r, struct cell *c, int timer) {
           if (num_reruns > max_smoothing_iter - 10) {
 
             message(
-                "Smoothing length convergence problem: iter=%d p->id=%lld "
+                "Smoothing length convergence problem: iter=%d p->id=%ld "
                 "h_init=%12.8e h_old=%12.8e h_new=%12.8e f=%f f_prime=%f "
                 "n_sum=%12.8e n_target=%12.8e left=%12.8e right=%12.8e",
                 num_reruns, sp->id, h_init, h_old, h_new, f, f_prime, n_sum,
@@ -618,7 +618,7 @@ void runner_do_black_holes_density_ghost(struct runner *r, struct cell *c,
           if (num_reruns > max_smoothing_iter - 10) {
 
             message(
-                "Smoothing length convergence problem: iter=%d p->id=%lld "
+                "Smoothing length convergence problem: iter=%d p->id=%ld "
                 "h_init=%12.8e h_old=%12.8e h_new=%12.8e f=%f f_prime=%f "
                 "n_sum=%12.8e n_target=%12.8e left=%12.8e right=%12.8e",
                 num_reruns, bp->id, h_init, h_old, h_new, f, f_prime, n_sum,
@@ -1150,7 +1150,7 @@ void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
           if (num_reruns > max_smoothing_iter - 10) {
 
             message(
-                "Smoothing length convergence problem: iter=%d p->id=%lld "
+                "Smoothing length convergence problem: iter=%d p->id=%ld "
                 "h_init=%12.8e h_old=%12.8e h_new=%12.8e f=%f f_prime=%f "
                 "n_sum=%12.8e n_target=%12.8e left=%12.8e right=%12.8e",
                 num_reruns, p->id, h_init, h_old, h_new, f, f_prime, n_sum,

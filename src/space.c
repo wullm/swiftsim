@@ -4048,7 +4048,7 @@ void space_first_init_parts_mapper(void *restrict map_data, int count,
   /* Check that the smoothing lengths are non-zero */
   for (int k = 0; k < count; k++) {
     if (p[k].h <= 0.)
-      error("Invalid value of smoothing length for part %lld h=%e", p[k].id,
+      error("Invalid value of smoothing length for part %ld h=%e", p[k].id,
             p[k].h);
 
     if (with_gravity) {
@@ -4245,7 +4245,7 @@ void space_first_init_sparts_mapper(void *restrict map_data, int count,
   /* Check that the smoothing lengths are non-zero */
   for (int k = 0; k < count; k++) {
     if (with_feedback && sp[k].h <= 0.)
-      error("Invalid value of smoothing length for spart %lld h=%e", sp[k].id,
+      error("Invalid value of smoothing length for spart %ld h=%e", sp[k].id,
             sp[k].h);
   }
 
@@ -4327,7 +4327,7 @@ void space_first_init_bparts_mapper(void *restrict map_data, int count,
   /* Check that the smoothing lengths are non-zero */
   for (int k = 0; k < count; k++) {
     if (bp[k].h <= 0.)
-      error("Invalid value of smoothing length for bpart %lld h=%e", bp[k].id,
+      error("Invalid value of smoothing length for bpart %ld h=%e", bp[k].id,
             bp[k].h);
   }
 
@@ -5096,10 +5096,10 @@ void space_generate_gas(struct space *s, const struct cosmology *cosmo,
       gp_dm->id_or_neg_offset *= 2;
 
       if (gp_dm->id_or_neg_offset < 0)
-        error("DM particle ID overflowd (DM id=%lld gas id=%lld)",
+        error("DM particle ID overflowd (DM id=%ld gas id=%ld)",
               gp_dm->id_or_neg_offset, p->id);
 
-      if (p->id < 0) error("gas particle ID overflowd (id=%lld)", p->id);
+      if (p->id < 0) error("gas particle ID overflowd (id=%ld)", p->id);
 
       /* Set the links correctly */
       p->gpart = gp_gas;
@@ -5293,7 +5293,7 @@ void space_check_limiter_mapper(void *map_data, int nr_parts,
     if (parts[k].time_bin == time_bin_inhibited) continue;
 
     if (parts[k].wakeup == time_bin_awake)
-      error("Particle still woken up! id=%lld", parts[k].id);
+      error("Particle still woken up! id=%ld", parts[k].id);
 
     if (parts[k].gpart != NULL)
       if (parts[k].time_bin != parts[k].gpart->time_bin)
@@ -5339,7 +5339,7 @@ void space_check_part_swallow_mapper(void *map_data, int nr_parts,
         black_holes_get_part_swallow_id(&parts[k].black_holes_data);
 
     if (swallow_id != -1)
-      error("Particle has not been swallowed! id=%lld", parts[k].id);
+      error("Particle has not been swallowed! id=%ld", parts[k].id);
   }
 #else
   error("Calling debugging code without debugging flag activated.");
@@ -5364,7 +5364,7 @@ void space_check_bpart_swallow_mapper(void *map_data, int nr_bparts,
         black_holes_get_bpart_swallow_id(&bparts[k].merger_data);
 
     if (swallow_id != -1)
-      error("BH particle has not been swallowed! id=%lld", bparts[k].id);
+      error("BH particle has not been swallowed! id=%ld", bparts[k].id);
   }
 #else
   error("Calling debugging code without debugging flag activated.");

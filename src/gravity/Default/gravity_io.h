@@ -88,7 +88,7 @@ INLINE static void darkmatter_read_particles(struct gpart* gparts,
                                 UNIT_CONV_SPEED, gparts, v_full);
   list[2] = io_make_input_field("Masses", FLOAT, 1, COMPULSORY, UNIT_CONV_MASS,
                                 gparts, mass);
-  list[3] = io_make_input_field("ParticleIDs", ULONGLONG, 1, COMPULSORY,
+  list[3] = io_make_input_field("ParticleIDs", INT64, 1, COMPULSORY,
                                 UNIT_CONV_NO_UNITS, gparts, id_or_neg_offset);
 }
 
@@ -120,7 +120,7 @@ INLINE static void darkmatter_write_particles(const struct gpart* gparts,
                                  gparts, mass, "Masses of the particles");
 
   list[3] = io_make_output_field(
-      "ParticleIDs", ULONGLONG, 1, UNIT_CONV_NO_UNITS, 0.f, gparts,
+      "ParticleIDs", INT64, 1, UNIT_CONV_NO_UNITS, 0.f, gparts,
       id_or_neg_offset, "Unique ID of the particles");
 }
 

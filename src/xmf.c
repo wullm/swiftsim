@@ -212,6 +212,7 @@ int xmf_precision(enum IO_DATA_TYPE type) {
     case DOUBLE:
       return 8;
       break;
+    case INT64:
     case ULONGLONG:
     case LONGLONG:
       return 8;
@@ -235,6 +236,7 @@ const char* xmf_type(enum IO_DATA_TYPE type) {
       return "Float";
       break;
     case INT:
+    case INT64:
     case ULONGLONG:
     case LONGLONG:
       return "Int";

@@ -139,7 +139,7 @@ void pairs_n2(double *dim, struct part *restrict parts, int N, int periodic) {
   fflush(stdout);
 }
 
-void pairs_single_density(double *dim, long long int pid,
+void pairs_single_density(double *dim, int64_t pid,
                           struct part *restrict parts, int N, int periodic) {
   int i, k;
   double r2, dx[3];
@@ -152,7 +152,7 @@ void pairs_single_density(double *dim, long long int pid,
     ;
   if (k == N) error("Part not found.");
   p = parts[k];
-  printf("pairs_single: part[%i].id == %lli.\n", k, pid);
+  printf("pairs_single: part[%i].id == %li.\n", k, pid);
 
   hydro_init_part(&p, NULL);
 
@@ -172,7 +172,7 @@ void pairs_single_density(double *dim, long long int pid,
     r2 = fdx[0] * fdx[0] + fdx[1] * fdx[1] + fdx[2] * fdx[2];
     if (r2 < p.h * p.h) {
       runner_iact_nonsym_density(r2, fdx, p.h, parts[k].h, &p, &parts[k], a, H);
-      /* printf( "pairs_simple: interacting particles %lli [%i,%i,%i] and %lli
+      /* printf( "pairs_simple: interacting particles %li [%i,%i,%i] and %li
          [%i,%i,%i], r=%e.\n" ,
           pid , (int)(p.x[0]*ih) , (int)(p.x[1]*ih) , (int)(p.x[2]*ih) ,
           parts[k].id , (int)(parts[k].x[0]*ih) , (int)(parts[k].x[1]*ih) ,
@@ -182,7 +182,7 @@ void pairs_single_density(double *dim, long long int pid,
   }
 
   /* Dump the result. */
-  printf("pairs_single: wcount of part %lli (h=%e) is %f.\n", p.id, p.h,
+  printf("pairs_single: wcount of part %li (h=%e) is %f.\n", p.id, p.h,
          p.density.wcount + 32.0 / 3);
   fflush(stdout);
 }
@@ -700,7 +700,7 @@ void self_all_stars_density(struct runner *r, struct cell *ci) {
 /**
  * @brief Compute the force on a single particle brute-force.
  */
-void engine_single_density(double *dim, long long int pid,
+void engine_single_density(double *dim, int64_t pid,
                            struct part *restrict parts, int N, int periodic,
                            const struct cosmology *cosmo) {
   double r2, dx[3];
@@ -739,12 +739,12 @@ void engine_single_density(double *dim, long long int pid,
 
   /* Dump the result. */
   hydro_end_density(&p, cosmo);
-  message("part %lli (h=%e) has wcount=%e, rho=%e.", p.id, p.h,
+  message("part %li (h=%e) has wcount=%e, rho=%e.", p.id, p.h,
           p.density.wcount, hydro_get_comoving_density(&p));
   fflush(stdout);
 }
 
-void engine_single_force(double *dim, long long int pid,
+void engine_single_force(double *dim, int64_t pid,
                          struct part *restrict parts, int N, int periodic) {
   int i, k;
   double r2, dx[3];
@@ -784,7 +784,7 @@ void engine_single_force(double *dim, long long int pid,
   }
 
   /* Dump the result. */
-  message("part %lli (h=%e) has a=[%.3e,%.3e,%.3e]", p.id, p.h, p.a_hydro[0],
+  message("part %li (h=%e) has a=[%.3e,%.3e,%.3e]", p.id, p.h, p.a_hydro[0],
           p.a_hydro[1], p.a_hydro[2]);
   fflush(stdout);
 }
@@ -884,7 +884,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                        &relDiff)) {
       message(
           "Relative difference (%e) larger than tolerance (%e) for x[%d] of "
-          "particle %lld.",
+          "particle %ld.",
           relDiff, threshold, k, a->id);
       message("a = %e, b = %e", a->x[k], b->x[k]);
       result = 1;
@@ -895,7 +895,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                        &relDiff)) {
       message(
           "Relative difference (%e) larger than tolerance (%e) for v[%d] of "
-          "particle %lld.",
+          "particle %ld.",
           relDiff, threshold, k, a->id);
       message("a = %e, b = %e", a->v[k], b->v[k]);
       result = 1;
@@ -906,7 +906,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                        &absSum, &relDiff)) {
       message(
           "Relative difference (%e) larger than tolerance (%e) for a_hydro[%d] "
-          "of particle %lld.",
+          "of particle %ld.",
           relDiff, threshold, k, a->id);
       message("a = %e, b = %e", a->a_hydro[k], b->a_hydro[k]);
       result = 1;
@@ -915,7 +915,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
   if (compare_values(a->rho, b->rho, threshold, &absDiff, &absSum, &relDiff)) {
     message(
         "Relative difference (%e) larger than tolerance (%e) for rho of "
-        "particle %lld.",
+        "particle %ld.",
         relDiff, threshold, a->id);
     message("a = %e, b = %e", a->rho, b->rho);
     result = 1;
@@ -924,7 +924,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                      &absSum, &relDiff)) {
     message(
         "Relative difference (%e) larger than tolerance (%e) for rho_dh of "
-        "particle %lld.",
+        "particle %ld.",
         relDiff, threshold, a->id);
     message("a = %e, b = %e", a->density.rho_dh, b->density.rho_dh);
     result = 1;
@@ -933,7 +933,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                      &absSum, &relDiff)) {
     message(
         "Relative difference (%e) larger than tolerance (%e) for wcount of "
-        "particle %lld.",
+        "particle %ld.",
         relDiff, threshold, a->id);
     message("a = %e, b = %e", a->density.wcount, b->density.wcount);
     result = 1;
@@ -942,7 +942,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                      &absDiff, &absSum, &relDiff)) {
     message(
         "Relative difference (%e) larger than tolerance (%e) for wcount_dh of "
-        "particle %lld.",
+        "particle %ld.",
         relDiff, threshold, a->id);
     message("a = %e, b = %e", a->density.wcount_dh, b->density.wcount_dh);
     result = 1;
@@ -951,7 +951,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                      &relDiff)) {
     message(
         "Relative difference (%e) larger than tolerance (%e) for h_dt of "
-        "particle %lld.",
+        "particle %ld.",
         relDiff, threshold, a->id);
     message("a = %e, b = %e", a->force.h_dt, b->force.h_dt);
     result = 1;
@@ -960,7 +960,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                      &absSum, &relDiff)) {
     message(
         "Relative difference (%e) larger than tolerance (%e) for v_sig of "
-        "particle %lld.",
+        "particle %ld.",
         relDiff, threshold, a->id);
     message("a = %e, b = %e", a->force.v_sig, b->force.v_sig);
     result = 1;
@@ -969,7 +969,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                      &relDiff)) {
     message(
         "Relative difference (%e) larger than tolerance (%e) for entropy_dt of "
-        "particle %lld.",
+        "particle %ld.",
         relDiff, threshold, a->id);
     message("a = %e, b = %e", a->entropy_dt, b->entropy_dt);
     result = 1;
@@ -978,7 +978,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                      &absSum, &relDiff)) {
     message(
         "Relative difference (%e) larger than tolerance (%e) for div_v of "
-        "particle %lld.",
+        "particle %ld.",
         relDiff, threshold, a->id);
     message("a = %e, b = %e", a->density.div_v, b->density.div_v);
     result = 1;
@@ -988,7 +988,7 @@ int compare_particles(struct part *a, struct part *b, double threshold) {
                        &absDiff, &absSum, &relDiff)) {
       message(
           "Relative difference (%e) larger than tolerance (%e) for rot_v[%d] "
-          "of particle %lld.",
+          "of particle %ld.",
           relDiff, threshold, k, a->id);
       message("a = %e, b = %e", a->density.rot_v[k], b->density.rot_v[k]);
       result = 1;

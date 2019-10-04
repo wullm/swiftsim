@@ -43,7 +43,7 @@ INLINE static void black_holes_read_particles(struct bpart* bparts,
                                 UNIT_CONV_SPEED, bparts, v);
   list[2] = io_make_input_field("Masses", FLOAT, 1, COMPULSORY, UNIT_CONV_MASS,
                                 bparts, mass);
-  list[3] = io_make_input_field("ParticleIDs", LONGLONG, 1, COMPULSORY,
+  list[3] = io_make_input_field("ParticleIDs", INT64, 1, COMPULSORY,
                                 UNIT_CONV_NO_UNITS, bparts, id);
   list[4] = io_make_input_field("SmoothingLength", FLOAT, 1, OPTIONAL,
                                 UNIT_CONV_LENGTH, bparts, h);
@@ -125,7 +125,7 @@ INLINE static void black_holes_write_particles(const struct bpart* bparts,
   list[2] = io_make_output_field("Masses", FLOAT, 1, UNIT_CONV_MASS, 0.f,
                                  bparts, mass, "Masses of the particles");
 
-  list[3] = io_make_output_field("ParticleIDs", LONGLONG, 1, UNIT_CONV_NO_UNITS,
+  list[3] = io_make_output_field("ParticleIDs", INT64, 1, UNIT_CONV_NO_UNITS,
                                  0.f, bparts, id, "Unique ID of the particles");
 
   list[4] = io_make_output_field(
@@ -141,10 +141,10 @@ INLINE static void black_holes_write_particles(const struct bpart* bparts,
                                  bparts, num_ngb_density);
   list[1] = io_make_output_field("Num_ngb_force", INT, 1, UNIT_CONV_NO_UNITS,
                                  bparts, num_ngb_force);
-  list[2] = io_make_output_field("Ids_ngb_density", LONGLONG,
+  list[2] = io_make_output_field("Ids_ngb_density", INT64,
                                  MAX_NUM_OF_NEIGHBOURS_BLACK_HOLES,
                                  UNIT_CONV_NO_UNITS, bparts, ids_ngbs_density);
-  list[3] = io_make_output_field("Ids_ngb_force", LONGLONG,
+  list[3] = io_make_output_field("Ids_ngb_force", INT64,
                                  MAX_NUM_OF_NEIGHBOURS_BLACK_HOLES,
                                  UNIT_CONV_NO_UNITS, bparts, ids_ngbs_force);
 #endif

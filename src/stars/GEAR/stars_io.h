@@ -43,7 +43,7 @@ INLINE static void stars_read_particles(struct spart *sparts,
                                 UNIT_CONV_SPEED, sparts, v);
   list[2] = io_make_input_field("Masses", FLOAT, 1, COMPULSORY, UNIT_CONV_MASS,
                                 sparts, mass);
-  list[3] = io_make_input_field("ParticleIDs", LONGLONG, 1, COMPULSORY,
+  list[3] = io_make_input_field("ParticleIDs", INT64, 1, COMPULSORY,
                                 UNIT_CONV_NO_UNITS, sparts, id);
   list[4] = io_make_input_field("SmoothingLength", FLOAT, 1, OPTIONAL,
                                 UNIT_CONV_LENGTH, sparts, h);
@@ -78,7 +78,7 @@ INLINE static void stars_write_particles(const struct spart *sparts,
                                  sparts, mass, "Masses of the particles");
 
   list[3] =
-      io_make_output_field("ParticleIDs", LONGLONG, 1, UNIT_CONV_NO_UNITS, 0.f,
+      io_make_output_field("ParticleIDs", INT64, 1, UNIT_CONV_NO_UNITS, 0.f,
                            sparts, id, "Unique IDs of the particles");
 
   list[4] = io_make_output_field(
@@ -121,10 +121,10 @@ INLINE static void stars_write_particles(const struct spart *sparts,
                                  sparts, num_ngb_density);
   list[1] = io_make_output_field("Num_ngb_force", INT, 1, UNIT_CONV_NO_UNITS,
                                  sparts, num_ngb_force);
-  list[2] = io_make_output_field("Ids_ngb_density", LONGLONG,
+  list[2] = io_make_output_field("Ids_ngb_density", INT64,
                                  MAX_NUM_OF_NEIGHBOURS_STARS,
                                  UNIT_CONV_NO_UNITS, sparts, ids_ngbs_density);
-  list[3] = io_make_output_field("Ids_ngb_force", LONGLONG,
+  list[3] = io_make_output_field("Ids_ngb_force", INT64,
                                  MAX_NUM_OF_NEIGHBOURS_STARS,
                                  UNIT_CONV_NO_UNITS, sparts, ids_ngbs_force);
 #endif

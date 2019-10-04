@@ -44,7 +44,7 @@ INLINE static void stars_read_particles(struct spart *sparts,
                                 UNIT_CONV_SPEED, sparts, v);
   list[2] = io_make_input_field("Masses", FLOAT, 1, COMPULSORY, UNIT_CONV_MASS,
                                 sparts, mass);
-  list[3] = io_make_input_field("ParticleIDs", LONGLONG, 1, COMPULSORY,
+  list[3] = io_make_input_field("ParticleIDs", INT64, 1, COMPULSORY,
                                 UNIT_CONV_NO_UNITS, sparts, id);
   list[4] = io_make_input_field("SmoothingLength", FLOAT, 1, OPTIONAL,
                                 UNIT_CONV_LENGTH, sparts, h);
@@ -131,7 +131,7 @@ INLINE static void stars_write_particles(const struct spart *sparts,
                                  "Masses of the particles at the current point "
                                  "in time (i.e. after stellar losses");
 
-  list[3] = io_make_output_field("ParticleIDs", LONGLONG, 1, UNIT_CONV_NO_UNITS,
+  list[3] = io_make_output_field("ParticleIDs", INT64, 1, UNIT_CONV_NO_UNITS,
                                  0.f, sparts, id, "Unique ID of the particles");
 
   list[4] = io_make_output_field(
