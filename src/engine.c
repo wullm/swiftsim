@@ -117,7 +117,8 @@ const char *engine_policy_names[] = {"none",
                                      "feedback",
                                      "black holes",
                                      "fof search",
-                                     "time-step limiter"};
+                                     "time-step limiter",
+                                     "images"};
 
 /** The rank of the engine as a global variable (for messages). */
 int engine_rank;
@@ -4810,6 +4811,7 @@ void engine_clean(struct engine *e, const int fof) {
   output_list_clean(&e->output_list_snapshots);
   output_list_clean(&e->output_list_stats);
   output_list_clean(&e->output_list_stf);
+  output_list_clean(&e->output_list_images);
 
   swift_free("links", e->links);
 #if defined(WITH_LOGGER)
@@ -4879,6 +4881,8 @@ void engine_struct_dump(struct engine *e, FILE *stream) {
   if (e->output_list_stats)
     output_list_struct_dump(e->output_list_stats, stream);
   if (e->output_list_stf) output_list_struct_dump(e->output_list_stf, stream);
+  if (e->output_list_images)
+    output_list_struct_dump(e->output_list_images, stream);
 }
 
 /**
@@ -5026,6 +5030,13 @@ void engine_struct_restore(struct engine *e, FILE *stream) {
         (struct output_list *)malloc(sizeof(struct output_list));
     output_list_struct_restore(output_list_stf, stream);
     e->output_list_stf = output_list_stf;
+  }
+
+  if (e->output_list_images) {
+    struct output_list *output_list_images =
+        (struct output_list *)malloc(sizeof(struct output_list));
+    output_list_struct_restore(output_list_images, stream);
+    e->output_list_images = output_list_images;
   }
 
 #ifdef EOS_PLANETARY
