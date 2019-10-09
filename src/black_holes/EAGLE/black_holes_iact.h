@@ -299,8 +299,28 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float *dx,
     /* Merge if gravitationally bound AND if within max distance
      * Note that we use the kernel support here as the size and not just the
      * smoothing length */
-    if (v2_pec < G_Newton * M / (kernel_gamma * h) && (r2 < max_dist_merge2)) {
 
+    /* --> CHANGED: merge if v2_pec less than escape speed */
+
+    const float r_12 = sqrt(r2); 
+    float v2_esc;
+    if (r_12 < grav_props->epsilon_baryon_cur) {
+
+      /* Calculate 'modified distance' to go into escape velocity
+       * as a result of softening */
+      float w_grav;
+      kernel_grav_pot_eval(r_12/grav_props->epsilon_baryon_cur, w_grav);
+      const float r_mod = w_grav / grav_props->epsilon_baryon_cur;
+
+      v2_esc = 2 * G_Newton * M / r_mod;
+    } else {
+      v2_esc = 2 * G_Newton * M / r_12;
+    }
+
+    /* --> ends non-standard bit */
+    
+    if ((v2_pec < v_esc) && (r2 < max_dist_merge2)) {
+      
       /* This particle is swallowed by the BH with the largest ID of all the
        * candidates wanting to swallow it */
       if ((bj->merger_data.swallow_mass < bi->subgrid_mass) ||
