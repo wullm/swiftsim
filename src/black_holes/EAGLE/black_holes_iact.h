@@ -197,15 +197,15 @@ runner_iact_nonsym_bh_gas_swallow(
        * candidates wanting to swallow it */
       if (pj->black_holes_data.swallow_id < bi->id) {
 
-        message("BH %lld wants to swallow gas particle %lld", bi->id, pj->id);
+        message("BH %ld wants to swallow gas particle %ld", bi->id, pj->id);
 
         pj->black_holes_data.swallow_id = bi->id;
 
       } else {
 
         message(
-            "BH %lld wants to swallow gas particle %lld BUT CANNOT (old "
-            "swallow id=%lld)",
+            "BH %ld wants to swallow gas particle %ld BUT CANNOT (old "
+            "swallow id=%ld)",
             bi->id, pj->id, pj->black_holes_data.swallow_id);
       }
     }
@@ -307,7 +307,7 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float *dx,
           (bj->merger_data.swallow_mass == bi->subgrid_mass &&
            bj->merger_data.swallow_id < bi->id)) {
 
-        message("BH %lld wants to swallow BH particle %lld", bi->id, bj->id);
+        message("BH %ld wants to swallow BH particle %ld", bi->id, bj->id);
 
         bj->merger_data.swallow_id = bi->id;
         bj->merger_data.swallow_mass = bi->subgrid_mass;
@@ -315,8 +315,8 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float *dx,
       } else {
 
         message(
-            "BH %lld wants to swallow gas particle %lld BUT CANNOT (old "
-            "swallow id=%lld)",
+            "BH %ld wants to swallow gas particle %ld BUT CANNOT (old "
+            "swallow id=%ld)",
             bi->id, bj->id, bj->merger_data.swallow_id);
       }
     }
