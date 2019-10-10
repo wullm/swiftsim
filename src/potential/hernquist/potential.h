@@ -245,9 +245,6 @@ static INLINE void potential_init_backend(
       error("Please specify one of the 3 variables M200, V200 or R200");
     }
 
-    /* message("M200 = %g, R200 = %g, V200 = %g", M200, R200, V200); */
-    /* message("H0 = %g", H0); */
-
     /* get the concentration from the parameter file */
     const double concentration = parser_get_param_double(
         parameter_file, "HernquistPotential:concentration");
@@ -266,12 +263,20 @@ static INLINE void potential_init_backend(
         parameter_file, "HernquistPotential:diskfraction");
     const double bulgefraction = parser_get_param_double(
         parameter_file, "HernquistPotential:bulgefraction");
+
     /* Calculate the mass of the bulge and disk from the parameters  */
     const double Mdisk = M200 * diskfraction;
     const double Mbulge = M200 * bulgefraction;
 
+    /* Also get the blackhole fraction of the simulation */
+    const double blackhole_fraction = parser_get_opt_param_double(
+        parameter_file, "HernquistPotential:blackholefraction", 0.f);
+
+    /* Calculate the blackhole mass */
+    const double MBH = M200 * blackhole_fraction;
+
     /* Store the mass of the DM halo */
-    potential->mass = M200 - Mdisk - Mbulge;
+    potential->mass = M200 - Mdisk - Mbulge - MBH;
   }
 
   /* Retrieve the timestep and softening of the potential */
