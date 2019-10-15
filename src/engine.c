@@ -4076,9 +4076,8 @@ void engine_config(int restart, int fof, struct engine *e,
                                  space_subsize_self_grav_default);
     space_splitsize = parser_get_opt_param_int(
         params, "Scheduler:cell_split_size", space_splitsize_default);
-    space_subdepth_diff_grav =
-        parser_get_opt_param_int(params, "Scheduler:cell_subdepth_diff_grav",
-                                 space_subdepth_diff_grav_default);
+    space_subdepth_grav = parser_get_opt_param_int(
+        params, "Scheduler:cell_subdepth_grav", space_subdepth_grav_default);
     space_extra_parts = parser_get_opt_param_int(
         params, "Scheduler:cell_extra_parts", space_extra_parts_default);
     space_extra_sparts = parser_get_opt_param_int(
