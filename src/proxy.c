@@ -69,7 +69,10 @@ void proxy_tags_exchange(struct proxy *proxies, int num_proxies,
   /* Run through the cells and get the size of the tags that will be sent off.
    */
   int count_out = 0;
-  int offset_out[s->nr_cells];
+  int *offset_out =
+      (int *)swift_malloc("tags_offsets_out", s->nr_cells * sizeof(int));
+  if (offset_out == NULL) error("Error allocating memory for tag offsets");
+
   for (int k = 0; k < s->nr_cells; k++) {
     offset_out[k] = count_out;
     if (s->cells_top[k].mpi.sendto) {
@@ -79,7 +82,10 @@ void proxy_tags_exchange(struct proxy *proxies, int num_proxies,
 
   /* Run through the proxies and get the count of incoming tags. */
   int count_in = 0;
-  int offset_in[s->nr_cells];
+  int *offset_in =
+      (int *)swift_malloc("tags_offsets_in", s->nr_cells * sizeof(int));
+  if (offset_in == NULL) error("Error allocating memory for tag offsets");
+
   for (int k = 0; k < num_proxies; k++) {
     for (int j = 0; j < proxies[k].nr_cells_in; j++) {
       offset_in[proxies[k].cells_in[j] - s->cells_top] = count_in;
@@ -170,6 +176,8 @@ void proxy_tags_exchange(struct proxy *proxies, int num_proxies,
   /* Clean up. */
   swift_free("tags_in", tags_in);
   swift_free("tags_out", tags_out);
+  swift_free("tags_offsets_in", offset_in);
+  swift_free("tags_offsets_out", offset_out);
   free(reqs_in);
   free(cids_in);
 
@@ -389,7 +397,10 @@ void proxy_cells_exchange(struct proxy *proxies, int num_proxies,
                  s->nr_cells, sizeof(struct cell), /*chunk=*/0,
                  /*extra_data=*/NULL);
   int count_out = 0;
-  int offset[s->nr_cells];
+  int *offset =
+      (int *)swift_malloc("proxy_cell_offset", s->nr_cells * sizeof(int));
+  if (offset == NULL) error("Error allocating memory for proxy cell offsets");
+
   for (int k = 0; k < s->nr_cells; k++) {
     offset[k] = count_out;
     if (s->cells_top[k].mpi.sendto) count_out += s->cells_top[k].mpi.pcell_size;
@@ -472,6 +483,7 @@ void proxy_cells_exchange(struct proxy *proxies, int num_proxies,
   /* Clean up. */
   free(reqs);
   swift_free("pcells", pcells);
+  swift_free("proxy_cell_offset", offset);
 
 #else
   error("SWIFT was not compiled with MPI support.");
@@ -972,6 +984,29 @@ void proxy_init(struct proxy *p, int mynodeID, int nodeID) {
 }
 
 /**
+ * @brief Free the memory allocated by a #proxy
+ */
+void proxy_clean(struct proxy *p) {
+
+  free(p->cells_in);
+  free(p->cells_out);
+  free(p->cells_in_type);
+  free(p->cells_out_type);
+  swift_free("pcells_in", p->pcells_in);
+  swift_free("pcells_out", p->pcells_out);
+  swift_free("parts_out", p->parts_out);
+  swift_free("xparts_out", p->xparts_out);
+  swift_free("gparts_out", p->gparts_out);
+  swift_free("sparts_out", p->sparts_out);
+  swift_free("bparts_out", p->bparts_out);
+  swift_free("parts_in", p->parts_in);
+  swift_free("xparts_in", p->xparts_in);
+  swift_free("gparts_in", p->gparts_in);
+  swift_free("sparts_in", p->sparts_in);
+  swift_free("bparts_in", p->bparts_in);
+}
+
+/**
  * @brief Registers the MPI types for the proxy cells.
  */
 void proxy_create_mpi_type(void) {
@@ -982,6 +1017,14 @@ void proxy_create_mpi_type(void) {
       MPI_Type_commit(&pcell_mpi_type) != MPI_SUCCESS) {
     error("Failed to create MPI type for parts.");
   }
+#else
+  error("SWIFT was not compiled with MPI support.");
+#endif
+}
+
+void proxy_free_mpi_type(void) {
+#ifdef WITH_MPI
+  MPI_Type_free(&pcell_mpi_type);
 #else
   error("SWIFT was not compiled with MPI support.");
 #endif
