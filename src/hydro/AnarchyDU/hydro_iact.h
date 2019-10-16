@@ -410,12 +410,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   /* Diffusion term */
   const float alpha_diff = 0.5f * (pi->diffusion.alpha + pj->diffusion.alpha);
-  /*
   const float v_diff = alpha_diff * 0.5f *
                        (sqrtf(2.f * fabsf(pressurei - pressurej) / rho_ij) +
                         fabsf(fac_mu * r_inv * dvdr_Hubble));
-  */
-  const float v_diff = 0.f;
+
   /* wi_dx + wj_dx / 2 is F_ij */
   const float diff_du_term =
       v_diff * (pi->u - pj->u) * (wi_dr / rhoi + wj_dr / rhoj);
@@ -542,12 +540,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   /* Diffusion term */
   const float alpha_diff = 0.5f * (pi->diffusion.alpha + pj->diffusion.alpha);
 
-  /*
   const float v_diff = alpha_diff * 0.5f *
                        (sqrtf(2.f * fabsf(pressurei - pressurej) / rho_ij) +
                         fabsf(fac_mu * r_inv * dvdr_Hubble));
-  */
-  const float v_diff = 0.f;
+
   /* wi_dx + wj_dx / 2 is F_ij */
   const float diff_du_term =
       v_diff * (pi->u - pj->u) * (wi_dr / rhoi + wj_dr / rhoj);
