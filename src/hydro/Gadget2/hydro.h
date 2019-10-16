@@ -403,6 +403,8 @@ hydro_set_drifted_physical_internal_energy(struct part *p,
   /* Update variables. */
   p->force.P_over_rho2 = P_over_rho2;
   p->force.soundspeed = soundspeed;
+
+  p->force.v_sig = max(p->force.v_sig, 2.f * soundspeed);
 }
 
 /**
@@ -614,8 +616,13 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_force(
                          0.0001f * fac_Balsara_eps * soundspeed * h_inv);
 
   /* Compute the "grad h" term */
+  float rho_dh = p->density.rho_dh;
+  /* Ignore changing-kernel effects when h ~= h_max */
+  if (p->h > 0.9999f * hydro_props->h_max) {
+    rho_dh = 0.f;
+  }
   const float omega_inv =
-      1.f / (1.f + hydro_dimension_inv * p->h * p->density.rho_dh * rho_inv);
+      1.f / (1.f + hydro_dimension_inv * p->h * rho_dh * rho_inv);
 
   /* Update variables. */
   p->force.f = omega_inv;
@@ -650,7 +657,7 @@ __attribute__((always_inline)) INLINE static void hydro_reset_acceleration(
   p->force.h_dt = 0.0f;
 
   /* Reset maximal signal velocity */
-  p->force.v_sig = p->force.soundspeed;
+  p->force.v_sig = 2.f * p->force.soundspeed;
 }
 
 /**
@@ -757,6 +764,8 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
   /* Update variables */
   p->force.soundspeed = soundspeed;
   p->force.P_over_rho2 = P_over_rho2;
+
+  p->force.v_sig = max(p->force.v_sig, 2.f * soundspeed);
 }
 
 /**
