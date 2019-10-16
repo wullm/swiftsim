@@ -275,11 +275,8 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float *dx,
 
   /* Find the most massive of the two BHs */
   float M = bi->subgrid_mass;
-  float h = hi;
-  if (bj->subgrid_mass > M) {
+  if (bj->subgrid_mass > M)
     M = bj->subgrid_mass;
-    h = hj;
-  }
 
   /* Note the factor 9 is taken from EAGLE. Will be turned into a parameter */
   const float max_dist_merge2 =
@@ -302,25 +299,25 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float *dx,
 
     /* --> CHANGED: merge if v2_pec less than escape speed */
 
-    const float r_12 = sqrt(r2); 
+    const float r_12 = sqrt(r2);
     float v2_esc;
     if (r_12 < grav_props->epsilon_baryon_cur) {
 
       /* Calculate 'modified distance' to go into escape velocity
        * as a result of softening */
       float w_grav;
-      kernel_grav_pot_eval(r_12/grav_props->epsilon_baryon_cur, w_grav);
+      kernel_grav_pot_eval(r_12/grav_props->epsilon_baryon_cur, &w_grav);
       const float r_mod = w_grav / grav_props->epsilon_baryon_cur;
 
-      v2_esc = 2 * G_Newton * M / r_mod;
+      v2_esc = 2 * G_Newton * M / (r_mod * cosmo->a);
     } else {
-      v2_esc = 2 * G_Newton * M / r_12;
+      v2_esc = 2 * G_Newton * M / (r_12 * cosmo->a);
     }
 
-    /* --> ends non-standard bit */
-    
-    if ((v2_pec < v_esc) && (r2 < max_dist_merge2)) {
-      
+    if ((v2_pec < v2_esc) && (r2 < max_dist_merge2)) {
+
+      /* --> ends non-standard bit */
+          
       /* This particle is swallowed by the BH with the largest ID of all the
        * candidates wanting to swallow it */
       if ((bj->merger_data.swallow_mass < bi->subgrid_mass) ||
