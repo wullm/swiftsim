@@ -94,6 +94,7 @@ __attribute__((always_inline)) INLINE static void black_holes_init_bpart(
   bp->reposition.x[1] = -FLT_MAX;
   bp->reposition.x[2] = -FLT_MAX;
   bp->reposition.min_potential = FLT_MAX;
+  bp->accretion_rate = 0.f;   /* Calculated ngb-by-ngb here */
 }
 
 /**
@@ -374,13 +375,11 @@ __attribute__((always_inline)) INLINE static void black_holes_prepare_feedback(
                                       gas_v_circular[2] * gas_v_circular[2];
   const double tangential_velocity = sqrt(tangential_velocity2);
 
-  /* We can now compute the Bondi accretion rate (internal units) */
-  const double gas_c_phys2 = gas_c_phys * gas_c_phys;
-  const double denominator2 = v_diff_norm2 + gas_c_phys2;
-  const double denominator_inv = 1. / sqrt(denominator2);
-  double Bondi_rate = 4. * M_PI * G * G * BH_mass * BH_mass * gas_rho_phys *
-                      denominator_inv * denominator_inv * denominator_inv;
-
+  /* Bondi rate calculation just needs constant pre-factor 
+   * [NB: it is in internal units] */
+  double Bondi_rate =
+    bp->accretion_rate * (4. * M_PI * G * G * BH_mass * BH_mass); 
+  
   /* Compute the reduction factor from Rosas-Guevara et al. (2015) */
   const double Bondi_radius = G * BH_mass / gas_c_phys2;
   const double Bondi_time = Bondi_radius / gas_c_phys;
@@ -391,7 +390,7 @@ __attribute__((always_inline)) INLINE static void black_holes_prepare_feedback(
                               (1e-6 * alpha_visc * G * G * BH_mass * BH_mass);
   const double f_visc = max(Bondi_time / viscous_time, 1.);
 
-  /* Limit the Bondi rate by the Bondi viscuous time ratio */
+  /* Limit the Bondi rate by the Bondi-to-viscuous time ratio */
   Bondi_rate *= f_visc;
 
   /* Compute the Eddington rate (internal units) */
