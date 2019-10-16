@@ -125,10 +125,11 @@ runner_iact_nonsym_bh_gas_density(
   if (denominator2 == 0)
     denominator_inv = 0;
 
-  /* iii) Contribution of gas particle to the BH accretion rate */
-  /*      (without constant pre-factor)
-  /*      [NB: rhoj is weighted contribution to BH gas density] 
-  */ 
+  /* iii) Contribution of gas particle to the BH accretion rate *
+   *      (without constant pre-factor)
+   *      [NB: rhoj is weighted contribution to BH gas density] 
+   */ 
+  const float hi_inv_dim = pow_dimension(hi_inv);   /* 1/h^d */
   const float rhoj = mj * wi * cosmo->a3_inv * hi_inv_dim;
   bi->accretion_rate += (rhoj * denominator_inv * denominator_inv *
 			 denominator_inv);
