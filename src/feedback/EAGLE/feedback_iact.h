@@ -44,6 +44,11 @@ runner_iact_nonsym_feedback_density(const float r2, const float *dx,
                                     const struct cosmology *restrict cosmo,
                                     const integertime_t ti_current) {
 
+#ifdef SWIFT_DEBUG_CHECKS
+  if (si->count_since_last_enrichment != 0)
+    error("Computing feedback from a star that should not");
+#endif
+
   /* Get the gas mass. */
   const float mj = hydro_get_mass(pj);
 
@@ -92,6 +97,11 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
                                   struct xpart *restrict xpj,
                                   const struct cosmology *restrict cosmo,
                                   const integertime_t ti_current) {
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (si->count_since_last_enrichment != 0)
+    error("Computing feedback from a star that should not");
+#endif
 
   /* Get r and 1/r. */
   const float r_inv = 1.0f / sqrtf(r2);
