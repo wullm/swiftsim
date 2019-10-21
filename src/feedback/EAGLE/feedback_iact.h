@@ -166,15 +166,11 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
   pj->chemistry_data.iron_mass_fraction_from_SNIa =
       new_iron_from_SNIa_mass * new_mass_inv;
 
-  /* Update mass fraction from SNIa  */
-  const double current_mass_from_SNIa =
-      pj->chemistry_data.mass_from_SNIa * current_mass;
+  /* Update mass from SNIa  */
   const double delta_mass_from_SNIa =
       si->feedback_data.to_distribute.mass_from_SNIa * Omega_frac;
-  const double new_mass_from_SNIa =
-      current_mass_from_SNIa + delta_mass_from_SNIa;
 
-  pj->chemistry_data.mass_from_SNIa = new_mass_from_SNIa * new_mass_inv;
+  pj->chemistry_data.mass_from_SNIa += delta_mass_from_SNIa;
 
   /* Update metal mass fraction from SNIa */
   const double current_metal_mass_from_SNIa =
@@ -187,15 +183,11 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
   pj->chemistry_data.metal_mass_fraction_from_SNIa =
       new_metal_mass_from_SNIa * new_mass_inv;
 
-  /* Update mass fraction from SNII  */
-  const double current_mass_from_SNII =
-      pj->chemistry_data.mass_from_SNII * current_mass;
+  /* Update mass from SNII  */
   const double delta_mass_from_SNII =
       si->feedback_data.to_distribute.mass_from_SNII * Omega_frac;
-  const double new_mass_from_SNII =
-      current_mass_from_SNII + delta_mass_from_SNII;
 
-  pj->chemistry_data.mass_from_SNII = new_mass_from_SNII * new_mass_inv;
+  pj->chemistry_data.mass_from_SNII += delta_mass_from_SNII;
 
   /* Update metal mass fraction from SNII */
   const double current_metal_mass_from_SNII =
@@ -208,14 +200,11 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
   pj->chemistry_data.metal_mass_fraction_from_SNII =
       new_metal_mass_from_SNII * new_mass_inv;
 
-  /* Update mass fraction from AGB  */
-  const double current_mass_from_AGB =
-      pj->chemistry_data.mass_from_AGB * current_mass;
+  /* Update mass from AGB  */
   const double delta_mass_from_AGB =
       si->feedback_data.to_distribute.mass_from_AGB * Omega_frac;
-  const double new_mass_from_AGB = current_mass_from_AGB + delta_mass_from_AGB;
 
-  pj->chemistry_data.mass_from_AGB = new_mass_from_AGB * new_mass_inv;
+  pj->chemistry_data.mass_from_AGB += delta_mass_from_AGB;
 
   /* Update metal mass fraction from AGB */
   const double current_metal_mass_from_AGB =
@@ -262,18 +251,17 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
   const double injected_energy =
       si->feedback_data.to_distribute.energy * Omega_frac;
 
-  /* Apply energy conservation to recover the new thermal energy of the gas */
+  /* Apply energy conservation to recover the new thermal energy of the gas
+   * Note: in some specific cases the new_thermal_energy could be lower
+   * than the current_thermal_energy, this is mainly the case if the change
+   * in mass is relatively small and the velocity vectors between both the
+   * gas particle and the star particle have a small angle. */
   const double new_thermal_energy = current_kinetic_energy_gas +
                                     current_thermal_energy + injected_energy -
                                     new_kinetic_energy_gas;
 
   /* Convert this to a specific thermal energy */
   const double u_new_enrich = new_thermal_energy * new_mass_inv;
-
-#ifdef SWIFT_DEBUG_CHECKS
-  if (new_thermal_energy < 0.99 * current_thermal_energy)
-    error("Enrichment is cooling the gas");
-#endif
 
   /* Do the energy injection. */
   hydro_set_physical_internal_energy(pj, xpj, cosmo, u_new_enrich);

@@ -65,7 +65,8 @@ __attribute__((always_inline)) INLINE static void stars_first_init_spart(
   sp->time_bin = 0;
   sp->birth_density = 0.f;
   sp->f_E = -1.f;
-  sp->birth_time = stars_properties->spart_first_init_birth_time;
+  if (stars_properties->overwrite_birth_time)
+    sp->birth_time = stars_properties->spart_first_init_birth_time;
 
   sp->last_enrichment_time = stars_properties->spart_first_init_birth_time;
   sp->count_since_last_enrichment = -1;

@@ -190,6 +190,22 @@ INLINE static double EOS_pressure(const double n_H,
 }
 
 /**
+ * @brief Compute the entropy of the polytropic equation of state for a given
+ * Hydrogen number density.
+ *
+ * @param n_H The Hydrogen number density in internal units.
+ * @param starform The properties of the star formation model.
+ * @param rho The physical density
+ * @return The pressure on the equation of state in internal units.
+ */
+INLINE static double EOS_entropy(const double n_H,
+                                 const struct star_formation* starform,
+                                 const double rho) {
+
+  return gas_entropy_from_pressure(rho, EOS_pressure(n_H, starform));
+}
+
+/**
  * @brief Calculate if the gas has the potential of becoming
  * a star.
  *
@@ -232,8 +248,11 @@ INLINE static int star_formation_is_star_forming(
    * because we also need to check if the physical density exceeded
    * the appropriate limit */
 
-  const double Z = p->chemistry_data.smoothed_metal_mass_fraction_total;
-  const double X_H = p->chemistry_data.smoothed_metal_mass_fraction[0];
+  const double Z =
+      chemistry_get_total_metal_mass_fraction_for_star_formation(p);
+  const float* const metal_fraction =
+      chemistry_get_metal_mass_fraction_for_star_formation(p);
+  const double X_H = metal_fraction[chemistry_element_H];
   const double n_H = physical_density * X_H;
 
   /* Get the density threshold */
@@ -246,8 +265,11 @@ INLINE static int star_formation_is_star_forming(
   /* Calculate the entropy of the particle */
   const double entropy = hydro_get_physical_entropy(p, xp, cosmo);
 
-  /* Calculate the entropy EOS of the particle */
-  const double entropy_eos = entropy_floor(p, cosmo, entropy_floor_props);
+  /* Calculate the entropy that will be used to calculate
+   * the off-set, this is the maximum between the entropy
+   * floor and the star formation polytropic EOS. */
+  const double entropy_eos = max(entropy_floor(p, cosmo, entropy_floor_props),
+                                 EOS_entropy(n_H, starform, physical_density));
 
   /* Check the Scahye & Dalla Vecchia 2012 EOS-based temperature critrion */
   return (entropy <
@@ -279,7 +301,9 @@ INLINE static void star_formation_compute_SFR(
 
   /* Hydrogen number density of this particle */
   const double physical_density = hydro_get_physical_density(p, cosmo);
-  const double X_H = p->chemistry_data.smoothed_metal_mass_fraction[0];
+  const float* const metal_fraction =
+      chemistry_get_metal_mass_fraction_for_star_formation(p);
+  const double X_H = metal_fraction[chemistry_element_H];
   const double n_H = physical_density * X_H / phys_const->const_proton_mass;
 
   /* Are we above the threshold for automatic star formation? */
@@ -290,8 +314,13 @@ INLINE static void star_formation_compute_SFR(
     return;
   }
 
-  /* Pressure on the effective EOS for this particle */
-  const double pressure = EOS_pressure(n_H, starform);
+  /* Get the pressure used for the star formation, this is
+   * the maximum of the star formation EOS pressure,
+   * the physical pressure of the particle and the
+   * floor pressure. The floor pressure is used implicitly
+   * when getting the physical pressure. */
+  const double pressure =
+      max(EOS_pressure(n_H, starform), hydro_get_physical_pressure(p, cosmo));
 
   /* Calculate the specific star formation rate */
   double SFRpergasmass;
@@ -662,7 +691,20 @@ star_formation_part_has_no_neighbours(struct part* restrict p,
 
 /**
  * @brief Sets the star_formation properties of the (x-)particles to a valid
- * start state.
+ * state to start the density loop.
+ *
+ * Nothing to do here. We do not need to compute any quantity in the hydro
+ * density loop for the EAGLE star formation model.
+ *
+ * @param data The global star_formation information used for this run.
+ * @param p Pointer to the particle data.
+ */
+__attribute__((always_inline)) INLINE static void star_formation_init_part(
+    struct part* restrict p, const struct star_formation* data) {}
+
+/**
+ * @brief Sets the star_formation properties of the (x-)particles to a valid
+ * start state at the beginning of the simulation after the ICs have been read.
  *
  * Nothing to do here.
  *
@@ -680,18 +722,5 @@ star_formation_first_init_part(const struct phys_const* restrict phys_const,
                                const struct star_formation* data,
                                const struct part* restrict p,
                                struct xpart* restrict xp) {}
-
-/**
- * @brief Sets the star_formation properties of the (x-)particles to a valid
- * start state.
- *
- * Nothing to do here. We do not need to compute any quantity in the hydro
- * density loop for the EAGLE star formation model.
- *
- * @param p Pointer to the particle data.
- * @param data The global star_formation information.
- */
-__attribute__((always_inline)) INLINE static void star_formation_init_part(
-    struct part* restrict p, const struct star_formation* data) {}
 
 #endif /* SWIFT_EAGLE_STAR_FORMATION_H */

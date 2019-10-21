@@ -122,7 +122,8 @@ void collectgroup1_apply(const struct collectgroup1 *grp1, struct engine *e) {
   e->total_nr_cells = grp1->total_nr_cells;
   e->total_nr_tasks = grp1->total_nr_tasks;
   e->tasks_per_cell_max = grp1->tasks_per_cell_max;
-  e->sfh = grp1->sfh;
+
+  star_formation_logger_add_to_accumulator(&e->sfh, &grp1->sfh);
 }
 
 /**
@@ -381,5 +382,10 @@ static void mpicollect_create_MPI_type(void) {
 
   /* Create the reduction operation */
   MPI_Op_create(mpicollectgroup1_reduce, 1, &mpicollectgroup1_reduce_op);
+}
+
+void mpicollect_free_MPI_type(void) {
+  MPI_Type_free(&mpicollectgroup1_type);
+  MPI_Op_free(&mpicollectgroup1_reduce_op);
 }
 #endif

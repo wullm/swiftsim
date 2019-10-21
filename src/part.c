@@ -188,6 +188,15 @@ void part_verify_links(struct part *parts, struct gpart *gparts,
         error("DM gpart particle linked to something !");
     }
 
+    /* We have a background DM particle */
+    if (gparts[k].type == swift_type_dark_matter_background &&
+        gparts[k].time_bin != time_bin_not_created) {
+
+      /* Check that it's not linked */
+      if (gparts[k].id_or_neg_offset <= 0)
+        error("Background DM gpart particle linked to something !");
+    }
+
     /* We have a gas particle */
     else if (gparts[k].type == swift_type_gas) {
 
@@ -423,5 +432,14 @@ void part_create_mpi_types(void) {
       MPI_Type_commit(&bpart_mpi_type) != MPI_SUCCESS) {
     error("Failed to create MPI type for bparts.");
   }
+}
+
+void part_free_mpi_types(void) {
+
+  MPI_Type_free(&part_mpi_type);
+  MPI_Type_free(&xpart_mpi_type);
+  MPI_Type_free(&gpart_mpi_type);
+  MPI_Type_free(&spart_mpi_type);
+  MPI_Type_free(&bpart_mpi_type);
 }
 #endif
