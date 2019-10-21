@@ -916,8 +916,8 @@ void DOPAIR1(struct runner *r, struct cell *ci, struct cell *cj, const int sid,
 #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Get some other useful values. */
-  const double hi_max = ci->hydro.h_max * kernel_gamma - rshift;
-  const double hj_max = cj->hydro.h_max * kernel_gamma;
+  const double hi_max = ci->hydro.h_max_active * kernel_gamma - rshift;
+  const double hj_max = cj->hydro.h_max_active * kernel_gamma;
   const int count_i = ci->hydro.count;
   const int count_j = cj->hydro.count;
   struct part *restrict parts_i = ci->hydro.parts;
@@ -1145,6 +1145,12 @@ void DOPAIR1_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
   if (!(cj->hydro.sorted & (1 << sid)) ||
       cj->hydro.dx_max_sort_old > space_maxreldx * cj->dmin)
     error("Interacting unsorted cells.");
+
+  /* Did something unexpected happen with h_max? */
+  if (ci->hydro.h_max_active > ci->hydro.h_max)
+    error("Invalid active h_max value!");
+  if (cj->hydro.h_max_active > cj->hydro.h_max)
+    error("Invalid active h_max value!");
 
 #ifdef SWIFT_DEBUG_CHECKS
   /* Pick-out the sorted lists. */
@@ -1718,6 +1724,12 @@ void DOPAIR2_BRANCH(struct runner *r, struct cell *ci, struct cell *cj) {
       cj->hydro.dx_max_sort_old > space_maxreldx * cj->dmin)
     error("Interacting unsorted cells.");
 
+  /* Did something unexpected happen with h_max? */
+  if (ci->hydro.h_max_active > ci->hydro.h_max)
+    error("Invalid active h_max value!");
+  if (cj->hydro.h_max_active > cj->hydro.h_max)
+    error("Invalid active h_max value!");
+
 #ifdef SWIFT_DEBUG_CHECKS
   /* Pick-out the sorted lists. */
   const struct sort_entry *restrict sort_i = ci->hydro.sort[sid];
@@ -1966,6 +1978,10 @@ void DOSELF1_BRANCH(struct runner *r, struct cell *c) {
   /* Check that cells are drifted. */
   if (!cell_are_part_drifted(c, e)) error("Interacting undrifted cell.");
 
+  /* Did something unexpected happen with h_max? */
+  if (c->hydro.h_max_active > c->hydro.h_max)
+    error("Invalid active h_max value!");
+
 #if defined(SWIFT_USE_NAIVE_INTERACTIONS)
   DOSELF1_NAIVE(r, c);
 #elif defined(WITH_VECTORIZATION) && defined(GADGET2_SPH) && \
@@ -2149,6 +2165,10 @@ void DOSELF2_BRANCH(struct runner *r, struct cell *c) {
   /* Check that cells are drifted. */
   if (!cell_are_part_drifted(c, e)) error("Interacting undrifted cell.");
 
+  /* Did something unexpected happen with h_max? */
+  if (c->hydro.h_max_active > c->hydro.h_max)
+    error("Invalid active h_max value!");
+
 #if defined(SWIFT_USE_NAIVE_INTERACTIONS)
   DOSELF2_NAIVE(r, c);
 #elif defined(WITH_VECTORIZATION) && defined(GADGET2_SPH) && \
@@ -2241,7 +2261,7 @@ void DOSUB_SELF1(struct runner *r, struct cell *ci, int gettimer) {
   if (ci->hydro.count == 0 || !cell_is_active_hydro(ci, r->e)) return;
 
   /* Recurse? */
-  if (cell_can_recurse_in_self_hydro_task(ci)) {
+  if (cell_can_recurse_in_self1_hydro_task(ci)) {
 
     /* Loop over all progeny. */
     for (int k = 0; k < 8; k++)
@@ -2347,7 +2367,7 @@ void DOSUB_SELF2(struct runner *r, struct cell *ci, int gettimer) {
   if (ci->hydro.count == 0 || !cell_is_active_hydro(ci, r->e)) return;
 
   /* Recurse? */
-  if (cell_can_recurse_in_self_hydro_task(ci)) {
+  if (cell_can_recurse_in_self2_hydro_task(ci)) {
 
     /* Loop over all progeny. */
     for (int k = 0; k < 8; k++)
@@ -2400,7 +2420,7 @@ void DOSUB_SUBSET(struct runner *r, struct cell *ci, struct part *parts,
   if (cj == NULL) {
 
     /* Recurse? */
-    if (cell_can_recurse_in_self_hydro_task(ci)) {
+    if (cell_can_recurse_in_self2_hydro_task(ci)) {
 
       /* Loop over all progeny. */
       DOSUB_SUBSET(r, sub, parts, ind, count, NULL, 0);

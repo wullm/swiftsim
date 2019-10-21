@@ -387,6 +387,9 @@ struct cell {
     /*! Max smoothing length in this cell. */
     double h_max;
 
+    /*! Max smoothing length of active particles in this cell. */
+    double h_max_active;
+
     /*! Last (integer) time the cell's part were drifted forward in time. */
     integertime_t ti_old_part;
 
@@ -1023,7 +1026,22 @@ cell_can_recurse_in_pair_hydro_task(const struct cell *c) {
  * @param c The #cell.
  */
 __attribute__((always_inline)) INLINE static int
-cell_can_recurse_in_self_hydro_task(const struct cell *c) {
+cell_can_recurse_in_self1_hydro_task(const struct cell *c) {
+
+  const double h_max = min(c->hydro.h_max_active, c->hydro.h_max_old);
+
+  /* Is the cell split and not smaller than the smoothing length? */
+  return c->split && (kernel_gamma * h_max < 0.5f * c->dmin);
+}
+
+/**
+ * @brief Can a sub-self hydro task recurse to a lower level based
+ * on the status of the particles in the cell.
+ *
+ * @param c The #cell.
+ */
+__attribute__((always_inline)) INLINE static int
+cell_can_recurse_in_self2_hydro_task(const struct cell *c) {
 
   /* Is the cell split and not smaller than the smoothing length? */
   return c->split && (kernel_gamma * c->hydro.h_max_old < 0.5f * c->dmin);

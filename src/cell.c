@@ -2888,7 +2888,7 @@ void cell_activate_subcell_hydro_tasks(struct cell *ci, struct cell *cj,
     if (ci->hydro.count == 0 || !cell_is_active_hydro(ci, e)) return;
 
     /* Recurse? */
-    if (cell_can_recurse_in_self_hydro_task(ci)) {
+    if (cell_can_recurse_in_self2_hydro_task(ci)) {
       /* Loop over all progenies and pairs of progenies */
       for (int j = 0; j < 8; j++) {
         if (ci->progeny[j] != NULL) {
@@ -4392,6 +4392,7 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
   float dx_max = 0.f, dx2_max = 0.f;
   float dx_max_sort = 0.0f, dx2_max_sort = 0.f;
   float cell_h_max = 0.f;
+  float cell_h_max_active = 0.f;
 
   /* Drift irrespective of cell flags? */
   force = (force || cell_get_flag(c, cell_flag_do_hydro_drift));
@@ -4432,11 +4433,13 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
         dx_max = max(dx_max, cp->hydro.dx_max_part);
         dx_max_sort = max(dx_max_sort, cp->hydro.dx_max_sort);
         cell_h_max = max(cell_h_max, cp->hydro.h_max);
+        cell_h_max_active = max(cell_h_max_active, cp->hydro.h_max_active);
       }
     }
 
     /* Store the values */
     c->hydro.h_max = cell_h_max;
+    c->hydro.h_max_active = cell_h_max_active;
     c->hydro.dx_max_part = dx_max;
     c->hydro.dx_max_sort = dx_max_sort;
 
@@ -4552,6 +4555,9 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
         tracers_after_init(p, xp, e->internal_units, e->physical_constants,
                            with_cosmology, e->cosmology, e->hydro_properties,
                            e->cooling_func, e->time);
+
+        /* Update the maximal active smoothing length in the cell */
+        cell_h_max_active = max(cell_h_max_active, p->h);
       }
     }
 
@@ -4561,6 +4567,7 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
 
     /* Store the values */
     c->hydro.h_max = cell_h_max;
+    c->hydro.h_max_active = cell_h_max_active;
     c->hydro.dx_max_part = dx_max;
     c->hydro.dx_max_sort = dx_max_sort;
 

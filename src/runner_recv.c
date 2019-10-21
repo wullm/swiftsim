@@ -31,6 +31,7 @@
 #include "runner.h"
 
 /* Local headers. */
+#include "active.h"
 #include "engine.h"
 #include "timers.h"
 
@@ -48,6 +49,7 @@ void runner_do_recv_part(struct runner *r, struct cell *c, int clear_sorts,
 
   const struct part *restrict parts = c->hydro.parts;
   const size_t nr_parts = c->hydro.count;
+  const struct engine *e = r->e;
   const integertime_t ti_current = r->e->ti_current;
 
   TIMER_TIC;
@@ -57,6 +59,7 @@ void runner_do_recv_part(struct runner *r, struct cell *c, int clear_sorts,
   timebin_t time_bin_min = num_time_bins;
   timebin_t time_bin_max = 0;
   float h_max = 0.f;
+  float h_max_active = 0.f;
 
 #ifdef SWIFT_DEBUG_CHECKS
   if (c->nodeID == engine_rank) error("Updating a local cell!");
@@ -74,6 +77,8 @@ void runner_do_recv_part(struct runner *r, struct cell *c, int clear_sorts,
       time_bin_min = min(time_bin_min, parts[k].time_bin);
       time_bin_max = max(time_bin_max, parts[k].time_bin);
       h_max = max(h_max, parts[k].h);
+      if (part_is_active(&parts[k], e))
+        h_max_active = max(h_max_active, parts[k].h);
     }
 
     /* Convert into a time */

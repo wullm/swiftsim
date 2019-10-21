@@ -961,6 +961,7 @@ void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
 
   /* Running value of the maximal smoothing length */
   double h_max = c->hydro.h_max;
+  double h_max_active = c->hydro.h_max_active;
 
   TIMER_TIC;
 
@@ -976,6 +977,7 @@ void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
 
         /* Update h_max */
         h_max = max(h_max, c->progeny[k]->hydro.h_max);
+        h_max_active = max(h_max_active, c->progeny[k]->hydro.h_max_active);
       }
     }
   } else {
@@ -1244,6 +1246,7 @@ void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
 
         /* Check if h_max is increased */
         h_max = max(h_max, p->h);
+        h_max_active = max(h_max_active, p->h);
 
 #ifdef EXTRA_HYDRO_LOOP
 
@@ -1361,12 +1364,14 @@ void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
 
   /* Update h_max */
   c->hydro.h_max = h_max;
+  c->hydro.h_max_active = h_max_active;
 
   /* The ghost may not always be at the top level.
    * Therefore we need to update h_max between the super- and top-levels */
   if (c->hydro.ghost) {
     for (struct cell *tmp = c->parent; tmp != NULL; tmp = tmp->parent) {
       atomic_max_d(&tmp->hydro.h_max, h_max);
+      atomic_max_d(&tmp->hydro.h_max_active, h_max_active);
     }
   }
 
