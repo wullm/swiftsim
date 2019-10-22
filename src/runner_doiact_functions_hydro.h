@@ -2207,16 +2207,24 @@ void DOSUB_PAIR1(struct runner *r, struct cell *ci, struct cell *cj,
   const int sid = space_getsid(s, &ci, &cj, shift);
 
   /* Recurse? */
-  if (cell_can_recurse_in_pair_hydro_task(ci) &&
-      cell_can_recurse_in_pair_hydro_task(cj)) {
-    struct cell_split_pair *csp = &cell_split_pairs[sid];
-    for (int k = 0; k < csp->count; k++) {
-      const int pid = csp->pairs[k].pid;
-      const int pjd = csp->pairs[k].pjd;
-      if (ci->progeny[pid] != NULL && cj->progeny[pjd] != NULL)
-        DOSUB_PAIR1(r, ci->progeny[pid], cj->progeny[pjd], 0);
+  //if (ci->split && cj->split) {
+
+    /* if ((cell_is_active_hydro(ci, e) && */
+    /*      cell_can_recurse_in_pair1_hydro_task(ci)) || */
+    /*     (cell_is_active_hydro(cj, e) && */
+    /*      cell_can_recurse_in_pair1_hydro_task(cj))) { */
+  if ((ci->split && cj->split && cell_is_active_hydro(ci, e) && cell_can_recurse_in_pair1_hydro_task(ci)) ||
+      (ci->split && cj->split && cell_is_active_hydro(cj, e) && cell_can_recurse_in_pair1_hydro_task(cj))) {
+  
+      struct cell_split_pair *csp = &cell_split_pairs[sid];
+      for (int k = 0; k < csp->count; k++) {
+        const int pid = csp->pairs[k].pid;
+        const int pjd = csp->pairs[k].pjd;
+        if (ci->progeny[pid] != NULL && cj->progeny[pjd] != NULL)
+          DOSUB_PAIR1(r, ci->progeny[pid], cj->progeny[pjd], 0);
+      }
     }
-  }
+    //}
 
   /* Otherwise, compute the pair directly. */
   else if (cell_is_active_hydro(ci, e) || cell_is_active_hydro(cj, e)) {
@@ -2315,6 +2323,7 @@ void DOSUB_PAIR2(struct runner *r, struct cell *ci, struct cell *cj,
   /* Recurse? */
   if (cell_can_recurse_in_pair_hydro_task(ci) &&
       cell_can_recurse_in_pair_hydro_task(cj)) {
+
     struct cell_split_pair *csp = &cell_split_pairs[sid];
     for (int k = 0; k < csp->count; k++) {
       const int pid = csp->pairs[k].pid;
@@ -2322,6 +2331,7 @@ void DOSUB_PAIR2(struct runner *r, struct cell *ci, struct cell *cj,
       if (ci->progeny[pid] != NULL && cj->progeny[pjd] != NULL)
         DOSUB_PAIR2(r, ci->progeny[pid], cj->progeny[pjd], 0);
     }
+
   }
 
   /* Otherwise, compute the pair directly. */

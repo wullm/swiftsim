@@ -2917,8 +2917,11 @@ void cell_activate_subcell_hydro_tasks(struct cell *ci, struct cell *cj,
     const int sid = space_getsid(s->space, &ci, &cj, shift);
 
     /* recurse? */
-    if (cell_can_recurse_in_pair_hydro_task(ci) &&
-        cell_can_recurse_in_pair_hydro_task(cj)) {
+      if ((ci->split && cj->split && cell_is_active_hydro(ci, e) && cell_can_recurse_in_pair1_hydro_task(ci)) ||
+      (ci->split && cj->split && cell_is_active_hydro(cj, e) && cell_can_recurse_in_pair1_hydro_task(cj))) {
+
+    /* if (cell_can_recurse_in_pair_hydro_task(ci) && */
+    /*     cell_can_recurse_in_pair_hydro_task(cj)) { */
       const struct cell_split_pair *csp = &cell_split_pairs[sid];
       for (int k = 0; k < csp->count; k++) {
         const int pid = csp->pairs[k].pid;
