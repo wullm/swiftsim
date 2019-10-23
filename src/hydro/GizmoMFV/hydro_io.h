@@ -237,8 +237,9 @@ INLINE static void hydro_write_particles(const struct part* parts,
 
 
   // TODO: TEMPORARY OUTPUT
-#ifdef WITH_IVANOVA
+#ifdef WITH_IVANOVA_OLD
   *num_fields = 23;
+
 
   /* store sum of individual cartesian gradients contributions */
   list[11] = io_make_output_field("GradientSum", FLOAT, 3, UNIT_CONV_NO_UNITS, 0.f, 

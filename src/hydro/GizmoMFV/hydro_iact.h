@@ -87,15 +87,17 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pi->density.wgrads[2] += hidp1 * wi_dx * dx_mladen[2] / r;
 
   // TODO: temporary
-  pi->density.nneigh_grads += 1;
-  // if (pi->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
-  // pi->density.neighbour_ids_grad[pi->density.nneigh_grads] = (int) pj->id;
-  // pi->density.grads_sum_contrib[2*pi->density.nneigh_grads] = hidp1 * wi_dx * dx_mladen[0]/r;
-  // pi->density.grads_sum_contrib[2*pi->density.nneigh_grads+1] = hidp1 * wi_dx * dx_mladen[1]/r;
-  // pi->density.grads_sum_dx[2*pi->density.nneigh_grads] = dx_mladen[0];
-  // pi->density.grads_sum_dx[2*pi->density.nneigh_grads+1] = dx_mladen[1];
-  // pi->density.dwdr[pi->density.nneigh_grads] = hidp1 * wi_dx;
-  pi->density.r[pi->density.nneigh_grads] = r;
+  // abc(
+  //       [> pi    <] pi,
+  //       [> pj ID <] (int) pj->id,
+  //       [> GSCX= <] hidp1 * wi_dx * dx_mladen[0]/r,
+  //       [> GSCY= <] hidp1 * wi_dx * dx_mladen[1]/r,
+  //       [> GSDX= <] dx_mladen[0],
+  //       [> GSDY= <] dx_mladen[1],
+  //       [> dwdr= <] hidp1 * wi_dx,
+  //       [> r=    <] r,
+  //       [> hi =  <] hi );
+  abc(pi, (int) pj->id, hidp1 * wi_dx * dx_mladen[0]/r, hidp1 * wi_dx * dx_mladen[1]/r, dx_mladen[0], dx_mladen[1], hidp1 * wi_dx, r, hi );
 #endif
 
   /* these are eqns. (1) and (2) in the summary */
@@ -121,15 +123,24 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pj->density.wgrads[1] -= hjdp1 * wj_dx * dx_mladen[1] / r;
   pj->density.wgrads[2] -= hjdp1 * wj_dx * dx_mladen[2] / r;
 
-  pj->density.nneigh_grads += 1;
-  // if (pj->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
+  // TODO: temporary
+  // abc(pj, (int) pi->id,
+  //       [> GSCX= <] -hjdp1 * wj_dx * dx_mladen[0]/r,
+  //       [> GSCY= <] -hjdp1 * wj_dx * dx_mladen[1]/r,
+  //       [> GSDX= <] -dx_mladen[0],
+  //       [> GSDY= <] -dx_mladen[1],
+  //       [> dwdr= <] hjdp1 * wj_dx,
+  //       [> r= <] r, hj );
+  // // TODO: temporary
+  // // pj->density.nneigh_grads += 1;
+  // // if (pj->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
   // pj->density.neighbour_ids_grad[pj->density.nneigh_grads] = (int) pi->id;
   // pj->density.grads_sum_contrib[2*pj->density.nneigh_grads] = -hjdp1 * wj_dx * dx_mladen[0]/r;
   // pj->density.grads_sum_contrib[2*pj->density.nneigh_grads+1] = -hjdp1 * wj_dx * dx_mladen[1]/r;
   // pj->density.grads_sum_dx[2*pj->density.nneigh_grads] = -dx_mladen[0];
   // pj->density.grads_sum_dx[2*pj->density.nneigh_grads+1] = -dx_mladen[1];
   // pj->density.dwdr[pj->density.nneigh_grads] = hjdp1 * wj_dx;
-  pj->density.r[pj->density.nneigh_grads] = r;
+  // pj->density.r[pj->density.nneigh_grads] = r;
 #endif
 
   /* these are eqns. (1) and (2) in the summary */
@@ -194,7 +205,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   pi->density.wgrads[2] += hidp1 * wi_dx * dx_mladen[2] / r;
     
   // TODO: temporary
-  pi->density.nneigh_grads += 1;
+  // pi->density.nneigh_grads += 1;
   // if (pi->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
   // pi->density.neighbour_ids_grad[pi->density.nneigh_grads] = (int) pj->id;
   // pi->density.grads_sum_contrib[2*pi->density.nneigh_grads] = hidp1 * wi_dx * dx_mladen[0]/r;
@@ -202,7 +213,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   // pi->density.grads_sum_dx[2*pi->density.nneigh_grads] = dx_mladen[0];
   // pi->density.grads_sum_dx[2*pi->density.nneigh_grads+1] = dx_mladen[1];
   // pi->density.dwdr[pi->density.nneigh_grads] = hidp1 * wi_dx;
-  pi->density.r[pi->density.nneigh_grads] = r;
+  // pi->density.r[pi->density.nneigh_grads] = r;
 #endif
 
   pi->geometry.volume += wi;
@@ -347,17 +358,18 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   dwjdx_sum[1] = pj->density.wgrads[1];
   dwjdx_sum[2] = pj->density.wgrads[2];
 
-  pi->density.wgrads_store[0] = pi->density.wgrads[0];
-  pi->density.wgrads_store[1] = pi->density.wgrads[1];
-  pi->density.wgrads_store[2] = pi->density.wgrads[2];
-  pj->density.wgrads_store[0] = pj->density.wgrads[0];
-  pj->density.wgrads_store[1] = pj->density.wgrads[1];
-  pj->density.wgrads_store[2] = pj->density.wgrads[2];
-
-  pi->density.volume_store = Vi;
-  pi->density.omega = pi->density.wcount;
-  pj->density.volume_store = Vj;
-  pj->density.omega = pj->density.wcount;
+  // TODO: temporary
+  // pi->density.wgrads_store[0] = pi->density.wgrads[0];
+  // pi->density.wgrads_store[1] = pi->density.wgrads[1];
+  // pi->density.wgrads_store[2] = pi->density.wgrads[2];
+  // pj->density.wgrads_store[0] = pj->density.wgrads[0];
+  // pj->density.wgrads_store[1] = pj->density.wgrads[1];
+  // pj->density.wgrads_store[2] = pj->density.wgrads[2];
+  //
+  // pi->density.volume_store = Vi;
+  // pi->density.omega = pi->density.wcount;
+  // pj->density.volume_store = Vj;
+  // pj->density.omega = pj->density.wcount;
 #endif
 
   /* calculate the maximal signal velocity */
@@ -436,13 +448,13 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   }
 
   // TODO: temporary
-  pi->density.nneigh += 1;
+  // pi->density.nneigh += 1;
   // if (pi->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
   // pi->density.neighbour_ids[pi->density.nneigh] = (int) pj->id;
   // pi->density.Aij[2*pi->density.nneigh] = A[0];
   // pi->density.Aij[2*pi->density.nneigh+1] = A[1];
-
-  pj->density.nneigh += 1;
+  //
+  // pj->density.nneigh += 1;
   // if (pj->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
   // pj->density.neighbour_ids[pj->density.nneigh] = (int) pi->id;
   // pj->density.Aij[2*pj->density.nneigh] = -A[0];
@@ -495,14 +507,14 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   const float Anorm = Anorm2 * Anorm_inv;
 
 #ifdef SWIFT_DEBUG_CHECKS
-  /* For stability reasons, we do require A and dx to have opposite
-     directions (basically meaning that the surface normal for the surface
-     always points from particle i to particle j, as it would in a real
-     moving-mesh code). If not, our scheme is no longer upwind and hence can
-     become unstable. */
+  // [> For stability reasons, we do require A and dx to have opposite
+  //    directions (basically meaning that the surface normal for the surface
+  //    always points from particle i to particle j, as it would in a real
+  //    moving-mesh code). If not, our scheme is no longer upwind and hence can
+  //    become unstable. */
   // const float dA_dot_dx = A[0] * dx[0] + A[1] * dx[1] + A[2] * dx[2];
-  /* In GIZMO, Phil Hopkins reverts to an SPH integration scheme if this
-     happens. We curently just ignore this case and display a message. */
+  // [> In GIZMO, Phil Hopkins reverts to an SPH integration scheme if this
+  //    happens. We curently just ignore this case and display a message. */
   // const float rdim = pow_dimension(r);
   // if (dA_dot_dx > 1.e-6f * rdim) {
   //   message("Ill conditioned gradient matrix (%g %g %g %g %g)!", dA_dot_dx,
