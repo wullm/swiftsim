@@ -211,13 +211,17 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
     s->gparts[i].logger_data.steps_since_last_output = 0;
   }
 
+  const unsigned int mask_stars =
+    logger_mask_data[logger_x].mask | logger_mask_data[logger_v].mask |
+    logger_mask_data[logger_consts].mask;
+
   /* loop over all sparts */
   for (long long i = 0; i < e->total_nr_sparts; i++) {
     /* Write only the particles that have not been written */
     if (s->sparts[i].logger_data.steps_since_last_output == 0)
       continue;
 
-    logger_log_spart(log, &s->sparts[i], mask_grav,
+    logger_log_spart(log, &s->sparts[i], mask_stars,
                      &s->sparts[i].logger_data.last_offset);
     s->sparts[i].logger_data.steps_since_last_output = 0;
   }
