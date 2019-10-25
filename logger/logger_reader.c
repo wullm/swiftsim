@@ -179,7 +179,6 @@ void logger_reader_set_time(struct logger_reader *reader, double time) {
   while (left != right) {
     /* Do a ceil - division */
     unsigned int m = (left + right + 1) / 2;
-    message("%g %g", reader->index.times[m], time);
     if (reader->index.times[m] > time) {
       right = m - 1;
     } else {
@@ -263,7 +262,8 @@ void logger_reader_read_from_index_mapper(void *map_data, int num_elements,
      */
     const size_t ind = reader->time.index + 1;
     if (prev_offset >= reader->log.times.records[ind].offset) {
-      error("An offset is out of range.");
+      error("An offset is out of range (%zi > %zi).", prev_offset,
+            reader->log.times.records[ind].offset);
     }
 #endif
 
@@ -307,6 +307,8 @@ void logger_reader_read_from_index(struct logger_reader *reader, double time,
   /* Get the correct index file */
   logger_reader_set_time(reader, time);
   struct index_data *data = logger_index_get_data(index, 0);
+
+  message("%li, %zi", data[0].id, data[0].offset);
 
   /* Read the particles */
   struct extra_data_read read;

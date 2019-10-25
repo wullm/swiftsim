@@ -214,9 +214,13 @@ void logger_write_index_file(struct logger_writer* log, struct engine* e) {
   fwrite(&sorted, sizeof(char), 1, f);
 
   /* Ensure the data to be aligned */
-  size_t f_pos = (ftell(f) + 7) & ~7;
-  fseek(f, SEEK_SET, f_pos);
-  message("%zi", f_pos);
+  size_t cur_pos = ftell(f);
+  size_t d_align = ((cur_pos + 7) & ~7) - cur_pos;
+  if (d_align > 0) {
+    int tmp = 0;
+    /* Fill the memory with garbage */
+    fwrite(&tmp, d_align, 1, f);
+  }
 
   /* Loop over all particle types */
   for (int ptype = 0; ptype < swift_type_count; ptype++) {

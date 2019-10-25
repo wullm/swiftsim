@@ -172,9 +172,6 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
 
   /* Ensure that enough space is available. */
   logger_ensure_size(log, e->total_nr_parts, e->total_nr_gparts, 0);
-#ifdef SWIFT_DEBUG_CHECKS
-  message("Need to implement stars");
-#endif
 
   /* some constants. */
   const struct space *s = e->s;
