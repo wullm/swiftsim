@@ -18,6 +18,7 @@
  *
  ******************************************************************************/
 
+#include "memswap.h"
 #include "radix_sort.h"
 
 #define N 100000
@@ -37,9 +38,7 @@ void init_array(struct index_data *data) {
     int j = rand() % N;
 
     /* Swap the two elements */
-    struct index_data tmp = data[i];
-    data[i] = data[j];
-    data[j] = tmp;
+    memswap(&data[i], &data[j], sizeof(struct index_data));
   }
 }
 
@@ -59,7 +58,7 @@ void check_sort(struct index_data *data) {
  */
 void print_array(struct index_data *data) {
   for (int i = 0; i < N; i++) {
-    printf("%lli \t %zi\n", data[i].id, data[i].offset);
+    printf("%li \t %zi\n", data[i].id, data[i].offset);
   }
 }
 

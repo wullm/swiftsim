@@ -29,17 +29,21 @@
 #include "logger_reader.h"
 #include "radix_sort.h"
 
+/* Define the place and size of each element in the header. */
+/* The time in double precision. */
 const int logger_index_time_offset = 0;
 const int logger_index_time_size = sizeof(double);
+/* The time on the integer timeline. */
 const int logger_index_integer_time_offset = logger_index_time_offset + logger_index_time_size;
 const int logger_index_integer_time_size = sizeof(integertime_t);
+/* The number of particle (for each type). */
 const int logger_index_npart_offset = logger_index_integer_time_offset + logger_index_integer_time_size;
 const int logger_index_npart_size = sizeof(uint64_t) *  swift_type_count;
+/* The flag used for checking if the file is sorted or not. */
 const int logger_index_is_sorted_offset = logger_index_npart_offset + logger_index_npart_size;
 const int logger_index_is_sorted_size = sizeof(char);
-const int logger_index_data_offset = sizeof(double) + (1 + swift_type_count) * sizeof(uint64_t)
-  + sizeof(char);
-const int logger_index_data_size = sizeof(struct index_data);
+/* The array containing the offset and ids */
+const int logger_index_data_offset = (logger_index_is_sorted_offset + logger_index_is_sorted_size + 7) & ~7;
 
 /**
  * @brief Read the index file header.
@@ -57,7 +61,7 @@ void logger_index_read_header(struct logger_index *index,
   /* Read times */
   memcpy(&index->time, index->index.map + logger_index_time_offset,
          logger_index_time_size);
-  memcpy(&index->time, index->index.map + logger_index_integer_time_offset,
+  memcpy(&index->integer_time, index->index.map + logger_index_integer_time_offset,
          logger_index_integer_time_size);
 
   /* Read the number of particles */
@@ -102,6 +106,7 @@ struct index_data *logger_index_get_data(struct logger_index *index, int type) {
   }
   count *= sizeof(struct index_data);
 
+  message("%i", logger_index_data_offset);
   return index->index.map + count + logger_index_data_offset;
 }
 
@@ -159,8 +164,6 @@ void logger_index_free(struct logger_index *index) {
     error("Trying to unmap an unexisting map");
   }
   logger_loader_io_munmap_file(&index->index);
-
-  index->time = -1;
 }
 
 /**
@@ -175,7 +178,7 @@ void logger_index_free(struct logger_index *index) {
 size_t logger_index_get_particle(struct logger_index *index, long long id,
                                  int type) {
   /* Define a few variables */
-  struct index_data *data = logger_index_get_data(index, type);
+  const struct index_data *data = logger_index_get_data(index, type);
   size_t left = 0;
   size_t right = index->nparts[type] - 1;
 

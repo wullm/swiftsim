@@ -190,7 +190,7 @@ void logger_write_index_file(struct logger_writer* log, struct engine* e) {
   /* File name */
   char fileName[FILENAME_BUFFER_SIZE];
   snprintf(fileName, FILENAME_BUFFER_SIZE, "%.100s_%04i.index",
-           e->logger.logger->base_name, outputCount);
+           e->logger->base_name, outputCount);
 
   /* Open file */
   FILE* f = NULL;
@@ -212,6 +212,11 @@ void logger_write_index_file(struct logger_writer* log, struct engine* e) {
   /* Write if the file is sorted */
   const char sorted = 0;
   fwrite(&sorted, sizeof(char), 1, f);
+
+  /* Ensure the data to be aligned */
+  size_t f_pos = (ftell(f) + 7) & ~7;
+  fseek(f, SEEK_SET, f_pos);
+  message("%zi", f_pos);
 
   /* Loop over all particle types */
   for (int ptype = 0; ptype < swift_type_count; ptype++) {
@@ -362,7 +367,7 @@ void logger_write_description(struct logger_writer* log, struct engine* e) {
   /* File name */
   char fileName[FILENAME_BUFFER_SIZE];
   snprintf(fileName, FILENAME_BUFFER_SIZE, "%.100s.yml",
-           e->logger.logger->base_name);
+           e->logger->base_name);
 
   /* Open file */
   FILE* f = NULL;

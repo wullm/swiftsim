@@ -179,6 +179,7 @@ void logger_reader_set_time(struct logger_reader *reader, double time) {
   while (left != right) {
     /* Do a ceil - division */
     unsigned int m = (left + right + 1) / 2;
+    message("%g %g", reader->index.times[m], time);
     if (reader->index.times[m] > time) {
       right = m - 1;
     } else {

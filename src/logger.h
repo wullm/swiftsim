@@ -117,6 +117,14 @@ struct logger_writer {
   /* Logger basename. */
   char base_name[logger_string_length];
 
+  struct {
+    /* The total memory fraction reserved for the index files. */
+    float mem_frac;
+
+    /* Size of the dump since at the last output */
+    size_t dump_size_last_output;
+  } index;
+
   /*  Dump file (In the reader, the dump is cleaned, therefore it is renamed
    * logfile). */
   struct dump dump;

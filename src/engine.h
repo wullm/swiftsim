@@ -382,22 +382,8 @@ struct engine {
   int forcerepart;
   struct repartition *reparttype;
 
-  /* All the information related to the logger */
-  struct {
-    /* The particle logger */
-    struct logger_writer *logger;
-
-    /* Snapshot information */
-    double a_first_index;
-    double time_first_index;
-    double delta_time_index;
-
-    /* Output_List for the index files */
-    struct output_list *output_list_index;
-
-    /* Integer time of the next index file */
-    integertime_t ti_next_index;
-  } logger;
+  /* The particle logger */
+  struct logger_writer *logger;
 
   /* How many steps have we done with the same set of tasks? */
   int tasks_age;
@@ -500,7 +486,6 @@ void engine_addlink(struct engine *e, struct link **l, struct task *t);
 void engine_barrier(struct engine *e);
 void engine_compute_next_snapshot_time(struct engine *e);
 void engine_compute_next_stf_time(struct engine *e);
-void engine_compute_next_index_time(struct engine *e);
 void engine_compute_next_fof_time(struct engine *e);
 void engine_compute_next_statistics_time(struct engine *e);
 void engine_recompute_displacement_constraint(struct engine *e);
@@ -511,6 +496,7 @@ void engine_reconstruct_multipoles(struct engine *e);
 void engine_allocate_foreign_particles(struct engine *e);
 void engine_print_stats(struct engine *e);
 void engine_check_for_dumps(struct engine *e);
+void engine_check_for_index_dump(struct engine *e);
 void engine_collect_end_of_step(struct engine *e, int apply);
 void engine_dump_snapshot(struct engine *e);
 void engine_init_output_lists(struct engine *e, struct swift_params *params);

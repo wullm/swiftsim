@@ -504,6 +504,9 @@ void logger_init(struct logger_writer *log, struct swift_params *params) {
       parser_get_opt_param_float(params, "Logger:buffer_scale", 10);
   parser_get_param_string(params, "Logger:basename", log->base_name);
 
+  log->index.mem_frac =
+    parser_get_opt_param_float(params, "Logger:index_mem_frac", 0.05);
+
   /* set initial value of parameters. */
   log->timestamp_offset = 0;
 

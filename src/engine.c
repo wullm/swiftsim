@@ -1950,13 +1950,13 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
 
 #ifdef WITH_LOGGER
   /* Mark the first time step in the particle logger file. */
-  logger_log_timestamp(e->logger.logger, e->ti_current, e->time,
-                       &e->logger.logger->timestamp_offset);
+  logger_log_timestamp(e->logger, e->ti_current, e->time,
+                       &e->logger->timestamp_offset);
   /* Make sure that we have enough space in the particle logger file
    * to store the particles in current time step. */
-  logger_ensure_size(e->logger.logger, e->total_nr_parts, e->total_nr_gparts,
+  logger_ensure_size(e->logger, e->total_nr_parts, e->total_nr_gparts,
                      0);
-  logger_write_description(e->logger.logger, e);
+  logger_write_description(e->logger, e);
 #endif
 
   /* Now, launch the calculation */
@@ -2264,11 +2264,11 @@ void engine_step(struct engine *e) {
 
 #ifdef WITH_LOGGER
   /* Mark the current time step in the particle logger file. */
-  logger_log_timestamp(e->logger.logger, e->ti_current, e->time,
-                       &e->logger.logger->timestamp_offset);
+  logger_log_timestamp(e->logger, e->ti_current, e->time,
+                       &e->logger->timestamp_offset);
   /* Make sure that we have enough space in the particle logger file
    * to store the particles in current time step. */
-  logger_ensure_size(e->logger.logger, e->total_nr_parts, e->total_nr_gparts,
+  logger_ensure_size(e->logger, e->total_nr_parts, e->total_nr_gparts,
                      0);
 #endif
 
@@ -2358,6 +2358,9 @@ void engine_step(struct engine *e) {
   engine_dump_restarts(e, 0, e->restart_onexit && engine_is_done(e));
 
   engine_check_for_dumps(e);
+#ifdef WITH_LOGGER
+  engine_check_for_index_dump(e);
+#endif
 
   TIMER_TOC2(timer_step);
 
@@ -2388,7 +2391,6 @@ void engine_check_for_dumps(struct engine *e) {
     output_snapshot,
     output_statistics,
     output_stf,
-    output_index,
   };
 
   /* What kind of output do we want? And at which time ?
@@ -2411,14 +2413,6 @@ void engine_check_for_dumps(struct engine *e) {
     if (e->ti_next_snapshot < ti_output) {
       ti_output = e->ti_next_snapshot;
       type = output_snapshot;
-    }
-  }
-
-  /* Do we want an index file? */
-  if (e->ti_end_min > e->logger.ti_next_index && e->logger.ti_next_index > 0) {
-    if (e->logger.ti_next_index < ti_output) {
-      ti_output = e->logger.ti_next_index;
-      type = output_index;
     }
   }
 
@@ -2449,19 +2443,11 @@ void engine_check_for_dumps(struct engine *e) {
       e->time = ti_output * e->time_base + e->time_begin;
     }
 
-    /* Drift everyone (but not for the index file) */
-    if (type != output_index) {
-      engine_drift_all(e, /*drift_mpole=*/0);
-    }
+    /* Drift everyone */
+    engine_drift_all(e, /*drift_mpole=*/0);
 
     /* Write some form of output */
     switch (type) {
-      case output_index:
-        /* Write a file containing the offsets in the particle logger. */
-        engine_dump_index(e);
-        /* ... and find the next output time */
-        engine_compute_next_index_time(e);
-        break;
 
       case output_snapshot:
 
@@ -2547,15 +2533,6 @@ void engine_check_for_dumps(struct engine *e) {
       }
     }
 
-    /* Do we want an index file? */
-    if (e->ti_end_min > e->logger.ti_next_index &&
-        e->logger.ti_next_index > 0) {
-      if (e->logger.ti_next_index < ti_output) {
-        ti_output = e->logger.ti_next_index;
-        type = output_index;
-      }
-    }
-
     /* Do we want to perform structure finding? */
     if (with_stf) {
       if (e->ti_end_min > e->ti_next_stf && e->ti_next_stf > 0) {
@@ -2575,6 +2552,33 @@ void engine_check_for_dumps(struct engine *e) {
   e->max_active_bin = max_active_bin;
   e->time = time;
 }
+
+/**
+ * @brief Check whether an index file has to be written during this
+ * step.
+ *
+ * @param e The #engine.
+ */
+void engine_check_for_index_dump(struct engine *e) {
+
+  /* Get a few variables */
+  struct logger_writer *log = e->logger;
+  const size_t dump_size = log->dump.count;
+  const size_t old_dump_size = log->index.dump_size_last_output;
+  const float mem_frac = log->index.mem_frac;
+  const size_t total_nr_parts = (e->total_nr_parts + e->total_nr_gparts +
+                                 e->total_nr_sparts + e->total_nr_bparts +
+                                 e->total_nr_DM_background_gparts);
+  const size_t index_file_size = total_nr_parts * sizeof(struct logger_part_data);
+
+  /* Check if we should write a file */
+  if (mem_frac * (dump_size - old_dump_size) > index_file_size) {
+    /* Write an index file */
+    engine_dump_index(e);
+  }
+
+}
+
 
 /**
  * @brief dump restart files if it is time to do so and dumps are enabled.
@@ -3244,7 +3248,7 @@ void engine_dump_index(struct engine *e) {
   }
 
   /* Dump... */
-  logger_write_index_file(e->logger.logger, e);
+  logger_write_index_file(e->logger, e);
 
   /* Flag that we dumped a snapshot */
   e->step_props |= engine_step_prop_logger_index;
@@ -3447,16 +3451,10 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->total_nr_tasks = 0;
 
 #if defined(WITH_LOGGER)
-  e->logger.logger =
+  e->logger =
       (struct logger_writer *)malloc(sizeof(struct logger_writer));
-  logger_init(e->logger.logger, params);
+  logger_init(e->logger, params);
 #endif
-  e->logger.a_first_index = parser_get_opt_param_double(
-      params, "Logger:scale_factor_first_index", 0.1);
-  e->logger.time_first_index =
-      parser_get_opt_param_double(params, "Logger:time_first_index", 0.);
-  e->logger.delta_time_index =
-      parser_get_opt_param_double(params, "Logger:delta_time_index", -1.);
 
   /* Make the space link back to the engine. */
   s->e = e;
@@ -3886,10 +3884,6 @@ void engine_config(int restart, int fof, struct engine *e,
         error("Time between statistics (%e) must be > 1.",
               e->delta_time_statistics);
 
-      if (e->logger.delta_time_index <= 1.)
-        error("Time between index file (%e) must be > 1.",
-              e->logger.delta_time_index);
-
       if (e->a_first_snapshot < e->cosmology->a_begin)
         error(
             "Scale-factor of first snapshot (%e) must be after the simulation "
@@ -3901,13 +3895,6 @@ void engine_config(int restart, int fof, struct engine *e,
             "Scale-factor of first stats output (%e) must be after the "
             "simulation start a=%e.",
             e->a_first_statistics, e->cosmology->a_begin);
-
-      if (e->logger.a_first_index < e->cosmology->a_begin)
-        error(
-            "Scale-factor of first index file (%e) must be after the "
-            "simulation "
-            "start a=%e.",
-            e->logger.a_first_index, e->cosmology->a_begin);
 
       if (e->policy & engine_policy_structure_finding) {
 
@@ -3943,10 +3930,6 @@ void engine_config(int restart, int fof, struct engine *e,
         error("Time between statistics (%e) must be positive.",
               e->delta_time_statistics);
 
-      if (e->logger.delta_time_index <= 0.)
-        error("Time between index files (%e) must be positive.",
-              e->logger.delta_time_index);
-
       /* Find the time of the first output */
       if (e->time_first_snapshot < e->time_begin)
         error(
@@ -3959,12 +3942,6 @@ void engine_config(int restart, int fof, struct engine *e,
             "Time of first stats output (%e) must be after the simulation "
             "start t=%e.",
             e->time_first_statistics, e->time_begin);
-
-      if (e->logger.time_first_index < e->time_begin)
-        error(
-            "Time of first index file (%e) must be after the simulation start "
-            "t=%e.",
-            e->logger.time_first_index, e->time_begin);
 
       if (e->policy & engine_policy_structure_finding) {
 
@@ -4004,9 +3981,6 @@ void engine_config(int restart, int fof, struct engine *e,
 
     /* Find the time of the first statistics output */
     engine_compute_next_statistics_time(e);
-
-    /* Find the time of the first index file output */
-    engine_compute_next_index_time(e);
 
     /* Find the time of the first stf output */
     if (e->policy & engine_policy_structure_finding) {
@@ -4226,7 +4200,7 @@ void engine_config(int restart, int fof, struct engine *e,
 
 #ifdef WITH_LOGGER
   /* Write the particle logger header */
-  logger_write_file_header(e->logger.logger);
+  logger_write_file_header(e->logger);
 #endif
 
   /* Initialise the structure finder */
@@ -4414,77 +4388,6 @@ void engine_compute_next_statistics_time(struct engine *e) {
 }
 
 /**
- * @brief Computes the next time (on the time line) for an index file.
- *
- * @param e The #engine.
- */
-void engine_compute_next_index_time(struct engine *e) {
-
-  /* Do outputlist file case */
-  if (e->logger.output_list_index) {
-    output_list_read_next_time(e->logger.output_list_index, e, "index",
-                               &e->logger.ti_next_index);
-    return;
-  }
-
-  /* Find upper-bound on last output */
-  double time_end;
-  if (e->policy & engine_policy_cosmology)
-    time_end = e->cosmology->a_end * e->logger.delta_time_index;
-  else
-    time_end = e->time_end + e->logger.delta_time_index;
-
-  /* Find next snasphot above current time */
-  double time;
-  if (e->policy & engine_policy_cosmology)
-    time = e->logger.a_first_index;
-  else
-    time = e->logger.time_first_index;
-
-  int found_index_time = 0;
-  while (time < time_end) {
-
-    /* Output time on the integer timeline */
-    if (e->policy & engine_policy_cosmology)
-      e->logger.ti_next_index =
-          log(time / e->cosmology->a_begin) / e->time_base;
-    else
-      e->logger.ti_next_index = (time - e->time_begin) / e->time_base;
-
-    /* Found it? */
-    if (e->logger.ti_next_index > e->ti_current) {
-      found_index_time = 1;
-      break;
-    }
-
-    if (e->policy & engine_policy_cosmology)
-      time *= e->logger.delta_time_index;
-    else
-      time += e->logger.delta_time_index;
-  }
-
-  /* Deal with last index file */
-  if (!found_index_time) {
-    e->logger.ti_next_index = -1;
-    if (e->verbose) message("No further output time for the index file.");
-  } else {
-
-    /* Be nice, talk... */
-    if (e->policy & engine_policy_cosmology) {
-      const double next_index_time =
-          exp(e->logger.ti_next_index * e->time_base) * e->cosmology->a_begin;
-      if (e->verbose)
-        message("Next index file time set to a=%e.", next_index_time);
-    } else {
-      const double next_index_time =
-          e->logger.ti_next_index * e->time_base + e->time_begin;
-      if (e->verbose)
-        message("Next index file time set to t=%e.", next_index_time);
-    }
-  }
-}
-
-/**
  * @brief Computes the next time (on the time line) for structure finding
  *
  * @param e The #engine.
@@ -4643,19 +4546,6 @@ void engine_init_output_lists(struct engine *e, struct swift_params *params) {
       e->a_first_statistics = stats_time_first;
     else
       e->time_first_statistics = stats_time_first;
-  }
-
-  /* Deal with index files */
-  double index_time_first;
-  e->logger.output_list_index = NULL;
-  output_list_init(&e->logger.output_list_index, e, "Index",
-                   &e->logger.delta_time_index, &index_time_first);
-
-  if (e->logger.output_list_index) {
-    if (e->policy & engine_policy_cosmology)
-      e->logger.a_first_index = index_time_first;
-    else
-      e->logger.time_first_index = index_time_first;
   }
 
   /* Deal with stf */
@@ -4824,13 +4714,12 @@ void engine_clean(struct engine *e, const int fof) {
 
   output_list_clean(&e->output_list_snapshots);
   output_list_clean(&e->output_list_stats);
-  output_list_clean(&e->logger.output_list_index);
   output_list_clean(&e->output_list_stf);
 
   swift_free("links", e->links);
 #if defined(WITH_LOGGER)
-  logger_free(e->logger.logger);
-  free(e->logger.logger);
+  logger_free(e->logger);
+  free(e->logger);
 #endif
   scheduler_clean(&e->sched);
   space_clean(e->s);
@@ -4909,8 +4798,6 @@ void engine_struct_dump(struct engine *e, FILE *stream) {
   if (e->output_list_stats)
     output_list_struct_dump(e->output_list_stats, stream);
   if (e->output_list_stf) output_list_struct_dump(e->output_list_stf, stream);
-  if (e->logger.output_list_index)
-    output_list_struct_dump(e->logger.output_list_index, stream);
 }
 
 /**
@@ -5053,13 +4940,6 @@ void engine_struct_restore(struct engine *e, FILE *stream) {
         (struct output_list *)malloc(sizeof(struct output_list));
     output_list_struct_restore(output_list_stf, stream);
     e->output_list_stf = output_list_stf;
-  }
-
-  if (e->logger.output_list_index) {
-    struct output_list *output_list_index =
-        (struct output_list *)malloc(sizeof(struct output_list));
-    output_list_struct_restore(output_list_index, stream);
-    e->logger.output_list_index = output_list_index;
   }
 
 #ifdef EOS_PLANETARY

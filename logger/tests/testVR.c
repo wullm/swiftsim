@@ -71,8 +71,8 @@ int main(int argc, char *argv[]) {
 
   /* Get the number of particles */
   int n_type = 0;
-  long long n_tot = 0;
-  const long long *n_parts =
+  uint64_t n_tot = 0;
+  const uint64_t *n_parts =
       logger_reader_get_number_particles(&reader, &n_type);
   for (int i = 0; i < n_type; i++) {
     n_tot += n_parts[i];

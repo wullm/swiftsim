@@ -313,6 +313,11 @@ void runner_do_star_formation(struct runner *r, struct cell *c, int timer) {
 
               /* Update the Star formation history */
               star_formation_logger_log_new_spart(sp, &c->stars.sfh);
+
+#ifdef WITH_LOGGER
+              /* Initialize the logger data */
+              logger_part_data_init(&sp->logger_data);
+#endif
             }
           }
 
@@ -569,10 +574,10 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
       /* If particle needs to be log */
       if (part_is_active(p, e)) {
 
-        if (logger_should_write(&xp->logger_data, e->logger.logger)) {
+        if (logger_should_write(&xp->logger_data, e->logger)) {
           /* Write particle */
           /* Currently writing everything, should adapt it through time */
-          logger_log_part(e->logger.logger, p,
+          logger_log_part(e->logger, p,
                           logger_mask_data[logger_x].mask |
                               logger_mask_data[logger_v].mask |
                               logger_mask_data[logger_a].mask |
@@ -602,10 +607,10 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
       /* If particle needs to be log */
       if (gpart_is_active(gp, e)) {
 
-        if (logger_should_write(&gp->logger_data, e->logger.logger)) {
+        if (logger_should_write(&gp->logger_data, e->logger)) {
           /* Write particle */
           /* Currently writing everything, should adapt it through time */
-          logger_log_gpart(e->logger.logger, gp,
+          logger_log_gpart(e->logger, gp,
                            logger_mask_data[logger_x].mask |
                            logger_mask_data[logger_v].mask |
                            logger_mask_data[logger_a].mask |
@@ -629,10 +634,10 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
       /* If particle needs to be log */
       if (spart_is_active(sp, e)) {
 
-        if (logger_should_write(&sp->logger_data, e->logger.logger)) {
+        if (logger_should_write(&sp->logger_data, e->logger)) {
           /* Write particle */
           /* Currently writing everything, should adapt it through time */
-          logger_log_spart(e->logger.logger, sp,
+          logger_log_spart(e->logger, sp,
                            logger_mask_data[logger_x].mask |
                            logger_mask_data[logger_v].mask |
                            logger_mask_data[logger_consts].mask,

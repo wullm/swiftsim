@@ -159,7 +159,7 @@ void generate_log(struct swift_params *params, struct part *parts,
   e.time = 0;
   e.time_base = const_time_base;
   e.time_begin = 0;
-  e.logger.logger = &log;
+  e.logger = &log;
   threadpool_init(&e.threadpool, 1);
   struct space s;
   e.s = &s;
@@ -196,11 +196,11 @@ void generate_log(struct swift_params *params, struct part *parts,
   write_particles(&log, &e);
 
   /* Write all the particles at the end */
-  logger_log_all(e.logger.logger, &e);
+  logger_log_all(e.logger, &e);
 
   /* Write a sentinel timestamp */
-  logger_log_timestamp(e.logger.logger, e.ti_current, e.time,
-                       &e.logger.logger->timestamp_offset);
+  logger_log_timestamp(e.logger, e.ti_current, e.time,
+                       &e.logger->timestamp_offset);
 
   /* Cleanup the memory */
   logger_free(&log);
