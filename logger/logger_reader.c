@@ -273,7 +273,11 @@ void logger_reader_read_from_index_mapper(void *map_data, int num_elements,
                                        &next_offset, reader->log.log.mmap_size);
 
       if (test == -1) {
-        error("End of file");
+        size_t mask = 0;
+        logger_loader_io_read_mask(&reader->log.header, reader->log.log.map + prev_offset,
+                                   &mask, &next_offset);
+        error("Trying to get a particle without next record (mask: %zi, diff offset: %zi)",
+              mask, next_offset);
       }
     }
 
@@ -307,8 +311,6 @@ void logger_reader_read_from_index(struct logger_reader *reader, double time,
   /* Get the correct index file */
   logger_reader_set_time(reader, time);
   struct index_data *data = logger_index_get_data(index, 0);
-
-  message("%li, %zi", data[0].id, data[0].offset);
 
   /* Read the particles */
   struct extra_data_read read;
@@ -410,5 +412,4 @@ void logger_reader_get_next_particle(struct logger_reader *reader,
   logger_particle_read(next, reader, next_offset, /* Time */ 0,
                        logger_reader_const);
 
-  message("%zi %zi %zi", prev_offset, time_offset, next_offset);
 }

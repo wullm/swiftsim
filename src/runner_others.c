@@ -297,6 +297,21 @@ void runner_do_star_formation(struct runner *r, struct cell *c, int timer) {
           if (star_formation_should_convert_to_star(p, xp, sf_props, e,
                                                     dt_star)) {
 
+#ifdef WITH_LOGGER
+            /* Write the particle */
+            logger_log_part(e->logger, p,
+                            logger_mask_data[logger_x].mask |
+                            logger_mask_data[logger_v].mask |
+                            logger_mask_data[logger_a].mask |
+                            logger_mask_data[logger_u].mask |
+                            logger_mask_data[logger_h].mask |
+                            logger_mask_data[logger_rho].mask |
+                            logger_mask_data[logger_consts].mask |
+                            logger_mask_data[logger_special_flags].mask,
+                            &xp->logger_data.last_offset,
+                            /* special flags */ swift_type_stars);
+#endif
+
             /* Convert the gas particle to a star particle */
             struct spart *sp = cell_convert_part_to_spart(e, c, p, xp);
 
@@ -315,8 +330,19 @@ void runner_do_star_formation(struct runner *r, struct cell *c, int timer) {
               star_formation_logger_log_new_spart(sp, &c->stars.sfh);
 
 #ifdef WITH_LOGGER
-              /* Initialize the logger data */
-              logger_part_data_init(&sp->logger_data);
+              /* Copy the properties back to the stellar particle */
+              sp->logger_data = xp->logger_data;
+
+              /* Write the s-particle */
+              logger_log_spart(e->logger, sp,
+                               logger_mask_data[logger_x].mask |
+                               logger_mask_data[logger_v].mask |
+                               logger_mask_data[logger_consts].mask,
+                               &sp->logger_data.last_offset,
+                               /* special flags */ 0);
+
+              /* Set counter back to zero */
+              sp->logger_data.steps_since_last_output = 0;
 #endif
             }
           }
@@ -585,7 +611,8 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
                               logger_mask_data[logger_h].mask |
                               logger_mask_data[logger_rho].mask |
                               logger_mask_data[logger_consts].mask,
-                          &xp->logger_data.last_offset);
+                          &xp->logger_data.last_offset,
+                          /* special flags */ 0);
 
           /* Set counter back to zero */
           xp->logger_data.steps_since_last_output = 0;
@@ -615,7 +642,8 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
                            logger_mask_data[logger_v].mask |
                            logger_mask_data[logger_a].mask |
                            logger_mask_data[logger_consts].mask,
-                           &gp->logger_data.last_offset);
+                           &gp->logger_data.last_offset,
+                           /* Special flags */ 0);
 
           /* Set counter back to zero */
           gp->logger_data.steps_since_last_output = 0;
@@ -641,7 +669,8 @@ void runner_do_logger(struct runner *r, struct cell *c, int timer) {
                            logger_mask_data[logger_x].mask |
                            logger_mask_data[logger_v].mask |
                            logger_mask_data[logger_consts].mask,
-                           &sp->logger_data.last_offset);
+                           &sp->logger_data.last_offset,
+                           /* Special flags */ 0);
 
           /* Set counter back to zero */
           sp->logger_data.steps_since_last_output = 0;

@@ -133,7 +133,8 @@ void write_particles(struct logger_writer *log,
       if (number_particle_step % period_rho == 0)
         mask |= logger_mask_data[logger_rho].mask;
 
-      logger_log_part(log, &parts[j], mask, &xparts[j].logger_data.last_offset);
+      logger_log_part(log, &parts[j], mask, &xparts[j].logger_data.last_offset,
+                      /* special flags */ 0);
     }
   }
 }

@@ -151,7 +151,8 @@ size_t tools_reverse_offset(const struct header *h, void *file_map,
   logger_loader_io_read_mask(h, map, &prev_mask, NULL);
 
   /* Check if we are not mixing time stamp and particles */
-  if ((prev_mask != 128 && mask == 128) || (prev_mask == 128 && mask != 128))
+  if ((prev_mask != h->timestamp_mask && mask == h->timestamp_mask) ||
+      (prev_mask == h->timestamp_mask && mask != h->timestamp_mask))
     error("Unexpected mask: %lu, got %lu.", mask, prev_mask);
 
 #endif  // SWIFT_DEBUG_CHECKS
@@ -210,12 +211,12 @@ size_t tools_check_record_consistency(const struct logger_reader *reader,
                              NULL);
 
   /* check if not mixing time stamp and particles. */
-  if ((pointed_mask != 128 && mask == 128) ||
-      (pointed_mask == 128 && mask != 128))
+  if ((pointed_mask != h->timestamp_mask && mask == h->timestamp_mask) ||
+      (pointed_mask == h->timestamp_mask && mask != h->timestamp_mask))
     error("Error in the offset (mask %lu at %lu != %lu at %lu).", mask, offset,
           pointed_mask, pointed_offset);
 
-  if (pointed_mask == 128) return (size_t)(map - file_init);
+  if (pointed_mask == h->timestamp_mask) return (size_t)(map - file_init);
 
   struct logger_particle part;
   logger_particle_read(&part, reader, offset, 0, logger_reader_const);

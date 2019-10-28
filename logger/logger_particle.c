@@ -92,6 +92,8 @@ void *logger_particle_read_field(struct logger_particle *part, void *map,
     p = &part->density;
   } else if (strcmp("consts", field) == 0) {
     p = malloc(size);
+  } else if (strcmp("special flags", field) == 0) {
+    p = &part->flags;
   } else {
     error("Type %s not defined.", field);
   }
@@ -147,7 +149,7 @@ size_t logger_particle_read(struct logger_particle *part,
   map = logger_loader_io_read_mask(h, map + offset, &mask, &h_offset);
 
   /* Check if it is not a time record. */
-  if (mask == 128) error("Unexpected mask: %lu.", mask);
+  if (mask == h->timestamp_mask) error("Unexpected mask: %lu.", mask);
 
   /* Read all the fields. */
   for (size_t i = 0; i < h->number_mask; i++) {

@@ -25,8 +25,8 @@
 #include <stdlib.h>
 
 #define LOGGER_VERSION_SIZE 20
-#define LOGGER_OFFSET_SIZE 7
-#define LOGGER_MASK_SIZE 1
+#define LOGGER_OFFSET_SIZE 6
+#define LOGGER_MASK_SIZE 2
 
 enum logger_offset_direction {
   logger_offset_backward = 0,
@@ -78,6 +78,9 @@ struct header {
 
   /* The corresponding log. */
   struct logger_logfile *log;
+
+  /* Timestamp mask */
+  size_t timestamp_mask;
 };
 
 void header_print(const struct header *h);

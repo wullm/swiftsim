@@ -106,16 +106,6 @@ struct index_data *logger_index_get_data(struct logger_index *index, int type) {
   }
   count *= sizeof(struct index_data);
 
-  message("%lli", *(integertime_t*)(index->index.map + logger_index_integer_time_offset));
-  message("%lu", *(uint64_t*)(index->index.map + logger_index_npart_offset));
-  message("%lu", *(uint64_t*)(index->index.map + logger_index_npart_offset + sizeof(uint64_t)));
-  message("%lu", *(uint64_t*)(index->index.map + logger_index_npart_offset + 2 * sizeof(uint64_t)));
-  message("%lu", *(uint64_t*)(index->index.map + logger_index_npart_offset + 3 * sizeof(uint64_t)));
-  message("%lu", *(uint64_t*)(index->index.map + logger_index_npart_offset + 4 * sizeof(uint64_t)));
-  message("%lu", *(uint64_t*)(index->index.map + logger_index_npart_offset + 5 * sizeof(uint64_t)));
-  message("%i", (int)(*(char*)(index->index.map + logger_index_is_sorted_offset)));
-  message("%li", *(int64_t*)(index->index.map + logger_index_is_sorted_offset + sizeof(char)));
-  message("%lu", *(uint64_t*)(index->index.map + logger_index_is_sorted_offset + sizeof(char) + sizeof(int64_t)));
   return index->index.map + count + logger_index_data_offset;
 }
 

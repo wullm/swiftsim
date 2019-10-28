@@ -46,7 +46,7 @@
  */
 /* Number of bytes for a mask. */
 // TODO change this to number of bits
-#define logger_mask_size 1
+#define logger_mask_size 2
 
 /* Number of bits for chunk header. */
 #define logger_header_bytes 8
@@ -77,10 +77,13 @@ const struct mask_data logger_mask_data[logger_count_mask] = {
     {sizeof(float), 1 << logger_rho, "density"},
     /* Particle's constants: mass (float) and ID (long long). */
     {sizeof(float) + sizeof(long long), 1 << logger_consts, "consts"},
+    /* Flag for special cases (e.g. change of MPI rank, star formation, ...) */
+    {sizeof(int), 1 << logger_special_flags, "special flags"},
     /* Simulation time stamp: integertime and double time (e.g. scale
        factor or time). */
     {sizeof(integertime_t) + sizeof(double), 1 << logger_timestamp,
-     "timestamp"}};
+     "timestamp"},
+};
 
 /**
  * @brief Write the header of a chunk (offset + mask).
@@ -187,7 +190,8 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
     if (s->xparts[i].logger_data.steps_since_last_output == 0) continue;
 
     logger_log_part(log, &s->parts[i], mask_hydro,
-                    &s->xparts[i].logger_data.last_offset);
+                    &s->xparts[i].logger_data.last_offset,
+                    /* Special flags */ 0);
     s->xparts[i].logger_data.steps_since_last_output = 0;
   }
 
@@ -204,7 +208,8 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
       continue;
 
     logger_log_gpart(log, &s->gparts[i], mask_grav,
-                     &s->gparts[i].logger_data.last_offset);
+                     &s->gparts[i].logger_data.last_offset,
+                     /* Special flags */ 0);
     s->gparts[i].logger_data.steps_since_last_output = 0;
   }
 
@@ -219,7 +224,8 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
       continue;
 
     logger_log_spart(log, &s->sparts[i], mask_stars,
-                     &s->sparts[i].logger_data.last_offset);
+                     &s->sparts[i].logger_data.last_offset,
+                     /* Special flags */ 0);
     s->sparts[i].logger_data.steps_since_last_output = 0;
   }
 
@@ -233,10 +239,11 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
  * @param p The #part to dump.
  * @param mask The mask of the data to dump.
  * @param offset Pointer to the offset of the previous log of this particle;
+ * @param special_flags The value of the special flag.
  * (return) offset of this log.
  */
 void logger_log_part(struct logger_writer *log, const struct part *p,
-                     unsigned int mask, size_t *offset) {
+                     unsigned int mask, size_t *offset, const int special_flags) {
 
   /* Make sure we're not writing a timestamp. */
   if (mask & logger_mask_data[logger_timestamp].mask)
@@ -301,6 +308,12 @@ void logger_log_part(struct logger_writer *log, const struct part *p,
 
 #endif
 
+  /* Special flags */
+  if (mask & logger_mask_data[logger_special_flags].mask) {
+    memcpy(buff, &special_flags, logger_mask_data[logger_special_flags].size);
+    buff += logger_mask_data[logger_special_flags].size;
+  }
+
   /* Update the log message offset. */
   *offset = offset_new;
 }
@@ -312,10 +325,11 @@ void logger_log_part(struct logger_writer *log, const struct part *p,
  * @param sp The #spart to dump.
  * @param mask The mask of the data to dump.
  * @param offset Pointer to the offset of the previous log of this particle;
+ * @param special_flags The value of the special flag.
  * (return) offset of this log.
  */
 void logger_log_spart(struct logger_writer *log, const struct spart *sp,
-                      unsigned int mask, size_t *offset) {
+                      unsigned int mask, size_t *offset, const int special_flags) {
 
   /* Make sure we're not writing a timestamp. */
   if (mask & logger_mask_data[logger_timestamp].mask)
@@ -349,6 +363,12 @@ void logger_log_spart(struct logger_writer *log, const struct spart *sp,
     buff += logger_mask_data[logger_v].size;
   }
 
+  /* Special flags */
+  if (mask & logger_mask_data[logger_special_flags].mask) {
+    memcpy(buff, &special_flags, logger_mask_data[logger_special_flags].size);
+    buff += logger_mask_data[logger_special_flags].size;
+  }
+
   /* Update the log message offset. */
   *offset = offset_new;
 }
@@ -360,10 +380,11 @@ void logger_log_spart(struct logger_writer *log, const struct spart *sp,
  * @param p The #gpart to dump.
  * @param mask The mask of the data to dump.
  * @param offset Pointer to the offset of the previous log of this particle;
+ * @param special_flags The value of the special flags.
  * (return) offset of this log.
  */
 void logger_log_gpart(struct logger_writer *log, const struct gpart *p,
-                      unsigned int mask, size_t *offset) {
+                      unsigned int mask, size_t *offset, const int special_flags) {
 
   /* Make sure we're not writing a timestamp. */
   if (mask & logger_mask_data[logger_timestamp].mask)
@@ -409,6 +430,12 @@ void logger_log_gpart(struct logger_writer *log, const struct gpart *p,
     buff += sizeof(float);
     memcpy(buff, &p->id_or_neg_offset, sizeof(long long));
     buff += sizeof(long long);
+  }
+
+  /* Special flags */
+  if (mask & logger_mask_data[logger_special_flags].mask) {
+    memcpy(buff, &special_flags, logger_mask_data[logger_special_flags].size);
+    buff += logger_mask_data[logger_special_flags].size;
   }
 
   /* Update the log message offset. */

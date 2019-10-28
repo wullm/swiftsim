@@ -135,10 +135,12 @@ void header_read(struct header *h, struct logger_logfile *log) {
     error("Wrong offset value in the header (%i).", h->offset_direction);
 
   /* Read offset to first record. */
+  h->offset_first_record = 0;
   map = logger_loader_io_read_data(map, LOGGER_OFFSET_SIZE,
                                    &h->offset_first_record);
 
   /* Read the size of the strings. */
+  h->string_length = 0;
   map =
       logger_loader_io_read_data(map, sizeof(unsigned int), &h->string_length);
 
@@ -154,6 +156,7 @@ void header_read(struct header *h, struct logger_logfile *log) {
   h->masks = malloc(sizeof(struct mask_data) * h->number_mask);
 
   /* Loop over all masks. */
+  h->timestamp_mask = 0;
   for (size_t i = 0; i < h->number_mask; i++) {
     /* Read the mask name. */
     map = logger_loader_io_read_data(map, h->string_length, h->masks[i].name);
@@ -164,6 +167,16 @@ void header_read(struct header *h, struct logger_logfile *log) {
     /* Read the mask data size. */
     map = logger_loader_io_read_data(map, sizeof(unsigned int),
                                      &h->masks[i].size);
+
+    /* Keep the time stamp mask in memory */
+    if (strcmp(h->masks[i].name, "timestamp") == 0) {
+      h->timestamp_mask = h->masks[i].mask;
+    }
+  }
+
+  /* Check that the time stamp mask exists */
+  if (h->timestamp_mask == 0) {
+    error("Unable to find the time stamp mask.");
   }
 
   /* Check the logfile header's size. */
