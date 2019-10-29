@@ -250,8 +250,13 @@ void logger_reader_read_from_index_mapper(void *map_data, int num_elements,
   const struct logger_reader *reader = read->reader;
   struct index_data *data = read->data + (parts - read->parts);
 
+  const uint64_t *nparts = reader->index.index.nparts;
+  const size_t shift = parts - read->parts;
+
   /* Read the particles */
   for (int i = 0; i < num_elements; i++) {
+    const size_t part_ind = shift + i;
+
     /* Get the offset */
     size_t prev_offset = data[i].offset;
     size_t next_offset = prev_offset;
@@ -285,6 +290,15 @@ void logger_reader_read_from_index_mapper(void *map_data, int num_elements,
     logger_particle_read(&parts[i], reader, prev_offset, reader->time.time,
                          read->type);
 
+    /* Set the type */
+    size_t count = 0;
+    for(int ptype = 0; ptype < swift_type_count; ptype++) {
+      count += nparts[ptype];
+      if (part_ind < count) {
+        parts[i].type = ptype;
+        break;
+      }
+    }
   }
 }
 
@@ -381,10 +395,26 @@ void logger_reader_get_next_particle(struct logger_reader *reader,
   size_t prev_offset = prev->offset;
   size_t next_offset = 0;
 
+  const int spec_flag_ind = header_get_field_index(
+      &reader->log.header, "special flags");
+  if (spec_flag_ind < -1) {
+    error("The logfile does not contain the special flags field.");
+  }
+
+  int type = -1;
+
   while (1) {
     /* Read the offset to the next particle */
+    size_t mask = 0;
     logger_loader_io_read_mask(&reader->log.header, map + prev_offset,
-                               /* mask */ NULL, &next_offset);
+                               &mask, &next_offset);
+
+    /* Check if something special happened */
+    if (mask & reader->log.header.masks[spec_flag_ind].mask) {
+      struct logger_particle tmp;
+      logger_particle_read(&tmp, reader, prev_offset, /* Time */-1, logger_reader_const);
+      type = tmp.type;
+    }
 
     /* Are we at the end of the file? */
     if (next_offset == 0) {
@@ -412,5 +442,11 @@ void logger_reader_get_next_particle(struct logger_reader *reader,
   /* Read the next particle */
   logger_particle_read(next, reader, next_offset, /* Time */ 0,
                        logger_reader_const);
+
+  /* Set the types */
+  if (type != -1) {
+    next->type = type;
+    prev->type = type;
+  }
 
 }

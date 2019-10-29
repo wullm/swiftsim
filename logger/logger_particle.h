@@ -82,8 +82,8 @@ struct logger_particle {
   /* offset of the particle */
   size_t offset;
 
-  /* Special flags (e.g. star formation, particle deletion, change of MPI ranks, ..) */
-  int flags;
+  /* The particle type */
+  int type;
 };
 
 /**

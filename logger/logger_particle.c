@@ -42,7 +42,7 @@ void logger_particle_print(const struct logger_particle *p) {
   message("Accelerations: (%g, %g, %g).", p->acc[0], p->acc[1], p->acc[2]);
   message("Entropy:       %g.", p->entropy);
   message("Density:       %g.", p->density);
-  message("Flags:         %i.", p->flags);
+  message("Type:          %i.", p->type);
 }
 
 /**
@@ -63,7 +63,7 @@ void logger_particle_init(struct logger_particle *part) {
   part->mass = -1;
   part->id = SIZE_MAX;
 
-  part->flags = 0;
+  part->type = 0;
 }
 
 /**
@@ -96,7 +96,7 @@ void *logger_particle_read_field(struct logger_particle *part, void *map,
   } else if (strcmp("consts", field) == 0) {
     p = malloc(size);
   } else if (strcmp("special flags", field) == 0) {
-    p = &part->flags;
+    p = &part->type;
   } else {
     error("Type %s not defined.", field);
   }
