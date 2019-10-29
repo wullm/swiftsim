@@ -33,7 +33,7 @@
  * @param p The #logger_particle to print
  */
 void logger_particle_print(const struct logger_particle *p) {
-  message("ID:            %lu.", p->id);
+  message("ID:            %lli.", p->id);
   message("Mass:          %g", p->mass);
   message("Time:          %g.", p->time);
   message("Cutoff Radius: %g.", p->h);
@@ -42,6 +42,7 @@ void logger_particle_print(const struct logger_particle *p) {
   message("Accelerations: (%g, %g, %g).", p->acc[0], p->acc[1], p->acc[2]);
   message("Entropy:       %g.", p->entropy);
   message("Density:       %g.", p->density);
+  message("Flags:         %i.", p->flags);
 }
 
 /**
@@ -61,6 +62,8 @@ void logger_particle_init(struct logger_particle *part) {
   part->h = -1;
   part->mass = -1;
   part->id = SIZE_MAX;
+
+  part->flags = 0;
 }
 
 /**
@@ -147,6 +150,11 @@ size_t logger_particle_read(struct logger_particle *part,
 
   /* Read the record's mask. */
   map = logger_loader_io_read_mask(h, map + offset, &mask, &h_offset);
+
+  /* Check that the mask is meaningful */
+  if (mask > (size_t) (1 << h->number_mask)) {
+      error("Found an unexpected mask %zi", mask);
+  }
 
   /* Check if it is not a time record. */
   if (mask == h->timestamp_mask) error("Unexpected mask: %lu.", mask);

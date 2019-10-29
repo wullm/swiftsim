@@ -284,6 +284,7 @@ void logger_reader_read_from_index_mapper(void *map_data, int num_elements,
     /* Read the particle */
     logger_particle_read(&parts[i], reader, prev_offset, reader->time.time,
                          read->type);
+
   }
 }
 

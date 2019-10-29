@@ -87,7 +87,8 @@ enum logger_masks_number {
   logger_h = 4,
   logger_rho = 5,
   logger_consts = 6,
-  logger_special_flags = 7, /* < 0 for MPI rank changes, 0 for destruction and > 0 for particle type changes */
+  logger_special_flags = 7, /* < 0 for MPI rank changes, 0 for none,
+                               > 0 for particle type changes, > part_type for deletion */
   logger_timestamp = 8,  /* expect it to be before count. */
   logger_count_mask = 9, /* Need to be the last. */
 } __attribute__((packed));

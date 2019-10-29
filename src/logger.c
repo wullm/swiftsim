@@ -363,6 +363,15 @@ void logger_log_spart(struct logger_writer *log, const struct spart *sp,
     buff += logger_mask_data[logger_v].size;
   }
 
+  /* Particle constants, which is a bit more complicated. */
+  if (mask & logger_mask_data[logger_consts].mask) {
+    // TODO make it dependent of logger_mask_data
+    memcpy(buff, &sp->mass, sizeof(float));
+    buff += sizeof(float);
+    memcpy(buff, &sp->id, sizeof(long long));
+    buff += sizeof(long long);
+  }
+
   /* Special flags */
   if (mask & logger_mask_data[logger_special_flags].mask) {
     memcpy(buff, &special_flags, logger_mask_data[logger_special_flags].size);
@@ -385,6 +394,12 @@ void logger_log_spart(struct logger_writer *log, const struct spart *sp,
  */
 void logger_log_gpart(struct logger_writer *log, const struct gpart *p,
                       unsigned int mask, size_t *offset, const int special_flags) {
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (p->id_or_neg_offset < 0) {
+    error("Cannot log a gpart attached to another particle");
+  }
+#endif
 
   /* Make sure we're not writing a timestamp. */
   if (mask & logger_mask_data[logger_timestamp].mask)

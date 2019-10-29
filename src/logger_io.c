@@ -271,7 +271,7 @@ void logger_write_index_file(struct logger_writer* log, struct engine* e) {
                                     xparts_written, Ngas, Ngas_written);
 
           /* Select the fields to write */
-          num_fields += hydro_write_index(parts, xparts, list);
+          num_fields += hydro_write_index(parts_written, xparts_written, list);
         }
         break;
 
@@ -299,7 +299,7 @@ void logger_write_index_file(struct logger_writer* log, struct engine* e) {
                                      Ntot, Ndm_written, with_stf);
 
           /* Select the fields to write */
-          num_fields += darkmatter_write_index(gparts, list);
+          num_fields += darkmatter_write_index(gparts_written, list);
         }
         break;
 
@@ -326,7 +326,7 @@ void logger_write_index_file(struct logger_writer* log, struct engine* e) {
                                      Nstars, Nstars_written);
 
           /* Select the fields to write */
-          num_fields += stars_write_index(sparts, list);
+          num_fields += stars_write_index(sparts_written, list);
         }
         break;
 

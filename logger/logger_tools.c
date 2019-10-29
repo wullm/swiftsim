@@ -221,12 +221,13 @@ size_t tools_check_record_consistency(const struct logger_reader *reader,
   struct logger_particle part;
   logger_particle_read(&part, reader, offset, 0, logger_reader_const);
 
-  size_t id = part.id;
+  long long id = part.id;
   logger_particle_read(&part, reader, pointed_offset, 0, logger_reader_const);
 
-  if (id != part.id)
-    error("Offset wrong, id incorrect (%lu != %lu) at %lu.", id, part.id,
+  if (id != part.id) {
+    error("Offset wrong, id incorrect (%lli != %lli) at %lu.", id, part.id,
           pointed_offset);
+  }
 
   return (size_t)(map - file_init);
 }
