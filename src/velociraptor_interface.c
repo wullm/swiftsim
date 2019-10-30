@@ -595,28 +595,16 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
     strncpy(subDirName, outputDirName, FILENAME_BUFFER_SIZE);
   }
 
-  /* What should the filename be? */
-  char outputFileName[FILENAME_BUFFER_SIZE];
-  if (linked_with_snap) {
-    if(snprintf(outputFileName, FILENAME_BUFFER_SIZE,
-                "%sstf_%s_%04i.VELOCIraptor", subDirName,
-                e->snapshot_base_name, e->snapshot_output_count) >= FILENAME_BUFFER_SIZE) {
-      error("FILENAME_BUFFER_SIZE is too small for snapshot-linked Velociraptor file name!");
-    }
-  } else {
-    if(snprintf(outputFileName, FILENAME_BUFFER_SIZE, 
-                "%s%s_%04i.VELOCIraptor", subDirName,
-                e->stf_base_name, e->stf_output_count) >= FILENAME_BUFFER_SIZE) {
-      error("FILENAME_BUFFER_SIZE is too small for Velociraptor file name!");      
-    }
-  }
-
   /* What is the snapshot number? */
   int snapnum = e->stf_output_count;
 
   /* What should the filename be? */
-  snprintf(outputFileName, PARSER_MAX_LINE_SIZE + 128, "%s_%04i.VELOCIraptor",
-           e->stf_base_name, snapnum);
+  char outputFileName[FILENAME_BUFFER_SIZE];
+  if(snprintf(outputFileName, FILENAME_BUFFER_SIZE, 
+              "%s%s_%04i.VELOCIraptor", subDirName,
+              e->stf_base_name, e->stf_output_count) >= FILENAME_BUFFER_SIZE) {
+    error("FILENAME_BUFFER_SIZE is too small for Velociraptor file name!");      
+  }
 
   tic = getticks();
 
