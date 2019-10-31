@@ -47,9 +47,8 @@ runner_iact_nonsym_feedback_density(const float r2, const float *dx,
   /* Get the gas mass. */
   const float mj = hydro_get_mass(pj);
 
-  /* Get r and 1/r. */
-  const float r_inv = 1.0f / sqrtf(r2);
-  const float r = r2 * r_inv;
+  /* Get r. */
+  const float r = sqrtf(r2);
 
   /* Compute the kernel function */
   const float hi_inv = 1.0f / hi;
@@ -93,9 +92,8 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
                                   const struct cosmology *restrict cosmo,
                                   const integertime_t ti_current) {
 
-  /* Get r and 1/r. */
-  const float r_inv = 1.0f / sqrtf(r2);
-  const float r = r2 * r_inv;
+  /* Get r. */
+  const float r = sqrtf(r2);
 
   /* Compute the kernel function */
   const float hi_inv = 1.0f / hi;
@@ -115,7 +113,7 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
   }
 
 #ifdef SWIFT_DEBUG_CHECKS
-  if (Omega_frac < 0. || Omega_frac > 1.00001)
+  if (Omega_frac < 0. || Omega_frac > 1.01)
     error("Invalid fraction of material to distribute. Omega_frac=%e",
           Omega_frac);
 #endif
@@ -249,18 +247,17 @@ runner_iact_nonsym_feedback_apply(const float r2, const float *dx,
   const double injected_energy =
       si->feedback_data.to_distribute.energy * Omega_frac;
 
-  /* Apply energy conservation to recover the new thermal energy of the gas */
+  /* Apply energy conservation to recover the new thermal energy of the gas
+   * Note: in some specific cases the new_thermal_energy could be lower
+   * than the current_thermal_energy, this is mainly the case if the change
+   * in mass is relatively small and the velocity vectors between both the
+   * gas particle and the star particle have a small angle. */
   const double new_thermal_energy = current_kinetic_energy_gas +
                                     current_thermal_energy + injected_energy -
                                     new_kinetic_energy_gas;
 
   /* Convert this to a specific thermal energy */
   const double u_new_enrich = new_thermal_energy * new_mass_inv;
-
-#ifdef SWIFT_DEBUG_CHECKS
-  if (new_thermal_energy < 0.99 * current_thermal_energy)
-    error("Enrichment is cooling the gas");
-#endif
 
   /* Do the energy injection. */
   hydro_set_physical_internal_energy(pj, xpj, cosmo, u_new_enrich);

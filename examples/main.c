@@ -148,6 +148,7 @@ int main(int argc, char *argv[]) {
   int with_aff = 0;
   int dry_run = 0;
   int dump_tasks = 0;
+  int dump_cells = 0;
   int dump_threadpool = 0;
   int nsteps = -2;
   int restart = 0;
@@ -263,6 +264,9 @@ int main(int argc, char *argv[]) {
       OPT_INTEGER('y', "task-dumps", &dump_tasks,
                   "Time-step frequency at which task graphs are dumped.", NULL,
                   0, 0),
+      OPT_INTEGER(0, "cell-dumps", &dump_cells,
+                  "Time-step frequency at which cell graphs are dumped.", NULL,
+                  0, 0),
       OPT_INTEGER('Y', "threadpool-dumps", &dump_threadpool,
                   "Time-step frequency at which threadpool tasks are dumped.",
                   NULL, 0, 0),
@@ -319,6 +323,16 @@ int main(int argc, char *argv[]) {
           "WARNING: complete task dumps are only created when "
           "configured with --enable-task-debugging.");
       message("         Basic task statistics will be output.");
+    }
+  }
+#endif
+
+#ifndef SWIFT_CELL_GRAPH
+  if (dump_cells) {
+    if (myrank == 0) {
+      error(
+          "complete cell dumps are only created when "
+          "configured with --enable-cell-graph.");
     }
   }
 #endif
@@ -542,9 +556,12 @@ int main(int argc, char *argv[]) {
   if (with_mpole_reconstruction && nr_nodes > 1)
     error("Cannot reconstruct m-poles every step over MPI (yet).");
   if (with_limiter) error("Can't run with time-step limiter over MPI (yet)");
+#ifdef WITH_LOGGER
+  error("Can't run with the particle logger over MPI (yet)");
+#endif
 #endif
 
-    /* Temporary early aborts for modes not supported with hand-vec. */
+  /* Temporary early aborts for modes not supported with hand-vec. */
 #if defined(WITH_VECTORIZATION) && defined(GADGET2_SPH) && \
     !defined(CHEMISTRY_NONE)
   error(
@@ -988,9 +1005,9 @@ int main(int argc, char *argv[]) {
     bzero(&gravity_properties, sizeof(struct gravity_props));
     if (with_self_gravity)
       gravity_props_init(&gravity_properties, params, &prog_const, &cosmo,
-                         with_cosmology, with_baryon_particles,
-                         with_DM_particles, with_DM_background_particles,
-                         periodic);
+                         with_cosmology, with_external_gravity,
+                         with_baryon_particles, with_DM_particles,
+                         with_DM_background_particles, periodic);
 
     /* Initialise the external potential properties */
     bzero(&potential, sizeof(struct external_potential));
@@ -1170,8 +1187,11 @@ int main(int argc, char *argv[]) {
     logger_log_all(e.logger, &e);
     engine_dump_index(&e);
 #endif
-    engine_dump_snapshot(&e);
-    engine_print_stats(&e);
+    /* Dump initial state snapshot, if not working with an output list */
+    if (!e.output_list_snapshots) engine_dump_snapshot(&e);
+
+    /* Dump initial state statistics, if not working with an output list */
+    if (!e.output_list_stats) engine_print_stats(&e);
 
     /* Is there a dump before the end of the first time-step? */
     engine_check_for_dumps(&e);
@@ -1211,6 +1231,15 @@ int main(int argc, char *argv[]) {
     snprintf(dumpfile, 40, "memuse_report-step%d.dat", 0);
 #endif  // WITH_MPI
     memuse_log_dump(dumpfile);
+  }
+#endif
+
+    /* Dump MPI requests if collected. */
+#if defined(SWIFT_MPIUSE_REPORTS) && defined(WITH_MPI)
+  {
+    char dumpfile[40];
+    snprintf(dumpfile, 40, "mpiuse_report-rank%d-step%d.dat", engine_rank, 0);
+    mpiuse_log_dump(dumpfile, clocks_start_ticks);
   }
 #endif
 
@@ -1261,6 +1290,13 @@ int main(int argc, char *argv[]) {
       task_dump_stats(dumpfile, &e, /* header = */ 0, /* allranks = */ 1);
     }
 
+#ifdef SWIFT_CELL_GRAPH
+    /* Dump the cell data using the given frequency. */
+    if (dump_cells && (dump_cells == 1 || j % dump_cells == 1)) {
+      space_write_cell_hierarchy(e.s, j + 1);
+    }
+#endif
+
       /* Dump memory use report if collected. */
 #ifdef SWIFT_MEMUSE_REPORTS
     {
@@ -1274,6 +1310,16 @@ int main(int argc, char *argv[]) {
       memuse_log_dump(dumpfile);
     }
 #endif
+
+      /* Dump MPI requests if collected. */
+#if defined(SWIFT_MPIUSE_REPORTS) && defined(WITH_MPI)
+    {
+      char dumpfile[40];
+      snprintf(dumpfile, 40, "mpiuse_report-rank%d-step%d.dat", engine_rank,
+               j + 1);
+      mpiuse_log_dump(dumpfile, e.tic_step);
+    }
+#endif  // WITH_MPI
 
 #ifdef SWIFT_DEBUG_THREADPOOL
     /* Dump the task data using the given frequency. */
@@ -1331,30 +1377,42 @@ int main(int argc, char *argv[]) {
     engine_current_step = e.step;
 
     engine_drift_all(&e, /*drift_mpole=*/0);
-    engine_print_stats(&e);
+
+    /* Write final statistics? */
+    if (e.output_list_stats) {
+      if (e.output_list_stats->final_step_dump) engine_print_stats(&e);
+    } else {
+      engine_print_stats(&e);
+    }
 #ifdef WITH_LOGGER
     logger_log_all(e.logger, &e);
     engine_dump_index(&e);
 #endif
 
+    /* Write final snapshot? */
+    if ((e.output_list_snapshots && e.output_list_snapshots->final_step_dump) ||
+        !e.output_list_snapshots) {
 #ifdef HAVE_VELOCIRAPTOR
-    if (with_structure_finding && e.snapshot_invoke_stf)
-      velociraptor_invoke(&e, /*linked_with_snap=*/1);
+      if (with_structure_finding && e.snapshot_invoke_stf &&
+          !e.stf_this_timestep)
+        velociraptor_invoke(&e, /*linked_with_snap=*/1);
 #endif
-
-    /* write a final snapshot */
-    engine_dump_snapshot(&e);
-
+      engine_dump_snapshot(&e);
 #ifdef HAVE_VELOCIRAPTOR
-    if (with_structure_finding && e.snapshot_invoke_stf)
-      free(e.s->gpart_group_data);
+      if (with_structure_finding && e.snapshot_invoke_stf &&
+          e.s->gpart_group_data)
+        swift_free("gpart_group_data", e.s->gpart_group_data);
+#endif
+    }
+
+      /* Write final stf? */
+#ifdef HAVE_VELOCIRAPTOR
+    if (with_structure_finding && e.output_list_stf) {
+      if (e.output_list_stf->final_step_dump && !e.stf_this_timestep)
+        velociraptor_invoke(&e, /*linked_with_snap=*/0);
+    }
 #endif
   }
-
-#ifdef WITH_MPI
-  if ((res = MPI_Finalize()) != MPI_SUCCESS)
-    error("call to MPI_Finalize failed with error %i.", res);
-#endif
 
   /* Remove the stop file if used. Do this anyway, we could have missed the
    * stop file if normal exit happened first. */
@@ -1374,8 +1432,14 @@ int main(int argc, char *argv[]) {
   if (with_cosmology) cosmology_clean(e.cosmology);
   if (with_self_gravity) pm_mesh_clean(e.mesh);
   if (with_cooling || with_temperature) cooling_clean(&cooling_func);
+  if (with_feedback) feedback_clean(&feedback_properties);
   engine_clean(&e, /*fof=*/0);
   free(params);
+
+#ifdef WITH_MPI
+  if ((res = MPI_Finalize()) != MPI_SUCCESS)
+    error("call to MPI_Finalize failed with error %i.", res);
+#endif
 
   /* Say goodbye. */
   if (myrank == 0) message("done. Bye.");

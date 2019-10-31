@@ -36,6 +36,7 @@ examples/*/*/*.rst
 examples/*/*/*.hdf5
 examples/*/*/*.csv
 examples/*/*/*.dot
+examples/*/*/cell_hierarchy.html
 examples/*/*/energy.txt
 examples/*/*/task_level.txt
 examples/*/*/timesteps_*.txt
@@ -161,6 +162,7 @@ tests/testOutputList
 tests/testCbrt
 tests/testFormat.sh
 tests/testCooling
+tests/testComovingCooling
 tests/testHashmap
 tests/*.png
 tests/*.txt

@@ -59,6 +59,7 @@
 #include "pressure_floor.h"
 #include "restart.h"
 #include "sort_part.h"
+#include "star_formation.h"
 #include "star_formation_logger.h"
 #include "stars.h"
 #include "threadpool.h"
@@ -722,6 +723,20 @@ void space_allocate_extras(struct space *s, int verbose) {
                                      0.5 * cells[0].width[1],
                                      0.5 * cells[0].width[2]};
 
+  /* The dithering vector
+   * Note that we use the old dithering vector here since
+   * (new - old) will be added to all positions further down */
+  const double pos_dithering[3] = {s->pos_dithering_old[0],
+                                   s->pos_dithering_old[1],
+                                   s->pos_dithering_old[2]};
+#ifdef SWIFT_DEBUG_CHECKS
+  if (!s->e->gravity_properties->with_dithering) {
+    if (s->pos_dithering[0] != 0. || s->pos_dithering[1] != 0. ||
+        s->pos_dithering[2] != 0.)
+      error("Non-zero dithering vector when dithering is off!");
+  }
+#endif
+
   /* The current number of particles (including spare ones) */
   size_t nr_parts = s->nr_parts;
   size_t nr_gparts = s->nr_gparts;
@@ -842,9 +857,12 @@ void space_allocate_extras(struct space *s, int verbose) {
       if (s->gparts[i].time_bin == time_bin_not_created) {
 
         /* We want the extra particles to be at the centre of their cell */
-        s->gparts[i].x[0] = cells[current_cell].loc[0] + half_cell_width[0];
-        s->gparts[i].x[1] = cells[current_cell].loc[1] + half_cell_width[1];
-        s->gparts[i].x[2] = cells[current_cell].loc[2] + half_cell_width[2];
+        s->gparts[i].x[0] =
+            cells[current_cell].loc[0] + half_cell_width[0] - pos_dithering[0];
+        s->gparts[i].x[1] =
+            cells[current_cell].loc[1] + half_cell_width[1] - pos_dithering[1];
+        s->gparts[i].x[2] =
+            cells[current_cell].loc[2] + half_cell_width[2] - pos_dithering[2];
         ++count_in_cell;
         count_extra_gparts++;
       }
@@ -874,7 +892,7 @@ void space_allocate_extras(struct space *s, int verbose) {
 
   /* Do we have enough space for the extra parts (i.e. we haven't used up any) ?
    */
-  if (expected_num_extra_parts > s->nr_extra_parts) {
+  if (nr_actual_parts + expected_num_extra_parts > nr_parts) {
 
     /* Ok... need to put some more in the game */
 
@@ -916,7 +934,7 @@ void space_allocate_extras(struct space *s, int verbose) {
       bzero(&s->parts[i], sizeof(struct part));
       bzero(&s->xparts[i], sizeof(struct xpart));
       s->parts[i].time_bin = time_bin_not_created;
-      s->parts[i].id = -1;
+      s->parts[i].id = -42;
     }
 
     /* Put the spare particles in their correct cell */
@@ -934,9 +952,12 @@ void space_allocate_extras(struct space *s, int verbose) {
       if (s->parts[i].time_bin == time_bin_not_created) {
 
         /* We want the extra particles to be at the centre of their cell */
-        s->parts[i].x[0] = cells[current_cell].loc[0] + half_cell_width[0];
-        s->parts[i].x[1] = cells[current_cell].loc[1] + half_cell_width[1];
-        s->parts[i].x[2] = cells[current_cell].loc[2] + half_cell_width[2];
+        s->parts[i].x[0] =
+            cells[current_cell].loc[0] + half_cell_width[0] - pos_dithering[0];
+        s->parts[i].x[1] =
+            cells[current_cell].loc[1] + half_cell_width[1] - pos_dithering[1];
+        s->parts[i].x[2] =
+            cells[current_cell].loc[2] + half_cell_width[2] - pos_dithering[2];
         ++count_in_cell;
         count_extra_parts++;
       }
@@ -1016,9 +1037,12 @@ void space_allocate_extras(struct space *s, int verbose) {
       if (s->sparts[i].time_bin == time_bin_not_created) {
 
         /* We want the extra particles to be at the centre of their cell */
-        s->sparts[i].x[0] = cells[current_cell].loc[0] + half_cell_width[0];
-        s->sparts[i].x[1] = cells[current_cell].loc[1] + half_cell_width[1];
-        s->sparts[i].x[2] = cells[current_cell].loc[2] + half_cell_width[2];
+        s->sparts[i].x[0] =
+            cells[current_cell].loc[0] + half_cell_width[0] - pos_dithering[0];
+        s->sparts[i].x[1] =
+            cells[current_cell].loc[1] + half_cell_width[1] - pos_dithering[1];
+        s->sparts[i].x[2] =
+            cells[current_cell].loc[2] + half_cell_width[2] - pos_dithering[2];
         ++count_in_cell;
         count_extra_sparts++;
       }
@@ -1098,9 +1122,12 @@ void space_allocate_extras(struct space *s, int verbose) {
       if (s->bparts[i].time_bin == time_bin_not_created) {
 
         /* We want the extra particles to be at the centre of their cell */
-        s->bparts[i].x[0] = cells[current_cell].loc[0] + half_cell_width[0];
-        s->bparts[i].x[1] = cells[current_cell].loc[1] + half_cell_width[1];
-        s->bparts[i].x[2] = cells[current_cell].loc[2] + half_cell_width[2];
+        s->bparts[i].x[0] =
+            cells[current_cell].loc[0] + half_cell_width[0] - pos_dithering[0];
+        s->bparts[i].x[1] =
+            cells[current_cell].loc[1] + half_cell_width[1] - pos_dithering[1];
+        s->bparts[i].x[2] =
+            cells[current_cell].loc[2] + half_cell_width[2] - pos_dithering[2];
         ++count_in_cell;
         count_extra_bparts++;
       }
@@ -1141,6 +1168,44 @@ void space_allocate_extras(struct space *s, int verbose) {
 }
 
 /**
+ * @brief Compute a new dithering vector to apply to all the particles
+ * in the simulation.
+ *
+ * @param s The #space.
+ * @param verbose Are we talkative?
+ */
+void space_dither(struct space *s, int verbose) {
+
+  /* Store the old dithering vector */
+  s->pos_dithering_old[0] = s->pos_dithering[0];
+  s->pos_dithering_old[1] = s->pos_dithering[1];
+  s->pos_dithering_old[2] = s->pos_dithering[2];
+
+  if (s->e->nodeID == 0) {
+
+    const double dithering_ratio = s->e->gravity_properties->dithering_ratio;
+
+    /* Compute the new dithering vector */
+    const double rand_x = rand() / ((double)RAND_MAX);
+    const double rand_y = rand() / ((double)RAND_MAX);
+    const double rand_z = rand() / ((double)RAND_MAX);
+
+    s->pos_dithering[0] = dithering_ratio * s->width[0] * rand_x;
+    s->pos_dithering[1] = dithering_ratio * s->width[1] * rand_y;
+    s->pos_dithering[2] = dithering_ratio * s->width[2] * rand_z;
+  }
+
+#ifdef WITH_MPI
+  /* Tell everyone what value to use */
+  MPI_Bcast(s->pos_dithering, 3, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+
+  if (verbose)
+    message("Dithering the particle positions by [%e %e %e]",
+            s->pos_dithering[0], s->pos_dithering[1], s->pos_dithering[2]);
+}
+
+/**
  * @brief Re-build the cells as well as the tasks.
  *
  * @param s The #space in which to update the cells.
@@ -1162,6 +1227,10 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
 
   /* Re-grid if necessary, or just re-set the cell data. */
   space_regrid(s, verbose);
+
+  /* Are we dithering the particles? */
+  const int with_dithering = s->e->gravity_properties->with_dithering;
+  if (s->with_self_gravity && with_dithering) space_dither(s, verbose);
 
   /* Allocate extra space for particles that will be created */
   if (s->with_star_formation) space_allocate_extras(s, verbose);
@@ -1279,14 +1348,15 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
 #endif
 
   /* Move non-local parts and inhibited parts to the end of the list. */
-  if (!repartitioned && (s->e->nr_nodes > 1 || count_inhibited_parts > 0)) {
+  if ((with_dithering || !repartitioned) &&
+      (s->e->nr_nodes > 1 || count_inhibited_parts > 0)) {
+
     for (size_t k = 0; k < nr_parts; /* void */) {
 
       /* Inhibited particle or foreign particle */
       if (h_index[k] == -1 || cells_top[h_index[k]].nodeID != local_nodeID) {
 
         /* One fewer particle */
-
         nr_parts -= 1;
 
         /* Swap the particle */
@@ -1331,7 +1401,9 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
 #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Move non-local sparts and inhibited sparts to the end of the list. */
-  if (!repartitioned && (s->e->nr_nodes > 1 || count_inhibited_sparts > 0)) {
+  if ((with_dithering || !repartitioned) &&
+      (s->e->nr_nodes > 1 || count_inhibited_sparts > 0)) {
+
     for (size_t k = 0; k < nr_sparts; /* void */) {
 
       /* Inhibited particle or foreign particle */
@@ -1380,7 +1452,9 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
 #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Move non-local bparts and inhibited bparts to the end of the list. */
-  if (!repartitioned && (s->e->nr_nodes > 1 || count_inhibited_bparts > 0)) {
+  if ((with_dithering || !repartitioned) &&
+      (s->e->nr_nodes > 1 || count_inhibited_bparts > 0)) {
+
     for (size_t k = 0; k < nr_bparts; /* void */) {
 
       /* Inhibited particle or foreign particle */
@@ -1429,7 +1503,9 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
 #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Move non-local gparts and inhibited parts to the end of the list. */
-  if (!repartitioned && (s->e->nr_nodes > 1 || count_inhibited_gparts > 0)) {
+  if ((with_dithering || !repartitioned) &&
+      (s->e->nr_nodes > 1 || count_inhibited_gparts > 0)) {
+
     for (size_t k = 0; k < nr_gparts; /* void */) {
 
       /* Inhibited particle or foreign particle */
@@ -1493,7 +1569,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
   /* Exchange the strays, note that this potentially re-allocates
      the parts arrays. This can be skipped if we just repartitioned space
      as there should be no strays in that case */
-  if (!repartitioned) {
+  if (with_dithering || !repartitioned) {
 
     size_t nr_parts_exchanged = s->nr_parts - nr_parts;
     size_t nr_gparts_exchanged = s->nr_gparts - nr_gparts;
@@ -2077,6 +2153,14 @@ void space_parts_get_cell_index_mapper(void *map_data, int nr_parts,
   int *const ind = data->ind + (ptrdiff_t)(parts - s->parts);
 
   /* Get some constants */
+  const int periodic = s->periodic;
+  const int dithering = s->e->gravity_properties->with_dithering;
+  const double delta_dithering_x =
+      s->pos_dithering[0] - s->pos_dithering_old[0];
+  const double delta_dithering_y =
+      s->pos_dithering[1] - s->pos_dithering_old[1];
+  const double delta_dithering_z =
+      s->pos_dithering[2] - s->pos_dithering_old[2];
   const double dim_x = s->dim[0];
   const double dim_y = s->dim[1];
   const double dim_z = s->dim[2];
@@ -2102,12 +2186,18 @@ void space_parts_get_cell_index_mapper(void *map_data, int nr_parts,
     /* Get the particle */
     struct part *restrict p = &parts[k];
 
-    const double old_pos_x = p->x[0];
-    const double old_pos_y = p->x[1];
-    const double old_pos_z = p->x[2];
+    double old_pos_x = p->x[0];
+    double old_pos_y = p->x[1];
+    double old_pos_z = p->x[2];
+
+    if (periodic && dithering) {
+      old_pos_x += delta_dithering_x;
+      old_pos_y += delta_dithering_y;
+      old_pos_z += delta_dithering_z;
+    }
 
 #ifdef SWIFT_DEBUG_CHECKS
-    if (!s->periodic && p->time_bin != time_bin_inhibited) {
+    if (!periodic && p->time_bin != time_bin_inhibited) {
       if (old_pos_x < 0. || old_pos_x > dim_x)
         error("Particle outside of volume along X.");
       if (old_pos_y < 0. || old_pos_y > dim_y)
@@ -2146,6 +2236,12 @@ void space_parts_get_cell_index_mapper(void *map_data, int nr_parts,
       ind[k] = index;
       cell_counts[index]++;
       ++count_extra_part;
+
+      /* Update the position (since we may have dithered) */
+      p->x[0] = pos_x;
+      p->x[1] = pos_y;
+      p->x[2] = pos_z;
+
     } else {
       /* Normal case: list its top-level cell index */
       ind[k] = index;
@@ -2196,6 +2292,14 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   int *const ind = data->ind + (ptrdiff_t)(gparts - s->gparts);
 
   /* Get some constants */
+  const int periodic = s->periodic;
+  const int dithering = s->e->gravity_properties->with_dithering;
+  const double delta_dithering_x =
+      s->pos_dithering[0] - s->pos_dithering_old[0];
+  const double delta_dithering_y =
+      s->pos_dithering[1] - s->pos_dithering_old[1];
+  const double delta_dithering_z =
+      s->pos_dithering[2] - s->pos_dithering_old[2];
   const double dim_x = s->dim[0];
   const double dim_y = s->dim[1];
   const double dim_z = s->dim[2];
@@ -2220,12 +2324,18 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
     /* Get the particle */
     struct gpart *restrict gp = &gparts[k];
 
-    const double old_pos_x = gp->x[0];
-    const double old_pos_y = gp->x[1];
-    const double old_pos_z = gp->x[2];
+    double old_pos_x = gp->x[0];
+    double old_pos_y = gp->x[1];
+    double old_pos_z = gp->x[2];
+
+    if (periodic && dithering) {
+      old_pos_x += delta_dithering_x;
+      old_pos_y += delta_dithering_y;
+      old_pos_z += delta_dithering_z;
+    }
 
 #ifdef SWIFT_DEBUG_CHECKS
-    if (!s->periodic && gp->time_bin != time_bin_inhibited) {
+    if (!periodic && gp->time_bin != time_bin_inhibited) {
       if (old_pos_x < 0. || old_pos_x > dim_x)
         error("Particle outside of volume along X.");
       if (old_pos_y < 0. || old_pos_y > dim_y)
@@ -2264,6 +2374,12 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
       ind[k] = index;
       cell_counts[index]++;
       ++count_extra_gpart;
+
+      /* Update the position (since we may have dithered) */
+      gp->x[0] = pos_x;
+      gp->x[1] = pos_y;
+      gp->x[2] = pos_z;
+
     } else {
       /* List its top-level cell index */
       ind[k] = index;
@@ -2320,6 +2436,14 @@ void space_sparts_get_cell_index_mapper(void *map_data, int nr_sparts,
   int *const ind = data->ind + (ptrdiff_t)(sparts - s->sparts);
 
   /* Get some constants */
+  const int periodic = s->periodic;
+  const int dithering = s->e->gravity_properties->with_dithering;
+  const double delta_dithering_x =
+      s->pos_dithering[0] - s->pos_dithering_old[0];
+  const double delta_dithering_y =
+      s->pos_dithering[1] - s->pos_dithering_old[1];
+  const double delta_dithering_z =
+      s->pos_dithering[2] - s->pos_dithering_old[2];
   const double dim_x = s->dim[0];
   const double dim_y = s->dim[1];
   const double dim_z = s->dim[2];
@@ -2344,12 +2468,18 @@ void space_sparts_get_cell_index_mapper(void *map_data, int nr_sparts,
     /* Get the particle */
     struct spart *restrict sp = &sparts[k];
 
-    const double old_pos_x = sp->x[0];
-    const double old_pos_y = sp->x[1];
-    const double old_pos_z = sp->x[2];
+    double old_pos_x = sp->x[0];
+    double old_pos_y = sp->x[1];
+    double old_pos_z = sp->x[2];
+
+    if (periodic && dithering) {
+      old_pos_x += delta_dithering_x;
+      old_pos_y += delta_dithering_y;
+      old_pos_z += delta_dithering_z;
+    }
 
 #ifdef SWIFT_DEBUG_CHECKS
-    if (!s->periodic && sp->time_bin != time_bin_inhibited) {
+    if (!periodic && sp->time_bin != time_bin_inhibited) {
       if (old_pos_x < 0. || old_pos_x > dim_x)
         error("Particle outside of volume along X.");
       if (old_pos_y < 0. || old_pos_y > dim_y)
@@ -2388,6 +2518,12 @@ void space_sparts_get_cell_index_mapper(void *map_data, int nr_sparts,
       ind[k] = index;
       cell_counts[index]++;
       ++count_extra_spart;
+
+      /* Update the position (since we may have dithered) */
+      sp->x[0] = pos_x;
+      sp->x[1] = pos_y;
+      sp->x[2] = pos_z;
+
     } else {
       /* List its top-level cell index */
       ind[k] = index;
@@ -2440,6 +2576,14 @@ void space_bparts_get_cell_index_mapper(void *map_data, int nr_bparts,
   int *const ind = data->ind + (ptrdiff_t)(bparts - s->bparts);
 
   /* Get some constants */
+  const int periodic = s->periodic;
+  const int dithering = s->e->gravity_properties->with_dithering;
+  const double delta_dithering_x =
+      s->pos_dithering[0] - s->pos_dithering_old[0];
+  const double delta_dithering_y =
+      s->pos_dithering[1] - s->pos_dithering_old[1];
+  const double delta_dithering_z =
+      s->pos_dithering[2] - s->pos_dithering_old[2];
   const double dim_x = s->dim[0];
   const double dim_y = s->dim[1];
   const double dim_z = s->dim[2];
@@ -2464,12 +2608,18 @@ void space_bparts_get_cell_index_mapper(void *map_data, int nr_bparts,
     /* Get the particle */
     struct bpart *restrict bp = &bparts[k];
 
-    const double old_pos_x = bp->x[0];
-    const double old_pos_y = bp->x[1];
-    const double old_pos_z = bp->x[2];
+    double old_pos_x = bp->x[0];
+    double old_pos_y = bp->x[1];
+    double old_pos_z = bp->x[2];
+
+    if (periodic && dithering) {
+      old_pos_x += delta_dithering_x;
+      old_pos_y += delta_dithering_y;
+      old_pos_z += delta_dithering_z;
+    }
 
 #ifdef SWIFT_DEBUG_CHECKS
-    if (!s->periodic) {
+    if (!periodic && bp->time_bin != time_bin_inhibited) {
       if (old_pos_x < 0. || old_pos_x > dim_x)
         error("Particle outside of volume along X.");
       if (old_pos_y < 0. || old_pos_y > dim_y)
@@ -2508,6 +2658,12 @@ void space_bparts_get_cell_index_mapper(void *map_data, int nr_bparts,
       ind[k] = index;
       cell_counts[index]++;
       ++count_extra_bpart;
+
+      /* Update the position (since we may have dithered) */
+      bp->x[0] = pos_x;
+      bp->x[1] = pos_y;
+      bp->x[2] = pos_z;
+
     } else {
       /* List its top-level cell index */
       ind[k] = index;
@@ -3935,82 +4091,138 @@ void space_list_useful_top_level_cells(struct space *s) {
             clocks_getunit());
 }
 
-void space_synchronize_particle_positions_mapper(void *map_data, int nr_gparts,
-                                                 void *extra_data) {
+void space_synchronize_part_positions_mapper(void *map_data, int nr_parts,
+                                             void *extra_data) {
   /* Unpack the data */
-  struct gpart *restrict gparts = (struct gpart *)map_data;
+  const struct part *parts = (struct part *)map_data;
   struct space *s = (struct space *)extra_data;
+  const ptrdiff_t offset = parts - s->parts;
+  const struct xpart *xparts = s->xparts + offset;
 
-  for (int k = 0; k < nr_gparts; k++) {
+  for (int k = 0; k < nr_parts; k++) {
 
     /* Get the particle */
-    struct gpart *restrict gp = &gparts[k];
+    const struct part *p = &parts[k];
+    const struct xpart *xp = &xparts[k];
 
-    if (gp->type == swift_type_dark_matter)
+    /* Skip unimportant particles */
+    if (p->time_bin == time_bin_not_created ||
+        p->time_bin == time_bin_inhibited)
       continue;
 
-    else if (gp->type == swift_type_dark_matter_background)
-      continue;
+    /* Get its gravity friend */
+    struct gpart *gp = p->gpart;
 
-    else if (gp->type == swift_type_gas) {
+#ifdef SWIFT_DEBUG_CHECKS
+    if (gp == NULL) error("Unlinked particle!");
+#endif
 
-      /* Get its gassy friend */
-      struct part *p = &s->parts[-gp->id_or_neg_offset];
-      struct xpart *xp = &s->xparts[-gp->id_or_neg_offset];
+    /* Synchronize positions, velocities and masses */
+    gp->x[0] = p->x[0];
+    gp->x[1] = p->x[1];
+    gp->x[2] = p->x[2];
 
-      /* Synchronize positions and velocities */
-      p->x[0] = gp->x[0];
-      p->x[1] = gp->x[1];
-      p->x[2] = gp->x[2];
+    gp->v_full[0] = xp->v_full[0];
+    gp->v_full[1] = xp->v_full[1];
+    gp->v_full[2] = xp->v_full[2];
 
-      xp->v_full[0] = gp->v_full[0];
-      xp->v_full[1] = gp->v_full[1];
-      xp->v_full[2] = gp->v_full[2];
-
-      gp->mass = hydro_get_mass(p);
-    }
-
-    else if (gp->type == swift_type_stars) {
-
-      /* Get its stellar friend */
-      struct spart *sp = &s->sparts[-gp->id_or_neg_offset];
-
-      /* Synchronize positions */
-      sp->x[0] = gp->x[0];
-      sp->x[1] = gp->x[1];
-      sp->x[2] = gp->x[2];
-
-      gp->mass = sp->mass;
-    }
-
-    else if (gp->type == swift_type_black_hole) {
-
-      /* Get its black hole friend */
-      struct bpart *bp = &s->bparts[-gp->id_or_neg_offset];
-
-      /* Synchronize positions */
-      bp->x[0] = gp->x[0];
-      bp->x[1] = gp->x[1];
-      bp->x[2] = gp->x[2];
-
-      gp->mass = bp->mass;
-    }
-
-    else {
-      error("Invalid type!");
-    }
+    gp->mass = hydro_get_mass(p);
   }
 }
 
+void space_synchronize_spart_positions_mapper(void *map_data, int nr_sparts,
+                                              void *extra_data) {
+  /* Unpack the data */
+  const struct spart *sparts = (struct spart *)map_data;
+
+  for (int k = 0; k < nr_sparts; k++) {
+
+    /* Get the particle */
+    const struct spart *sp = &sparts[k];
+
+    /* Skip unimportant particles */
+    if (sp->time_bin == time_bin_not_created ||
+        sp->time_bin == time_bin_inhibited)
+      continue;
+
+    /* Get its gravity friend */
+    struct gpart *gp = sp->gpart;
+
+#ifdef SWIFT_DEBUG_CHECKS
+    if (gp == NULL) error("Unlinked particle!");
+#endif
+
+    /* Synchronize positions, velocities and masses */
+    gp->x[0] = sp->x[0];
+    gp->x[1] = sp->x[1];
+    gp->x[2] = sp->x[2];
+
+    gp->v_full[0] = sp->v[0];
+    gp->v_full[1] = sp->v[1];
+    gp->v_full[2] = sp->v[2];
+
+    gp->mass = sp->mass;
+  }
+}
+
+void space_synchronize_bpart_positions_mapper(void *map_data, int nr_bparts,
+                                              void *extra_data) {
+  /* Unpack the data */
+  const struct bpart *bparts = (struct bpart *)map_data;
+
+  for (int k = 0; k < nr_bparts; k++) {
+
+    /* Get the particle */
+    const struct bpart *bp = &bparts[k];
+
+    /* Skip unimportant particles */
+    if (bp->time_bin == time_bin_not_created ||
+        bp->time_bin == time_bin_inhibited)
+      continue;
+
+    /* Get its gravity friend */
+    struct gpart *gp = bp->gpart;
+
+#ifdef SWIFT_DEBUG_CHECKS
+    if (gp == NULL) error("Unlinked particle!");
+#endif
+
+    /* Synchronize positions, velocities and masses */
+    gp->x[0] = bp->x[0];
+    gp->x[1] = bp->x[1];
+    gp->x[2] = bp->x[2];
+
+    gp->v_full[0] = bp->v[0];
+    gp->v_full[1] = bp->v[1];
+    gp->v_full[2] = bp->v[2];
+
+    gp->mass = bp->mass;
+  }
+}
+
+/**
+ * @brief Make sure the baryon particles are at the same position and
+ * have the same velocity and mass as their #gpart friends.
+ *
+ * We copy the baryon particle properties to the #gpart type-by-type.
+ *
+ * @param s The #space.
+ */
 void space_synchronize_particle_positions(struct space *s) {
 
   const ticks tic = getticks();
 
-  if ((s->nr_gparts > 0 && s->nr_parts > 0) ||
-      (s->nr_gparts > 0 && s->nr_sparts > 0))
-    threadpool_map(&s->e->threadpool,
-                   space_synchronize_particle_positions_mapper, s->gparts,
-                   s->nr_gparts, sizeof(struct gpart), 0, (void *)s);
+  if (s->nr_gparts > 0 && s->nr_parts > 0)
+    threadpool_map(&s->e->threadpool, space_synchronize_part_positions_mapper,
+                   s->parts, s->nr_parts, sizeof(struct part), 0, (void *)s);
+
+  if (s->nr_gparts > 0 && s->nr_sparts > 0)
+    threadpool_map(&s->e->threadpool, space_synchronize_spart_positions_mapper,
+                   s->sparts, s->nr_sparts, sizeof(struct spart), 0, NULL);
+
+  if (s->nr_gparts > 0 && s->nr_bparts > 0)
+    threadpool_map(&s->e->threadpool, space_synchronize_bpart_positions_mapper,
+                   s->bparts, s->nr_bparts, sizeof(struct bpart), 0, NULL);
 
   if (s->e->verbose)
     message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
@@ -4041,6 +4253,7 @@ void space_first_init_parts_mapper(void *restrict map_data, int count,
   const int with_gravity = e->policy & engine_policy_self_gravity;
 
   const struct chemistry_global_data *chemistry = e->chemistry;
+  const struct star_formation *star_formation = e->star_formation;
   const struct cooling_function_data *cool_func = e->cooling_func;
 
   /* Check that the smoothing lengths are non-zero */
@@ -4093,6 +4306,10 @@ void space_first_init_parts_mapper(void *restrict map_data, int count,
 
     /* Also initialise the pressure floor */
     pressure_floor_first_init_part(phys_const, us, cosmo, &p[k], &xp[k]);
+
+    /* Also initialise the star formation */
+    star_formation_first_init_part(phys_const, us, cosmo, star_formation, &p[k],
+                                   &xp[k]);
 
     /* And the cooling */
     cooling_first_init_part(phys_const, us, cosmo, cool_func, &p[k], &xp[k]);
@@ -4375,6 +4592,7 @@ void space_init_parts_mapper(void *restrict map_data, int count,
     hydro_init_part(&parts[k], hs);
     chemistry_init_part(&parts[k], e->chemistry);
     pressure_floor_init_part(&parts[k], &xparts[k]);
+    star_formation_init_part(&parts[k], e->star_formation);
     tracers_after_init(&parts[k], &xparts[k], e->internal_units,
                        e->physical_constants, with_cosmology, e->cosmology,
                        e->hydro_properties, e->cooling_func, e->time);
@@ -4594,9 +4812,12 @@ void space_init(struct space *s, struct swift_params *params,
   s->sum_bpart_vel_norm = 0.f;
   s->nr_queues = 1; /* Temporary value until engine construction */
 
+  /* Initiate some basic randomness */
+  srand(42);
+
   /* Are we generating gas from the DM-only ICs? */
   if (generate_gas_in_ics) {
-    space_generate_gas(s, cosmo, periodic, dim, verbose);
+    space_generate_gas(s, cosmo, periodic, DM_background, dim, verbose);
     parts = s->parts;
     gparts = s->gparts;
     Npart = s->nr_parts;
@@ -4990,14 +5211,18 @@ void space_replicate(struct space *s, int replicate, int verbose) {
  * gas un-initialised as they will be given a value from the parameter file at a
  * later stage.
  *
+ * Background DM particles are not duplicated.
+ *
  * @param s The #space to create the particles in.
  * @param cosmo The current #cosmology model.
  * @param periodic Are we using periodic boundary conditions?
+ * @param with_background Are we using background DM particles?
  * @param dim The size of the box (for periodic wrapping).
  * @param verbose Are we talkative?
  */
 void space_generate_gas(struct space *s, const struct cosmology *cosmo,
-                        int periodic, const double dim[3], int verbose) {
+                        const int periodic, const int with_background,
+                        const double dim[3], const int verbose) {
 
   /* Check that this is a sensible ting to do */
   if (!s->with_hydro)
@@ -5009,14 +5234,33 @@ void space_generate_gas(struct space *s, const struct cosmology *cosmo,
   if (verbose) message("Generating gas particles from gparts");
 
   /* Store the current values */
-  const size_t nr_parts = s->nr_parts;
-  const size_t nr_gparts = s->nr_gparts;
+  const size_t current_nr_parts = s->nr_parts;
+  const size_t current_nr_gparts = s->nr_gparts;
 
-  if (nr_parts != 0)
+  if (current_nr_parts != 0)
     error("Generating gas particles from DM but gas already exists!");
 
-  s->size_parts = s->nr_parts = nr_gparts;
-  s->size_gparts = s->nr_gparts = 2 * nr_gparts;
+  if (s->nr_sparts != 0)
+    error("Generating gas particles from DM but stars already exists!");
+
+  if (s->nr_bparts != 0)
+    error("Generating gas particles from DM but BHs already exists!");
+
+  /* Start by counting the number of background and zoom DM particles */
+  size_t nr_background_gparts = 0;
+  if (with_background) {
+    for (size_t i = 0; i < current_nr_gparts; ++i)
+      if (s->gparts[i].type == swift_type_dark_matter_background)
+        ++nr_background_gparts;
+  }
+  const size_t nr_zoom_gparts = current_nr_gparts - nr_background_gparts;
+
+  if (nr_zoom_gparts == 0)
+    error("Can't generate gas from ICs if there are no high res. particles");
+
+  /* New particle counts after replication */
+  s->size_parts = s->nr_parts = nr_zoom_gparts;
+  s->size_gparts = s->nr_gparts = 2 * nr_zoom_gparts + nr_background_gparts;
 
   /* Allocate space for new particles */
   struct part *parts = NULL;
@@ -5030,11 +5274,8 @@ void space_generate_gas(struct space *s, const struct cosmology *cosmo,
                      s->nr_gparts * sizeof(struct gpart)) != 0)
     error("Failed to allocate new gpart array.");
 
-  /* Start by copying the gparts */
-  memcpy(gparts, s->gparts, nr_gparts * sizeof(struct gpart));
-  memcpy(gparts + nr_gparts, s->gparts, nr_gparts * sizeof(struct gpart));
-
   /* And zero the parts */
+  bzero(gparts, s->nr_gparts * sizeof(struct gpart));
   bzero(parts, s->nr_parts * sizeof(struct part));
 
   /* Compute some constants */
@@ -5042,73 +5283,93 @@ void space_generate_gas(struct space *s, const struct cosmology *cosmo,
   const double bg_density = cosmo->Omega_m * cosmo->critical_density_0;
   const double bg_density_inv = 1. / bg_density;
 
+  message("%zd", current_nr_gparts);
+
   /* Update the particle properties */
-  for (size_t i = 0; i < nr_gparts; ++i) {
+  size_t j = 0;
+  for (size_t i = 0; i < current_nr_gparts; ++i) {
 
-    struct part *p = &parts[i];
-    struct gpart *gp_gas = &gparts[i];
-    struct gpart *gp_dm = &gparts[nr_gparts + i];
+    /* For the background DM particles, just copy the data */
+    if (s->gparts[i].type == swift_type_dark_matter_background) {
 
-    /* Set the IDs */
-    p->id = gp_gas->id_or_neg_offset * 2 + 1;
-    gp_dm->id_or_neg_offset *= 2;
+      memcpy(&gparts[i], &s->gparts[i], sizeof(struct gpart));
 
-    if (gp_dm->id_or_neg_offset < 0)
-      error("DM particle ID overflowd (DM id=%lld gas id=%lld)",
-            gp_dm->id_or_neg_offset, p->id);
+    } else {
 
-    if (p->id < 0) error("gas particle ID overflowd (id=%lld)", p->id);
+      /* For the zoom DM particles, there is a lot of work to do */
 
-    /* Set the links correctly */
-    p->gpart = gp_gas;
-    gp_gas->id_or_neg_offset = -i;
-    gp_gas->type = swift_type_gas;
+      struct part *p = &parts[j];
+      struct gpart *gp_gas = &gparts[current_nr_gparts + j];
+      struct gpart *gp_dm = &gparts[i];
 
-    /* Compute positions shift */
-    const double d = cbrt(gp_dm->mass * bg_density_inv);
-    const double shift_dm = 0.5 * d * mass_ratio;
-    const double shift_gas = 0.5 * d * (1. - mass_ratio);
+      /* Start by copying over the gpart */
+      memcpy(gp_gas, &s->gparts[i], sizeof(struct gpart));
+      memcpy(gp_dm, &s->gparts[i], sizeof(struct gpart));
 
-    /* Set the masses */
-    gp_dm->mass *= (1. - mass_ratio);
-    gp_gas->mass *= mass_ratio;
-    hydro_set_mass(p, gp_gas->mass);
+      /* Set the IDs */
+      p->id = gp_gas->id_or_neg_offset * 2 + 1;
+      gp_dm->id_or_neg_offset *= 2;
 
-    /* Set the new positions */
-    gp_dm->x[0] += shift_dm;
-    gp_dm->x[1] += shift_dm;
-    gp_dm->x[2] += shift_dm;
-    gp_gas->x[0] -= shift_gas;
-    gp_gas->x[1] -= shift_gas;
-    gp_gas->x[2] -= shift_gas;
+      if (gp_dm->id_or_neg_offset < 0)
+        error("DM particle ID overflowd (DM id=%lld gas id=%lld)",
+              gp_dm->id_or_neg_offset, p->id);
 
-    /* Make sure the positions are identical between linked particles */
-    p->x[0] = gp_gas->x[0];
-    p->x[1] = gp_gas->x[1];
-    p->x[2] = gp_gas->x[2];
+      if (p->id < 0) error("gas particle ID overflowd (id=%lld)", p->id);
 
-    /* Box-wrap the whole thing to be safe */
-    if (periodic) {
-      gp_dm->x[0] = box_wrap(gp_dm->x[0], 0., dim[0]);
-      gp_dm->x[1] = box_wrap(gp_dm->x[1], 0., dim[1]);
-      gp_dm->x[2] = box_wrap(gp_dm->x[2], 0., dim[2]);
-      gp_gas->x[0] = box_wrap(gp_gas->x[0], 0., dim[0]);
-      gp_gas->x[1] = box_wrap(gp_gas->x[1], 0., dim[1]);
-      gp_gas->x[2] = box_wrap(gp_gas->x[2], 0., dim[2]);
-      p->x[0] = box_wrap(p->x[0], 0., dim[0]);
-      p->x[1] = box_wrap(p->x[1], 0., dim[1]);
-      p->x[2] = box_wrap(p->x[2], 0., dim[2]);
+      /* Set the links correctly */
+      p->gpart = gp_gas;
+      gp_gas->id_or_neg_offset = -j;
+      gp_gas->type = swift_type_gas;
+
+      /* Compute positions shift */
+      const double d = cbrt(gp_dm->mass * bg_density_inv);
+      const double shift_dm = 0.5 * d * mass_ratio;
+      const double shift_gas = 0.5 * d * (1. - mass_ratio);
+
+      /* Set the masses */
+      gp_dm->mass *= (1. - mass_ratio);
+      gp_gas->mass *= mass_ratio;
+      hydro_set_mass(p, gp_gas->mass);
+
+      /* Set the new positions */
+      gp_dm->x[0] += shift_dm;
+      gp_dm->x[1] += shift_dm;
+      gp_dm->x[2] += shift_dm;
+      gp_gas->x[0] -= shift_gas;
+      gp_gas->x[1] -= shift_gas;
+      gp_gas->x[2] -= shift_gas;
+
+      /* Make sure the positions are identical between linked particles */
+      p->x[0] = gp_gas->x[0];
+      p->x[1] = gp_gas->x[1];
+      p->x[2] = gp_gas->x[2];
+
+      /* Box-wrap the whole thing to be safe */
+      if (periodic) {
+        gp_dm->x[0] = box_wrap(gp_dm->x[0], 0., dim[0]);
+        gp_dm->x[1] = box_wrap(gp_dm->x[1], 0., dim[1]);
+        gp_dm->x[2] = box_wrap(gp_dm->x[2], 0., dim[2]);
+        gp_gas->x[0] = box_wrap(gp_gas->x[0], 0., dim[0]);
+        gp_gas->x[1] = box_wrap(gp_gas->x[1], 0., dim[1]);
+        gp_gas->x[2] = box_wrap(gp_gas->x[2], 0., dim[2]);
+        p->x[0] = box_wrap(p->x[0], 0., dim[0]);
+        p->x[1] = box_wrap(p->x[1], 0., dim[1]);
+        p->x[2] = box_wrap(p->x[2], 0., dim[2]);
+      }
+
+      /* Also copy the velocities */
+      p->v[0] = gp_gas->v_full[0];
+      p->v[1] = gp_gas->v_full[1];
+      p->v[2] = gp_gas->v_full[2];
+
+      /* Set the smoothing length to the mean inter-particle separation */
+      p->h = d;
+
+      /* Note that the thermodynamic properties (u, S, ...) will be set later */
+
+      /* Move on to the next free gas slot */
+      ++j;
     }
-
-    /* Also copy the velocities */
-    p->v[0] = gp_gas->v_full[0];
-    p->v[1] = gp_gas->v_full[1];
-    p->v[2] = gp_gas->v_full[2];
-
-    /* Set the smoothing length to the mean inter-particle separation */
-    p->h = d;
-
-    /* Note that the thermodynamic properties (u, S, ...) will be set later */
   }
 
   /* Replace the content of the space */
@@ -5416,6 +5677,12 @@ void space_clean(struct space *s) {
   swift_free("gparts", s->gparts);
   swift_free("sparts", s->sparts);
   swift_free("bparts", s->bparts);
+#ifdef WITH_MPI
+  swift_free("parts_foreign", s->parts_foreign);
+  swift_free("sparts_foreign", s->sparts_foreign);
+  swift_free("gparts_foreign", s->gparts_foreign);
+  swift_free("bparts_foreign", s->bparts_foreign);
+#endif
 }
 
 /**
@@ -5670,14 +5937,15 @@ void space_write_cell(const struct space *s, FILE *f, const struct cell *c) {
  * @brief Write a csv file containing the cell hierarchy
  *
  * @param s The #space.
+ * @param j The file number.
  */
-void space_write_cell_hierarchy(const struct space *s) {
+void space_write_cell_hierarchy(const struct space *s, int j) {
 
 #ifdef SWIFT_CELL_GRAPH
 
   /* Open file */
   char filename[200];
-  sprintf(filename, "cell_hierarchy_%04i.csv", engine_rank);
+  sprintf(filename, "cell_hierarchy_%04i_%04i.csv", j, engine_rank);
   FILE *f = fopen(filename, "w");
   if (f == NULL) error("Error opening task level file.");
 

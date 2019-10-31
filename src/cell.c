@@ -67,6 +67,7 @@
 #include "space_getsid.h"
 #include "star_formation.h"
 #include "stars.h"
+#include "task_order.h"
 #include "timers.h"
 #include "tools.h"
 #include "tracers.h"
@@ -2443,7 +2444,8 @@ void cell_activate_star_resort_tasks(struct cell *c, struct scheduler *s) {
 
   /* The resort tasks are at either the chosen depth or the super level,
    * whichever comes first. */
-  if (c->depth == engine_star_resort_task_depth || c->hydro.super == c) {
+  if ((c->depth == engine_star_resort_task_depth || c->hydro.super == c) &&
+      c->hydro.count > 0) {
     scheduler_activate(s, c->hydro.stars_resort);
   } else {
     for (int k = 0; k < 8; ++k) {
@@ -2475,7 +2477,53 @@ void cell_activate_star_formation_tasks(struct cell *c, struct scheduler *s) {
   scheduler_activate(s, c->hydro.star_formation);
 
   /* Activate the star resort tasks at whatever level they are */
-  cell_activate_star_resort_tasks(c, s);
+  if (task_order_star_formation_before_feedback) {
+    cell_activate_star_resort_tasks(c, s);
+  }
+}
+
+/**
+ * @brief Recursively activate the hydro ghosts (and implicit links) in a cell
+ * hierarchy.
+ *
+ * @param c The #cell.
+ * @param s The #scheduler.
+ * @param e The #engine.
+ */
+void cell_recursively_activate_hydro_ghosts(struct cell *c, struct scheduler *s,
+                                            const struct engine *e) {
+  /* Early abort? */
+  if ((c->hydro.count == 0) || !cell_is_active_hydro(c, e)) return;
+
+  /* Is the ghost at this level? */
+  if (c->hydro.ghost != NULL) {
+    scheduler_activate(s, c->hydro.ghost);
+  } else {
+
+#ifdef SWIFT_DEBUG_CHECKS
+    if (!c->split)
+      error("Reached the leaf level without finding a hydro ghost!");
+#endif
+
+    /* Keep recursing */
+    for (int k = 0; k < 8; k++)
+      if (c->progeny[k] != NULL)
+        cell_recursively_activate_hydro_ghosts(c->progeny[k], s, e);
+  }
+}
+
+/**
+ * @brief Activate the hydro ghosts (and implicit links) in a cell hierarchy.
+ *
+ * @param c The #cell.
+ * @param s The #scheduler.
+ * @param e The #engine.
+ */
+void cell_activate_hydro_ghosts(struct cell *c, struct scheduler *s,
+                                const struct engine *e) {
+  scheduler_activate(s, c->hydro.ghost_in);
+  scheduler_activate(s, c->hydro.ghost_out);
+  cell_recursively_activate_hydro_ghosts(c, s, e);
 }
 
 /**
@@ -2486,6 +2534,10 @@ void cell_activate_star_formation_tasks(struct cell *c, struct scheduler *s) {
  * @param s The #scheduler.
  */
 void cell_activate_super_spart_drifts(struct cell *c, struct scheduler *s) {
+
+  /* Early abort? */
+  if (c->hydro.count == 0) return;
+
   if (c == c->hydro.super) {
     cell_activate_drift_spart(c, s);
   } else {
@@ -3409,12 +3461,16 @@ int cell_unskip_hydro_tasks(struct cell *c, struct scheduler *s) {
         /* Propagating new star counts? */
         if (with_star_formation && with_feedback) {
           if (ci_active && ci->hydro.count > 0) {
-            scheduler_activate_recv(s, ci->mpi.recv, task_subtype_sf_counts);
+            if (task_order_star_formation_before_feedback) {
+              scheduler_activate_recv(s, ci->mpi.recv, task_subtype_sf_counts);
+            }
             scheduler_activate_recv(s, ci->mpi.recv, task_subtype_tend_spart);
           }
           if (cj_active && cj->hydro.count > 0) {
-            scheduler_activate_send(s, cj->mpi.send, task_subtype_sf_counts,
-                                    ci_nodeID);
+            if (task_order_star_formation_before_feedback) {
+              scheduler_activate_send(s, cj->mpi.send, task_subtype_sf_counts,
+                                      ci_nodeID);
+            }
             scheduler_activate_send(s, cj->mpi.send, task_subtype_tend_spart,
                                     ci_nodeID);
           }
@@ -3474,12 +3530,16 @@ int cell_unskip_hydro_tasks(struct cell *c, struct scheduler *s) {
         /* Propagating new star counts? */
         if (with_star_formation && with_feedback) {
           if (cj_active && cj->hydro.count > 0) {
-            scheduler_activate_recv(s, cj->mpi.recv, task_subtype_sf_counts);
+            if (task_order_star_formation_before_feedback) {
+              scheduler_activate_recv(s, cj->mpi.recv, task_subtype_sf_counts);
+            }
             scheduler_activate_recv(s, cj->mpi.recv, task_subtype_tend_spart);
           }
           if (ci_active && ci->hydro.count > 0) {
-            scheduler_activate_send(s, ci->mpi.send, task_subtype_sf_counts,
-                                    cj_nodeID);
+            if (task_order_star_formation_before_feedback) {
+              scheduler_activate_send(s, ci->mpi.send, task_subtype_sf_counts,
+                                      cj_nodeID);
+            }
             scheduler_activate_send(s, ci->mpi.send, task_subtype_tend_spart,
                                     cj_nodeID);
           }
@@ -3500,9 +3560,7 @@ int cell_unskip_hydro_tasks(struct cell *c, struct scheduler *s) {
 
     if (c->hydro.extra_ghost != NULL)
       scheduler_activate(s, c->hydro.extra_ghost);
-    if (c->hydro.ghost_in != NULL) scheduler_activate(s, c->hydro.ghost_in);
-    if (c->hydro.ghost_out != NULL) scheduler_activate(s, c->hydro.ghost_out);
-    if (c->hydro.ghost != NULL) scheduler_activate(s, c->hydro.ghost);
+    if (c->hydro.ghost_in != NULL) cell_activate_hydro_ghosts(c, s, e);
     if (c->kick1 != NULL) scheduler_activate(s, c->kick1);
     if (c->kick2 != NULL) scheduler_activate(s, c->kick2);
     if (c->timestep != NULL) scheduler_activate(s, c->timestep);
@@ -4501,6 +4559,7 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
         hydro_init_part(p, &e->s->hs);
         chemistry_init_part(p, e->chemistry);
         pressure_floor_init_part(p, xp);
+        star_formation_init_part(p, e->star_formation);
         tracers_after_init(p, xp, e->internal_units, e->physical_constants,
                            with_cosmology, e->cosmology, e->hydro_properties,
                            e->cooling_func, e->time);
