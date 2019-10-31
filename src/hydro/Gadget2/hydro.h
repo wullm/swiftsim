@@ -499,6 +499,7 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
  */
 __attribute__((always_inline)) INLINE static void hydro_end_density(
     struct part *restrict p, const struct cosmology *cosmo) {
+  p->counter += 1;
 
   /* Some smoothing length multiples. */
   const float h = p->h;
@@ -901,6 +902,8 @@ __attribute__((always_inline)) INLINE static void hydro_first_init_part(
   xp->a_grav[1] = 0.f;
   xp->a_grav[2] = 0.f;
   xp->entropy_full = p->entropy;
+
+  p->counter = 0;
 
   hydro_reset_acceleration(p);
   hydro_init_part(p, NULL);

@@ -75,6 +75,8 @@
 hid_t io_hdf5_type(enum IO_DATA_TYPE type) {
 
   switch (type) {
+    case INT8:
+      return H5T_NATIVE_INT8;
     case INT:
       return H5T_NATIVE_INT;
     case UINT:
@@ -1019,6 +1021,8 @@ size_t io_sizeof_type(enum IO_DATA_TYPE type) {
   switch (type) {
     case INT:
       return sizeof(int);
+    case INT8:
+      return sizeof(int8_t);
     case UINT:
       return sizeof(unsigned int);
     case LONG:

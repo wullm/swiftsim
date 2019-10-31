@@ -165,6 +165,9 @@ struct part {
   /* Need waking-up ? */
   timebin_t wakeup;
 
+  /* counter of time step */
+  long long counter;
+
 #ifdef SWIFT_DEBUG_CHECKS
 
   /* Time of the last drift */
