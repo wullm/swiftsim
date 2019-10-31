@@ -87,7 +87,7 @@ AM_SOURCES = space.c runner_main.c runner_doiact_hydro.c runner_doiact_grav.c \
     chemistry.c cosmology.c restart.c mesh_gravity.c velociraptor_interface.c \
     outputlist.c velociraptor_dummy.c logger_io.c memuse.c mpiuse.c memuse_rnodes.c fof.c \
     hashmap.c pressure_floor.c \
-	todo_temporary_globals.c \
+	todo_temporary_globals.c hydro_iact.c \
     $(EAGLE_COOLING_SOURCES) $(EAGLE_FEEDBACK_SOURCES)
 
 #TODO: temporarily added globals

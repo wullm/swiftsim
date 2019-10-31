@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
 #endif
 
   // todo:
-  mladen_setup();
+  mladen_setup(&e);
 
   /* Welcome to SWIFT, you made the right choice */
   if (myrank == 0) greetings(/*fof=*/0);

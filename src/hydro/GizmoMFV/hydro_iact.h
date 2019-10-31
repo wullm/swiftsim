@@ -30,202 +30,21 @@
 /* TODO: temp */
 #include "todo_temporary_globals.h"
 #include "atomic.h"
+// #include "active.h"
+
 #define GIZMO_ZERO_TOLERANCE 1.e-10
 
 
 
 #define GIZMO_VOLUME_CORRECTION
 
-/**
- * @brief Calculate the volume interaction between particle i and particle j
- *
- * The volume is in essence the same as the weighted number of neighbours in a
- * classical SPH density calculation.
- *
- * We also calculate the components of the matrix E, which is used for second
- * order accurate gradient calculations and for the calculation of the interface
- * surface areas.
- *
- * @param r2 Comoving squared distance between particle i and particle j.
- * @param dx Comoving distance vector between the particles (dx = pi->x -
- * pj->x).
- * @param hi Comoving smoothing-length of particle i.
- * @param hj Comoving smoothing-length of particle j.
- * @param pi Particle i.
- * @param pj Particle j.
- * @param a Current scale factor.
- * @param H Current Hubble parameter.
- */
-__attribute__((always_inline)) INLINE static void runner_iact_density(
+void runner_iact_density(
     float r2, const float *dx, float hi, float hj, struct part *restrict pi,
-    struct part *restrict pj, float a, float H) {
+    struct part *restrict pj, float a, float H);
 
-  float wi, wj, wi_dx, wj_dx;
-
-  // TODO: TEMP ZERO CHECK/RESET
-  float dx_mladen[3];
-  for (int i=0; i<3; i++){
-    dx_mladen[i] = dx[i];
-    if (fabsf(dx_mladen[i])<GIZMO_ZERO_TOLERANCE) dx_mladen[i] = 0.f;
-  }
-
-  /* Get r and h inverse. */
-  const float r = sqrtf(r2);
-
-  /* Compute density of pi. */
-  const float hi_inv = 1.f / hi;
-  const float xi = r * hi_inv;
-  kernel_deval(xi, &wi, &wi_dx);
-
-  pi->density.wcount += wi;
-  pi->density.wcount_dh -= (hydro_dimension * wi + xi * wi_dx);
-#ifdef WITH_IVANOVA
-  /* TODO: don't forget about the nonsym part! */
-  const float hidp1 = pow_dimension_plus_one(hi_inv);
-  pi->density.wgrads[0] += hidp1 * wi_dx * dx_mladen[0] / r;
-  pi->density.wgrads[1] += hidp1 * wi_dx * dx_mladen[1] / r;
-  pi->density.wgrads[2] += hidp1 * wi_dx * dx_mladen[2] / r;
-
-  // TODO: temporary
-  // abc(
-  //       [> pi    <] pi,
-  //       [> pj ID <] (int) pj->id,
-  //       [> GSCX= <] hidp1 * wi_dx * dx_mladen[0]/r,
-  //       [> GSCY= <] hidp1 * wi_dx * dx_mladen[1]/r,
-  //       [> GSDX= <] dx_mladen[0],
-  //       [> GSDY= <] dx_mladen[1],
-  //       [> dwdr= <] hidp1 * wi_dx,
-  //       [> r=    <] r,
-  //       [> hi =  <] hi );
-  abc(pi, (int) pj->id, hidp1 * wi_dx * dx_mladen[0]/r, hidp1 * wi_dx * dx_mladen[1]/r, dx_mladen[0], dx_mladen[1], hidp1 * wi_dx, r, hi );
-#endif
-
-  /* these are eqns. (1) and (2) in the summary */
-  pi->geometry.volume += wi;
-  for (int k = 0; k < 3; k++)
-    for (int l = 0; l < 3; l++)
-      pi->geometry.matrix_E[k][l] += dx[k] * dx[l] * wi;
-
-  pi->geometry.centroid[0] -= dx[0] * wi;
-  pi->geometry.centroid[1] -= dx[1] * wi;
-  pi->geometry.centroid[2] -= dx[2] * wi;
-
-  /* Compute density of pj. */
-  const float hj_inv = 1.f / hj;
-  const float xj = r * hj_inv;
-  kernel_deval(xj, &wj, &wj_dx);
-
-  pj->density.wcount += wj;
-  pj->density.wcount_dh -= (hydro_dimension * wj + xj * wj_dx);
-#ifdef WITH_IVANOVA
-  const float hjdp1 = pow_dimension_plus_one(hj_inv);
-  pj->density.wgrads[0] -= hjdp1 * wj_dx * dx_mladen[0] / r;
-  pj->density.wgrads[1] -= hjdp1 * wj_dx * dx_mladen[1] / r;
-  pj->density.wgrads[2] -= hjdp1 * wj_dx * dx_mladen[2] / r;
-
-  // TODO: temporary
-  // abc(pj, (int) pi->id,
-  //       [> GSCX= <] -hjdp1 * wj_dx * dx_mladen[0]/r,
-  //       [> GSCY= <] -hjdp1 * wj_dx * dx_mladen[1]/r,
-  //       [> GSDX= <] -dx_mladen[0],
-  //       [> GSDY= <] -dx_mladen[1],
-  //       [> dwdr= <] hjdp1 * wj_dx,
-  //       [> r= <] r, hj );
-  // // TODO: temporary
-  // // pj->density.nneigh_grads += 1;
-  // // if (pj->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
-  // pj->density.neighbour_ids_grad[pj->density.nneigh_grads] = (int) pi->id;
-  // pj->density.grads_sum_contrib[2*pj->density.nneigh_grads] = -hjdp1 * wj_dx * dx_mladen[0]/r;
-  // pj->density.grads_sum_contrib[2*pj->density.nneigh_grads+1] = -hjdp1 * wj_dx * dx_mladen[1]/r;
-  // pj->density.grads_sum_dx[2*pj->density.nneigh_grads] = -dx_mladen[0];
-  // pj->density.grads_sum_dx[2*pj->density.nneigh_grads+1] = -dx_mladen[1];
-  // pj->density.dwdr[pj->density.nneigh_grads] = hjdp1 * wj_dx;
-  // pj->density.r[pj->density.nneigh_grads] = r;
-#endif
-
-  /* these are eqns. (1) and (2) in the summary */
-  pj->geometry.volume += wj;
-  for (int k = 0; k < 3; k++)
-    for (int l = 0; l < 3; l++)
-      pj->geometry.matrix_E[k][l] += dx[k] * dx[l] * wj;
-
-  pj->geometry.centroid[0] += dx[0] * wj;
-  pj->geometry.centroid[1] += dx[1] * wj;
-  pj->geometry.centroid[2] += dx[2] * wj;
-}
-
-/**
- * @brief Calculate the volume interaction between particle i and particle j:
- * non-symmetric version
- *
- * The volume is in essence the same as the weighted number of neighbours in a
- * classical SPH density calculation.
- *
- * We also calculate the components of the matrix E, which is used for second
- * order accurate gradient calculations and for the calculation of the interface
- * surface areas.
- *
- * @param r2 Comoving squared distance between particle i and particle j.
- * @param dx Comoving distance vector between the particles (dx = pi->x -
- * pj->x).
- * @param hi Comoving smoothing-length of particle i.
- * @param hj Comoving smoothing-length of particle j.
- * @param pi Particle i.
- * @param pj Particle j.
- * @param a Current scale factor.
- * @param H Current Hubble parameter.
- */
-__attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
+void runner_iact_nonsym_density(
     float r2, const float *dx, float hi, float hj, struct part *restrict pi,
-    const struct part *restrict pj, float a, float H) {
-
-  float wi, wi_dx;
-
-  // TODO: TEMP ZERO CHECK/RESET
-  float dx_mladen[3];
-  for (int i=0; i<3; i++){
-    dx_mladen[i] = dx[i];
-    if (fabsf(dx_mladen[i])<GIZMO_ZERO_TOLERANCE) dx_mladen[i] = 0.f;
-  }
-
-  /* Get r and h inverse. */
-  const float r = sqrtf(r2);
-
-  const float hi_inv = 1.f / hi;
-  const float xi = r * hi_inv;
-  kernel_deval(xi, &wi, &wi_dx);
-
-  pi->density.wcount += wi;
-  pi->density.wcount_dh -= (hydro_dimension * wi + xi * wi_dx);
-#ifdef WITH_IVANOVA
-  /* TODO: don't forget about the sym part! */
-  const float hidp1 = pow_dimension_plus_one(hi_inv);
-  pi->density.wgrads[0] += hidp1 * wi_dx * dx_mladen[0] / r;
-  pi->density.wgrads[1] += hidp1 * wi_dx * dx_mladen[1] / r;
-  pi->density.wgrads[2] += hidp1 * wi_dx * dx_mladen[2] / r;
-    
-  // TODO: temporary
-  // pi->density.nneigh_grads += 1;
-  // if (pi->density.nneigh_grads == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
-  // pi->density.neighbour_ids_grad[pi->density.nneigh_grads] = (int) pj->id;
-  // pi->density.grads_sum_contrib[2*pi->density.nneigh_grads] = hidp1 * wi_dx * dx_mladen[0]/r;
-  // pi->density.grads_sum_contrib[2*pi->density.nneigh_grads+1] = hidp1 * wi_dx * dx_mladen[1]/r;
-  // pi->density.grads_sum_dx[2*pi->density.nneigh_grads] = dx_mladen[0];
-  // pi->density.grads_sum_dx[2*pi->density.nneigh_grads+1] = dx_mladen[1];
-  // pi->density.dwdr[pi->density.nneigh_grads] = hidp1 * wi_dx;
-  // pi->density.r[pi->density.nneigh_grads] = r;
-#endif
-
-  pi->geometry.volume += wi;
-  for (int k = 0; k < 3; k++)
-    for (int l = 0; l < 3; l++)
-      pi->geometry.matrix_E[k][l] += dx[k] * dx[l] * wi;
-
-  pi->geometry.centroid[0] -= dx[0] * wi;
-  pi->geometry.centroid[1] -= dx[1] * wi;
-  pi->geometry.centroid[2] -= dx[2] * wi;
-}
-
+    const struct part *restrict pj, float a, float H);
 /**
  * @brief Calculate the gradient interaction between particle i and particle j
  *
@@ -308,13 +127,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   const float r_inv = 1.f / sqrtf(r2);
   const float r = r2 * r_inv;
 
-  // TODO: TEMP ZERO CHECK/RESET
-  float dx_mladen[3];
-  for (int i=0; i<3; i++){
-    dx_mladen[i] = dx[i];
-    if (fabsf(dx_mladen[i])<GIZMO_ZERO_TOLERANCE) dx_mladen[i] = 0.f;
-  }
-
   /* Initialize local variables */
 #ifndef WITH_IVANOVA
   float Bi[3][3];
@@ -358,18 +170,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
   dwjdx_sum[1] = pj->density.wgrads[1];
   dwjdx_sum[2] = pj->density.wgrads[2];
 
-  // TODO: temporary
-  // pi->density.wgrads_store[0] = pi->density.wgrads[0];
-  // pi->density.wgrads_store[1] = pi->density.wgrads[1];
-  // pi->density.wgrads_store[2] = pi->density.wgrads[2];
-  // pj->density.wgrads_store[0] = pj->density.wgrads[0];
-  // pj->density.wgrads_store[1] = pj->density.wgrads[1];
-  // pj->density.wgrads_store[2] = pj->density.wgrads[2];
-  //
-  // pi->density.volume_store = Vi;
-  // pi->density.omega = pi->density.wcount;
-  // pj->density.volume_store = Vj;
-  // pj->density.omega = pj->density.wcount;
+  // TODO: TEMPORARY
+  mladen_store_density_data(pi, hi, Vi);
+  mladen_store_density_data(pj, hj, Vj);
 #endif
 
   /* calculate the maximal signal velocity */
@@ -441,24 +244,28 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
 #endif
   for (int k = 0; k < 3; k++) {
     /* we add a minus sign since dx is pi->x - pj->x */
-    A[k] = Xi * Xi * (wi_dr * dx_mladen[k] / r - Xi * wi * hi_inv_dim * dwidx_sum[k]) -
-           Xj * Xj * (wj_dr * dx_mladen[k] / r - Xj * wj * hj_inv_dim * dwjdx_sum[k]);
+    A[k] = Xi * Xi * (wi_dr * dx[k] / r - Xi * wi * hi_inv_dim * dwidx_sum[k]) +
+           Xj * Xj * (wj_dr * dx[k] / r + Xj * wj * hj_inv_dim * dwjdx_sum[k]);
     Anorm2 += A[k] * A[k];
 
   }
 
-  // TODO: temporary
-  // pi->density.nneigh += 1;
-  // if (pi->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pi->id);
-  // pi->density.neighbour_ids[pi->density.nneigh] = (int) pj->id;
-  // pi->density.Aij[2*pi->density.nneigh] = A[0];
-  // pi->density.Aij[2*pi->density.nneigh+1] = A[1];
-  //
-  // pj->density.nneigh += 1;
-  // if (pj->density.nneigh == 200) error("Particle %lld has > 200 neighbours\n", pj->id);
-  // pj->density.neighbour_ids[pj->density.nneigh] = (int) pi->id;
-  // pj->density.Aij[2*pj->density.nneigh] = -A[0];
-  // pj->density.Aij[2*pj->density.nneigh+1] = -A[1];
+  // TODO: temporary 
+  mladen_store_Aij(pi, pj, hi, A, 
+    /* grad_final_x=*/ Xi * wi_dr * dx[0] / r - Xi * Xi * wi * hi_inv_dim * dwidx_sum[0], 
+    /* grad_final_y=*/ Xi * wi_dr * dx[1] / r - Xi * Xi * wi * hi_inv_dim * dwidx_sum[1], 
+    /*negative=*/0);
+  mladen_store_Aij(pj, pi, hj, A, 
+    /* grad_final_x=*/ -Xj * wj_dr * dx[0] / r - Xj * Xj * wj * hj_inv_dim * dwjdx_sum[0], 
+    /* grad_final_y=*/ -Xj * wj_dr * dx[1] / r - Xj * Xj * wj * hj_inv_dim * dwjdx_sum[1], 
+    /*negative=*/1);
+
+  // if (pi->id == 400){
+  //   printf("Writing pi=%4lld, pj=%4lld; case=positive\n", pi->id, pj->id);
+  // }
+  // if (pj->id == 400){
+  //   printf("Writing pi=%4lld, pj=%4lld; case=negative\n", pj->id, pi->id);
+  // }
 
 #else
   if (pi->density.wcorr > const_gizmo_min_wcorr &&
