@@ -395,13 +395,16 @@ void logger_reader_get_next_particle(struct logger_reader *reader,
   size_t prev_offset = prev->offset;
   size_t next_offset = 0;
 
+  /* Get the mask index of the special flags */
   const int spec_flag_ind = header_get_field_index(
       &reader->log.header, "special flags");
   if (spec_flag_ind < -1) {
     error("The logfile does not contain the special flags field.");
   }
 
-  int type = -1;
+  /* Keep the type in memory */
+  const int prev_type = prev->type;
+  int new_type = -1;
 
   while (1) {
     /* Read the offset to the next particle */
@@ -413,7 +416,7 @@ void logger_reader_get_next_particle(struct logger_reader *reader,
     if (mask & reader->log.header.masks[spec_flag_ind].mask) {
       struct logger_particle tmp;
       logger_particle_read(&tmp, reader, prev_offset, /* Time */-1, logger_reader_const);
-      type = tmp.type;
+      new_type = tmp.type;
     }
 
     /* Are we at the end of the file? */
@@ -444,9 +447,13 @@ void logger_reader_get_next_particle(struct logger_reader *reader,
                        logger_reader_const);
 
   /* Set the types */
-  if (type != -1) {
-    next->type = type;
-    prev->type = type;
+  if (new_type == -1) {
+    next->type = prev_type;
+    prev->type = prev_type;
+  }
+  else {
+    next->type = new_type;
+    prev->type = new_type;
   }
 
 }
