@@ -256,11 +256,11 @@ __attribute__((always_inline)) INLINE static void runner_iact_fluxes_common(
     vj[k] = pj->v[k];
   }
 #else
-float vi[3], vj[3];
-for (int k = 0; k < 3; k++) {
-  vi[k] = pi->v[k]; /* particle velocities */
-  vj[k] = pj->v[k];
-}
+  float vi[3], vj[3];
+  for (int k = 0; k < 3; k++) {
+    vi[k] = pi->v[k]; /* particle velocities */
+    vj[k] = pj->v[k];
+  }
 #endif
   const float Vi = pi->geometry.volume;
   const float Vj = pj->geometry.volume;
@@ -277,25 +277,13 @@ for (int k = 0; k < 3; k++) {
   Wj[4] = pj->primitives.P;
 
 #ifdef WITH_IVANOVA
-  float dWidx_sum[3], dWjdx_sum[3];
-  dWidx_sum[0] = pi->density.wgrads[0];
-  dWidx_sum[1] = pi->density.wgrads[1];
-  dWidx_sum[2] = pi->density.wgrads[2];
-  dWjdx_sum[0] = pj->density.wgrads[0];
-  dWjdx_sum[1] = pj->density.wgrads[1];
-  dWjdx_sum[2] = pj->density.wgrads[2];
-
-  pi->density.wgrads_store[0] = pi->density.wgrads[0];
-  pi->density.wgrads_store[1] = pi->density.wgrads[1];
-  pi->density.wgrads_store[2] = pi->density.wgrads[2];
-  pj->density.wgrads_store[0] = pj->density.wgrads[0];
-  pj->density.wgrads_store[1] = pj->density.wgrads[1];
-  pj->density.wgrads_store[2] = pj->density.wgrads[2];
-
-  pi->density.volume_store = Vi;
-  pi->density.omega = pi->density.wcount;
-  pj->density.volume_store = Vj;
-  pj->density.omega = pj->density.wcount;
+  float dwidx_sum[3], dwjdx_sum[3];
+  dwidx_sum[0] = pi->density.wgrads[0];
+  dwidx_sum[1] = pi->density.wgrads[1];
+  dwidx_sum[2] = pi->density.wgrads[2];
+  dwjdx_sum[0] = pj->density.wgrads[0];
+  dwjdx_sum[1] = pj->density.wgrads[1];
+  dwjdx_sum[2] = pj->density.wgrads[2];
 #endif
 
   /* calculate the maximal signal velocity */
@@ -355,6 +343,24 @@ for (int k = 0; k < 3; k++) {
   /* eqn. (7) */
   float Anorm2 = 0.0f;
   float A[3];
+
+#ifdef WITH_IVANOVA
+  float Xi = Vi;
+  float Xj = Vj;
+#ifdef GIZMO_VOLUME_CORRECTION
+  if (fabsf(Vi - Vj) / min(Vi, Vj) > 1.5f * hydro_dimension) {
+    Xi = (Vi * hj + Vj * hi) / (hi + hj);
+    Xj = Xi;
+  }
+#endif
+  for (int k = 0; k < 3; k++) {
+    /* we add a minus sign since dx is pi->x - pj->x */
+    A[k] = Xi * Xi * (wi_dr * dx[k] / r - Xi * wi * hi_inv_dim * dwidx_sum[k]) +
+           Xj * Xj * (wj_dr * dx[k] / r + Xj * wj * hj_inv_dim * dwjdx_sum[k]);
+    Anorm2 += A[k] * A[k];
+
+  }
+#else
   if (pi->density.wcorr > const_gizmo_min_wcorr &&
       pj->density.wcorr > const_gizmo_min_wcorr) {
     /* in principle, we use Vi and Vj as weights for the left and right
@@ -370,7 +376,6 @@ for (int k = 0; k < 3; k++) {
       Xj = Xi;
     }
 #endif
-#ifndef WITH_IVANOVA
     for (int k = 0; k < 3; k++) {
       /* we add a minus sign since dx is pi->x - pj->x */
       A[k] = -Xi * (Bi[k][0] * dx[0] + Bi[k][1] * dx[1] + Bi[k][2] * dx[2]) *
@@ -379,16 +384,6 @@ for (int k = 0; k < 3; k++) {
                  wj * hj_inv_dim;
       Anorm2 += A[k] * A[k];
     }
-#else
-    for (int k = 0; k < 3; k++) {
-      /* we add a minus sign since dx is pi->x - pj->x */
-      A[k] = Xi * (Xi * wi_dr * dx[k] / r -
-                 Xi * Xi * wi * hi_inv_dim * dWidx_sum[k]) -
-             Xj * (Xj * wj_dr * dx[k] / r -
-                    Xj * Xj * wj * hj_inv_dim * dWjdx_sum[k]);
-      Anorm2 += A[k] * A[k];
-    }
-#endif
 
   } else {
     /* ill condition gradient matrix: revert to SPH face area */
@@ -399,6 +394,8 @@ for (int k = 0; k < 3; k++) {
     A[2] = -Anorm * dx[2];
     Anorm2 = Anorm * Anorm * r2;
   }
+#endif
+
 
   /* if the interface has no area, nothing happens and we return */
   /* continuing results in dividing by zero and NaN's... */
