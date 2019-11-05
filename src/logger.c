@@ -186,9 +186,6 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
 
   /* loop over all parts. */
   for (long long i = 0; i < e->total_nr_parts; i++) {
-    /* Write only the particles that have not been written */
-    if (s->xparts[i].logger_data.steps_since_last_output == 0) continue;
-
     logger_log_part(log, &s->parts[i], mask_hydro,
                     &s->xparts[i].logger_data.last_offset,
                     /* Special flags */ 0);
@@ -201,10 +198,8 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
 
   /* loop over all gparts */
   for (long long i = 0; i < e->total_nr_gparts; i++) {
-    /* Write only the particles that have not been written */
     /* Log only the dark matter */
-    if (s->gparts[i].type != swift_type_dark_matter ||
-        s->gparts[i].logger_data.steps_since_last_output == 0)
+    if (s->gparts[i].type != swift_type_dark_matter)
       continue;
 
     logger_log_gpart(log, &s->gparts[i], mask_grav,
@@ -219,10 +214,6 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
 
   /* loop over all sparts */
   for (long long i = 0; i < e->total_nr_sparts; i++) {
-    /* Write only the particles that have not been written */
-    if (s->sparts[i].logger_data.steps_since_last_output == 0)
-      continue;
-
     logger_log_spart(log, &s->sparts[i], mask_stars,
                      &s->sparts[i].logger_data.last_offset,
                      /* Special flags */ 0);
