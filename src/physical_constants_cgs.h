@@ -96,7 +96,7 @@ const double const_earth_mass_cgs = 5.9724e27;
 const double const_T_CMB_0_cgs = 2.7255;
 
 /*! Primordial Helium fraction [-] */
-const double const_primordial_He_fraction_cgs = 0.245;
+const double const_primordial_He_fraction_cgs = 0.248;
 
 /*! Reduced Hubble constant units (i.e. H_0 / h == 100 km / s / Mpc in CGS)
  * [s^-1] */

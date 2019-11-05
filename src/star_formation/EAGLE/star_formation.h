@@ -249,12 +249,11 @@ INLINE static int star_formation_is_star_forming(
    * because we also need to check if the physical density exceeded
    * the appropriate limit */
 
+  /* Get the particle's Hydrogen number density (assuming primoridal abundances)
+   */
   const double Z =
       chemistry_get_total_metal_mass_fraction_for_star_formation(p);
-  const float* const metal_fraction =
-      chemistry_get_metal_mass_fraction_for_star_formation(p);
-  const double X_H = metal_fraction[chemistry_element_H];
-  const double n_H = physical_density * X_H;
+  const double n_H = physical_density * hydro_props->hydrogen_mass_fraction;
 
   /* Get the density threshold */
   const double density_threshold =
@@ -266,11 +265,8 @@ INLINE static int star_formation_is_star_forming(
   /* Calculate the entropy of the particle */
   const double entropy = hydro_get_physical_entropy(p, xp, cosmo);
 
-  /* Calculate the entropy that will be used to calculate
-   * the off-set, this is the maximum between the entropy
-   * floor and the star formation polytropic EOS. */
-  const double entropy_eos = max(entropy_floor(p, cosmo, entropy_floor_props),
-                                 EOS_entropy(n_H, starform, physical_density));
+  /* Calculate the entropy that will be used to calculate the offset */
+  const double entropy_eos = entropy_floor(p, cosmo, entropy_floor_props);
 
   /* Check the Scahye & Dalla Vecchia 2012 EOS-based temperature critrion */
   return (entropy <
@@ -302,10 +298,6 @@ INLINE static void star_formation_compute_SFR(
 
   /* Hydrogen number density of this particle */
   const double physical_density = hydro_get_physical_density(p, cosmo);
-  const float* const metal_fraction =
-      chemistry_get_metal_mass_fraction_for_star_formation(p);
-  const double X_H = metal_fraction[chemistry_element_H];
-  const double n_H = physical_density * X_H / phys_const->const_proton_mass;
 
   /* Are we above the threshold for automatic star formation? */
   if (physical_density >
@@ -315,17 +307,14 @@ INLINE static void star_formation_compute_SFR(
     return;
   }
 
-  /* Get the pressure used for the star formation, this is
-   * the maximum of the star formation EOS pressure,
-   * the physical pressure of the particle and the
-   * floor pressure. The floor pressure is used implicitly
+  /* Get the pressure used for the star formation.
+   * The floor pressure is used implicitly
    * when getting the physical pressure. */
-  const double pressure =
-      max(EOS_pressure(n_H, starform), hydro_get_physical_pressure(p, cosmo));
+  const double pressure = hydro_get_physical_pressure(p, cosmo);
 
   /* Calculate the specific star formation rate */
   double SFRpergasmass;
-  if (hydro_get_physical_density(p, cosmo) <
+  if (physical_density <
       starform->KS_high_den_thresh * phys_const->const_proton_mass) {
 
     SFRpergasmass =
