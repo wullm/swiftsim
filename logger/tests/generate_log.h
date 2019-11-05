@@ -196,6 +196,10 @@ void generate_log(struct swift_params *params, struct part *parts,
   /* Write particles */
   write_particles(&log, &e);
 
+  /* Write a sentinel timestamp */
+  logger_log_timestamp(e.logger, e.ti_current, e.time,
+                       &e.logger->timestamp_offset);
+
   /* Write all the particles at the end */
   logger_log_all(e.logger, &e);
 

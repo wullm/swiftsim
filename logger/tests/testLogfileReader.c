@@ -28,6 +28,7 @@
 #include "generate_log.h"
 
 #define number_parts 100
+#define max_step 99
 
 /** Count the number of active particles. */
 int get_number_active_particles(int step, struct part *p) {
@@ -94,7 +95,12 @@ void check_data(struct logger_reader *reader, struct part *parts,
       for (int i = 0; i < 3; i++) {
         /* in the first index, we are storing the step information. */
         if (i == 0) {
-          assert(step == lp.pos[i]);
+          double tmp = step;
+          /* At the end, we are not updating the particle */
+          if (step >= max_step) {
+            tmp = max_step - max_step % p->time_bin;
+          }
+          assert(tmp == lp.pos[i]);
         }
         else
           assert(p->x[i] == lp.pos[i]);
@@ -107,12 +113,12 @@ void check_data(struct logger_reader *reader, struct part *parts,
 
       /* Check optional fields. */
       int number_steps = step / p->time_bin;
-      if (number_steps % period_h == 0) {
+      if (number_steps % period_h == 0 || step > max_step) {
         assert(p->h == lp.h);
       } else {
         assert(-1 == lp.h);
       }
-      if (number_steps % period_rho == 0) {
+      if (number_steps % period_rho == 0 || step > max_step) {
         assert(p->rho == lp.density);
       } else {
         assert(-1 == lp.density);
@@ -120,7 +126,7 @@ void check_data(struct logger_reader *reader, struct part *parts,
     }
     /* Time stamp case. */
     else {
-
+      message("Step: %i", step);
       /* Check if we have the current amount of particles in previous step. */
       if (step != 0 && count != get_number_active_particles(step, parts))
         error(
@@ -128,6 +134,7 @@ void check_data(struct logger_reader *reader, struct part *parts,
             "step %i: %i != %i",
             step, count, get_number_active_particles(step, parts));
 
+      /* Avoid the initial log */
       if (init_log_all_done > 0) {
         step += 1;
       }
@@ -139,7 +146,8 @@ void check_data(struct logger_reader *reader, struct part *parts,
       count = 0;
 
       /* Check the record's data. */
-      assert(time == get_double_time(step));
+      const int tmp_step = step >= max_step? max_step : step;
+      assert(time == get_double_time(tmp_step));
     }
   }
 }

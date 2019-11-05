@@ -278,7 +278,7 @@ size_t time_array_get_index_from_time(const struct time_array *t,
   if (!t) error("NULL pointer.");
 
   if (time < t->records[0].time || time > t->records[t->size - 1].time)
-    error("Time outside of range.");
+    error("Time outside of range (%g > %g).", time, t->records[t->size - 1].time);
 #endif
 
   /* right will contain the index at the end of the loop */
