@@ -1955,7 +1955,7 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
   /* Make sure that we have enough space in the particle logger file
    * to store the particles in current time step. */
   logger_ensure_size(e->logger, e->total_nr_parts, e->total_nr_gparts,
-                     0);
+                     e->total_nr_sparts);
   logger_write_description(e->logger, e);
 #endif
 
@@ -2269,7 +2269,7 @@ void engine_step(struct engine *e) {
   /* Make sure that we have enough space in the particle logger file
    * to store the particles in current time step. */
   logger_ensure_size(e->logger, e->total_nr_parts, e->total_nr_gparts,
-                     0);
+                     e->total_nr_sparts);
 #endif
 
   /* Are we drifting everything (a la Gadget/GIZMO) ? */

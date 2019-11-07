@@ -174,7 +174,7 @@ int logger_compute_chunk_size(unsigned int mask) {
 void logger_log_all(struct logger_writer *log, const struct engine *e) {
 
   /* Ensure that enough space is available. */
-  logger_ensure_size(log, e->total_nr_parts, e->total_nr_gparts, 0);
+  logger_ensure_size(log, e->total_nr_parts, e->total_nr_gparts, e->total_nr_sparts);
 
   /* some constants. */
   const struct space *s = e->s;
