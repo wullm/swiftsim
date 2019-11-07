@@ -539,6 +539,7 @@ void logger_init(struct logger_writer *log, struct swift_params *params) {
 
   /* set initial value of parameters. */
   log->timestamp_offset = 0;
+  log->index.dump_size_last_output = 0;
 
   /* generate dump filename. */
   char logger_name_file[PARSER_MAX_LINE_SIZE];

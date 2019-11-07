@@ -2575,6 +2575,9 @@ void engine_check_for_index_dump(struct engine *e) {
   if (mem_frac * (dump_size - old_dump_size) > index_file_size) {
     /* Write an index file */
     engine_dump_index(e);
+
+    /* Update the dump size for last output */
+    log->index.dump_size_last_output = dump_size;
   }
 
 }
