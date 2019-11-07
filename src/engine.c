@@ -1954,8 +1954,8 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
                        &e->logger->timestamp_offset);
   /* Make sure that we have enough space in the particle logger file
    * to store the particles in current time step. */
-  logger_ensure_size(e->logger, e->total_nr_parts, e->total_nr_gparts,
-                     e->total_nr_sparts);
+  logger_ensure_size(e->logger, s->nr_parts, s->nr_gparts,
+                     s->nr_sparts);
   logger_write_description(e->logger, e);
 #endif
 
@@ -2268,8 +2268,8 @@ void engine_step(struct engine *e) {
                        &e->logger->timestamp_offset);
   /* Make sure that we have enough space in the particle logger file
    * to store the particles in current time step. */
-  logger_ensure_size(e->logger, e->total_nr_parts, e->total_nr_gparts,
-                     e->total_nr_sparts);
+  logger_ensure_size(e->logger, s->nr_parts, s->nr_gparts,
+                     s->nr_sparts);
 #endif
 
   /* Are we drifting everything (a la Gadget/GIZMO) ? */

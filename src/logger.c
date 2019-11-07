@@ -174,7 +174,7 @@ int logger_compute_chunk_size(unsigned int mask) {
 void logger_log_all(struct logger_writer *log, const struct engine *e) {
 
   /* Ensure that enough space is available. */
-  logger_ensure_size(log, e->total_nr_parts, e->total_nr_gparts, e->total_nr_sparts);
+  logger_ensure_size(log, e->s->nr_parts, e->s->nr_gparts, e->s->nr_sparts);
 
   /* some constants. */
   const struct space *s = e->s;
@@ -185,7 +185,7 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
       logger_mask_data[logger_consts].mask;
 
   /* loop over all parts. */
-  for (long long i = 0; i < e->total_nr_parts; i++) {
+  for (size_t i = 0; i < s->nr_parts; i++) {
     logger_log_part(log, &s->parts[i], mask_hydro,
                     &s->xparts[i].logger_data.last_offset,
                     /* Special flags */ 0);
@@ -197,7 +197,7 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
       logger_mask_data[logger_a].mask | logger_mask_data[logger_consts].mask;
 
   /* loop over all gparts */
-  for (long long i = 0; i < e->total_nr_gparts; i++) {
+  for (size_t i = 0; i < s->nr_gparts; i++) {
     /* Log only the dark matter */
     if (s->gparts[i].type != swift_type_dark_matter)
       continue;
@@ -213,7 +213,7 @@ void logger_log_all(struct logger_writer *log, const struct engine *e) {
     logger_mask_data[logger_consts].mask;
 
   /* loop over all sparts */
-  for (long long i = 0; i < e->total_nr_sparts; i++) {
+  for (size_t i = 0; i < s->nr_sparts; i++) {
     logger_log_spart(log, &s->sparts[i], mask_stars,
                      &s->sparts[i].logger_data.last_offset,
                      /* Special flags */ 0);
