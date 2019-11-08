@@ -31,6 +31,7 @@ void test_params_init(struct swift_params *params) {
   parser_set_param(params, "Cosmology:Omega_m:0.3075");
   parser_set_param(params, "Cosmology:Omega_lambda:0.6910");
   parser_set_param(params, "Cosmology:Omega_b:0.0486");
+  parser_set_param(params, "Cosmology:Omega_nu:0.0");
   parser_set_param(params, "Cosmology:h:0.6774");
   parser_set_param(params, "Cosmology:a_begin:0.1");
   parser_set_param(params, "Cosmology:a_end:1.0");

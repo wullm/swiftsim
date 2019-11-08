@@ -246,6 +246,7 @@ struct engine {
   long long total_nr_sparts;
   long long total_nr_bparts;
   long long total_nr_DM_background_gparts;
+  long long total_nr_nuparts;
 
   /* Total numbers of cells (top-level and sub-cells) in the system. */
   long long total_nr_cells;

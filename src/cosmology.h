@@ -142,6 +142,9 @@ struct cosmology {
   /*! Baryon density parameter */
   double Omega_b;
 
+  /*! Neutrino density parameter */
+  double Omega_nu;
+
   /*! Radiation constant density parameter */
   double Omega_lambda;
 
