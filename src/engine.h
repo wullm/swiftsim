@@ -427,6 +427,9 @@ struct engine {
   /* The mesh used for long-range gravity forces */
   struct pm_mesh *mesh;
 
+  /* The Boltzmann solver */
+  struct boltz *bolt;
+
   /* Properties of external gravitational potential */
   const struct external_potential *external_potential;
 
@@ -509,6 +512,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct gravity_props *gravity, const struct stars_props *stars,
                  const struct black_holes_props *black_holes,
                  const struct feedback_props *feedback, struct pm_mesh *mesh,
+                 struct boltz *bolt,
                  const struct external_potential *potential,
                  struct cooling_function_data *cooling_func,
                  const struct star_formation *starform,

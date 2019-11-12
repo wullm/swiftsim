@@ -64,7 +64,8 @@ struct cosmoinfo {
   /*! Radiation constant density parameter (cosmology.Omega_lambda) */
   double Omega_Lambda;
 
-  /*! Dark matter density parameter (cosmology.Omega_m - cosmology.Omega_b - cosmology.Omega_nu) */
+  /*! Dark matter density parameter (cosmology.Omega_m - cosmology.Omega_b -
+   * cosmology.Omega_nu) */
   double Omega_cdm;
 
   /*! Dark-energy equation of state at the current time (cosmology.w)*/
@@ -426,7 +427,8 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   cosmo_info.Omega_k = e->cosmology->Omega_k;
   cosmo_info.Omega_nu = e->cosmology->Omega_nu;
   cosmo_info.Omega_Lambda = e->cosmology->Omega_lambda;
-  cosmo_info.Omega_cdm = e->cosmology->Omega_m - e->cosmology->Omega_b - e->cosmology->Omega_nu;
+  cosmo_info.Omega_cdm =
+      e->cosmology->Omega_m - e->cosmology->Omega_b - e->cosmology->Omega_nu;
   cosmo_info.w_de = e->cosmology->w;
 
   /* Report the cosmo info we use */

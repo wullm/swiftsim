@@ -54,10 +54,18 @@ struct boltz {
     size_t Nk; //number of wavenumbers
     size_t Nq; //number of momentum bins
     size_t Nn; //number of species (not used yet)
+
+    /* Here be the power spectrum measurements */
+    size_t bins; //hard coded just for now
+  	double *k_in_bins;
+  	double *power_in_bins;
+  	int *obs_in_bins;
+    bool refactored;
 };
 
 void boltz_init(struct boltz *bolt, struct pm_mesh *mesh);
-
-
+void boltz_export_phi(struct boltz *bolt, const char *fname);
+void boltz_update_phi(struct boltz *bolt);
+void boltz_refactor_bins(struct boltz *bolt, size_t bins);
 
 #endif /* SWIFT_NEUTRINO_H */

@@ -92,6 +92,8 @@
 #include "velociraptor_interface.h"
 #include "version.h"
 
+#include "boltzmann/neutrino.h"
+
 /* Particle cache size. */
 #define CACHE_SIZE 512
 
@@ -1512,6 +1514,12 @@ void engine_rebuild(struct engine *e, int repartitioned,
   /* Re-compute the mesh forces */
   if ((e->policy & engine_policy_self_gravity) && e->s->periodic)
     pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose);
+
+  /* After computing the gravitational potential mesh, update the Boltzmann solver */
+  if ((e->policy & engine_policy_self_gravity) && e->s->periodic) {
+    boltz_update_phi(e->bolt);
+    boltz_export_phi(e->bolt,"PS.txt");
+}
 
   /* Re-compute the maximal RMS displacement constraint */
   if (e->policy & engine_policy_cosmology)
@@ -3317,6 +3325,7 @@ void engine_unpin(void) {
  * @param black_holes The #black_holes_props used for this run.
  * @param feedback The #feedback_props used for this run.
  * @param mesh The #pm_mesh used for the long-range periodic forces.
+ * @param boltz The #boltz used for the Boltzmann solver.
  * @param potential The properties of the external potential.
  * @param cooling_func The properties of the cooling function.
  * @param starform The #star_formation model of this run.
@@ -3334,6 +3343,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct gravity_props *gravity, const struct stars_props *stars,
                  const struct black_holes_props *black_holes,
                  const struct feedback_props *feedback, struct pm_mesh *mesh,
+                 struct boltz *bolt,
                  const struct external_potential *potential,
                  struct cooling_function_data *cooling_func,
                  const struct star_formation *starform,
@@ -3407,6 +3417,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->stars_properties = stars;
   e->black_holes_properties = black_holes;
   e->mesh = mesh;
+  e->bolt = bolt;
   e->external_potential = potential;
   e->cooling_func = cooling_func;
   e->star_formation = starform;

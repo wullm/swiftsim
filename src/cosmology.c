@@ -486,7 +486,7 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* Read in the cosmological parameters */
   c->Omega_m = parser_get_param_double(params, "Cosmology:Omega_m");
-  c->Omega_nu = parser_get_opt_param_double(params, "Cosmology:Omega_nu", 0);
+  c->Omega_nu = parser_get_opt_param_double(params, "Cosmology:Omega_nu", 0.);
   c->Omega_r = parser_get_opt_param_double(params, "Cosmology:Omega_r", 0.);
   c->Omega_lambda = parser_get_param_double(params, "Cosmology:Omega_lambda");
   c->Omega_b = parser_get_param_double(params, "Cosmology:Omega_b");
@@ -837,8 +837,10 @@ double cosmology_get_scale_factor(const struct cosmology *c, double t) {
 void cosmology_print(const struct cosmology *c) {
 
   message(
-      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r] = [%f, %f, %f, %f, %f, %f]",
-      c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k, c->Omega_r);
+      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r] = [%f, %f, %f, %f, "
+      "%f, %f]",
+      c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k,
+      c->Omega_r);
   message("Dark energy equation of state: w_0=%f w_a=%f", c->w_0, c->w_a);
   message("Hubble constant: h = %f, H_0 = %e U_t^(-1)", c->h, c->H0);
   message("Hubble time: 1/H0 = %e U_t", c->Hubble_time);

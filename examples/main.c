@@ -1136,7 +1136,7 @@ int main(int argc, char *argv[]) {
         N_total[swift_type_dark_matter_background], engine_policies, talking,
         &reparttype, &us, &prog_const, &cosmo, &hydro_properties,
         &entropy_floor, &gravity_properties, &stars_properties,
-        &black_holes_properties, &feedback_properties, &mesh, &potential,
+        &black_holes_properties, &feedback_properties, &mesh, &bolt, &potential,
         &cooling_func, &starform, &chemistry, &fof_properties);
     engine_config(/*restart=*/0, /*fof=*/0, &e, params, nr_nodes, myrank,
                   nr_threads, with_aff, talking, restart_file);
