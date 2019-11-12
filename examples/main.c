@@ -107,6 +107,8 @@ int main(int argc, char *argv[]) {
   struct bpart *bparts = NULL;
   struct unit_system us;
 
+  struct boltz bolt;
+
   int nr_nodes = 1, myrank = 0;
 
 #ifdef WITH_MPI
@@ -1026,6 +1028,17 @@ int main(int argc, char *argv[]) {
 #endif
     } else {
       pm_mesh_init_no_mesh(&mesh, s.dim);
+    }
+
+    /* Initialise the Boltzmann solver */
+    if (with_self_gravity && periodic) {
+#ifdef HAVE_FFTW
+      boltz_init(&bolt, &mesh);
+#else
+      /* Need the FFTW library if periodic and self gravity. */
+      error(
+          "No FFTW library found. Cannot solve the Boltzmann equation.");
+#endif
     }
 
     /* Check that the matter content matches the cosmology given in the
