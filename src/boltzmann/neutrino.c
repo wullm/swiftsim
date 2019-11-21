@@ -30,16 +30,28 @@
 /* We also use the interpolation methods from the Eagle cooling codebase */
 #include "../cooling/EAGLE/interpolate.h"
 
-void boltz_init(struct boltz *bolt, struct pm_mesh *mesh) {
+void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *e) {
     //Initialize mesh reference
-    bolt->mesh = mesh;
+    bolt->mesh = e->mesh;
+    //Initialize parameters
+    bolt->m_nu = e->cosmology->m_nu;
     //Initialize the power spectrum data
-    bolt->bins = 20;
+    bolt->bins = parser_get_opt_param_int(params, "Boltzmann:k_bins", BOLTZ_DEFAULT_BINS);
+    //Allocate memory for the power spectrum data
+    bolt->k_in_bins = (double*) malloc(sizeof(double)*bolt->bins);
+    bolt->power_in_bins = (double*) malloc(sizeof(double)*bolt->bins);
+    bolt->obs_in_bins = (int*) malloc(sizeof(int)*bolt->bins);
+    bolt->phi = (double*) malloc(sizeof(double)*bolt->bins);
+    bolt->phi_dot = (double*) malloc(sizeof(double)*bolt->bins);
     //The perturbations has not yet been refactored
     bolt->refactored = 0;
 
+    //Read the file name of the hdf5 neutrino perturbation file
+    char perturbFName[200] = "";
+    parser_get_param_string(params, "Boltzmann:file_name", perturbFName);
+
     //Open the file containing the neutrino perturbation (e.g. from CLASS)
-    const hid_t h_file = H5Fopen("multipoles_0.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
+    const hid_t h_file = H5Fopen(perturbFName, H5F_ACC_RDONLY, H5P_DEFAULT);
     if (h_file < 0) error("Error opening the multipoles file.");
 
     //First, load \Psi(k,q,l) from the main dataset
@@ -59,6 +71,11 @@ void boltz_init(struct boltz *bolt, struct pm_mesh *mesh) {
     bolt->Nk = dims[0];
     bolt->Nq = dims[1];
     bolt->Nl = dims[2];
+
+    //Are there enough multipoles?
+    if (bolt->Nl < 4) {
+        error("Not enough neutrino perturbation multipoles.");
+    }
 
     message("Reading ncdm perturbation (%zu wavenumbers, %zu momentum bins, %zu multipoles)",
     bolt->Nk, bolt->Nq, bolt->Nl);
@@ -116,6 +133,117 @@ void boltz_init(struct boltz *bolt, struct pm_mesh *mesh) {
 
     //Close the file
     H5Fclose(h_file);
+
+    //Now compute the logarithmic derivative of the distribution function f0
+    bolt->f0_prefactor = 2.0 / e->physical_constants->const_planck_h;
+    message("Distribution function pre-factor %.10e", bolt->f0_prefactor);
+
+    // const float dimension_q[5] = {1, 1, -1, 0, -1}; /* [g cm s^-1 K^-1] */
+    // double factor = units_general_cgs_conversion_factor(e->internal_units, dimension_q);
+    // double T_nu = e->cosmology->T_nu; //neutrino temperature today
+    // double k_b = e->physical_constants->const_boltzmann_k;
+
+    //Allocate memory for the derivative
+    bolt->dlogf0_dlogq = malloc(bolt->Nq * sizeof(double));
+
+    //Numerically differentiate the 0th order distribution function
+    double precision = 1e-8;
+    for (size_t iq=0; iq<bolt->Nq; iq++) {
+        double q = bolt->q_bins[iq];
+        double fl = f0_nu(q-precision);
+        double fr = f0_nu(q+precision);
+        double df_dq = (fr-fl)/(2*precision);
+        bolt->dlogf0_dlogq[iq] = df_dq*q/fl;
+        // message("q = %.10e, dln(f)/dln(q) = %.10e %.10e", q, df_dq, dlogf_dlogq);
+    }
+
+
+
+    //Read the file name of the hdf5 gaussian random field file
+    char fieldFName[200] = "";
+    parser_get_param_string(params, "Boltzmann:field_file_name", fieldFName);
+
+    // message("The field is contained in %s", fieldFName);
+
+    //Open the file containing the primordial fluctuation field
+    const hid_t field_file = H5Fopen(fieldFName, H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (field_file < 0) error("Error opening the primordial field file.");
+
+    //Read the dimensions
+    // h_data = H5Dopen(field_file, "Header/BoxSize", H5P_DEFAULT);
+    // space = H5Dget_space(h_data);
+    // H5Dread(h_data, H5T_NATIVE_FLOAT, space, space, H5P_DEFAULT, field_dims);
+    // H5Dclose(h_data);
+
+    hid_t h_grp = H5Gopen(field_file, "/Header", H5P_DEFAULT);
+    if (h_grp < 0) error("Error while opening file header\n");
+
+    const hid_t hid_bsz = H5Aexists(h_grp, "BoxSize");
+    if (hid_bsz < 0) error("Error while testing existance of 'BoxSize' attribute");
+    double field_dims[3];
+    if (hid_bsz > 0) io_read_attribute(h_grp, "BoxSize", DOUBLE, field_dims);
+
+    //Do the dimensions agree with the cosmology?
+    for (int i=0; i<3; i++) {
+        if (fabs(field_dims[i] - e->s->dim[i]) > 1e-2) {
+            error("Dimensions[%i] of primordial field do not agree with engine->space.", i);
+        }
+    }
+
+    //Now load the actual grid
+    h_grp = H5Gopen(field_file, "/Field", H5P_DEFAULT);
+    if (h_grp < 0) error("Error while opening field group\n");
+
+    h_data = H5Dopen(h_grp, "GaussianRandomField", H5P_DEFAULT);
+    space = H5Dget_space(h_data);
+
+    //The number of dimensions in the dataset (expected 3)
+    const int field_rank = H5Sget_simple_extent_ndims(space);
+    if (field_rank != 3) {
+        error("Incorrect dataset dimensions for primordial field.");
+    }
+
+    //Find the extent of each dimension (the grid size; not physical size)
+    hsize_t grid_dims[rank];
+    H5Sget_simple_extent_dims(space, grid_dims, NULL);
+    // hid_t attr = H5Aopen_name(field_file, "Header/BoxSize");
+
+    //The grid must be cubic and have the same dimensions as the gravity mesh
+    if (grid_dims[0] != grid_dims[1] || grid_dims[0] != grid_dims[2]) {
+        error("Primordial grid is not cubic.");
+    } else if (grid_dims[0] != (size_t) bolt->mesh->N) {
+        error("Primordial grid is not the same size as the gravity mesh %zu != %zu.", (size_t) grid_dims[0], (size_t) bolt->mesh->N);
+    }
+
+    size_t N = bolt->mesh->N;
+
+    //Create a temporary array to read the data
+    float grf[N][N][N];
+    H5Dread(h_data, H5T_NATIVE_FLOAT, space, space, H5P_DEFAULT, grf);
+    H5Dclose(h_data);
+
+    //Allocate memory in the main program
+    bolt->primordial_grid = malloc(N*N*N * sizeof(float));
+
+    //Transfer the data to bolt->Psi
+    for (size_t i=0; i<N; i++) {
+        for (size_t j=0; j<N; j++) {
+            for (size_t k=0; k<N; k++) {
+                bolt->primordial_grid[k + j*N + i*N*N] = grf[i][j][k];
+            }
+        }
+    }
+
+    // message("Come on man %i", (int) attr);
+    message("The primordial field has dimensions %fx%fx%f", field_dims[0], field_dims[1], field_dims[2]);
+    message("The primordial grid has dimensions %zux%zux%zu", (size_t) grid_dims[0], (size_t) grid_dims[1], (size_t) grid_dims[2]);
+    message("The grid value at (1,32,20) is %f %f", grf[1][32][20], bolt->primordial_grid[20 + 32*N + 1*N*N]);
+
+
+
+    //Close the file
+    H5Fclose(field_file);
+
 }
 
 
@@ -131,48 +259,40 @@ void boltz_update_phi(struct boltz *bolt) {
     double* restrict rho = bolt->mesh->potential;
     if (rho == NULL) error("Error allocating memory for density mesh");
 
-    fftw_complex* restrict frho =
-        (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N * N * (N_half + 1));
-    if (frho == NULL)
-      error("Error allocating memory for transform of density mesh");
-    memuse_log_allocation("fftw_frho", frho, 1,
-                          sizeof(fftw_complex) * N * N * (N_half + 1));
+    fftw_complex* restrict frho = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N * N * (N_half + 1));
+    if (frho == NULL)  error("Error allocating memory for transform of density mesh");
+    memuse_log_allocation("fftw_frho", frho, 1, sizeof(fftw_complex) * N * N * (N_half + 1));
 
-  /* Prepare the FFT library */
-  fftw_plan forward_plan = fftw_plan_dft_r2c_3d(
-      N, N, N, rho, frho, FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+    /* Prepare the FFT library */
+    fftw_plan forward_plan = fftw_plan_dft_r2c_3d(N, N, N, rho, frho, FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
 
 
-      /* Fourier transform to go to magic-land */
-      fftw_execute(forward_plan);
+    /* Fourier transform to go to magic-land */
+    fftw_execute(forward_plan);
 
-      //Normalization
-      for (int x=0; x<N; x++) {
-          for (int y=0; y<N; y++) {
-              for (int z=0; z<=N_half; z++) {
-                  frho[row_major_id_half_periodic(x, y, z, N)][0] /= cell_fac;
-                  frho[row_major_id_half_periodic(x, y, z, N)][1] /= cell_fac;
-              }
-          }
-      }
+    //Normalization
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<=N_half; z++) {
+                frho[row_major_id_half_periodic(x, y, z, N)][0] /= cell_fac;
+                frho[row_major_id_half_periodic(x, y, z, N)][1] /= cell_fac;
+            }
+        }
+    }
 
-      fftw_destroy_plan(forward_plan);
-      memuse_log_allocation("fftw_frho", frho, 0, 0);
-      fftw_free(frho);
+    fftw_destroy_plan(forward_plan);
+    memuse_log_allocation("fftw_frho", frho, 0, 0);
+    fftw_free(frho);
 
-      //Calculate the power spectrum
-  	bolt->k_in_bins = (double*) malloc(sizeof(double)*bolt->bins);
-  	bolt->power_in_bins = (double*) malloc(sizeof(double)*bolt->bins);
-  	bolt->obs_in_bins = (int*) malloc(sizeof(int)*bolt->bins);
+    //Zero the power spectrum arraus
+    for (size_t i=0; i<bolt->bins; i++) {
+        bolt->k_in_bins[i] = 0;
+        bolt->power_in_bins[i] = 0;
+        bolt->obs_in_bins[i] = 0;
+    }
 
-  	for (size_t i=0; i<bolt->bins; i++) {
-  		bolt->k_in_bins[i] = 0;
-  		bolt->power_in_bins[i] = 0;
-  		bolt->obs_in_bins[i] = 0;
-  	}
-
-    calc_cross_powerspec(N,box_size,frho,frho,bolt->bins,bolt->k_in_bins,
-                        bolt->power_in_bins,bolt->obs_in_bins,CLOUD_IN_CELL);
+    //Calculate the power spectrum
+    calc_cross_powerspec(N,box_size,frho,frho,bolt->bins,bolt->k_in_bins, bolt->power_in_bins,bolt->obs_in_bins,CLOUD_IN_CELL);
 
     if (!bolt->refactored) {
         boltz_refactor_bins(bolt,bolt->bins);
@@ -258,7 +378,7 @@ void boltz_refactor_bins(struct boltz *bolt, size_t bins) {
     free(bolt->k_bins);
     bolt->Psi = malloc(bolt->Nk * bolt->Nq * bolt->Nl * sizeof(float));
     bolt->Psi_dot = malloc(bolt->Nk * bolt->Nq * bolt->Nl * sizeof(float));
-    bolt->k_bins = malloc(bolt->Nk * sizeof(float));
+    bolt->k_bins = malloc(bolt->Nk * sizeof *bolt->k_bins);
 
     for (size_t ik=0; ik<Nk; ik++) {
         for (size_t iq=0; iq<Nq; iq++) {
@@ -266,9 +386,66 @@ void boltz_refactor_bins(struct boltz *bolt, size_t bins) {
                 bolt->Psi[ik + iq*Nk + il*Nk*Nq] = new_Psi[ik + iq*Nk + il*Nk*Nq];
             }
         }
+        bolt->k_bins[ik] = bolt->k_in_bins[ik];
     }
 
     message("Refactored the neutrino perturbation (%zu wavenumbers, %zu momentum bins, %zu multipoles)",
     bolt->Nk, bolt->Nq, bolt->Nl);
 
+}
+
+void boltz_step(struct boltz *bolt, struct engine *e) {
+    //Useful constants
+    double a = e->cosmology->a;
+    size_t Nk = bolt->Nk;
+    size_t Nq = bolt->Nq;
+    int max_l = (int) bolt->Nl; //maximum multipole
+    double m_nu = bolt->m_nu; //mass of the neutrino
+
+
+    /**
+    * The evolution of each (wavenumber k, momentum bin q) pair is completely
+    * independent. Therefore, we could parallelize this.
+    */
+    for (size_t ik=0; ik<Nk; ik++) {
+        for (size_t iq=0; iq<Nq; iq++) {
+            double k = bolt->k_bins[ik]; //Mpc
+            double q = bolt->q_bins[iq];
+            double eps = sqrt(q*q + a*a*m_nu*m_nu);
+
+            //For each multipole
+            for (int l=0; l<max_l; l++) {
+                int bix = ik + iq*Nk;
+                int ix = bix + l*Nq*Nk;
+
+                //The first three multipoles have a unique evolution equation
+                if (l == 0) {
+                    bolt->Psi_dot[ix] =
+                        -q*k/eps * bolt->Psi[bix + 1*Nk*Nq]
+                        +(1./6.) * bolt->phi_dot[ik] * bolt->dlogf0_dlogq[iq];
+                } else if (l == 1) {
+                    bolt->Psi_dot[ix] =
+                        +q*k/(3.*eps) *(bolt->Psi[bix + 0*Nk*Nq] - 2*bolt->Psi[bix + 2*Nk*Nq]);
+                } else if (l == 2) {
+                    bolt->Psi_dot[ix] =
+                        +q*k/(5.*eps) *(2*bolt->Psi[bix + 1*Nk*Nq] - 3*bolt->Psi[bix + 3*Nk*Nq])
+                        -(1./15. + 2./5.) * bolt->phi_dot[ik] * bolt->dlogf0_dlogq[iq];
+                } else if (l < max_l-1) {
+                    bolt->Psi_dot[ix] = q*k/(eps * (2*l+1)) * (l*bolt->Psi[bix + (l-1)*Nk*Nq] - (l+1)*bolt->Psi[bix + (l+1)*Nk*Nq]);
+                } else {
+                    //The last multipole is truncated (easy in flat cosmology)
+                    bolt->Psi_dot[ix] = 0;
+
+                    if (e->cosmology->Omega_k > 0) {
+                        error("Neutrino evolution not yet implemented for non-flat cosmologies.");
+                    }
+                }
+
+                //Update the multipole
+                bolt->Psi[ix] += bolt->Psi_dot[ix] * e->time_step;
+            }
+        }
+    }
+    // if (ik>3)
+    // message("Psi_0 %.10e", bolt->Psi[2] );
 }
