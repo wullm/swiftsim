@@ -1,0 +1,66 @@
+# Define the system of units to use internally. 
+InternalUnitSystem:
+  UnitMass_in_cgs:     1.98848e43    # 10^10 M_sun
+  UnitLength_in_cgs:   3.08567758e24 # 1 Mpc
+  UnitVelocity_in_cgs: 1e5   	     # 1 km/s
+  UnitCurrent_in_cgs:  1   	     # Amperes
+  UnitTemp_in_cgs:     1   	     # Kelvin
+
+Cosmology:
+  Omega_m: 0.31205
+  Omega_lambda: 0.67391
+  Omega_b: 0.048275
+  Omega_nu: 0.02
+  Omega_r: 0.01404 #not used currently, but closes the cosmology
+  m_nu: 0.1 #neutrino mass in eV
+  T_nu: 1.95 #neutrino temperature in K
+  h: 0.67556
+  a_begin: 0.0243902	# z_ini = 40.
+  a_end: 1.0		# z_end = 0.
+
+# Boltzmann solver parameters
+Boltzmann:
+  k_bins: 25
+  file_name: ./multipoles_0.h5
+  field_file_name: ./gaussian.hdf5 # file containing the primordial fluctuations
+
+# Parameters governing the time integration
+TimeIntegration:
+  dt_min:     1e-7
+  dt_max:     2e-3
+
+# Parameters governing the snapshots
+Snapshots:
+  basename:	       box
+  delta_time:          1.04
+  scale_factor_first:  0.0243902
+  compression:         4
+
+# Parameters governing the conserved quantities statistics
+Statistics:
+  scale_factor_first:  0.0243902
+  delta_time:          1.1
+
+# Parameters for the hydrodynamics scheme
+#SPH:
+#  resolution_eta:        1.2348   # "48 ngb" for the 3D cubic spline
+#  CFL_condition:         0.1
+
+# Parameters related to the initial conditions
+InitialConditions:
+  file_name:  ./particles.hdf5
+  periodic:   1
+  
+Scheduler:
+  max_top_level_cells: 8
+  cell_split_size:     50
+  
+Gravity:
+  mesh_side_length:   64
+  eta: 0.025
+  theta: 0.3
+  comoving_DM_softening: 0.08	# 80 kpc = 1/25 of mean inter-particle separation
+  max_physical_DM_softening: 0.08  # 80 kpc = 1/25 of mean inter-particle separation
+  comoving_baryon_softening: 0.08	# 80 kpc = 1/25 of mean inter-particle separation
+  max_physical_baryon_softening: 0.08  # 80 kpc = 1/25 of mean inter-particle separation
+
