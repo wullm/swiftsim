@@ -1513,12 +1513,13 @@ void engine_rebuild(struct engine *e, int repartitioned,
 
   /* Re-compute the mesh forces */
   if ((e->policy & engine_policy_self_gravity) && e->s->periodic)
-    pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose);
+    pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose, e);
 
   /* After computing the gravitational potential mesh, update the Boltzmann solver */
   if ((e->policy & engine_policy_self_gravity) && e->s->periodic) {
-    boltz_update_phi(e->bolt);
-    boltz_export_phi(e->bolt,"PS.txt");
+    // boltz_update_phi(e->bolt, e);
+    // boltz_export_phi(e->bolt,"PS.txt");
+    boltz_step(e->bolt, e);
 }
 
   /* Re-compute the maximal RMS displacement constraint */

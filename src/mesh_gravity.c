@@ -357,9 +357,10 @@ void mesh_to_gparts_CIC(struct gpart* gp, const double* pot, int N, double fac,
  * @param s The #space containing the particles.
  * @param tp The #threadpool object used for parallelisation.
  * @param verbose Are we talkative?
+ * @param e The #engine (to check active status).
  */
 void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
-                               struct threadpool* tp, int verbose) {
+                               struct threadpool* tp, int verbose, const struct engine* e) {
 
 #ifdef HAVE_FFTW
 
@@ -452,6 +453,12 @@ void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
   /* frho contains NxNx(N/2+1) complex numbers */
 
   tic = getticks();
+
+  /* Before computing the long-range force, compute the full potential for the Boltzmann solver */
+  if ((e->policy & engine_policy_self_gravity) && e->s->periodic) {
+    boltz_update_phi(e->bolt, e, frho);
+    boltz_export_phi(e->bolt,"PS.txt");
+  }
 
   /* Some common factors */
   const double green_fac = -1. / (M_PI * box_size);

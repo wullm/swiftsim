@@ -20,19 +20,13 @@
 /* Config parameters. */
 #include "../../config.h"
 
-#ifdef HAVE_FFTW
-#include <fftw3.h>
-#endif
-
 /* This object's header. */
 #include "neutrino.h"
 
 /* We also use the interpolation methods from the Eagle cooling codebase */
 #include "../cooling/EAGLE/interpolate.h"
 
-void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *e) {
-    //Initialize mesh reference
-    bolt->mesh = e->mesh;
+void boltz_init(struct boltz *bolt, struct swift_params *params, const struct engine *e) {
     //Initialize parameters
     bolt->m_nu = e->cosmology->m_nu;
     //The user-specified number of k-bins used in the power spectrum calculation
@@ -42,8 +36,8 @@ void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *
     bolt->powerSpec.power_in_bins = (double*) malloc(sizeof(double)*bolt->num_of_k_bins);
     bolt->powerSpec.obs_in_bins = (int*) malloc(sizeof(int)*bolt->num_of_k_bins);
     //Allocate memory for the gravitational potential vector and its derivative
-    bolt->phi = (double*) malloc(sizeof(double)*bolt->num_of_k_bins);
-    bolt->phi_dot = (double*) malloc(sizeof(double)*bolt->num_of_k_bins);
+    bolt->phi = calloc(bolt->num_of_k_bins, sizeof(double));
+    bolt->phi_dot = calloc(bolt->num_of_k_bins, sizeof(double));
 
     //Read the file name of the hdf5 neutrino perturbation file
     char perturbFName[200] = "";
@@ -83,6 +77,11 @@ void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *
             error("Dimensions[%i] of primordial field do not agree with engine->space.", i);
         }
     }
+
+    //Verify that the primordial grid has the same grid size as the gravity mesh
+    if (bolt->primordial_grid_N != (size_t) e->mesh->N) {
+       error("Primordial grid is not the same size as the gravity mesh %zu != %zu.", bolt->primordial_grid_N, (size_t) e->mesh->N);
+   }
 }
 
 void boltz_load_nu_perturb(struct boltz *bolt, const char *fname) {
@@ -218,14 +217,13 @@ void boltz_load_primordial_field(struct boltz *bolt, const char *fname) {
     hsize_t grid_dims[rank];
     H5Sget_simple_extent_dims(space, grid_dims, NULL);
 
-    //The grid must be cubic and have the same dimensions as the gravity mesh
+    //The grid must be cubic
     if (grid_dims[0] != grid_dims[1] || grid_dims[0] != grid_dims[2]) {
         error("Primordial grid is not cubic.");
-    } else if (grid_dims[0] != (size_t) bolt->mesh->N) {
-        error("Primordial grid is not the same size as the gravity mesh %zu != %zu.", (size_t) grid_dims[0], (size_t) bolt->mesh->N);
     }
 
-    size_t N = bolt->mesh->N;
+    size_t N = grid_dims[0];
+    bolt->primordial_grid_N = N;
 
     //Create a temporary array to read the data
     float grf[N][N][N];
@@ -233,7 +231,7 @@ void boltz_load_primordial_field(struct boltz *bolt, const char *fname) {
     H5Dclose(h_data);
 
     //Allocate memory in the main program
-    bolt->primordial_grid = malloc(N*N*N * sizeof(float));
+    bolt->primordial_grid = malloc(N*N*N * sizeof(double));
 
     //Transfer the data to bolt->primordial_grid
     for (size_t i=0; i<N; i++) {
@@ -252,42 +250,92 @@ void boltz_load_primordial_field(struct boltz *bolt, const char *fname) {
 }
 
 
-void boltz_update_phi(struct boltz *bolt) {
+void boltz_update_phi(struct boltz *bolt, const struct engine *e, fftw_complex* restrict frho) {
 
     /* Some useful constants */
-    const double box_size = bolt->mesh->dim[0];
-    const int N = bolt->mesh->N;
+    const double box_size = e->mesh->dim[0];
+    const int N = e->mesh->N;
     const int N_half = N / 2;
     const double cell_fac = N / box_size;
 
-    /* Use the memory allocated for the potential to temporarily store rho */
-    double* restrict rho = bolt->mesh->potential;
-    if (rho == NULL) error("Error allocating memory for density mesh");
+    // /* Use the memory allocated for the potential to temporarily store rho */
+    // double* restrict rho = e->mesh->potential;
+    // if (rho == NULL) error("Error allocating memory for density mesh");
+    //
+    // fftw_complex* restrict frho = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N * N * (N_half + 1));
+    // if (frho == NULL)  error("Error allocating memory for transform of density mesh");
+    // memuse_log_allocation("fftw_frho", frho, 1, sizeof(fftw_complex) * N * N * (N_half + 1));
+    //
+    // /* Prepare the FFT library */
+    // fftw_plan forward_plan = fftw_plan_dft_r2c_3d(N, N, N, rho, frho, FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+    //
+    //
+    // /* Fourier transform to go to magic-land */
+    // fftw_execute(forward_plan);
+    //
 
-    fftw_complex* restrict frho = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N * N * (N_half + 1));
-    if (frho == NULL)  error("Error allocating memory for transform of density mesh");
-    memuse_log_allocation("fftw_frho", frho, 1, sizeof(fftw_complex) * N * N * (N_half + 1));
-
-    /* Prepare the FFT library */
-    fftw_plan forward_plan = fftw_plan_dft_r2c_3d(N, N, N, rho, frho, FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
-
-
-    /* Fourier transform to go to magic-land */
-    fftw_execute(forward_plan);
-
-    //Normalization
+    //Normalization (this is the ordinary Fourier transform normalization)
     for (int x=0; x<N; x++) {
         for (int y=0; y<N; y++) {
             for (int z=0; z<=N_half; z++) {
-                frho[row_major_id_half_periodic(x, y, z, N)][0] /= cell_fac;
-                frho[row_major_id_half_periodic(x, y, z, N)][1] /= cell_fac;
+                frho[row_major_id_half_periodic(x, y, z, N)][0] /= cell_fac*cell_fac*cell_fac;
+                frho[row_major_id_half_periodic(x, y, z, N)][1] /= cell_fac*cell_fac*cell_fac;
             }
         }
     }
 
-    fftw_destroy_plan(forward_plan);
-    memuse_log_allocation("fftw_frho", frho, 0, 0);
-    fftw_free(frho);
+    //Divide by average density to get the overdensity field
+    double rho_0 = e->total_mass/(box_size*box_size*box_size);
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<=N_half; z++) {
+                frho[row_major_id_half_periodic(x, y, z, N)][0] /= rho_0;
+                frho[row_major_id_half_periodic(x, y, z, N)][1] /= rho_0;
+            }
+        }
+    }
+
+    // /* Use the memory allocated for the potential to temporarily store rho */
+    // double* restrict rho = (double*) malloc(N*N*N*sizeof(double));
+    // if (rho == NULL) error("Error allocating memory for density mesh");
+    //
+    //     /* Prepare the FFT library */
+    // fftw_plan forward_plan = fftw_plan_dft_c2r_3d(N, N, N, frho, rho, FFTW_ESTIMATE);
+    //
+    // /* Fourier transform to go to magic-land */
+    // fftw_execute(forward_plan);
+    //
+    // //Normalization
+    // for (int x=0; x<N; x++) {
+    //     for (int y=0; y<N; y++) {
+    //         for (int z=0; z<N; z++) {
+    //             rho[x + y*N + z*N*N] /= box_size*box_size*box_size;
+    //         }
+    //     }
+    // }
+    //
+    //
+    // //Compute the total
+    // double tot =0;
+    // for (int x=0; x<N; x++) {
+    //     for (int y=0; y<N; y++) {
+    //         for (int z=0; z<N; z++) {
+    //             // double a = frho[row_major_id_half_periodic(x, y, z, N)][0];
+    //             // double b = frho[row_major_id_half_periodic(x, y, z, N)][1];
+    //             // tot += a*a + b*b;
+    //             tot += rho[x + y*N + z*N*N];
+    //         }
+    //     }
+    // }
+    //
+    // message("Total %f", sqrt(tot));
+
+    //
+    // fftw_destroy_plan(forward_plan);
+    // memuse_log_allocation("fftw_frho", frho, 0, 0);
+    // fftw_free(frho);
+
+    message("Box size %f Cell frac %f", box_size, cell_fac);
 
     //Zero the power spectrum arraus
     for (size_t i=0; i<bolt->num_of_k_bins; i++) {
@@ -301,17 +349,25 @@ void boltz_update_phi(struct boltz *bolt) {
 
     //Check if the neutrino perturbation needs to be refactored
     if (bolt->Nk != bolt->num_of_k_bins) {
-        boltz_refactor_bins(bolt,bolt->num_of_k_bins);
+        boltz_refactor_bins(bolt, e, bolt->num_of_k_bins);
+    }
+
+    //Update phi and phi_dot
+    for (size_t i=0; i<bolt->Nk; i++) {
+        double old_phi = bolt->phi[i];
+        double new_phi = bolt->powerSpec.power_in_bins[i];
+        bolt->phi[i] = new_phi;
+        bolt->phi_dot[i] = (new_phi - old_phi) / e->time_step;
     }
 }
 
 //Export the power spectrum table
 void boltz_export_phi(struct boltz *bolt, const char *fname) {
     FILE *of = fopen(fname,"w");
-    fprintf(of,"k(Mpc) P(k) observations\n");
+    fprintf(of,"k(Mpc) P(k) observations phi(k) phi_dot(k)\n");
     for (size_t i=0;i<bolt->num_of_k_bins;i++) {
         if (bolt->powerSpec.obs_in_bins[i]>0) {
-            fprintf(of,"%f %f %i\n",bolt->powerSpec.k_in_bins[i],bolt->powerSpec.power_in_bins[i],bolt->powerSpec.obs_in_bins[i]);
+            fprintf(of,"%f %f %i %f %f\n",bolt->powerSpec.k_in_bins[i],bolt->powerSpec.power_in_bins[i],bolt->powerSpec.obs_in_bins[i],bolt->phi[i],bolt->phi_dot[i]);
         }
     }
     fclose(of);
@@ -319,7 +375,7 @@ void boltz_export_phi(struct boltz *bolt, const char *fname) {
 
 
 //Restructure the neutrino pertubration by chaning the number of k-bins
-void boltz_refactor_bins(struct boltz *bolt, size_t num_of_k_bins) {
+void boltz_refactor_bins(struct boltz *bolt, const struct engine *e, size_t num_of_k_bins) {
     //Define some constants
     size_t old_Nk = bolt->Nk; //this will be changed
     size_t Nl = bolt->Nl;
@@ -328,7 +384,8 @@ void boltz_refactor_bins(struct boltz *bolt, size_t num_of_k_bins) {
     //Recompute the power spectrum if necessary
     if (num_of_k_bins != bolt->num_of_k_bins) {
         bolt->num_of_k_bins = num_of_k_bins;
-        boltz_update_phi(bolt);
+        // boltz_update_phi(bolt, e, e->mesh->potential);
+        error("Try computing the potential first.\n");
     }
 
     //The range of k values found when computing the power spectrum with "num_of_k_bins" bins
@@ -401,7 +458,7 @@ void boltz_refactor_bins(struct boltz *bolt, size_t num_of_k_bins) {
 
 }
 
-void boltz_step(struct boltz *bolt, struct engine *e) {
+void boltz_step(struct boltz *bolt, const struct engine *e) {
     //Useful constants
     double a = e->cosmology->a;
     size_t Nk = bolt->Nk;
@@ -454,5 +511,5 @@ void boltz_step(struct boltz *bolt, struct engine *e) {
         }
     }
     // if (ik>3)
-    // message("Psi_0 %.10e", bolt->Psi[2] );
+    message("Psi_0 %.10e", bolt->Psi[2] );
 }

@@ -26,8 +26,11 @@
 
  #define BOLTZ_DEFAULT_BINS 20
 
+ #ifdef HAVE_FFTW
+ #include <fftw3.h>
+ #endif
+
  #include "../engine.h"
- #include "../mesh_gravity.h"
  #include "../common_io.h"
  #include "powerspec.h"
 
@@ -40,12 +43,10 @@
  */
 struct boltz {
 
-    /*! The gravity mesh */
-    struct pm_mesh *mesh;
-
     /*! Array containing the primordial fluctuations on a grid */
-    float* primordial_grid;
+    double* primordial_grid;
     double* primordial_dims;
+    size_t primordial_grid_N;
 
     /*! Array containing the neutrino perturbation \Psi */
     float* Psi;
@@ -95,18 +96,18 @@ __attribute__((always_inline)) INLINE static double f0_nu(double q) {
 }
 
 //Initialize and load initial conditions
-void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *e);
+void boltz_init(struct boltz *bolt, struct swift_params *params, const struct engine *e);
 void boltz_load_nu_perturb(struct boltz *bolt, const char *fname);
 void boltz_load_primordial_field(struct boltz *bolt, const char *fname);
 
 //Calculate and export power spectrum of the gravity mesh
-void boltz_update_phi(struct boltz *bolt);
+void boltz_update_phi(struct boltz *bolt, const struct engine *e, fftw_complex* restrict frho);
 void boltz_export_phi(struct boltz *bolt, const char *fname);
 
 //Refactor the neutrino perturbation to have a specified number of k bins
-void boltz_refactor_bins(struct boltz *bolt, size_t bins);
+void boltz_refactor_bins(struct boltz *bolt, const struct engine *e, size_t bins);
 
 //Update step in the Boltzmann solver
-void boltz_step(struct boltz *bolt, struct engine *e);
+void boltz_step(struct boltz *bolt, const struct engine *e);
 
 #endif /* SWIFT_NEUTRINO_H */

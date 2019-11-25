@@ -28,7 +28,7 @@
 #include "../config.h"
 
 /* error() */
-#include "../../logger/logger_header.h"
+#include "../../logger/logger_tools.h"
 
 #ifdef HAVE_FFTW
 #include <fftw3.h>
