@@ -35,24 +35,62 @@ void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *
     bolt->mesh = e->mesh;
     //Initialize parameters
     bolt->m_nu = e->cosmology->m_nu;
-    //Initialize the power spectrum data
-    bolt->bins = parser_get_opt_param_int(params, "Boltzmann:k_bins", BOLTZ_DEFAULT_BINS);
+    //The user-specified number of k-bins used in the power spectrum calculation
+    bolt->num_of_k_bins = parser_get_opt_param_int(params, "Boltzmann:k_bins", BOLTZ_DEFAULT_BINS);
     //Allocate memory for the power spectrum data
-    bolt->k_in_bins = (double*) malloc(sizeof(double)*bolt->bins);
-    bolt->power_in_bins = (double*) malloc(sizeof(double)*bolt->bins);
-    bolt->obs_in_bins = (int*) malloc(sizeof(int)*bolt->bins);
-    bolt->phi = (double*) malloc(sizeof(double)*bolt->bins);
-    bolt->phi_dot = (double*) malloc(sizeof(double)*bolt->bins);
-    //The perturbations has not yet been refactored
-    bolt->refactored = 0;
+    bolt->powerSpec.k_in_bins = (double*) malloc(sizeof(double)*bolt->num_of_k_bins);
+    bolt->powerSpec.power_in_bins = (double*) malloc(sizeof(double)*bolt->num_of_k_bins);
+    bolt->powerSpec.obs_in_bins = (int*) malloc(sizeof(int)*bolt->num_of_k_bins);
+    //Allocate memory for the gravitational potential vector and its derivative
+    bolt->phi = (double*) malloc(sizeof(double)*bolt->num_of_k_bins);
+    bolt->phi_dot = (double*) malloc(sizeof(double)*bolt->num_of_k_bins);
 
     //Read the file name of the hdf5 neutrino perturbation file
     char perturbFName[200] = "";
     parser_get_param_string(params, "Boltzmann:file_name", perturbFName);
 
+    //Open and load the file with the neutrino perturbation (e.g. from CLASS)
+    boltz_load_nu_perturb(bolt, perturbFName);
+
+    //Now compute the logarithmic derivative of the distribution function f0
+    bolt->f0_prefactor = 2.0 / e->physical_constants->const_planck_h;
+    message("Distribution function pre-factor %.10e", bolt->f0_prefactor);
+
+    //Allocate memory for the derivative
+    bolt->dlogf0_dlogq = malloc(bolt->Nq * sizeof(double));
+
+    //Numerically differentiate the 0th order distribution function
+    double precision = 1e-8;
+    for (size_t iq=0; iq<bolt->Nq; iq++) {
+        double q = bolt->q_bins[iq];
+        double fl = f0_nu(q-precision);
+        double fr = f0_nu(q+precision);
+        double df_dq = (fr-fl)/(2*precision);
+        bolt->dlogf0_dlogq[iq] = df_dq*q/fl;
+        // message("q = %.10e, dln(f)/dln(q) = %.10e %.10e", q, df_dq, dlogf_dlogq);
+    }
+
+    //Read the file name of the hdf5 gaussian random field file
+    char fieldFName[200] = "";
+    parser_get_param_string(params, "Boltzmann:field_file_name", fieldFName);
+
+    //Open and load the file with the primordial Gaussian field
+    boltz_load_primordial_field(bolt, fieldFName);
+
+    //Verify that the physical dimensions of the primordial field match the cosmology
+    for (int i=0; i<3; i++) {
+        if (fabs(bolt->primordial_dims[i] - e->s->dim[i]) > 1e-2) {
+            error("Dimensions[%i] of primordial field do not agree with engine->space.", i);
+        }
+    }
+}
+
+void boltz_load_nu_perturb(struct boltz *bolt, const char *fname) {
     //Open the file containing the neutrino perturbation (e.g. from CLASS)
-    const hid_t h_file = H5Fopen(perturbFName, H5F_ACC_RDONLY, H5P_DEFAULT);
-    if (h_file < 0) error("Error opening the multipoles file.");
+    const hid_t h_file = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (h_file < 0) {
+        error("Error opening the multipoles file.");
+    }
 
     //First, load \Psi(k,q,l) from the main dataset
     hid_t h_data = H5Dopen(h_file, "Psi(k,q,l)", H5P_DEFAULT);
@@ -133,80 +171,52 @@ void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *
 
     //Close the file
     H5Fclose(h_file);
+}
 
-    //Now compute the logarithmic derivative of the distribution function f0
-    bolt->f0_prefactor = 2.0 / e->physical_constants->const_planck_h;
-    message("Distribution function pre-factor %.10e", bolt->f0_prefactor);
-
-    // const float dimension_q[5] = {1, 1, -1, 0, -1}; /* [g cm s^-1 K^-1] */
-    // double factor = units_general_cgs_conversion_factor(e->internal_units, dimension_q);
-    // double T_nu = e->cosmology->T_nu; //neutrino temperature today
-    // double k_b = e->physical_constants->const_boltzmann_k;
-
-    //Allocate memory for the derivative
-    bolt->dlogf0_dlogq = malloc(bolt->Nq * sizeof(double));
-
-    //Numerically differentiate the 0th order distribution function
-    double precision = 1e-8;
-    for (size_t iq=0; iq<bolt->Nq; iq++) {
-        double q = bolt->q_bins[iq];
-        double fl = f0_nu(q-precision);
-        double fr = f0_nu(q+precision);
-        double df_dq = (fr-fl)/(2*precision);
-        bolt->dlogf0_dlogq[iq] = df_dq*q/fl;
-        // message("q = %.10e, dln(f)/dln(q) = %.10e %.10e", q, df_dq, dlogf_dlogq);
+void boltz_load_primordial_field(struct boltz *bolt, const char *fname) {
+    //Open the file containing the primordial fluctuation field
+    const hid_t field_file = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (field_file < 0) {
+        error("Error opening the primordial field file.");
     }
 
-
-
-    //Read the file name of the hdf5 gaussian random field file
-    char fieldFName[200] = "";
-    parser_get_param_string(params, "Boltzmann:field_file_name", fieldFName);
-
-    // message("The field is contained in %s", fieldFName);
-
-    //Open the file containing the primordial fluctuation field
-    const hid_t field_file = H5Fopen(fieldFName, H5F_ACC_RDONLY, H5P_DEFAULT);
-    if (field_file < 0) error("Error opening the primordial field file.");
-
-    //Read the dimensions
-    // h_data = H5Dopen(field_file, "Header/BoxSize", H5P_DEFAULT);
-    // space = H5Dget_space(h_data);
-    // H5Dread(h_data, H5T_NATIVE_FLOAT, space, space, H5P_DEFAULT, field_dims);
-    // H5Dclose(h_data);
-
+    //Open the header group
     hid_t h_grp = H5Gopen(field_file, "/Header", H5P_DEFAULT);
-    if (h_grp < 0) error("Error while opening file header\n");
+    if (h_grp < 0) {
+        error("Error while opening file header\n");
+    }
 
+    //Read the physical dimensions of the box
     const hid_t hid_bsz = H5Aexists(h_grp, "BoxSize");
-    if (hid_bsz < 0) error("Error while testing existance of 'BoxSize' attribute");
-    double field_dims[3];
-    if (hid_bsz > 0) io_read_attribute(h_grp, "BoxSize", DOUBLE, field_dims);
+    if (hid_bsz < 0) {
+        error("Error while testing existance of 'BoxSize' attribute");
+    }
 
-    //Do the dimensions agree with the cosmology?
+    double field_dims[3];
+    io_read_attribute(h_grp, "BoxSize", DOUBLE, field_dims);
+    bolt->primordial_dims = (double*) malloc(3 * sizeof(double));
     for (int i=0; i<3; i++) {
-        if (fabs(field_dims[i] - e->s->dim[i]) > 1e-2) {
-            error("Dimensions[%i] of primordial field do not agree with engine->space.", i);
-        }
+        bolt->primordial_dims[i] = field_dims[i];
     }
 
     //Now load the actual grid
     h_grp = H5Gopen(field_file, "/Field", H5P_DEFAULT);
-    if (h_grp < 0) error("Error while opening field group\n");
+    if (h_grp < 0) {
+        error("Error while opening field group\n");
+    }
 
-    h_data = H5Dopen(h_grp, "GaussianRandomField", H5P_DEFAULT);
-    space = H5Dget_space(h_data);
+    hid_t h_data = H5Dopen(h_grp, "GaussianRandomField", H5P_DEFAULT);
+    hid_t space = H5Dget_space(h_data);
 
     //The number of dimensions in the dataset (expected 3)
-    const int field_rank = H5Sget_simple_extent_ndims(space);
-    if (field_rank != 3) {
+    const int rank = H5Sget_simple_extent_ndims(space);
+    if (rank != 3) {
         error("Incorrect dataset dimensions for primordial field.");
     }
 
     //Find the extent of each dimension (the grid size; not physical size)
     hsize_t grid_dims[rank];
     H5Sget_simple_extent_dims(space, grid_dims, NULL);
-    // hid_t attr = H5Aopen_name(field_file, "Header/BoxSize");
 
     //The grid must be cubic and have the same dimensions as the gravity mesh
     if (grid_dims[0] != grid_dims[1] || grid_dims[0] != grid_dims[2]) {
@@ -225,7 +235,7 @@ void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *
     //Allocate memory in the main program
     bolt->primordial_grid = malloc(N*N*N * sizeof(float));
 
-    //Transfer the data to bolt->Psi
+    //Transfer the data to bolt->primordial_grid
     for (size_t i=0; i<N; i++) {
         for (size_t j=0; j<N; j++) {
             for (size_t k=0; k<N; k++) {
@@ -234,16 +244,11 @@ void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *
         }
     }
 
-    // message("Come on man %i", (int) attr);
     message("The primordial field has dimensions %fx%fx%f", field_dims[0], field_dims[1], field_dims[2]);
     message("The primordial grid has dimensions %zux%zux%zu", (size_t) grid_dims[0], (size_t) grid_dims[1], (size_t) grid_dims[2]);
-    message("The grid value at (1,32,20) is %f %f", grf[1][32][20], bolt->primordial_grid[20 + 32*N + 1*N*N]);
-
-
 
     //Close the file
     H5Fclose(field_file);
-
 }
 
 
@@ -285,17 +290,18 @@ void boltz_update_phi(struct boltz *bolt) {
     fftw_free(frho);
 
     //Zero the power spectrum arraus
-    for (size_t i=0; i<bolt->bins; i++) {
-        bolt->k_in_bins[i] = 0;
-        bolt->power_in_bins[i] = 0;
-        bolt->obs_in_bins[i] = 0;
+    for (size_t i=0; i<bolt->num_of_k_bins; i++) {
+        bolt->powerSpec.k_in_bins[i] = 0;
+        bolt->powerSpec.power_in_bins[i] = 0;
+        bolt->powerSpec.obs_in_bins[i] = 0;
     }
 
     //Calculate the power spectrum
-    calc_cross_powerspec(N,box_size,frho,frho,bolt->bins,bolt->k_in_bins, bolt->power_in_bins,bolt->obs_in_bins,CLOUD_IN_CELL);
+    calc_cross_powerspec(N,box_size,frho,frho,bolt->num_of_k_bins,bolt->powerSpec.k_in_bins, bolt->powerSpec.power_in_bins,bolt->powerSpec.obs_in_bins,CLOUD_IN_CELL);
 
-    if (!bolt->refactored) {
-        boltz_refactor_bins(bolt,bolt->bins);
+    //Check if the neutrino perturbation needs to be refactored
+    if (bolt->Nk != bolt->num_of_k_bins) {
+        boltz_refactor_bins(bolt,bolt->num_of_k_bins);
     }
 }
 
@@ -303,73 +309,74 @@ void boltz_update_phi(struct boltz *bolt) {
 void boltz_export_phi(struct boltz *bolt, const char *fname) {
     FILE *of = fopen(fname,"w");
     fprintf(of,"k(Mpc) P(k) observations\n");
-    for (size_t i=0;i<bolt->bins;i++) {
-        if (bolt->obs_in_bins[i]>0) {
-            fprintf(of,"%f %f %i\n",bolt->k_in_bins[i],bolt->power_in_bins[i],bolt->obs_in_bins[i]);
+    for (size_t i=0;i<bolt->num_of_k_bins;i++) {
+        if (bolt->powerSpec.obs_in_bins[i]>0) {
+            fprintf(of,"%f %f %i\n",bolt->powerSpec.k_in_bins[i],bolt->powerSpec.power_in_bins[i],bolt->powerSpec.obs_in_bins[i]);
         }
     }
     fclose(of);
 }
 
 
-//Restructure the neutrino pertubration
-void boltz_refactor_bins(struct boltz *bolt, size_t bins) {
-    //After this, we have refactored!
-    bolt->refactored = 1;
-
+//Restructure the neutrino pertubration by chaning the number of k-bins
+void boltz_refactor_bins(struct boltz *bolt, size_t num_of_k_bins) {
     //Define some constants
     size_t old_Nk = bolt->Nk; //this will be changed
     size_t Nl = bolt->Nl;
     size_t Nq = bolt->Nq;
 
-    //Recompute the power spectrum
-    bolt->bins = bins;
-    boltz_update_phi(bolt);
+    //Recompute the power spectrum if necessary
+    if (num_of_k_bins != bolt->num_of_k_bins) {
+        bolt->num_of_k_bins = num_of_k_bins;
+        boltz_update_phi(bolt);
+    }
 
-    double k_min = bolt->k_in_bins[0];
-    double k_max = bolt->k_in_bins[bins-1];
+    //The range of k values found when computing the power spectrum with "num_of_k_bins" bins
+    double k_min = bolt->powerSpec.k_in_bins[0];
+    double k_max = bolt->powerSpec.k_in_bins[num_of_k_bins-1];
 
     message("k_min = %f, k_max = %f", k_min, k_max);
 
-    float new_Psi[bins*Nl*Nq];
+    //We will interpolate the multi-dimensional array Psi along the k-dimension
+    float new_Psi[num_of_k_bins*Nl*Nq];
 
-    double k = 0;
-    double k_glb = 0; //the greatest lower bound of (k,inf) in k_bin
-    size_t ik_glb = 0; //the corresponding index in k_bin
+    //For each k in the new table, find the largest k' in the old table, s.t. k'<k
+    double k_new = 0;
+    double k_old = 0; //the greatest lower bound of (k,inf) in k_bin
+    size_t ik_old = 0; //the corresponding index in k_bin
 
-    //Find k_glb for each k in k_in_bins
-    for (size_t bin=0; bin<bins; bin++) {
-        //Handle bins without any obervations
-        if (bolt->obs_in_bins[bin] > 0) {
-            k = bolt->k_in_bins[bin];
-        }
+    //Find k_old for each k_new in k_in_bins
+    for (size_t bin=0; bin<num_of_k_bins; bin++) {
+        if (bolt->powerSpec.obs_in_bins[bin] > 0) {
+            k_new = bolt->powerSpec.k_in_bins[bin];
 
-        //Find the greatest lower bound of (k,inf) in k_bin q
-        for (size_t ik=ik_glb; ik<bolt->Nk; ik++) {
-            if (ik==ik_glb || bolt->k_bins[ik]<k) {
-                k_glb = bolt->k_bins[ik];
-                ik_glb = ik;
+            //Find the greatest lower bound of (k,inf) in k_bin q
+            for (size_t ik=ik_old; ik<bolt->Nk; ik++) {
+                if (ik==ik_old || bolt->k_bins[ik]<k_new) {
+                    k_old = bolt->k_bins[ik];
+                    ik_old = ik;
+                }
             }
         }
 
         //Now interpolate Psi using the new k's (defined by k_in_bins)
         for (size_t iq=0; iq<Nq; iq++) {
             for (size_t il=0; il<Nl; il++) {
-                new_Psi[bin + iq*bins + il*Nq*bins] =
-                    interpolation_3d(bolt->Psi, il, iq, ik_glb, 0, 0, k-k_glb,
+                new_Psi[bin + iq*num_of_k_bins + il*Nq*num_of_k_bins] =
+                    interpolation_3d(bolt->Psi, il, iq, ik_old, 0, 0, k_new-k_old,
                                         Nl, Nq, old_Nk);
             }
         }
 
         /**
-        message("%zu %f %f %f %zu %f %f %f", bin, k, k_glb, bolt->k_bins[ik_glb+1], ik_glb, new_Psi[bin + 3*bins + 2*bins*Nq],
-                                                                bolt->Psi[ik_glb + 3*old_Nk + 2*old_Nk*Nq],
-                                                                bolt->Psi[ik_glb+1 + 3*old_Nk + 2*old_Nk*Nq]);
+        message("%zu %f %f %f %zu %f %f %f", bin, k, k_old, bolt->k_bins[ik_old+1], ik_old, new_Psi[bin + 3*num_of_k_bins + 2*num_of_k_bins*Nq],
+                                                                bolt->Psi[ik_old + 3*old_Nk + 2*old_Nk*Nq],
+                                                                bolt->Psi[ik_old+1 + 3*old_Nk + 2*old_Nk*Nq]);
         */
     }
 
-    //Update the length of k_bins
-    size_t Nk = bins;
+    //Update the length of the neutrino perturbation along the k dimension
+    size_t Nk = num_of_k_bins;
     bolt->Nk = Nk;
 
     //Update the data tables with the newly refactored tables
@@ -386,7 +393,7 @@ void boltz_refactor_bins(struct boltz *bolt, size_t bins) {
                 bolt->Psi[ik + iq*Nk + il*Nk*Nq] = new_Psi[ik + iq*Nk + il*Nk*Nq];
             }
         }
-        bolt->k_bins[ik] = bolt->k_in_bins[ik];
+        bolt->k_bins[ik] = bolt->powerSpec.k_in_bins[ik];
     }
 
     message("Refactored the neutrino perturbation (%zu wavenumbers, %zu momentum bins, %zu multipoles)",

@@ -45,6 +45,7 @@ struct boltz {
 
     /*! Array containing the primordial fluctuations on a grid */
     float* primordial_grid;
+    double* primordial_dims;
 
     /*! Array containing the neutrino perturbation \Psi */
     float* Psi;
@@ -56,18 +57,21 @@ struct boltz {
     /*! Array containing the wavenumber bins */
     float* k_bins;
 
-    /*! Dimensions of the neutrino perturbation */
+    /*! Dimensions of the neutrino perturbation inferred from initial conditions */
     size_t Nl; //number of multipoles
     size_t Nk; //number of wavenumbers
     size_t Nq; //number of momentum bins
     size_t Nn; //number of species (not used yet)
 
+    /*! Desired length of the neutrino perturbation along the k dimension */
+    size_t num_of_k_bins; //user-defined
+
     /* Here be the power spectrum measurements */
-    size_t bins; //user-defined
-  	double *k_in_bins;
-  	double *power_in_bins;
-  	int *obs_in_bins;
-    bool refactored;
+    struct powerSpec {
+        double *k_in_bins;
+  	    double *power_in_bins;
+  	    int *obs_in_bins;
+    } powerSpec;
 
     /* Logirithmic derivative of the 0th order distribution function */
     double* dlogf0_dlogq;
@@ -90,10 +94,19 @@ __attribute__((always_inline)) INLINE static double f0_nu(double q) {
     return 1./(exp(q)+1.);
 }
 
+//Initialize and load initial conditions
 void boltz_init(struct boltz *bolt, struct swift_params *params, struct engine *e);
-void boltz_export_phi(struct boltz *bolt, const char *fname);
+void boltz_load_nu_perturb(struct boltz *bolt, const char *fname);
+void boltz_load_primordial_field(struct boltz *bolt, const char *fname);
+
+//Calculate and export power spectrum of the gravity mesh
 void boltz_update_phi(struct boltz *bolt);
+void boltz_export_phi(struct boltz *bolt, const char *fname);
+
+//Refactor the neutrino perturbation to have a specified number of k bins
 void boltz_refactor_bins(struct boltz *bolt, size_t bins);
+
+//Update step in the Boltzmann solver
 void boltz_step(struct boltz *bolt, struct engine *e);
 
 #endif /* SWIFT_NEUTRINO_H */
