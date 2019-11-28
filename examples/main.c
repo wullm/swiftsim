@@ -1030,17 +1030,6 @@ int main(int argc, char *argv[]) {
       pm_mesh_init_no_mesh(&mesh, s.dim);
     }
 
-    /* Initialise the Boltzmann solver */
-    if (with_self_gravity && periodic) {
-#ifdef HAVE_FFTW
-      boltz_init(&bolt, &mesh);
-#else
-      /* Need the FFTW library if periodic and self gravity. */
-      error(
-          "No FFTW library found. Cannot solve the Boltzmann equation.");
-#endif
-    }
-
     /* Check that the matter content matches the cosmology given in the
      * parameter file. */
     if (with_cosmology && with_self_gravity && !dry_run)
@@ -1146,6 +1135,17 @@ int main(int argc, char *argv[]) {
       message("engine_init took %.3f %s.", clocks_diff(&tic, &toc),
               clocks_getunit());
       fflush(stdout);
+    }
+
+    /* Initialise the Boltzmann solver */
+    if (with_self_gravity && periodic) {
+#ifdef HAVE_FFTW
+      boltz_init(&bolt, params, &e);
+#else
+      /* Need the FFTW library if periodic and self gravity. */
+      error(
+          "No FFTW library found. Cannot solve the Boltzmann equation.");
+#endif
     }
 
     /* Get some info to the user. */
