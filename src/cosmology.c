@@ -183,6 +183,12 @@ void cosmology_update(struct cosmology *c, const struct phys_const *phys_const,
   /* H(z) */
   c->H = c->H0 * E_z;
 
+  /* D_1(z) */
+  const double Omega_L_of_z = Omega_l/pow(E_z, 2);
+  const double Omega_m_of_z = Omega_m*pow(a_inv,3)/pow(E_z, 2);
+  c->D_linear_growth = 2.5/a_inv*Omega_m_of_z/(pow(Omega_m_of_z,4./7)-Omega_L_of_z+(1+Omega_m_of_z/2)*(1+Omega_L_of_z/70));
+  c->D_linear_growth0 = 2.5 * c->Omega_m /(pow(c->Omega_m,4./7)-c->Omega_lambda+(1+c->Omega_m/2)*(1+c->Omega_lambda/70));
+
   /* Expansion rate */
   c->a_dot = c->H * c->a;
 
@@ -486,13 +492,15 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* Read in the cosmological parameters */
   c->Omega_m = parser_get_param_double(params, "Cosmology:Omega_m");
-  c->Omega_nu = parser_get_opt_param_double(params, "Cosmology:Omega_nu", 0.);
   c->Omega_r = parser_get_opt_param_double(params, "Cosmology:Omega_r", 0.);
   c->Omega_lambda = parser_get_param_double(params, "Cosmology:Omega_lambda");
   c->Omega_b = parser_get_param_double(params, "Cosmology:Omega_b");
   c->w_0 = parser_get_opt_param_double(params, "Cosmology:w_0", -1.);
   c->w_a = parser_get_opt_param_double(params, "Cosmology:w_a", 0.);
   c->h = parser_get_param_double(params, "Cosmology:h");
+  c->Omega_nu = parser_get_opt_param_double(params, "Cosmology:Omega_nu", 0.);
+  c->m_nu = parser_get_opt_param_double(params, "Cosmology:m_nu", 0.);
+  c->T_nu = parser_get_opt_param_double(params, "Cosmology:T_nu", 1.95); //K
 
   /* Read the start and end of the simulation */
   c->a_begin = parser_get_param_double(params, "Cosmology:a_begin");

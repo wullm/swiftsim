@@ -145,6 +145,12 @@ struct cosmology {
   /*! Neutrino density parameter */
   double Omega_nu;
 
+  /*! Mass of one neutrino species in eV */
+  double m_nu;
+
+  /*! Neutrino temperature today in K */
+  double T_nu;
+
   /*! Radiation constant density parameter */
   double Omega_lambda;
 
@@ -165,6 +171,12 @@ struct cosmology {
 
   /*! Log of final expansion factor */
   double log_a_end;
+
+  /*! Linear growth factor */
+  double D_linear_growth;
+
+  /*! Linear growth factor at z=0 */
+  double D_linear_growth0;
 
   /*! Drift factor interpolation table */
   double *drift_fac_interp_table;
