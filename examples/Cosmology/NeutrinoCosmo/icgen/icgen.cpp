@@ -110,6 +110,7 @@ int main() {
     std::cout << "PHASE 1B - Normalizing the random field" << std::endl;
     std::cout << "1a) Planck sigma_8 = " << sigma_8 << "." << std::endl;
     std::cout << "1b) Integrated sigma_8 = " << integrated_sigma_8 << " from unnormalized power spectrum." << std::endl;
+    std::cout << "1ba) Hubble ratio: " << H_hubble_of_z(z_start)/H_hubble_of_z(0) << "." << std::endl;
     std::cout << "   See " << std::string(OUTPUT_DIR) << "sigma_8_integration.txt." << std::endl;
 
     //Normalize the Gaussian random field by multiplying the Fourier modes by the appropriate factor
@@ -409,11 +410,11 @@ int main() {
     //Dataspace for a single number
     H5::DataSpace scalarSpace(H5S_SCALAR);
     //Data space for a row of 6 numbers (one per particle type)
-    std::size_t ptNDIMS = 1;
+    const std::size_t ptNDIMS = 1;
     hsize_t ptdims[ptNDIMS] = {6};
     H5::DataSpace row6Space(ptNDIMS, ptdims);
     //Data space for a row of 3 numbers (one per coordinate)
-    std::size_t cNDIMS = 1;
+    const std::size_t cNDIMS = 1;
     hsize_t cdims[cNDIMS] = {3};
     H5::DataSpace row3Space(cNDIMS, cdims);
 
@@ -486,8 +487,8 @@ int main() {
     //std::cout << bodies[PARTICLE_NUM-1].X << " " << bodies[PARTICLE_NUM-1].Y << " " << bodies[PARTICLE_NUM-1].Z << std::endl;
 
     //Create two dataspaces (one 3xPARTICLE_NUM and one row 1xPARTICLE_NUM)
-    std::size_t NDIMS = 2;
-    std::size_t pNDIMS = 1;
+    const std::size_t NDIMS = 2;
+    const std::size_t pNDIMS = 1;
     hsize_t dims[NDIMS] = {PARTICLE_NUM,3};
     hsize_t pdims[pNDIMS] = {PARTICLE_NUM};
     H5::DataSpace dataspace(NDIMS, dims);
@@ -568,7 +569,7 @@ int main() {
     H5::Group grf_fieldGroup(grf_file.createGroup("/Field"));
 
     //Create an N^3 dataspace
-    std::size_t grf_NDIMS = 3;
+    const std::size_t grf_NDIMS = 3;
     hsize_t grf_dims[grf_NDIMS] = {N,N,N};
     H5::DataSpace grf_dataspace(grf_NDIMS, grf_dims);
 

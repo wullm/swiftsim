@@ -17,12 +17,12 @@
 #include <vector>
 
 //Array index (this is the row major format)
-const inline int box_idx(int width, int x, int y, int z) {
+inline int box_idx(int width, int x, int y, int z) {
 	return z + width * (y + width * x);
 }
 
 //Array index, but wraps around (i.e. the topology is T^3)
-const inline int box_wrap_idx(int width, int x, int y, int z) {
+inline int box_wrap_idx(int width, int x, int y, int z) {
 	int x2 = (x >= 0) ? x%width : x + ceil(-1. * x / width) * width;
 	int y2 = (y >= 0) ? y%width : y + ceil(-1. * y / width) * width;
 	int z2 = (z >= 0) ? z%width : z + ceil(-1. * z / width) * width;
@@ -30,12 +30,12 @@ const inline int box_wrap_idx(int width, int x, int y, int z) {
 }
 
 //Row major index for a half-complex array with N*N*(N/2+1) complex entries
-const inline int half_box_idx(int width, int x, int y, int z) {
+inline int half_box_idx(int width, int x, int y, int z) {
 	return z + (width/2+1) * (y + width * x);
 }
 
 //Same as half_box_idx but for a T^3 topology
-const inline int half_box_wrap_idx(int width, int x, int y, int z) {
+inline int half_box_wrap_idx(int width, int x, int y, int z) {
 	int x2 = (x >= 0) ? x%width : x + ceil(-1. * x / width) * width;
 	int y2 = (y >= 0) ? y%width : y + ceil(-1. * y / width) * width;
 	int z2 = (z >= 0) ? z%(width/2+1) : z + ceil(-1. * z / (width/2+1)) * (width/2+1);
@@ -43,7 +43,7 @@ const inline int half_box_wrap_idx(int width, int x, int y, int z) {
 }
 
 //Read a vector of floats from a binary file
-const inline std::vector<float> read_floats(std::string fname) {
+inline std::vector<float> read_floats(std::string fname) {
 	//Open the file (in, binary, open at end)
 	std::fstream file (fname, std::fstream::in | std::fstream::binary | std::fstream::ate);
 
@@ -77,7 +77,7 @@ const inline std::vector<float> read_floats(std::string fname) {
 	}
 }
 
-const inline void write_floats(std::string fname, std::vector<float> floats) {
+inline void write_floats(std::string fname, std::vector<float> floats) {
 	//Open the file (out, binary)
 	std::fstream file (fname, std::fstream::out | std::fstream::binary);
 
@@ -95,7 +95,7 @@ const inline void write_floats(std::string fname, std::vector<float> floats) {
 	}
 }
 
-const inline void write_array_to_disk(std::string fname, double* x_box, int N) {
+inline void write_array_to_disk(std::string fname, double* x_box, int N) {
 	int width = N;
 
 	//Write the box to the disk so we can plot it with python
@@ -114,7 +114,7 @@ const inline void write_array_to_disk(std::string fname, double* x_box, int N) {
 #define REAL_PART 0
 #define IMAG_PART 1
 #define MAGNITUDE 2
-const inline void write_complex_array_to_disk(std::string fname, fftw_complex* x_box, int N, int export_what = MAGNITUDE) {
+inline void write_complex_array_to_disk(std::string fname, fftw_complex* x_box, int N, int export_what = MAGNITUDE) {
 	if (!(export_what == REAL_PART || export_what == IMAG_PART || export_what == MAGNITUDE)) {
 		throw std::invalid_argument("You must export either the real part (0) or imaginary part (1).");
 	}

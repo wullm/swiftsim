@@ -33,8 +33,9 @@ const double Omega_b			= 0.048275;
 const double Omega_m			= 0.31205;
 const double Omega_nu			= 0.02;
 const double Omega_c			= Omega_m - Omega_b - Omega_nu;
+const double Omega_r			= 0.01404;
 const double Omega_total		= 1.0;
-const double Omega_L			= Omega_total - Omega_m - Omega_nu;
+const double Omega_L			= Omega_total - Omega_m - Omega_r;
 
 //If massive neutrinos are the dark matter, the power spectrum is damped.
 const float mass_neutrino = 0.20 / 30; //in units of 30 eV
@@ -132,7 +133,7 @@ double a_scale_factor_of_z(double z) {
 //The Hubble constant in LCDM, by Friedman's equation
 double H_hubble_of_z(double z) {
 	double conversion_factor = 978.5706; //(km/s/Mpc)^-1 to Gyr
-	double Hubble = H_0 * sqrt(Omega_m*pow(1+z,3) + (1-Omega_m-Omega_L)*pow(1+z,2) + Omega_L);
+	double Hubble = H_0 * sqrt(Omega_r*pow(1+z,4) + Omega_m*pow(1+z,3) + (1-Omega_m-Omega_L)*pow(1+z,2) + Omega_L);
 	return Hubble/conversion_factor; //in units of Gyr^-1
 }
 
@@ -241,7 +242,7 @@ double rms_vel = rms_vel_km / Mpc*Gyr; // Mpc/Gyr
 
 //A test of the various functions introduced in cosmo.h
 //Compare e.g. with Weinberg et al. (2013) arXiv:1201.2434
-const inline void test_cosmology(std::string fname) {
+inline void test_cosmology(std::string fname) {
 	std::ofstream of(fname);
 
 	of << "t z a_1 a_2 H_1 H_2 D f_1 f_2" << std::endl;
