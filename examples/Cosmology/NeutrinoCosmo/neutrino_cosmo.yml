@@ -2,17 +2,17 @@
 InternalUnitSystem:
   UnitMass_in_cgs:     1.98848e43    # 10^10 M_sun
   UnitLength_in_cgs:   3.08567758e24 # 1 Mpc
-  UnitVelocity_in_cgs: 1e5   	     # 1 km/s
+  UnitVelocity_in_cgs: 9.785e7       # 1 Mpc/Gyr
   UnitCurrent_in_cgs:  1   	     # Amperes
   UnitTemp_in_cgs:     1   	     # Kelvin
 
 Cosmology:
   Omega_m: 0.31205
-  Omega_lambda: 0.67391
+  Omega_lambda: 0.68790
   Omega_b: 0.048275
   Omega_nu: 0.02
-  Omega_r: 0.01404 #not used currently, but closes the cosmology
-  m_nu: 0.1 #neutrino mass in eV
+  Omega_r: 5.42e-5 #not used currently, but closes the cosmology
+  m_nu: 0.04 #neutrino mass in eV (one species)
   T_nu: 1.95 #neutrino temperature in K
   h: 0.67556
   a_begin: 0.0243902	# z_ini = 40.
@@ -23,6 +23,8 @@ Boltzmann:
   k_bins: 25
   file_name: ./multipoles_0.h5
   field_file_name: ./gaussian.hdf5 # file containing the primordial fluctuations
+#The time unit used in the Boltzmann initial conditions, in internal units
+  boltz_time_unit: 0.003264 # 1 Mpc/c in Gyr
 
 # Parameters governing the time integration
 TimeIntegration:

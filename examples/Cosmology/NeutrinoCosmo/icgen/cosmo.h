@@ -33,7 +33,7 @@ const double Omega_b			= 0.048275;
 const double Omega_m			= 0.31205;
 const double Omega_nu			= 0.02;
 const double Omega_c			= Omega_m - Omega_b - Omega_nu;
-const double Omega_r			= 0.01404;
+const double Omega_r			= 5.42e-5;
 const double Omega_total		= 1.0;
 const double Omega_L			= Omega_total - Omega_m - Omega_r;
 

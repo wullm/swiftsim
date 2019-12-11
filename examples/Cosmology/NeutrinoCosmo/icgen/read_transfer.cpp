@@ -25,7 +25,7 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho, std::vec
     }
 
     //Number of columns in the CLASS transfer function output file
-    int ncol = 11;
+    int ncol = 15;
     //Column that contains the wavenumber k (h/Mpc)
     int kcol = 0;
     //Column that contains the cdm transfer function d_cdm
