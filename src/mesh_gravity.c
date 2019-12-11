@@ -456,8 +456,8 @@ void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
 
   /* Before computing the long-range force, compute the full potential for the Boltzmann solver */
   if ((e->policy & engine_policy_self_gravity) && e->s->periodic) {
-    boltz_update_phi(e->bolt, e, frho);
-    boltz_export_phi(e->bolt,"PS.txt");
+    boltz_update_powerspec(e->bolt, e, frho);
+    boltz_export_powerspec(e->bolt,"PS.txt");
   }
 
   /* Some common factors */

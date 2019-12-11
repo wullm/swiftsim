@@ -54,6 +54,9 @@
 #include "logger_io.h"
 #include "map.h"
 #include "memuse.h"
+
+#include "boltzmann/neutrino.h"
+
 #include "mesh_gravity.h"
 #include "minmax.h"
 #include "mpiuse.h"

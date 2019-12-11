@@ -29,15 +29,32 @@
 void boltz_init(struct boltz *bolt, struct swift_params *params, const struct engine *e) {
     //Initialize parameters
     bolt->m_nu = e->cosmology->m_nu;
+    //Initialize parameters
+    bolt->T_nu = parser_get_param_double(params, "Cosmology:T_nu");
+    //Time unit used in the Boltzmann initial conditions
+    bolt->boltz_time_unit = parser_get_param_double(params, "Boltzmann:boltz_time_unit");
     //The user-specified number of k-bins used in the power spectrum calculation
     bolt->num_of_k_bins = parser_get_opt_param_int(params, "Boltzmann:k_bins", BOLTZ_DEFAULT_BINS);
+    //Number of time steps over which to average the power spectrum measurements
+    bolt->PS_lags = 50;
     //Allocate memory for the power spectrum data
-    bolt->powerSpec.k_in_bins = (double*) malloc(sizeof(double)*bolt->num_of_k_bins);
-    bolt->powerSpec.power_in_bins = (double*) malloc(sizeof(double)*bolt->num_of_k_bins);
-    bolt->powerSpec.obs_in_bins = (int*) malloc(sizeof(int)*bolt->num_of_k_bins);
+    bolt->powerSpec.k_in_bins = calloc(bolt->num_of_k_bins*bolt->PS_lags, sizeof(double));
+    bolt->powerSpec.power_in_bins = calloc(bolt->num_of_k_bins*bolt->PS_lags, sizeof(double));
+    bolt->powerSpec.obs_in_bins = calloc(bolt->num_of_k_bins*bolt->PS_lags, sizeof(int));
+    //Allocate memory for the cosmological times at which the power spectrum was recorded
+    bolt->record_times = calloc(bolt->PS_lags, sizeof(double));
     //Allocate memory for the gravitational potential vector and its derivative
-    bolt->phi = calloc(bolt->num_of_k_bins, sizeof(double));
-    bolt->phi_dot = calloc(bolt->num_of_k_bins, sizeof(double));
+    bolt->d_cdm = calloc(bolt->num_of_k_bins, sizeof(double));
+    bolt->d_cdm_prime = calloc(bolt->num_of_k_bins, sizeof(double));
+    bolt->d_cdm_prime_error = calloc(bolt->num_of_k_bins, sizeof(double));
+
+    // //Zero the power spectrum arrays
+    // for (size_t i=0; i<bolt->num_of_k_bins; i++) {
+    //     bolt->powerSpec.k_in_bins[i] = 0;
+    //     bolt->powerSpec.power_in_bins[i] = 0;
+    //     bolt->powerSpec.obs_in_bins[i] = 0;
+    // }
+
 
     //Read the file name of the hdf5 neutrino perturbation file
     char perturbFName[200] = "";
@@ -45,6 +62,8 @@ void boltz_init(struct boltz *bolt, struct swift_params *params, const struct en
 
     //Open and load the file with the neutrino perturbation (e.g. from CLASS)
     boltz_load_nu_perturb(bolt, perturbFName);
+
+    message("Psi_0 %.10e", bolt->Psi[0] );
 
     //Now compute the logarithmic derivative of the distribution function f0
     bolt->f0_prefactor = 2.0 / e->physical_constants->const_planck_h;
@@ -82,6 +101,8 @@ void boltz_init(struct boltz *bolt, struct swift_params *params, const struct en
     if (bolt->primordial_grid_N != (size_t) e->mesh->N) {
        error("Primordial grid is not the same size as the gravity mesh %zu != %zu.", bolt->primordial_grid_N, (size_t) e->mesh->N);
    }
+
+message("Psi_0 %.10e", bolt->Psi[0] );
 }
 
 void boltz_load_nu_perturb(struct boltz *bolt, const char *fname) {
@@ -124,7 +145,7 @@ void boltz_load_nu_perturb(struct boltz *bolt, const char *fname) {
 
     //Allocate memory in the main program
     bolt->Psi = malloc(bolt->Nk * bolt->Nq * bolt->Nl * sizeof(float));
-    bolt->Psi_dot = malloc(bolt->Nk * bolt->Nq * bolt->Nl * sizeof(float));
+    bolt->Psi_prime = malloc(bolt->Nk * bolt->Nq * bolt->Nl * sizeof(float));
     bolt->k_bins = malloc(bolt->Nk * sizeof(float));
     bolt->q_bins = malloc(bolt->Nq * sizeof(float));
 
@@ -170,6 +191,24 @@ void boltz_load_nu_perturb(struct boltz *bolt, const char *fname) {
 
     //Close the file
     H5Fclose(h_file);
+
+
+        for (size_t ik=0; ik<bolt->Nk; ik++) {
+            for (size_t iq=0; iq<bolt->Nq; iq++) {
+                double k = bolt->k_bins[ik]; //Mpc
+                double q = bolt->q_bins[iq];
+
+                //For each multipole
+                for (size_t l=0; l<bolt->Nl; l++) {
+                    int bix = ik + iq*bolt->Nk;
+                    int ix = bix + l*bolt->Nq*bolt->Nk;
+
+                    if (iq==0) {
+                        message("%f %f %zu %.10e", q, k, l, bolt->Psi[ix]);
+                    }
+                }
+            }
+        }
 }
 
 void boltz_load_primordial_field(struct boltz *bolt, const char *fname) {
@@ -250,7 +289,8 @@ void boltz_load_primordial_field(struct boltz *bolt, const char *fname) {
 }
 
 
-void boltz_update_phi(struct boltz *bolt, const struct engine *e, fftw_complex* restrict frho) {
+void boltz_update_powerspec(struct boltz *bolt, const struct engine *e, fftw_complex* restrict frho) {
+message("Psi_0 %.10e", bolt->Psi[0] );
 
     /* Some useful constants */
     const double box_size = e->mesh->dim[0];
@@ -295,6 +335,8 @@ void boltz_update_phi(struct boltz *bolt, const struct engine *e, fftw_complex* 
         }
     }
 
+
+
     // /* Use the memory allocated for the potential to temporarily store rho */
     // double* restrict rho = (double*) malloc(N*N*N*sizeof(double));
     // if (rho == NULL) error("Error allocating memory for density mesh");
@@ -337,14 +379,119 @@ void boltz_update_phi(struct boltz *bolt, const struct engine *e, fftw_complex* 
 
     message("Box size %f Cell frac %f", box_size, cell_fac);
 
-    //Zero the power spectrum arraus
+    // //Zero the power spectrum arrays
+    // for (size_t i=0; i<bolt->num_of_k_bins * bolt->PS_lags; i++) {
+    //     bolt->powerSpec.k_in_bins[i] = 0;
+    //     bolt->powerSpec.power_in_bins[i] = 0;
+    //     bolt->powerSpec.obs_in_bins[i] = 0;
+    // }
+
+    //Calculate d_cdm as the average over all the power spectrum columns
+    for (size_t i=0; i<bolt->num_of_k_bins; i++) {
+        double avg = 0;
+        for (size_t j=0; j<bolt->PS_lags; j++) {
+            avg += bolt->powerSpec.power_in_bins[i + j*bolt->num_of_k_bins];
+        }
+        avg *= 1. / bolt->PS_lags;
+
+        //Convert the average from power spectrum to transfer function
+        bolt->d_cdm[i] = sqrt(avg / pow(bolt->powerSpec.k_in_bins[i], 0.9667));
+
+        // //Calculate the variance
+        // double var = 0;
+        // for (size_t j=0; j<bolt->PS_lags; j++) {
+        //     var += pow(bolt->powerSpec.power_in_bins[i + j*bolt->num_of_k_bins] - avg,2);
+        // }
+        // var *= 1. / (bolt->PS_lags-1);
+        //
+        // bolt->d_cdm_prime[i] = sqrt(var);
+    }
+
+    // //Calculate the derivative from the historical power spectrum table
+    // //The most recent calculations are on the left
+    // for (size_t i=0; i<bolt->num_of_k_bins; i++) {
+    //     double d_cdm_left = 0;
+    //     double d_cdm_right = 0;
+    //     for (size_t j=0; j<25; j++) {
+    //         d_cdm_left += bolt->powerSpec.power_in_bins[i + j*bolt->num_of_k_bins];
+    //         d_cdm_right += bolt->powerSpec.power_in_bins[i + (j+25+1)*bolt->num_of_k_bins];
+    //     }
+    //
+    //     d_cdm_left *= 1. / 25;
+    //     d_cdm_right *= 1. / 25;
+    //
+    //     bolt->d_cdm_prime[i] = (0.5*d_cdm_left - 0.5*d_cdm_right) / (e->time_step);
+    //     bolt->d_cdm_prime[i] = (0.5*d_cdm_left - 0.5*d_cdm_right) / (1.);
+    // }
+
+    //Calculate the derivative from a simple linear fit
+    //The most recent calculations are on the left
+    for (size_t i=0; i<bolt->num_of_k_bins; i++) {
+        double Sx = 0;
+        double Sy = 0;
+        double Sxx = 0;
+        double Sxy = 0;
+        double Syy = 0;
+        size_t n = bolt->PS_lags;
+
+        for (size_t j=0; j<bolt->PS_lags; j++) {
+            double time = bolt->record_times[j];
+            double power = sqrt(bolt->powerSpec.power_in_bins[i + j*bolt->num_of_k_bins] / pow(bolt->powerSpec.k_in_bins[i], 0.9667));
+
+            Sy += power;
+            Syy += power*power;
+            Sx += time;
+            Sxx += time*time;
+            Sxy += time*power;
+
+            // if (i==6) {
+            //     message("%.10e %.10e", time, power);
+            // }
+        }
+
+
+        double beta = (n*Sxy - Sx*Sy)/(n*Sxx-Sx*Sx);
+        double sigma_eps_squared = (n*Syy - Sy*Sy - beta*beta*(n*Sxx-Sx*Sx))/(n*(n-2));
+        double sigma_beta_squared = n*sigma_eps_squared/(n*Sxx-Sx*Sx);
+
+        if (i==6)
+        message("%.10e", beta);
+
+        bolt->d_cdm_prime[i] = beta;
+        bolt->d_cdm_prime_error[i] = sqrt(sigma_beta_squared);
+
+        //Convert the time derivative to a conformal time derivative (using dt/dtau = a)
+        bolt->d_cdm_prime[i] *= e->cosmology->a;
+        bolt->d_cdm_prime_error[i] *= e->cosmology->a;
+    }
+
+
+    //Move all the power spectrum columns to the right
+    for (size_t i=0; i<bolt->num_of_k_bins; i++) {
+        for (size_t j=bolt->PS_lags-1; j>0; j--) {
+            bolt->powerSpec.k_in_bins[i + j*bolt->num_of_k_bins] = bolt->powerSpec.k_in_bins[i + (j-1)*bolt->num_of_k_bins];
+            bolt->powerSpec.power_in_bins[i + j*bolt->num_of_k_bins] = bolt->powerSpec.power_in_bins[i + (j-1)*bolt->num_of_k_bins];
+            bolt->powerSpec.obs_in_bins[i + j*bolt->num_of_k_bins] = bolt->powerSpec.obs_in_bins[i + (j-1)*bolt->num_of_k_bins];
+        }
+    }
+
+    for (size_t j=bolt->PS_lags-1; j>0; j--) {
+        bolt->record_times[j] = bolt->record_times[j-1];
+    }
+
+    //Record the present time
+    bolt->record_times[0] = e->time;
+
+    // message("The mores the times %.10e %.10e %.10e %.10e %.10e", bolt->record_times[0], bolt->record_times[1], bolt->record_times[2], bolt->record_times[3], bolt->record_times[4]);
+
+    //Zero the first column of the power spectrum arrays
     for (size_t i=0; i<bolt->num_of_k_bins; i++) {
         bolt->powerSpec.k_in_bins[i] = 0;
         bolt->powerSpec.power_in_bins[i] = 0;
         bolt->powerSpec.obs_in_bins[i] = 0;
     }
 
-    //Calculate the power spectrum
+    //Calculate the power spectrum into the first column
     calc_cross_powerspec(N,box_size,frho,frho,bolt->num_of_k_bins,bolt->powerSpec.k_in_bins, bolt->powerSpec.power_in_bins,bolt->powerSpec.obs_in_bins,CLOUD_IN_CELL);
 
     //Check if the neutrino perturbation needs to be refactored
@@ -352,22 +499,36 @@ void boltz_update_phi(struct boltz *bolt, const struct engine *e, fftw_complex* 
         boltz_refactor_bins(bolt, e, bolt->num_of_k_bins);
     }
 
-    //Update phi and phi_dot
     for (size_t i=0; i<bolt->Nk; i++) {
-        double old_phi = bolt->phi[i];
-        double new_phi = bolt->powerSpec.power_in_bins[i];
-        bolt->phi[i] = new_phi;
-        bolt->phi_dot[i] = (new_phi - old_phi) / e->time_step;
+        message("%f %.10e", bolt->k_bins[i], bolt->Psi[i + 0*bolt->Nk*bolt->Nq]);
     }
+
+    //Update d_cdm and d_cdm_prime
+    // double G_newton = e->physical_constants->const_newton_G;
+    // double normalization = 1./71.;
+    // double normalization = e->cosmology->D_linear_growth/e->cosmology->D_linear_growth0;
+    // message("Growth %f %f OL Om %f %f", e->cosmology->D_linear_growth, e->cosmology->D_linear_growth0, e->cosmology->Omega_lambda, e->cosmology->Omega_m);
+    // message("Hubble %f", e->cosmology->H / e->cosmology->H0);
+    // message("Or %f", sqrt(e->cosmology->Omega_r * pow(1+40,4)) / (e->cosmology->H / e->cosmology->H0));
+    // message("And the step is %d", engine_current_step);
+    // for (size_t i=0; i<bolt->Nk; i++) {
+    //     // double k = bolt->powerSpec.k_in_bins[i];
+    //     double old_d_cdm = bolt->d_cdm[i];
+    //     double new_d_cdm = sqrt(bolt->powerSpec.power_in_bins[i]);
+    //     // double new_d_cdm = sqrt(bolt->powerSpec.power_in_bins[i]/pow(k, 0.97))*(4*M_PI*G_newton/(k*k))*normalization;
+    //
+    //     bolt->d_cdm[i] = new_d_cdm;
+    //     bolt->d_cdm_prime[i] = (new_d_cdm - old_d_cdm) / e->time_step;
+    // }
 }
 
 //Export the power spectrum table
-void boltz_export_phi(struct boltz *bolt, const char *fname) {
+void boltz_export_powerspec(struct boltz *bolt, const char *fname) {
     FILE *of = fopen(fname,"w");
-    fprintf(of,"k(Mpc) P(k) observations phi(k) phi_dot(k)\n");
+    fprintf(of,"k(Mpc) P(k) observations d_cdm(k) d_cdm_prime(k) d_cdm_prime_err(k)\n");
     for (size_t i=0;i<bolt->num_of_k_bins;i++) {
         if (bolt->powerSpec.obs_in_bins[i]>0) {
-            fprintf(of,"%f %f %i %f %f\n",bolt->powerSpec.k_in_bins[i],bolt->powerSpec.power_in_bins[i],bolt->powerSpec.obs_in_bins[i],bolt->phi[i],bolt->phi_dot[i]);
+            fprintf(of,"%f %f %i %f %f %f\n",bolt->powerSpec.k_in_bins[i],bolt->powerSpec.power_in_bins[i],bolt->powerSpec.obs_in_bins[i],bolt->d_cdm[i],bolt->d_cdm_prime[i],bolt->d_cdm_prime_error[i]);
         }
     }
     fclose(of);
@@ -384,7 +545,7 @@ void boltz_refactor_bins(struct boltz *bolt, const struct engine *e, size_t num_
     //Recompute the power spectrum if necessary
     if (num_of_k_bins != bolt->num_of_k_bins) {
         bolt->num_of_k_bins = num_of_k_bins;
-        // boltz_update_phi(bolt, e, e->mesh->potential);
+        // boltz_update_d_cdm(bolt, e, e->mesh->potential);
         error("Try computing the potential first.\n");
     }
 
@@ -438,10 +599,10 @@ void boltz_refactor_bins(struct boltz *bolt, const struct engine *e, size_t num_
 
     //Update the data tables with the newly refactored tables
     free(bolt->Psi);
-    free(bolt->Psi_dot);
+    free(bolt->Psi_prime);
     free(bolt->k_bins);
     bolt->Psi = malloc(bolt->Nk * bolt->Nq * bolt->Nl * sizeof(float));
-    bolt->Psi_dot = malloc(bolt->Nk * bolt->Nq * bolt->Nl * sizeof(float));
+    bolt->Psi_prime = malloc(bolt->Nk * bolt->Nq * bolt->Nl * sizeof(float));
     bolt->k_bins = malloc(bolt->Nk * sizeof *bolt->k_bins);
 
     for (size_t ik=0; ik<Nk; ik++) {
@@ -459,57 +620,114 @@ void boltz_refactor_bins(struct boltz *bolt, const struct engine *e, size_t num_
 }
 
 void boltz_step(struct boltz *bolt, const struct engine *e) {
+
+    //Convert internal time units to Mpc/c used by CLASS
+    // double Mpc_in_cm = 3.086e24;
+    // double time_unit = e->physical_constants->const_speed_light_c * e->internal_units->UnitLength_in_cgs / Mpc_in_cm;
+
+    message("%.10e", bolt->boltz_time_unit);
+
     //Useful constants
     double a = e->cosmology->a;
     size_t Nk = bolt->Nk;
     size_t Nq = bolt->Nq;
-    int max_l = (int) bolt->Nl; //maximum multipole
-    double m_nu = bolt->m_nu; //mass of the neutrino
+    int max_l = (int) bolt->Nl-1; //maximum multipole (accounting for l=0)
+    double eV_in_kT_nu = e->physical_constants->const_electron_volt/(bolt->T_nu * e->physical_constants->const_boltzmann_k); //dimensionless quantity
+    double m_nu = bolt->m_nu * eV_in_kT_nu/1.; //mass of the neutrino
+    message("neutrino mass %.10e", m_nu);
 
 
-    /**
-    * The evolution of each (wavenumber k, momentum bin q) pair is completely
-    * independent. Therefore, we could parallelize this.
-    */
-    for (size_t ik=0; ik<Nk; ik++) {
-        for (size_t iq=0; iq<Nq; iq++) {
-            double k = bolt->k_bins[ik]; //Mpc
-            double q = bolt->q_bins[iq];
-            double eps = sqrt(q*q + a*a*m_nu*m_nu);
+    message("Psi_0 %.10e", bolt->Psi[0] );
 
-            //For each multipole
-            for (int l=0; l<max_l; l++) {
-                int bix = ik + iq*Nk;
-                int ix = bix + l*Nq*Nk;
+    //We need to have performed enough steps to get a reliable estimate of h_dot
+    if ((size_t) engine_current_step < bolt->PS_lags) {
+        message("Still working on it %d < %zu", engine_current_step, bolt->PS_lags);
+        return;
+    }
 
-                //The first three multipoles have a unique evolution equation
-                if (l == 0) {
-                    bolt->Psi_dot[ix] =
-                        -q*k/eps * bolt->Psi[bix + 1*Nk*Nq]
-                        +(1./6.) * bolt->phi_dot[ik] * bolt->dlogf0_dlogq[iq];
-                } else if (l == 1) {
-                    bolt->Psi_dot[ix] =
-                        +q*k/(3.*eps) *(bolt->Psi[bix + 0*Nk*Nq] - 2*bolt->Psi[bix + 2*Nk*Nq]);
-                } else if (l == 2) {
-                    bolt->Psi_dot[ix] =
-                        +q*k/(5.*eps) *(2*bolt->Psi[bix + 1*Nk*Nq] - 3*bolt->Psi[bix + 3*Nk*Nq])
-                        -(1./15. + 2./5.) * bolt->phi_dot[ik] * bolt->dlogf0_dlogq[iq];
-                } else if (l < max_l-1) {
-                    bolt->Psi_dot[ix] = q*k/(eps * (2*l+1)) * (l*bolt->Psi[bix + (l-1)*Nk*Nq] - (l+1)*bolt->Psi[bix + (l+1)*Nk*Nq]);
-                } else {
-                    //The last multipole is truncated (easy in flat cosmology)
-                    bolt->Psi_dot[ix] = 0;
 
-                    if (e->cosmology->Omega_k > 0) {
-                        error("Neutrino evolution not yet implemented for non-flat cosmologies.");
+    // if (ik>3)
+
+    size_t substeps = 100000;
+    for (size_t it=0; it<substeps; it++) {
+
+        /**
+        * The evolution of each (wavenumber k, momentum bin q) pair is completely
+        * independent. Therefore, we could parallelize this.
+        */
+        for (size_t ik=0; ik<Nk; ik++) {
+            for (size_t iq=0; iq<Nq; iq++) {
+                double k = bolt->k_bins[ik]; //Mpc
+                double q = bolt->q_bins[iq];
+                double eps = sqrt(q*q + a*a*m_nu*m_nu);
+
+                // message("==========%f %f", k, eps);
+
+                //For each multipole
+                for (int l=0; l<=max_l; l++) {
+                    int bix = ik + iq*Nk;
+                    int ix = bix + l*Nq*Nk;
+
+                    //Use the fact that h' = -2*d_cdm' and eta' \approx 0
+                    double h_prime = 0; //-2*bolt->d_cdm_prime[ik]*bolt->boltz_time_unit;
+                    double eta_prime = 0;
+
+                    // message("%f %.10e %.10e %.10e", k, q*k/eps, h_prime, bolt->dlogf0_dlogq[iq]);
+
+                    //The first three multipoles have a unique evolution equation
+                    if (l == 0) {
+                        bolt->Psi_prime[ix] =
+                            -q*k/eps * bolt->Psi[bix + 1*Nk*Nq]
+                            +(1./6.) * h_prime * bolt->dlogf0_dlogq[iq];
+
+                        if ((size_t) engine_current_step == bolt->PS_lags && iq == 0 && (it==0 || it==substeps-1))
+                        message("%f %f %d %.10e %.10e %.10e %.10e", q, k, l, bolt->Psi[ix], bolt->Psi_prime[ix], 1./a* e->time_step / bolt->boltz_time_unit, bolt->Psi[bix + 1*Nk*Nq]);
+                    } else if (l == 1) {
+                        bolt->Psi_prime[ix] =
+                            +q*k/(3.*eps) *(bolt->Psi[bix + 0*Nk*Nq] - 2*bolt->Psi[bix + 2*Nk*Nq]);
+
+                        if ((size_t) engine_current_step == bolt->PS_lags && iq == 0 && (it==0 || it==substeps-1))
+                        message("%f %f %d %.10e %.10e %.10e %.10e", q, k, l, bolt->Psi[ix], bolt->Psi_prime[ix], 1./a* e->time_step / bolt->boltz_time_unit, bolt->Psi[bix + 0*Nk*Nq]);
+                    } else if (l == 2) {
+                        bolt->Psi_prime[ix] =
+                            +q*k/(5.*eps) *(2*bolt->Psi[bix + 1*Nk*Nq] - 3*bolt->Psi[bix + 3*Nk*Nq])
+                            -(1./15. * h_prime + 2./5. * eta_prime) * bolt->dlogf0_dlogq[iq];
+
+                        if ((size_t) engine_current_step == bolt->PS_lags && iq == 0 && (it==0 || it==substeps-1))
+                        message("%f %f %d %.10e %.10e %.10e %.10e %.10e", q, k, l, bolt->Psi[ix], bolt->Psi_prime[ix], 1./a* e->time_step / bolt->boltz_time_unit, bolt->Psi[bix + 3*Nk*Nq], q*k/(5.*eps));
+                    } else if (l <= max_l-1) {
+                        bolt->Psi_prime[ix] = q*k/(eps * (2*l+1)) * (l*bolt->Psi[bix + (l-1)*Nk*Nq] - (l+1)*bolt->Psi[bix + (l+1)*Nk*Nq]);
+
+                        if ((size_t) engine_current_step == bolt->PS_lags && iq == 0 && (it==0 || it==substeps-1))
+                        message("%f %f %d %.10e %.10e %.10e %.10e", q, k, l, bolt->Psi[ix], bolt->Psi_prime[ix], 1./a* e->time_step / bolt->boltz_time_unit, bolt->Psi[bix + (l+1)*Nk*Nq]);
+                    } else {
+                        //The last multipole is truncated (easy in flat cosmology)
+                        bolt->Psi_prime[ix] = 0;
+
+                        if ((size_t) engine_current_step == bolt->PS_lags && iq == 0 && (it==0 || it==substeps-1))
+                        message("%f %f %d %.10e %.10e %.10e %.10e", q, k, l, bolt->Psi[ix], bolt->Psi_prime[ix], 1./a* e->time_step / bolt->boltz_time_unit, bolt->Psi[bix + (l-1)*Nk*Nq]);
+
+                        if (e->cosmology->Omega_k > 0) {
+                            error("Neutrino evolution not yet implemented for non-flat cosmologies.");
+                        }
                     }
-                }
 
-                //Update the multipole
-                bolt->Psi[ix] += bolt->Psi_dot[ix] * e->time_step;
+                    //Update the multipole
+                    // bolt->Psi[ix] += (bolt->Psi_prime[ix] / a) * e->time_step / bolt->boltz_time_unit;
+                }
+            }
+        }
+
+        //Now update the multipoles
+        for (size_t ik=0; ik<Nk; ik++) {
+            for (size_t iq=0; iq<Nq; iq++) {
+                for (int l=0; l<=max_l; l++) {
+                    int bix = ik + iq*Nk;
+                    int ix = bix + l*Nq*Nk;
+
+                    bolt->Psi[ix] += (bolt->Psi_prime[ix] / a) * (e->time_step/substeps) / bolt->boltz_time_unit;
+                }
             }
         }
     }
-    // if (ik>3)
-    message("Psi_0 %.10e", bolt->Psi[2] );
 }

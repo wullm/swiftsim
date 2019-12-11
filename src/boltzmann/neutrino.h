@@ -48,10 +48,13 @@ struct boltz {
     double* primordial_dims;
     size_t primordial_grid_N;
 
+    /* Time unit used by the Boltzmann solver */
+    double boltz_time_unit;
+
     /*! Array containing the neutrino perturbation \Psi */
     float* Psi;
-    /*! Array containing the time derivative of \Psi */
-    float* Psi_dot;
+    /*! Array containing the conformal time derivative of \Psi */
+    float* Psi_prime;
 
     /*! Array containing the momentum bins */
     float* q_bins;
@@ -68,6 +71,8 @@ struct boltz {
     size_t num_of_k_bins; //user-defined
 
     /* Here be the power spectrum measurements */
+    size_t PS_lags;
+    double *record_times;
     struct powerSpec {
         double *k_in_bins;
   	    double *power_in_bins;
@@ -79,11 +84,13 @@ struct boltz {
     double f0_prefactor; //this is g_s/h^3
 
     /* Here be Boltzmann related quantities */
-    double* phi;
-    double* phi_dot;
+    double* d_cdm; //cdm transfer funtion, estimated from power spectrum
+    double* d_cdm_prime; //conformal time derivative
+    double* d_cdm_prime_error;
 
     /* Neutrino related constants (should be user-defined) */
     double m_nu; //neutrino mass (just one for now)
+    double T_nu; //neutrino temperature
 };
 
 /**
@@ -92,7 +99,7 @@ struct boltz {
  * @param q Energy or momentum divided by k_b*T_nu
  */
 __attribute__((always_inline)) INLINE static double f0_nu(double q) {
-    return 1./(exp(q)+1.);
+    return 1./pow(2*M_PI,3)/(exp(q)+1.);
 }
 
 //Initialize and load initial conditions
@@ -101,8 +108,8 @@ void boltz_load_nu_perturb(struct boltz *bolt, const char *fname);
 void boltz_load_primordial_field(struct boltz *bolt, const char *fname);
 
 //Calculate and export power spectrum of the gravity mesh
-void boltz_update_phi(struct boltz *bolt, const struct engine *e, fftw_complex* restrict frho);
-void boltz_export_phi(struct boltz *bolt, const char *fname);
+void boltz_update_powerspec(struct boltz *bolt, const struct engine *e, fftw_complex* restrict frho);
+void boltz_export_powerspec(struct boltz *bolt, const char *fname);
 
 //Refactor the neutrino perturbation to have a specified number of k bins
 void boltz_refactor_bins(struct boltz *bolt, const struct engine *e, size_t bins);
