@@ -45,7 +45,7 @@
 const int cosmology_table_length = 10000;
 
 /*! Number of values stored in longer cosmological tables */
-const int cosmology_long_table_length = 100000;
+const int cosmology_long_table_length = 40000;
 
 /*! Fermion pre-factor */
 const double fermi_factor = 7. / 8. * pow(4. / 11., 4. / 3.);
@@ -1098,8 +1098,8 @@ double cosmology_get_scale_factor(const struct cosmology *c, double t) {
 void cosmology_print(const struct cosmology *c) {
 
   message(
-      "Density parameters: [O_m, O_l, O_b, O_k, O_r] = [%f, %f, %f, %f, %f]",
-      c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_k, c->Omega_r);
+      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r] = [%f, %f, %f, %f, %f, %f]",
+c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k, c->Omega_r);
   message("Dark energy equation of state: w_0=%f w_a=%f", c->w_0, c->w_a);
   message("Hubble constant: h = %f, H_0 = %e U_t^(-1)", c->h, c->H0);
   message("Hubble time: 1/H0 = %e U_t", c->Hubble_time);

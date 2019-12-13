@@ -52,7 +52,7 @@ struct cosmoinfo {
   /*! Radiation density parameter (cosmology.Omega_r) */
   double Omega_r;
 
-  /*! Neutrino density parameter (0 in SWIFT) */
+  /*! Neutrino density parameter (cosmology.Omega_nu) */
   double Omega_nu;
 
   /*! Neutrino density parameter (cosmology.Omega_k) */
@@ -422,6 +422,7 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   cosmo_info.littleh = e->cosmology->h;
   cosmo_info.Omega_m = e->cosmology->Omega_m;
   cosmo_info.Omega_b = e->cosmology->Omega_b;
+  cosmo_info.Omega_nu = e->cosmology->Omega_nu;
   cosmo_info.Omega_r = e->cosmology->Omega_r;
   cosmo_info.Omega_k = e->cosmology->Omega_k;
   cosmo_info.Omega_nu = 0.;
