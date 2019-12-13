@@ -472,7 +472,8 @@ double neutrino_density_integrand_transformed(double w, void *param) {
 /**
  * @brief Initialise the interpolation tables for the integrals.
  */
-void cosmology_init_tables(struct cosmology *c) {
+void cosmology_init_tables(struct cosmology *c,
+                           const struct phys_const *phys_const) {
 
 #ifdef HAVE_LIBGSL
 
@@ -533,6 +534,8 @@ void cosmology_init_tables(struct cosmology *c) {
 
   /* Create N_eff(a) interpolation table for massive neutrinos */
   if (c->M_nu_tot > 0) {
+    const double kb = phys_const->const_boltzmann_k;
+    const double eV = phys_const->const_electron_volt;
     const size_t N_nu = c->N_nu;
     const double *M_nu = c->M_nu;
     const double pre_factor =
@@ -546,7 +549,7 @@ void cosmology_init_tables(struct cosmology *c) {
           N_eff += 1.0;
         } else {
           /* Integrate the FD distribtuion */
-          double y = long_a_table[i] * M_nu[j] * c->eV_div_kT_nu;
+          double y = long_a_table[i] * M_nu[j] * eV / (kb * c->T_nu);
           gsl_function F1 = {&neutrino_density_integrand, &y};
           gsl_function F2 = {&neutrino_density_integrand_transformed, &y};
           gsl_integration_qag(&F1, 0.0, 1.0, 0, 1.0e-12, GSL_workspace_size,
@@ -733,6 +736,46 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   c->critical_density_0 =
       3. * c->H0 * c->H0 / (8. * M_PI * phys_const->const_newton_G);
 
+  /* Verify and compute neutrino and ncdm related quantities */
+  cosmology_neutrino_init(params, us, phys_const, c);
+
+  /* Curvature density (for closure) */
+  c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
+
+  /* Initialise the interpolation tables */
+  c->drift_fac_interp_table = NULL;
+  c->grav_kick_fac_interp_table = NULL;
+  c->hydro_kick_fac_interp_table = NULL;
+  c->time_interp_table = NULL;
+  c->neutrino_density_interp_table = NULL;
+  c->time_interp_table_offset = 0.;
+  cosmology_init_tables(c, phys_const);
+
+  /* Set remaining variables to alid values */
+  cosmology_update(c, phys_const, 0);
+
+  /* Update the times */
+  c->time_begin = cosmology_get_time_since_big_bang(c, c->a_begin);
+  c->time_end = cosmology_get_time_since_big_bang(c, c->a_end);
+
+  /* Initialise the old values to a valid state */
+  c->a_old = c->a_begin;
+  c->z_old = 1. / c->a_old - 1.;
+}
+
+/**
+ * @brief Initialises and verifies neutrino related quantities
+ *
+ * @param params The parsed values.
+ * @param us The current internal system of units.
+ * @param phys_const The physical constants in the current system of units.
+ * @param c The #cosmology to initialise.
+ */
+void cosmology_neutrino_init(struct swift_params *params,
+                             const struct unit_system *us,
+                             const struct phys_const *phys_const,
+                             struct cosmology *c) {
+                                 
   /* Find the total neutrino mass (eV) */
   c->M_nu_tot = 0;
   for (size_t i = 0; i < c->N_nu; i++) {
@@ -771,17 +814,17 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* Ensure that neutrino masses and Omega_g are consistent */
   if (c->M_nu_tot > 0 && c->Omega_g == 0) {
-      error("Specify Omega_g or T_CMB to include massive neutrinos.");
+    error("Specify Omega_g or T_CMB to include massive neutrinos.");
   }
 
   /* Ensure that neutrino masses and N_eff are consistent */
   if (c->M_nu_tot > 0 && c->N_eff <= 0) {
-      error("Non-positive neutrino temperature inferred from N_eff <= 0.");
+    error("Non-positive neutrino temperature inferred from N_eff <= 0.");
   }
 
   /* Ensure that T_nu and N_eff are consistent */
   if (c->T_nu > 0 && c->N_eff > 0) {
-      error("T_nu and N_eff should not both be specified.");
+    error("T_nu and N_eff should not both be specified.");
   } else if (c->T_nu == 0) {
     c->T_nu = c->T_CMB * pow(c->N_eff / c->N_nu, 0.25) * pow(4. / 11., 1. / 3.);
   } else {
@@ -791,8 +834,7 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   /* Neutrino densities (assuming that all species are now non-relativistic) */
   if (c->M_nu_tot > 0) {
     c->Omega_nu = 0;
-    c->Omega_nu_i = malloc(sizeof(double *) * c->N_nu);
-    c->eV_div_kT_nu = eV / (kb * c->T_nu);
+    c->Omega_nu_i = calloc(c->N_nu, sizeof(double *));
 
     double zeta3 = 1.20205690;
     double number_density = zeta3 / (M_PI * M_PI) * 1.5 * pow(kb * c->T_nu, 3) /
@@ -805,29 +847,6 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
               c->Omega_nu_i[i], i, c->M_nu[i]);
     }
   }
-
-  /* Curvature density (for closure) */
-  c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
-
-  /* Initialise the interpolation tables */
-  c->drift_fac_interp_table = NULL;
-  c->grav_kick_fac_interp_table = NULL;
-  c->hydro_kick_fac_interp_table = NULL;
-  c->time_interp_table = NULL;
-  c->neutrino_density_interp_table = NULL;
-  c->time_interp_table_offset = 0.;
-  cosmology_init_tables(c);
-
-  /* Set remaining variables to alid values */
-  cosmology_update(c, phys_const, 0);
-
-  /* Update the times */
-  c->time_begin = cosmology_get_time_since_big_bang(c, c->a_begin);
-  c->time_end = cosmology_get_time_since_big_bang(c, c->a_end);
-
-  /* Initialise the old values to a valid state */
-  c->a_old = c->a_begin;
-  c->z_old = 1. / c->a_old - 1.;
 }
 
 /**
@@ -841,6 +860,7 @@ void cosmology_init_no_cosmo(struct cosmology *c) {
 
   c->Omega_m = 0.;
   c->Omega_r = 0.;
+  c->Omega_g = 0.;
   c->Omega_k = 0.;
   c->Omega_lambda = 0.;
   c->Omega_nu = 0;
@@ -1197,10 +1217,10 @@ void cosmology_struct_dump(const struct cosmology *cosmology, FILE *stream) {
  * @param stream the file stream
  */
 void cosmology_struct_restore(int enabled, struct cosmology *cosmology,
-                              FILE *stream) {
+                              const struct phys_const *phys_const, FILE *stream) {
   restart_read_blocks((void *)cosmology, sizeof(struct cosmology), 1, stream,
                       NULL, "cosmology function");
 
   /* Re-initialise the tables if using a cosmology. */
-  if (enabled) cosmology_init_tables(cosmology);
+  if (enabled) cosmology_init_tables(cosmology, phys_const);
 }

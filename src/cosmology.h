@@ -169,7 +169,7 @@ struct cosmology {
   /*! Total neutrino density parameter */
   double Omega_nu;
 
-  /*! Effective number of relativistic species */
+  /*! Effective number of relativistic species at early times */
   double N_eff;
 
   /*! CMB temperature today */
@@ -177,9 +177,6 @@ struct cosmology {
 
   /*! Neutrino temperature today */
   double T_nu;
-
-  /*! Energy of a 1 eV neutrino in units of k_b*T_nu  */
-  double eV_div_kT_nu;
 
   /*! Dark-energy equation of state at z=0 */
   double w_0;
@@ -252,7 +249,10 @@ double cosmology_get_scale_factor(const struct cosmology *cosmo, double t);
 double cosmology_get_time_since_big_bang(const struct cosmology *c, double a);
 void cosmology_init(struct swift_params *params, const struct unit_system *us,
                     const struct phys_const *phys_const, struct cosmology *c);
-
+void cosmology_neutrino_init(struct swift_params *params,
+                             const struct unit_system *us,
+                             const struct phys_const *phys_const,
+                             struct cosmology *c);
 void cosmology_init_no_cosmo(struct cosmology *c);
 
 void cosmology_print(const struct cosmology *c);
@@ -265,10 +265,6 @@ void cosmology_write_model(hid_t h_grp, const struct cosmology *c);
 /* Dump/restore. */
 void cosmology_struct_dump(const struct cosmology *cosmology, FILE *stream);
 void cosmology_struct_restore(int enabled, struct cosmology *cosmology,
-                              FILE *stream);
-
-struct gsl_neutrino_param {
-  double y;
-};
+                              const struct phys_const *phys_const, FILE *stream);
 
 #endif /* SWIFT_COSMOLOGY_H */
