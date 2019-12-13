@@ -18,7 +18,7 @@ To allow for general expansion histories we use the full Friedmann equations
 and write
 \begin{align}
 H(a) &\equiv H_0 E(a) \\ E(a) &\equiv\sqrt{\Omega_m a^{-3} + \Omega_r
-  a^{-4} + \Omega_k a^{-2} + \Omega_\Lambda \exp\left(3\tilde{w}(a)\right)},
+  a^{-4} + \Omega_k a^{-2} + \Omega_\Lambda \exp\left(3\tilde{w}(a)\right)}, \label{eq:Ea}
 \\
 \tilde{w}(a) &= (a-1)w_a - (1+w_0 + w_a)\log\left(a\right),
 \label{eq:friedmann}
@@ -50,6 +50,28 @@ Gauss-Konrod rule implemented in the {\sc gsl} library \citep{GSL} with a
 relative error limit of $\epsilon=10^{-10}$. The value for a specific $a$ (over
 the course of a simulation run) is then obtained by linear interpolation of the
 table.
+
+\subsubsection{Massive neutrinos}
+
+The relativistic transition of massive neutrinos typically occurs during
+cosmological simulations, affecting the Hubble rate $E(a)$ at the sub-percent
+level. To account for this effect, we allow users to specify the photon density $\Omega_g$
+(or $T_\text{CMB}$) and neutrino masses $m_{\nu,i}$ instead of $\Omega_r$.
+The radiation term appearing in (\ref{eq:Ea}) is replaced by
+\begin{align}
+    \Omega_r a^{-4} = \left[\Omega_g + \Omega_\nu(a)\right] a^{-4},
+\end{align}
+with the neutrino density given by \citep{Zennaro2016}
+\begin{align}
+    \Omega_\nu(a) = \Omega_g \sum_{i=1}^{N_\nu}\frac{15}{\pi^4}\left(\frac{T_{\nu,0}}{T_{\gamma,0}}\right)^4 \mathcal{F}\left(\frac{a m_{\nu,i}}{k_b T_{\nu,0}}\right),
+\end{align}
+where $N_\nu$ is the number of neutrino species, $k_b$ is Boltzmann's constant, $T_{\gamma,0}$ and $T_{\nu,0}$ are the CMB and neutrino temperatures today and $m_{\nu,i}$ is the mass of the $i$th neutrino species. The function $\mathcal{F}$ is given by the momentum integral
+%
+\begin{align}
+    \mathcal{F}(y) = \int_0^{\infty} \frac{x^2\sqrt{x^2+y^2}}{1+e^{x}}\mathrm{d}x.
+\end{align}
+
+
 
 \subsubsection{Additional quantities}
 
