@@ -265,6 +265,7 @@ void cosmology_write_model(hid_t h_grp, const struct cosmology *c);
 /* Dump/restore. */
 void cosmology_struct_dump(const struct cosmology *cosmology, FILE *stream);
 void cosmology_struct_restore(int enabled, struct cosmology *cosmology,
-                              const struct phys_const *phys_const, FILE *stream);
+                              const struct phys_const *phys_const,
+                              FILE *stream);
 
 #endif /* SWIFT_COSMOLOGY_H */

@@ -235,10 +235,10 @@ void cosmology_update(struct cosmology *c, const struct phys_const *phys_const,
   /* Accounting for the R/NR transition of massive neutrinos */
   if (c->M_nu_tot > 0) {
     N_eff = interp_long_table(c->neutrino_density_interp_table, log(a),
-                              c->log_a_begin, c->log_a_end);
+                              c->log_a_begin, c->log_a_end)/fermi_factor;
   }
   const double Omega_g = c->Omega_g;
-  const double Omega_nu = c->Omega_g * (1.0 + fermi_factor * N_eff);
+  const double Omega_nu = c->Omega_g * N_eff * fermi_factor;
   const double Omega_r = (Omega_g > 0) ? Omega_g + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
@@ -286,10 +286,10 @@ double drift_integrand(double a, void *param) {
   /* Accounting for the R/NR transition of massive neutrinos */
   if (a >= c->a_begin && c->M_nu_tot > 0) {
     N_eff = interp_long_table(c->neutrino_density_interp_table, log(a),
-                              c->log_a_begin, c->log_a_end);
+                              c->log_a_begin, c->log_a_end)/fermi_factor;
   }
   const double Omega_g = c->Omega_g;
-  const double Omega_nu = c->Omega_g * (1.0 + fermi_factor * N_eff);
+  const double Omega_nu = c->Omega_g * N_eff * fermi_factor;
   const double Omega_r = (Omega_g > 0) ? Omega_g + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
@@ -319,10 +319,10 @@ double gravity_kick_integrand(double a, void *param) {
   /* Accounting for the R/NR transition of massive neutrinos */
   if (a >= c->a_begin && c->M_nu_tot > 0) {
     N_eff = interp_long_table(c->neutrino_density_interp_table, log(a),
-                              c->log_a_begin, c->log_a_end);
+                              c->log_a_begin, c->log_a_end)/fermi_factor;
   }
   const double Omega_g = c->Omega_g;
-  const double Omega_nu = c->Omega_g * (1.0 + fermi_factor * N_eff);
+  const double Omega_nu = c->Omega_g * N_eff * fermi_factor;
   const double Omega_r = (Omega_g > 0) ? Omega_g + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
@@ -352,10 +352,10 @@ double hydro_kick_integrand(double a, void *param) {
   /* Accounting for the R/NR transition of massive neutrinos */
   if (a >= c->a_begin && c->M_nu_tot > 0) {
     N_eff = interp_long_table(c->neutrino_density_interp_table, log(a),
-                              c->log_a_begin, c->log_a_end);
+                              c->log_a_begin, c->log_a_end)/fermi_factor;
   }
   const double Omega_g = c->Omega_g;
-  const double Omega_nu = c->Omega_g * (1.0 + fermi_factor * N_eff);
+  const double Omega_nu = c->Omega_g * N_eff * fermi_factor;
   const double Omega_r = (Omega_g > 0) ? Omega_g + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
@@ -387,10 +387,10 @@ double hydro_kick_corr_integrand(double a, void *param) {
   /* Accounting for the R/NR transition of massive neutrinos */
   if (a >= c->a_begin && c->M_nu_tot > 0) {
     N_eff = interp_long_table(c->neutrino_density_interp_table, log(a),
-                              c->log_a_begin, c->log_a_end);
+                              c->log_a_begin, c->log_a_end)/fermi_factor;
   }
   const double Omega_g = c->Omega_g;
-  const double Omega_nu = c->Omega_g * (1.0 + fermi_factor * N_eff);
+  const double Omega_nu = c->Omega_g * N_eff * fermi_factor;
   const double Omega_r = (Omega_g > 0) ? Omega_g + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
@@ -419,10 +419,10 @@ double time_integrand(double a, void *param) {
   /* Accounting for the R/NR transition of massive neutrinos */
   if (a >= c->a_begin && c->M_nu_tot > 0) {
     N_eff = interp_long_table(c->neutrino_density_interp_table, log(a),
-                              c->log_a_begin, c->log_a_end);
+                              c->log_a_begin, c->log_a_end)/fermi_factor;
   }
   const double Omega_g = c->Omega_g;
-  const double Omega_nu = c->Omega_g * (1.0 + fermi_factor * N_eff);
+  const double Omega_nu = c->Omega_g * N_eff * fermi_factor;
   const double Omega_r = (Omega_g > 0) ? Omega_g + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
@@ -539,7 +539,7 @@ void cosmology_init_tables(struct cosmology *c,
     const size_t N_nu = c->N_nu;
     const double *M_nu = c->M_nu;
     const double pre_factor =
-        15. * pow(c->T_nu / c->T_CMB, 4) / pow(M_PI, 4) / fermi_factor;
+        15. * pow(c->T_nu / c->T_CMB, 4) / pow(M_PI, 4);
 
     for (int i = 0; i < cosmology_long_table_length; i++) {
       double N_eff = 0;
@@ -775,7 +775,7 @@ void cosmology_neutrino_init(struct swift_params *params,
                              const struct unit_system *us,
                              const struct phys_const *phys_const,
                              struct cosmology *c) {
-                                 
+
   /* Find the total neutrino mass (eV) */
   c->M_nu_tot = 0;
   for (size_t i = 0; i < c->N_nu; i++) {
@@ -843,8 +843,6 @@ void cosmology_neutrino_init(struct swift_params *params,
       c->Omega_nu_i[i] =
           number_density * c->M_nu[i] * eV / critical_energy_density;
       c->Omega_nu += c->Omega_nu_i[i];
-      message("Inferred Omega_nu[%zu] = %f from M_nu[%zu] = %f eV", i,
-              c->Omega_nu_i[i], i, c->M_nu[i]);
     }
   }
 }
@@ -1151,6 +1149,10 @@ void cosmology_print(const struct cosmology *c) {
       "%f, %f]",
       c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k,
       c->Omega_r);
+  for (size_t i = 0; i < c->N_nu; i++) {
+    message("Omega_nu[%zu] = %f, M_nu[%zu] = %f eV", i, c->Omega_nu_i[i], i,
+            c->M_nu[i]);
+  }
   message("Dark energy equation of state: w_0=%f w_a=%f", c->w_0, c->w_a);
   message("Hubble constant: h = %f, H_0 = %e U_t^(-1)", c->h, c->H0);
   message("Hubble time: 1/H0 = %e U_t", c->Hubble_time);
@@ -1166,6 +1168,7 @@ void cosmology_clean(struct cosmology *c) {
   swift_free("cosmo.table", c->hydro_kick_corr_interp_table);
   swift_free("cosmo.table", c->time_interp_table);
   swift_free("cosmo.table", c->scale_factor_interp_table);
+  swift_free("cosmo.table", c->neutrino_density_interp_table);
 }
 
 #ifdef HAVE_HDF5
@@ -1185,8 +1188,17 @@ void cosmology_write_model(hid_t h_grp, const struct cosmology *c) {
   io_write_attribute_d(h_grp, "Omega_m", c->Omega_m);
   io_write_attribute_d(h_grp, "Omega_r", c->Omega_r);
   io_write_attribute_d(h_grp, "Omega_b", c->Omega_b);
+  io_write_attribute_d(h_grp, "Omega_g", c->Omega_g);
   io_write_attribute_d(h_grp, "Omega_k", c->Omega_k);
   io_write_attribute_d(h_grp, "Omega_lambda", c->Omega_lambda);
+  io_write_attribute_d(h_grp, "T_CMB", c->T_CMB);
+  io_write_attribute_d(h_grp, "T_nu", c->T_nu);
+  io_write_attribute_d(h_grp, "N_nu", c->N_nu);
+  io_write_attribute_d(h_grp, "N_eff", c->N_eff);
+  io_write_attribute(h_grp, "M_nu", DOUBLE, c->M_nu, c->N_nu);
+  io_write_attribute_d(h_grp, "M_nu_tot", c->M_nu_tot);
+  io_write_attribute(h_grp, "Omega_nu_i", DOUBLE, c->Omega_nu_i, c->N_nu);
+  io_write_attribute_d(h_grp, "Omega_nu", c->Omega_nu);
   io_write_attribute_d(h_grp, "w_0", c->w_0);
   io_write_attribute_d(h_grp, "w_a", c->w_a);
   io_write_attribute_d(h_grp, "w", c->w);
@@ -1217,7 +1229,8 @@ void cosmology_struct_dump(const struct cosmology *cosmology, FILE *stream) {
  * @param stream the file stream
  */
 void cosmology_struct_restore(int enabled, struct cosmology *cosmology,
-                              const struct phys_const *phys_const, FILE *stream) {
+                              const struct phys_const *phys_const,
+                              FILE *stream) {
   restart_read_blocks((void *)cosmology, sizeof(struct cosmology), 1, stream,
                       NULL, "cosmology function");
 
