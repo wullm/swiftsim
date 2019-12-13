@@ -142,14 +142,44 @@ struct cosmology {
   /*! Baryon density parameter */
   double Omega_b;
 
-  /*! Radiation constant density parameter */
+  /*! Cosmological constant density parameter */
   double Omega_lambda;
 
-  /*! Cosmological constant density parameter */
+  /*! Radiation density parameter */
   double Omega_r;
+
+  /*! Photon density parameter */
+  double Omega_g;
 
   /*! Curvature density parameter */
   double Omega_k;
+
+  /*! Number of neutrino species */
+  size_t N_nu;
+
+  /*! Neutrino masses in eV */
+  double *M_nu;
+
+  /*! The total neutrino mass in eV */
+  double M_nu_tot;
+
+  /*! Neutrino density parameters */
+  double *Omega_nu_i;
+
+  /*! Total neutrino density parameter */
+  double Omega_nu;
+
+  /*! Effective number of relativistic species */
+  double N_eff;
+
+  /*! CMB temperature today */
+  double T_CMB;
+
+  /*! Neutrino temperature today */
+  double T_nu;
+
+  /*! Energy of a 1 eV neutrino in units of k_b*T_nu  */
+  double eV_div_kT_nu;
 
   /*! Dark-energy equation of state at z=0 */
   double w_0;
@@ -180,6 +210,9 @@ struct cosmology {
 
   /*! Scale factor interpolation table */
   double *scale_factor_interp_table;
+
+  /*! Neutrino density interpolation table */
+  double *neutrino_density_interp_table;
 
   /*! Time between Big Bang and first entry in the table */
   double time_interp_table_offset;
@@ -233,5 +266,9 @@ void cosmology_write_model(hid_t h_grp, const struct cosmology *c);
 void cosmology_struct_dump(const struct cosmology *cosmology, FILE *stream);
 void cosmology_struct_restore(int enabled, struct cosmology *cosmology,
                               FILE *stream);
+
+struct gsl_neutrino_param {
+  double y;
+};
 
 #endif /* SWIFT_COSMOLOGY_H */
