@@ -160,6 +160,9 @@ struct cosmology {
   /*! Neutrino masses in eV */
   double *M_nu;
 
+  /*! The total neutrino mass in eV */
+  double M_nu_tot;
+
   /*! Neutrino density parameters */
   double *Omega_nu_i;
 
