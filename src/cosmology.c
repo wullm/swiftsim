@@ -721,6 +721,7 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* If there are neutrinos, load the optional mass array */
   if (c->N_nu > 0) {
+    c->Omega_nu_i = calloc(c->N_nu, sizeof(double *));
     c->M_nu = calloc(c->N_nu, sizeof(double *));
     parser_get_opt_param_double_array(params, "Cosmology:M_nu", c->N_nu,
                                       c->M_nu);
@@ -822,13 +823,6 @@ void cosmology_neutrino_init(struct swift_params *params,
     c->T_CMB = pow(c->Omega_g * crit_energy_density * e_pre_factor, 0.25) / kb;
   }
 
-  /* Ensure that Omega_g and Omega_r are not both specified */
-  if (c->Omega_r > 0 && c->Omega_g > 0) {
-    error("Omega_r and Omega_g (or T_CMB) should not both be specified.");
-  } else if (c->Omega_r == 0) {
-    c->Omega_r = c->Omega_g;
-  }
-
   /* Ensure that neutrino masses and Omega_g are consistent */
   if (c->M_nu_tot > 0 && c->Omega_g == 0) {
     error("Specify Omega_g or T_CMB to include massive neutrinos.");
@@ -848,21 +842,36 @@ void cosmology_neutrino_init(struct swift_params *params,
     error("Specify T_nu or N_eff to include massive neutrinos.");
   }
 
-  /* Neutrino densities (assuming that all species are now non-relativistic) */
+  /* Neutrino densities (assuming that massive species are non-relativistic) */
+  double Omega_nu_nr = 0; /* non-relativistic part */
+  double Omega_nu_r = 0;  /* relativistic part */
   if (c->M_nu_tot > 0) {
-    c->Omega_nu = 0;
-    c->Omega_nu_i = calloc(c->N_nu, sizeof(double *));
-
     double zeta3 = 1.20205690;
-    double number_density = zeta3 / (M_PI * M_PI) * 1.5 * pow(kb * c->T_nu, 3) /
-                            pow(cvel * hbar, 3);
+    double number_dens = zeta3 / (M_PI * M_PI) * 1.5 * pow(kb * c->T_nu, 3) /
+                         pow(cvel * hbar, 3);
     for (size_t i = 0; i < c->N_nu; i++) {
-      c->Omega_nu_i[i] = number_density * c->M_nu[i] * eV / crit_energy_density;
-      c->Omega_nu += c->Omega_nu_i[i];
+      if (c->M_nu[i] == 0) {
+        /* Massless case */
+        c->Omega_nu_i[i] = c->Omega_g * pow(c->T_nu / c->T_CMB, 4) * (7. / 8.);
+        Omega_nu_r += c->Omega_nu_i[i];
+      } else {
+        /* Massive case */
+        c->Omega_nu_i[i] = number_dens * c->M_nu[i] * eV / crit_energy_density;
+        Omega_nu_nr += c->Omega_nu_i[i];
+      }
     }
   } else {
-    /* Massless case */
-    c->Omega_nu = c->N_eff * fermi_factor;
+    /* All massless case */
+    Omega_nu_r = c->Omega_g * c->N_eff * fermi_factor;
+  }
+
+  c->Omega_nu = Omega_nu_nr + Omega_nu_r;
+
+  /* Ensure that Omega_g and Omega_r are not both specified */
+  if (c->Omega_r > 0 && c->Omega_g > 0) {
+    error("Omega_r and Omega_g (or T_CMB) should not both be specified.");
+  } else if (c->Omega_r == 0) {
+    c->Omega_r = c->Omega_g + Omega_nu_r;
   }
 }
 
