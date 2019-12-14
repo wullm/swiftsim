@@ -55,7 +55,7 @@ struct cosmoinfo {
   /*! Neutrino density parameter (cosmology.Omega_nu) */
   double Omega_nu;
 
-  /*! Neutrino density parameter (cosmology.Omega_k) */
+  /*! Radiation density parameter (cosmology.Omega_k) */
   double Omega_k;
 
   /*! Baryon density parameter (cosmology.Omega_b) */
