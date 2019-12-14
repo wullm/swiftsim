@@ -4574,6 +4574,7 @@ void engine_recompute_displacement_constraint(struct engine *e) {
   const struct cosmology *cosmo = e->cosmology;
   const float Om = cosmo->Omega_m;
   const float Ob = cosmo->Omega_b;
+  const float Onu = cosmo->Omega_nu;
   const float H0 = cosmo->H0;
   const float a = cosmo->a;
   const float G_newton = e->physical_constants->const_newton_G;
@@ -4646,7 +4647,7 @@ void engine_recompute_displacement_constraint(struct engine *e) {
     const float min_mass_dm = min_mass[1];
 
     /* Inter-particle sepration for the DM */
-    const float d_dm = cbrtf(min_mass_dm / ((Om - Ob) * rho_crit0));
+    const float d_dm = cbrtf(min_mass_dm / ((Om - Ob - Onu) * rho_crit0));
 
     /* RMS peculiar motion for the DM */
     const float rms_vel_dm = vel_norm_dm / N_dm;
@@ -4837,9 +4838,15 @@ void engine_struct_restore(struct engine *e, FILE *stream) {
   units_struct_restore(us, stream);
   e->snapshot_units = us;
 
+  struct phys_const *physical_constants =
+      (struct phys_const *)malloc(sizeof(struct phys_const));
+  phys_const_struct_restore(physical_constants, stream);
+  e->physical_constants = physical_constants;
+
   struct cosmology *cosmo =
       (struct cosmology *)malloc(sizeof(struct cosmology));
-  cosmology_struct_restore(e->policy & engine_policy_cosmology, cosmo, stream);
+  cosmology_struct_restore(e->policy & engine_policy_cosmology, cosmo,
+                           e->physical_constants, stream);
   e->cosmology = cosmo;
 
 #ifdef WITH_MPI
@@ -4848,11 +4855,6 @@ void engine_struct_restore(struct engine *e, FILE *stream) {
   partition_struct_restore(reparttype, stream);
   e->reparttype = reparttype;
 #endif
-
-  struct phys_const *physical_constants =
-      (struct phys_const *)malloc(sizeof(struct phys_const));
-  phys_const_struct_restore(physical_constants, stream);
-  e->physical_constants = physical_constants;
 
   struct hydro_props *hydro_properties =
       (struct hydro_props *)malloc(sizeof(struct hydro_props));

@@ -18,7 +18,7 @@ To allow for general expansion histories we use the full Friedmann equations
 and write
 \begin{align}
 H(a) &\equiv H_0 E(a) \\ E(a) &\equiv\sqrt{\Omega_m a^{-3} + \Omega_r
-  a^{-4} + \Omega_k a^{-2} + \Omega_\Lambda \exp\left(3\tilde{w}(a)\right)},
+  a^{-4} + \Omega_k a^{-2} + \Omega_\Lambda \exp\left(3\tilde{w}(a)\right)}, \label{eq:Ea}
 \\
 \tilde{w}(a) &= (a-1)w_a - (1+w_0 + w_a)\log\left(a\right),
 \label{eq:friedmann}
@@ -84,3 +84,47 @@ tables used for the more general case.
 Typical values for the constants are: $\Omega_m = 0.3, \Omega_\Lambda=0.7, 0 <
 \Omega_r<10^{-3}, |\Omega_k | < 10^{-2}, h=0.7, a_{\rm start} = 10^{-2}, a_{\rm
 end} = 1, w_0 = -1\pm 0.1, w_a=0\pm0.2$ and $\gamma = 5/3$.
+
+\subsubsection{Massive neutrinos}
+
+The non-relativistic transition of massive neutrinos occurs at
+$a^{-1}\approx 1890 (m_\nu/1\text{ eV})$, which typically is in the timeframe of
+cosmological simulations. This changes the background evolution slightly,
+affecting the Hubble rate $E(a)$ and most integrated quantities described in this
+document by a few tenths of a percent. To account for this effect, we allow users
+to specify the photon density $\Omega_\gamma$ (or $T_\text{CMB}$), the number of
+neutrino species $N_\nu$, the neutrino temperature $T_{\nu,0}$ (or $N_\text{eff}$)
+and neutrino masses $m_{\nu,i}$. These quantities replace the total radiation
+density parameter $\Omega_r$. The radiation term appearing in (\ref{eq:Ea}) is
+replaced by
+\begin{align}
+    \Omega_r a^{-4} = \left[\Omega_\gamma + \Omega_\nu(a)\right] a^{-4}.
+\end{align}
+In the massless case $m_{\nu,i}=0$ for $i=1,\dots,N_\nu$, the neutrino density is constant and given by
+\begin{align}
+    \Omega_\nu = \frac{7}{8}\left(\frac{4}{11}\right)^{4/3} N_\text{eff}\,\Omega_\gamma.
+\end{align}
+In general, the neutrino density parameter is \citep{Zennaro2016}
+\begin{align}
+    \Omega_\nu(a) = \Omega_\gamma \sum_{i=1}^{N_\nu}\frac{15}{\pi^4}\left(\frac{T_{\nu,0}}{T_\text{CMB}}\right)^4 \mathcal{F}\left(\frac{a m_{\nu,i}}{k_b T_{\nu,0}}\right), \label{eq:nudensity}
+\end{align}
+where $k_b$ is Boltzmann's constant and the function $\mathcal{F}$ is given by the momentum integral
+%
+\begin{align}
+    \mathcal{F}(y) = \int_0^{\infty} \frac{x^2\sqrt{x^2+y^2}}{1+e^{x}}\mathrm{d}x.
+\end{align}
+At the start of the simulation, but only if necessary, values of
+(\ref{eq:nudensity}) are tabulated on a finer grid of $10^5$ values of $a$ spaced
+between $\log(a_\text{begin})$ and $\log(a_\text{end})$. The integrals
+$\mathcal{F}(y)$ are evaluated using the 61-points Gauss-Konrod rule implemented
+in the {\sc gsl} library with a relative error limit of $\epsilon=10^{-12}$.
+Tabulated values are then linearly interpolated whenever $E(a)$ is computed.
+
+As indicated above, users have some flexibility with regard to input parameters
+that are related. If one of $\Omega_\gamma$/$T_\text{CMB}$ and $N_\text{eff}$/$T_{\nu,0}$
+is specified, the others are inferred from:
+%
+\begin{align}
+    \Omega_\gamma &= \frac{\pi^2}{15}\frac{(k_b T_\text{CMB})^4}{(\hbar c)^3}\frac{1}{\rho_{\rm crit}c^2},\\
+    N_\text{eff} &= N_\nu\left(\frac{11}{4}\right)^{4/3}\left(\frac{T_{\nu,0}}{T_\text{CMB}}\right)^4.
+\end{align}
