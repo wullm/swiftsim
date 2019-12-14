@@ -1158,9 +1158,8 @@ double cosmology_get_scale_factor(const struct cosmology *c, double t) {
 }
 
 /**
- * @brief Compute neutrino density parameter relative to photon density
- * parameter Omega_nu/Omega_g (normalized to redshift 0) at the given
- * scale-factor
+ * @brief Compute neutrino density parameter Omega_nu (normalized to redshift 0)
+ * at the given scale-factor
  *
  * @param c The current #cosmology.
  * @param a The scale factor
