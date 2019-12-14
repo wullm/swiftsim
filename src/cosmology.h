@@ -246,6 +246,9 @@ double cosmology_get_delta_time_from_scale_factors(const struct cosmology *c,
 
 double cosmology_get_scale_factor(const struct cosmology *cosmo, double t);
 
+double cosmology_get_neutrino_density_param(const struct cosmology *c,
+                                            double a);
+
 double cosmology_get_time_since_big_bang(const struct cosmology *c, double a);
 void cosmology_init(struct swift_params *params, const struct unit_system *us,
                     const struct phys_const *phys_const, struct cosmology *c);
