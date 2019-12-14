@@ -211,6 +211,9 @@ struct cosmology {
   /*! Neutrino density interpolation table */
   double *neutrino_density_interp_table;
 
+  /*! Log of scale factor at which the neutrino table begins */
+  double log_a_nutab_begin;
+
   /*! Time between Big Bang and first entry in the table */
   double time_interp_table_offset;
 
