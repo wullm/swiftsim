@@ -497,7 +497,7 @@ void cosmology_init_tables(struct cosmology *c,
       for (size_t j = 0; j < N_nu; j++) {
         /* Massless neutrino case */
         if (M_nu[j] == 0) {
-          N_eff += 1.0;
+          N_eff += c->N_eff / c->N_nu;
         } else {
           /* Integrate the FD distribtuion */
           double y = a_start * M_nu[j] * eV / (kb * c->T_nu);
@@ -522,9 +522,9 @@ void cosmology_init_tables(struct cosmology *c,
     double abs_err = fabs(N_eff - c->N_eff) / c->N_eff;
 
     if (iters == max_iter) {
-      error("Could not find z when neutrinos were relativistic (max iter).");
+      error("Could not find time when neutrinos were relativistic (max iter).");
     } else if (abs_err > 1e-5) {
-      message("Warning: neutrino density non-convergence (err=%.10e)", abs_err);
+      error("N_eff and neutrino density do not agree (err=%.10e)", abs_err);
     }
 
     c->log_a_nutab_begin = log(a_start);
@@ -542,7 +542,7 @@ void cosmology_init_tables(struct cosmology *c,
       for (size_t j = 0; j < N_nu; j++) {
         /* Massless neutrino case */
         if (M_nu[j] == 0) {
-          Onu_d_g += fermi_factor;
+          Onu_d_g += (c->N_eff / c->N_nu) * fermi_factor;
         } else {
           /* Integrate the FD distribtuion */
           double y = long_a_table[i] * M_nu[j] * eV / (kb * c->T_nu);
