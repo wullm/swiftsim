@@ -84,7 +84,8 @@ static INLINE double interp_table(const double *table, const double x,
 /**
  * @brief Returns the interpolated value from a longer cosmological table.
  *
- * Uses linear interpolation.
+ * Uses linear interpolation. Slightly different from interp_table in the
+ * way it handles the lower bound of the table.
  *
  * @brief table The table of value to interpolate from (should be of length
  * cosmology_long_table_length).
@@ -104,8 +105,8 @@ static INLINE double interp_long_table(const double *table, const double x,
   /* Indicate that the whole array is aligned on boundaries */
   swift_align_information(double, table, SWIFT_STRUCT_ALIGNMENT);
 
-  if (ii <= 1)
-    return table[0] * xx;
+  if (ii < 1)
+    return table[0];
   else
     return table[ii - 1] + (table[ii] - table[ii - 1]) * (xx - ii);
 }
@@ -229,7 +230,7 @@ void cosmology_update(struct cosmology *c, const struct phys_const *phys_const,
   /* E(z) */
   double Omega_nu;
   /* Accounting for the R/NR transition of massive neutrinos */
-  if (a > c->a_begin && c->M_nu_tot > 0) {
+  if (c->M_nu_tot > 0) {
     Omega_nu = cosmology_get_neutrino_density_param(c, a);
   } else {
     Omega_nu = c->Omega_nu;
@@ -279,7 +280,7 @@ double drift_integrand(double a, void *param) {
 
   double Omega_nu;
   /* Accounting for the R/NR transition of massive neutrinos */
-  if (a > c->a_begin && c->M_nu_tot > 0) {
+  if (c->M_nu_tot > 0) {
     Omega_nu = cosmology_get_neutrino_density_param(c, a);
   } else {
     Omega_nu = c->Omega_nu;
@@ -312,7 +313,7 @@ double gravity_kick_integrand(double a, void *param) {
 
   double Omega_nu;
   /* Accounting for the R/NR transition of massive neutrinos */
-  if (a > c->a_begin && c->M_nu_tot > 0) {
+  if (c->M_nu_tot > 0) {
     Omega_nu = cosmology_get_neutrino_density_param(c, a);
   } else {
     Omega_nu = c->Omega_nu;
@@ -345,7 +346,7 @@ double hydro_kick_integrand(double a, void *param) {
 
   double Omega_nu;
   /* Accounting for the R/NR transition of massive neutrinos */
-  if (a > c->a_begin && c->M_nu_tot > 0) {
+  if (c->M_nu_tot > 0) {
     Omega_nu = cosmology_get_neutrino_density_param(c, a);
   } else {
     Omega_nu = c->Omega_nu;
@@ -380,7 +381,7 @@ double hydro_kick_corr_integrand(double a, void *param) {
 
   double Omega_nu;
   /* Accounting for the R/NR transition of massive neutrinos */
-  if (a > c->a_begin && c->M_nu_tot > 0) {
+  if (c->M_nu_tot > 0) {
     Omega_nu = cosmology_get_neutrino_density_param(c, a);
   } else {
     Omega_nu = c->Omega_nu;

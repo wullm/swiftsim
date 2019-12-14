@@ -40,7 +40,7 @@ void test_params_init(struct swift_params *params, int testnr) {
       parser_set_param(params, "Cosmology:Omega_g:5.2e-5");
       parser_set_param(params, "Cosmology:N_nu:3");
       parser_set_param(params, "Cosmology:N_eff:3.046");
-    break;
+      break;
     /* Three massive neutrinos */
     case 1:
       parser_init("", params);
@@ -54,7 +54,7 @@ void test_params_init(struct swift_params *params, int testnr) {
       parser_set_param(params, "Cosmology:N_nu:3");
       parser_set_param(params, "Cosmology:N_eff:3.046");
       parser_set_param(params, "Cosmology:M_nu:0.02,0.03,0.04");
-    break;
+      break;
     /* Two massive neutrinos + one massless */
     case 2:
       parser_init("", params);
@@ -68,9 +68,9 @@ void test_params_init(struct swift_params *params, int testnr) {
       parser_set_param(params, "Cosmology:N_nu:3");
       parser_set_param(params, "Cosmology:N_eff:3.046");
       parser_set_param(params, "Cosmology:M_nu:0,0.02,0.04");
-    break;
+      break;
     /* Three massless neutrinos - same as case 0 but with different
-    * parametrisation */
+     * parametrisation */
     case 3:
       parser_init("", params);
       parser_set_param(params, "Cosmology:Omega_m:0.3075");
@@ -80,7 +80,7 @@ void test_params_init(struct swift_params *params, int testnr) {
       parser_set_param(params, "Cosmology:h:0.6774");
       parser_set_param(params, "Cosmology:a_begin:0.1");
       parser_set_param(params, "Cosmology:a_end:1.0");
-    break;
+      break;
     /* Three very massive neutrinos from very early times to today */
     case 4:
       parser_init("", params);
@@ -94,17 +94,16 @@ void test_params_init(struct swift_params *params, int testnr) {
       parser_set_param(params, "Cosmology:N_nu:3");
       parser_set_param(params, "Cosmology:N_eff:3.046");
       parser_set_param(params, "Cosmology:M_nu:0.1,0.2,0.3");
-    break;
+      break;
   }
 }
 
 int main(int argc, char *argv[]) {
 
-
   /* Test a number of different cosmologies */
   int N_cosmos = 4;
-  double times1[N_CHECK]; //compare cosmology 0
-  double times2[N_CHECK]; //with cosmology 3
+  double times1[N_CHECK];  // compare cosmology 0
+  double times2[N_CHECK];  // with cosmology 3
   for (int testnr = 0; testnr < N_cosmos; testnr++) {
     message("Initialization...");
 
@@ -132,9 +131,9 @@ int main(int argc, char *argv[]) {
       double tmp = cosmology_get_time_since_big_bang(&cosmo, a);
 
       /* Store the value for cosmologies 0 and 3 to compare later */
-      if (testnr==0) {
+      if (testnr == 0) {
         times1[i] = tmp;
-      } else if (testnr==3) {
+      } else if (testnr == 3) {
         times2[i] = tmp;
       }
 
@@ -153,13 +152,13 @@ int main(int argc, char *argv[]) {
   /* Compare cosmologies 0 and 3 */
   for (int j = 0; j < N_CHECK; j++) {
     /* check accuracy */
-    double err = (times1[j] - times2[j])/times1[j];
+    double err = (times1[j] - times2[j]) / times1[j];
     message("Accuracy of %g at step %i", err, j);
     assert(fabs(err) < TOLERANCE);
   }
 
   /* For the massive neutrino cosmology 4, check that it reproduces
-  *  the relativistic (early) and non-relativistic (late) limits */
+   *  the relativistic (early) and non-relativistic (late) limits */
 
   message("Initialization...");
 
@@ -182,16 +181,19 @@ int main(int argc, char *argv[]) {
   message("Start checking the fermion integration...");
 
   /* Relativistic limit */
-  double Omega_nu_early = cosmology_get_neutrino_density_param(&cosmo, cosmo.a_begin*1.1);
-  double Omega_nu_r = cosmo.Omega_g * cosmo.N_eff * (7./8.) * pow(4./11., 4./3.);
-  double err = (Omega_nu_early-Omega_nu_r)/Omega_nu_early;
+  double Omega_nu_early =
+      cosmology_get_neutrino_density_param(&cosmo, cosmo.a_begin);
+  double Omega_nu_r =
+      cosmo.Omega_g * cosmo.N_eff * (7. / 8.) * pow(4. / 11., 4. / 3.);
+  double err = (Omega_nu_early - Omega_nu_r) / Omega_nu_early;
   message("Accuracy of %g of the relativistic limit", err);
   assert(fabs(err) < TOLERANCE);
 
   /* Non-relativistic limit (limit not reached, so lower tolerance is fine)*/
-  double Omega_nu_late = cosmology_get_neutrino_density_param(&cosmo, cosmo.a_end);
+  double Omega_nu_late =
+      cosmology_get_neutrino_density_param(&cosmo, cosmo.a_end);
   double Omega_nu_nr = cosmo.Omega_nu;
-  double err2 = (Omega_nu_late-Omega_nu_nr)/Omega_nu_late;
+  double err2 = (Omega_nu_late - Omega_nu_nr) / Omega_nu_late;
   message("Accuracy of %g of the non-relativistic limit", err2);
   assert(fabs(err2) < TOLERANCE * 100);
 
