@@ -76,7 +76,7 @@ void test_params_init(struct swift_params *params, int testnr) {
       parser_set_param(params, "Cosmology:Omega_m:0.3075");
       parser_set_param(params, "Cosmology:Omega_lambda:0.6910");
       parser_set_param(params, "Cosmology:Omega_b:0.0486");
-      parser_set_param(params, "Cosmology:Omega_r:8.7972e-5");
+      parser_set_param(params, "Cosmology:Omega_r:8.7971982e-5");
       parser_set_param(params, "Cosmology:h:0.6774");
       parser_set_param(params, "Cosmology:a_begin:0.1");
       parser_set_param(params, "Cosmology:a_end:1.0");
@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
   for (int j = 0; j < N_CHECK; j++) {
     /* check accuracy */
     double err = (times1[j] - times2[j]) / times1[j];
-    message("Accuracy of %g at step %i", err, j);
+    message("Agreement of %g at step %i", err, j);
     assert(fabs(err) < TOLERANCE);
   }
 

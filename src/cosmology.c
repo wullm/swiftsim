@@ -735,7 +735,6 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* If there are neutrinos, load the optional mass array */
   if (c->N_nu > 0) {
-    c->Omega_nu_i = calloc(c->N_nu, sizeof(double *));
     c->M_nu = calloc(c->N_nu, sizeof(double *));
     parser_get_opt_param_double_array(params, "Cosmology:M_nu", c->N_nu,
                                       c->M_nu);
@@ -777,7 +776,7 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   if (c->M_nu_tot > 0) {
     c->neutrino_density_interp_table = NULL;
     cosmology_init_neutrino_tables(c, phys_const);
-    c->Omega_nu = cosmology_get_neutrino_density_param(c, 1); //scale-factor 1
+    c->Omega_nu = cosmology_get_neutrino_density_param(c, 1);  // scale-factor 1
   } else {
     /* All massless case */
     const double fermi_factor = 7. / 8. * pow(4. / 11., 4. / 3.);
@@ -785,7 +784,11 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   }
 
   /* Curvature density (for closure) */
-  c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
+  if (c->Omega_g > 0) {
+    c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
+  } else {
+    c->Omega_k = 1. - (c->Omega_m + c->Omega_nu + c->Omega_g + c->Omega_lambda);
+  }
 
   /* Initialise the interpolation tables */
   c->drift_fac_interp_table = NULL;
@@ -831,10 +834,8 @@ void cosmology_neutrino_init(struct swift_params *params,
   const double hbar = phys_const->const_planck_h / (2 * M_PI);
   const double cvel = phys_const->const_speed_light_c;
   const double kb = phys_const->const_boltzmann_k;
-  const double eV = phys_const->const_electron_volt;
   const double crit_energy_density = c->critical_density_0 * cvel * cvel;
   const double e_pre_factor = 15.0 / (M_PI * M_PI) * pow(cvel * hbar, 3);
-  const double fermi_factor = 7. / 8. * pow(4. / 11., 4. / 3.);
 
   /* Ensure that Omega_g and T_CMB are not both specified */
   if (c->T_CMB > 0 && c->Omega_g > 0) {
@@ -869,39 +870,9 @@ void cosmology_neutrino_init(struct swift_params *params,
     error("Specify T_nu or N_eff to include neutrinos.");
   }
 
-  /* Neutrino densities (assuming that massive species are non-relativistic) */
-  double Omega_nu_nr = 0; /* non-relativistic part */
-  double Omega_nu_r = 0;  /* relativistic part */
-  if (c->M_nu_tot > 0) {
-    double zeta3 = 1.20205690;
-    double number_dens = zeta3 / (M_PI * M_PI) * 1.5 * pow(kb * c->T_nu, 3) /
-                         pow(cvel * hbar, 3);
-    for (size_t i = 0; i < c->N_nu; i++) {
-      if (c->M_nu[i] == 0) {
-        /* Massless case */
-        c->Omega_nu_i[i] = c->Omega_g * pow(c->T_nu / c->T_CMB, 4) * (7. / 8.);
-        Omega_nu_r += c->Omega_nu_i[i];
-      } else {
-        /* Massive case */
-        c->Omega_nu_i[i] = number_dens * c->M_nu[i] * eV / crit_energy_density;
-        Omega_nu_nr += c->Omega_nu_i[i];
-      }
-    }
-  } else {
-    /* All massless case */
-    Omega_nu_r = c->Omega_g * c->N_eff * fermi_factor;
-    for (size_t i = 0; i < c->N_nu; i++) {
-      c->Omega_nu_i[i] = c->Omega_g * pow(c->T_nu / c->T_CMB, 4) * (7. / 8.);
-    }
-  }
-
-  c->Omega_nu = Omega_nu_nr + Omega_nu_r;
-
   /* Ensure that Omega_g and Omega_r are not both specified */
   if (c->Omega_r > 0 && c->Omega_g > 0) {
     error("Omega_r and Omega_g (or T_CMB) should not both be specified.");
-  } else if (c->Omega_r == 0) {
-    c->Omega_r = c->Omega_g + Omega_nu_r;
   }
 }
 
@@ -1231,10 +1202,6 @@ void cosmology_print(const struct cosmology *c) {
       "%f, %f]",
       c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k,
       c->Omega_r);
-  for (size_t i = 0; i < c->N_nu; i++) {
-    message("Omega_nu[%zu] = %f, M_nu[%zu] = %f eV", i, c->Omega_nu_i[i], i,
-            c->M_nu[i]);
-  }
   message("Dark energy equation of state: w_0=%f w_a=%f", c->w_0, c->w_a);
   message("Hubble constant: h = %f, H_0 = %e U_t^(-1)", c->h, c->H0);
   message("Hubble time: 1/H0 = %e U_t", c->Hubble_time);
@@ -1283,7 +1250,6 @@ void cosmology_write_model(hid_t h_grp, const struct cosmology *c) {
   io_write_attribute_d(h_grp, "N_eff", c->N_eff);
   io_write_attribute_d(h_grp, "M_nu_tot", c->M_nu_tot);
   io_write_attribute(h_grp, "M_nu", DOUBLE, c->M_nu, c->N_nu);
-  io_write_attribute(h_grp, "Omega_nu_i", DOUBLE, c->Omega_nu_i, c->N_nu);
 
   io_write_attribute_d(h_grp, "w_0", c->w_0);
   io_write_attribute_d(h_grp, "w_a", c->w_a);
