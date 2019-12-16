@@ -214,6 +214,9 @@ struct cosmology {
   /*! Log of scale factor at which the neutrino table begins */
   double log_a_nutab_begin;
 
+  /*! Log of scale factor at which the neutrino table ends */
+  double log_a_nutab_end;
+
   /*! Time between Big Bang and first entry in the table */
   double time_interp_table_offset;
 

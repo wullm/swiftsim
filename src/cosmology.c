@@ -423,10 +423,133 @@ double neutrino_density_integrand_transformed(double w, void *param) {
 }
 
 /**
+ * @brief Performs the neutrino density momentum integrand
+ * \f$ \int_0^\infty x^2 \sqrt{x^2 + y^2} / (1+e^x) dx \f$, where
+ * \f$ y = a*M_nu/(kb*T) \f$ is the neutrino mass scaled with redshift,
+ * without pre-factors.
+ *
+ * @param space The GSL working space
+ * @param y Neutrino mass y scaled by temperature at redshift of interest.
+ */
+double neutrino_density_integrate(gsl_integration_workspace *space, double y) {
+  double intermediate, abserr;
+
+  double result = 0;
+
+  gsl_function F1 = {&neutrino_density_integrand, &y};
+  gsl_function F2 = {&neutrino_density_integrand_transformed, &y};
+  /* Integrate between 0 and 1 */
+  gsl_integration_qag(&F1, 0.0, 1.0, 0, 1.0e-12, GSL_workspace_size,
+                      GSL_INTEG_GAUSS61, space, &intermediate, &abserr);
+  result += intermediate;
+  /* Integrate between 1 and infinity */
+  gsl_integration_qag(&F2, 0.0, 1.0, 0, 1.0e-12, GSL_workspace_size,
+                      GSL_INTEG_GAUSS61, space, &intermediate, &abserr);
+  result += intermediate;
+
+  return result;
+}
+
+/**
+ * @brief Initialise the interpolation tables for the neutrino integrals.
+ */
+void cosmology_init_neutrino_tables(struct cosmology *c,
+                                    const struct phys_const *phys_const) {
+
+#ifdef HAVE_LIBGSL
+
+  /* Initalise the GSL workspace */
+  gsl_integration_workspace *space =
+      gsl_integration_workspace_alloc(GSL_workspace_size);
+
+  /* Create Omega_nu(a) interpolation table for massive neutrinos */
+  if (swift_memalign("cosmo.table", (void **)&c->neutrino_density_interp_table,
+                     SWIFT_STRUCT_ALIGNMENT,
+                     cosmology_long_table_length * sizeof(double)) != 0)
+    error("Failed to allocate long cosmology interpolation table");
+
+  const double kb = phys_const->const_boltzmann_k;
+  const double eV = phys_const->const_electron_volt;
+  const size_t N_nu = c->N_nu;
+  const double *M_nu = c->M_nu;
+  const double pre_factor = 15. * pow(c->T_nu / c->T_CMB, 4) / pow(M_PI, 4);
+  const double fermi_factor = 7. / 8. * pow(4. / 11., 4. / 3.);
+
+  /* Iteratively find a time when the neutrinos are still relativistic */
+  double a_start = c->a_begin;
+  double N_eff, N_eff_prev = 0, err = 1;
+  int iters = 0, max_iter = 1000;
+  while (err > 1e-7 && iters < max_iter) {
+    N_eff = 0;
+    for (size_t j = 0; j < N_nu; j++) {
+      /* Massless neutrino case */
+      if (M_nu[j] == 0) {
+        N_eff += c->N_eff / c->N_nu;
+      } else {
+        /* Integrate the FD distribtuion */
+        double y = a_start * M_nu[j] * eV / (kb * c->T_nu);
+        double result = neutrino_density_integrate(space, y);
+        N_eff += result * pre_factor / fermi_factor;
+      }
+    }
+    err = fabs(N_eff - N_eff_prev) / N_eff;
+    a_start /= 1.1;
+    N_eff_prev = N_eff;
+    iters++;
+  }
+
+  double abs_err = fabs(N_eff - c->N_eff) / c->N_eff;
+
+  if (iters == max_iter) {
+    error("Could not find time when neutrinos were relativistic (max iter).");
+  } else if (abs_err > 1e-5) {
+    error("N_eff and neutrino density do not agree (err=%.10e)", abs_err);
+  }
+
+  c->log_a_nutab_begin = log(a_start);
+  c->log_a_nutab_end = c->log_a_end;  // scale-factor a=1
+
+  /* Prepare a longer table of scale factors for the integral bounds */
+  const double delta_fine_a =
+      (c->log_a_nutab_end - c->log_a_nutab_begin) / cosmology_long_table_length;
+  double *long_a_table = (double *)swift_malloc(
+      "cosmo.table", cosmology_long_table_length * sizeof(double));
+  for (int i = 0; i < cosmology_long_table_length; i++)
+    long_a_table[i] = exp(c->log_a_nutab_begin + delta_fine_a * (i + 1));
+
+  for (int i = 0; i < cosmology_long_table_length; i++) {
+    double Onu_d_g = 0;  // Omega_nu / Omega_g
+    for (size_t j = 0; j < N_nu; j++) {
+      /* Massless neutrino case */
+      if (M_nu[j] == 0) {
+        Onu_d_g += (c->N_eff / c->N_nu) * fermi_factor;
+      } else {
+        /* Integrate the FD distribtuion */
+        double y = long_a_table[i] * M_nu[j] * eV / (kb * c->T_nu);
+        double result = neutrino_density_integrate(space, y);
+        Onu_d_g += result * pre_factor;
+      }
+    }
+    c->neutrino_density_interp_table[i] = Onu_d_g * c->Omega_g;
+  }
+
+  /* Free the temp array */
+  swift_free("cosmo.table", long_a_table);
+
+  /* Free the workspace and temp array */
+  gsl_integration_workspace_free(space);
+
+#else
+
+  error("Code not compiled with GSL. Can't compute cosmology integrals.");
+
+#endif
+}
+
+/**
  * @brief Initialise the interpolation tables for the integrals.
  */
-void cosmology_init_tables(struct cosmology *c,
-                           const struct phys_const *phys_const) {
+void cosmology_init_tables(struct cosmology *c) {
 
 #ifdef HAVE_LIBGSL
 
@@ -472,98 +595,6 @@ void cosmology_init_tables(struct cosmology *c,
       gsl_integration_workspace_alloc(GSL_workspace_size);
 
   double result, abserr;
-
-  /* Create Omega_nu(a) interpolation table for massive neutrinos */
-  if (c->M_nu_tot > 0) {
-    if (swift_memalign("cosmo.table",
-                       (void **)&c->neutrino_density_interp_table,
-                       SWIFT_STRUCT_ALIGNMENT,
-                       cosmology_long_table_length * sizeof(double)) != 0)
-      error("Failed to allocate long cosmology interpolation table");
-
-    const double kb = phys_const->const_boltzmann_k;
-    const double eV = phys_const->const_electron_volt;
-    const size_t N_nu = c->N_nu;
-    const double *M_nu = c->M_nu;
-    const double pre_factor = 15. * pow(c->T_nu / c->T_CMB, 4) / pow(M_PI, 4);
-    const double fermi_factor = 7. / 8. * pow(4. / 11., 4. / 3.);
-
-    /* Iteratively find a time when the neutrinos are still relativistic */
-    double a_start = c->a_begin;
-    double N_eff, N_eff_prev = 0, err = 1;
-    int iters = 0, max_iter = 1000;
-    while (err > 1e-7 && iters < max_iter) {
-      N_eff = 0;
-      for (size_t j = 0; j < N_nu; j++) {
-        /* Massless neutrino case */
-        if (M_nu[j] == 0) {
-          N_eff += c->N_eff / c->N_nu;
-        } else {
-          /* Integrate the FD distribtuion */
-          double y = a_start * M_nu[j] * eV / (kb * c->T_nu);
-          gsl_function F1 = {&neutrino_density_integrand, &y};
-          gsl_function F2 = {&neutrino_density_integrand_transformed, &y};
-          /* Integrate between 0 and 1 */
-          gsl_integration_qag(&F1, 0.0, 1.0, 0, 1.0e-12, GSL_workspace_size,
-                              GSL_INTEG_GAUSS61, space, &result, &abserr);
-          N_eff += result * pre_factor / fermi_factor;
-          /* Integrate between 1 and infinity */
-          gsl_integration_qag(&F2, 0.0, 1.0, 0, 1.0e-12, GSL_workspace_size,
-                              GSL_INTEG_GAUSS61, space, &result, &abserr);
-          N_eff += result * pre_factor / fermi_factor;
-        }
-      }
-      err = fabs(N_eff - N_eff_prev) / N_eff;
-      a_start /= 1.1;
-      N_eff_prev = N_eff;
-      iters++;
-    }
-
-    double abs_err = fabs(N_eff - c->N_eff) / c->N_eff;
-
-    if (iters == max_iter) {
-      error("Could not find time when neutrinos were relativistic (max iter).");
-    } else if (abs_err > 1e-5) {
-      error("N_eff and neutrino density do not agree (err=%.10e)", abs_err);
-    }
-
-    c->log_a_nutab_begin = log(a_start);
-
-    /* Prepare a longer table of scale factors for the integral bounds */
-    const double delta_fine_a =
-        (c->log_a_end - c->log_a_nutab_begin) / cosmology_long_table_length;
-    double *long_a_table = (double *)swift_malloc(
-        "cosmo.table", cosmology_long_table_length * sizeof(double));
-    for (int i = 0; i < cosmology_long_table_length; i++)
-      long_a_table[i] = exp(c->log_a_nutab_begin + delta_fine_a * (i + 1));
-
-    for (int i = 0; i < cosmology_long_table_length; i++) {
-      double Onu_d_g = 0;  // Omega_nu / Omega_g
-      for (size_t j = 0; j < N_nu; j++) {
-        /* Massless neutrino case */
-        if (M_nu[j] == 0) {
-          Onu_d_g += (c->N_eff / c->N_nu) * fermi_factor;
-        } else {
-          /* Integrate the FD distribtuion */
-          double y = long_a_table[i] * M_nu[j] * eV / (kb * c->T_nu);
-          gsl_function F1 = {&neutrino_density_integrand, &y};
-          gsl_function F2 = {&neutrino_density_integrand_transformed, &y};
-          /* Integrate between 0 and 1 */
-          gsl_integration_qag(&F1, 0.0, 1.0, 0, 1.0e-12, GSL_workspace_size,
-                              GSL_INTEG_GAUSS61, space, &result, &abserr);
-          Onu_d_g += result * pre_factor;
-          /* Integrate between 1 and infinity */
-          gsl_integration_qag(&F2, 0.0, 1.0, 0, 1.0e-12, GSL_workspace_size,
-                              GSL_INTEG_GAUSS61, space, &result, &abserr);
-          Onu_d_g += result * pre_factor;
-        }
-      }
-      c->neutrino_density_interp_table[i] = Onu_d_g * c->Omega_g;
-    }
-
-    /* Free the temp array */
-    swift_free("cosmo.table", long_a_table);
-  }
 
   /* Integrate the drift factor \int_{a_begin}^{a_table[i]} dt/a^2 */
   gsl_function F = {&drift_integrand, c};
@@ -742,6 +773,17 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   /* Initialise quantities related to neutrinos and relativisitc species */
   cosmology_neutrino_init(params, us, phys_const, c);
 
+  /* If necessary, initialize the neutrino density interpolation table */
+  if (c->M_nu_tot > 0) {
+    c->neutrino_density_interp_table = NULL;
+    cosmology_init_neutrino_tables(c, phys_const);
+    c->Omega_nu = cosmology_get_neutrino_density_param(c, 1); //scale-factor 1
+  } else {
+    /* All massless case */
+    const double fermi_factor = 7. / 8. * pow(4. / 11., 4. / 3.);
+    c->Omega_nu = c->Omega_g * c->N_eff * fermi_factor;
+  }
+
   /* Curvature density (for closure) */
   c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
 
@@ -750,9 +792,8 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   c->grav_kick_fac_interp_table = NULL;
   c->hydro_kick_fac_interp_table = NULL;
   c->time_interp_table = NULL;
-  c->neutrino_density_interp_table = NULL;
   c->time_interp_table_offset = 0.;
-  cosmology_init_tables(c, phys_const);
+  cosmology_init_tables(c);
 
   /* Set remaining variables to alid values */
   cosmology_update(c, phys_const, 0);
@@ -935,6 +976,7 @@ void cosmology_init_no_cosmo(struct cosmology *c) {
   c->time_interp_table = NULL;
   c->time_interp_table_offset = 0.;
   c->log_a_nutab_begin = 0.;
+  c->log_a_nutab_end = 0.;
   c->scale_factor_interp_table = NULL;
 
   c->time_begin = 0.;
@@ -1175,7 +1217,7 @@ double cosmology_get_neutrino_density_param(const struct cosmology *c,
   } else {
     /* Accounting for the R/NR transition of massive neutrinos */
     return interp_long_table(c->neutrino_density_interp_table, log(a),
-                             c->log_a_nutab_begin, c->log_a_end);
+                             c->log_a_nutab_begin, c->log_a_nutab_end);
   }
 }
 
@@ -1279,5 +1321,8 @@ void cosmology_struct_restore(int enabled, struct cosmology *cosmology,
                       NULL, "cosmology function");
 
   /* Re-initialise the tables if using a cosmology. */
-  if (enabled) cosmology_init_tables(cosmology, phys_const);
+  if (enabled) {
+    cosmology_init_neutrino_tables(cosmology, phys_const);
+    cosmology_init_tables(cosmology);
+  }
 }
