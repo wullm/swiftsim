@@ -23,6 +23,8 @@
 /* Includes. */
 #include "swift.h"
 
+#if defined(NEUTRINO_BACKGROUND)
+
 #define N_CHECK 20
 #define TOLERANCE 1e-7
 
@@ -199,3 +201,9 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+
+#else
+
+int main(int argc, char **argv) { return 0; }
+
+#endif

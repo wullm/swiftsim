@@ -33,7 +33,7 @@ MPI_FLAGS = -DWITH_MPI $(PARMETIS_INCS) $(METIS_INCS)
 
 # Build the libswiftsim library and a convenience library just for the gravity tasks
 lib_LTLIBRARIES = libswiftsim.la
-noinst_LTLIBRARIES = libgrav.la 
+noinst_LTLIBRARIES = libgrav.la
 # Build a MPI-enabled version too?
 if HAVEMPI
 lib_LTLIBRARIES += libswiftsim_mpi.la
@@ -57,7 +57,8 @@ include_HEADERS = space.h runner.h queue.h task.h lock.h cell.h part.h const.h \
     pressure_floor.h pressure_floor_struct.h pressure_floor_iact.h \
     velociraptor_struct.h velociraptor_io.h random.h memuse.h mpiuse.h memuse_rnodes.h \
     black_holes.h black_holes_io.h black_holes_properties.h black_holes_struct.h \
-    feedback.h feedback_struct.h feedback_properties.h task_order.h
+    feedback.h feedback_struct.h feedback_properties.h task_order.h \
+	cosmology_default.h
 
 # source files for EAGLE cooling
 EAGLE_COOLING_SOURCES =
@@ -70,6 +71,15 @@ EAGLE_FEEDBACK_SOURCES =
 if HAVEEAGLEFEEDBACK
 EAGLE_FEEDBACK_SOURCES += feedback/EAGLE/feedback.c
 endif
+
+# cosmology models
+COSMOLOGY_SOURCES =
+if COSMO_WITH_NEUTRINOS
+COSMOLOGY_SOURCES += neutrino/cosmology.c
+else
+COSMOLOGY_SOURCES += cosmology.c
+endif
+
 
 # Common source files
 AM_SOURCES = space.c runner_main.c runner_doiact_hydro.c runner_doiact_limiter.c \
@@ -86,10 +96,10 @@ AM_SOURCES = space.c runner_main.c runner_doiact_hydro.c runner_doiact_limiter.c
     statistics.c profiler.c dump.c logger.c \
     part_type.c xmf.c gravity_properties.c gravity.c \
     collectgroup.c hydro_space.c equation_of_state.c \
-    chemistry.c cosmology.c restart.c mesh_gravity.c velociraptor_interface.c \
+    chemistry.c restart.c mesh_gravity.c velociraptor_interface.c \
     outputlist.c velociraptor_dummy.c logger_io.c memuse.c mpiuse.c memuse_rnodes.c fof.c \
     hashmap.c pressure_floor.c \
-    $(EAGLE_COOLING_SOURCES) $(EAGLE_FEEDBACK_SOURCES)
+    $(EAGLE_COOLING_SOURCES) $(EAGLE_FEEDBACK_SOURCES) $(COSMOLOGY_SOURCES)
 
 # Include files for distribution, not installation.
 nobase_noinst_HEADERS = align.h approx_math.h atomic.h barrier.h cycle.h error.h inline.h kernel_hydro.h kernel_gravity.h \
@@ -240,12 +250,13 @@ nobase_noinst_HEADERS = align.h approx_math.h atomic.h barrier.h cycle.h error.h
 		 pressure_floor/GEAR/pressure_floor.h pressure_floor/none/pressure_floor.h \
 		 pressure_floor/GEAR/pressure_floor_iact.h pressure_floor/none/pressure_floor_iact.h \
 		 pressure_floor/GEAR/pressure_floor_struct.h pressure_floor/none/pressure_floor_struct.h \
-	         task_order/GEAR/task_order.h task_order/EAGLE/task_order.h task_order/none/task_order.h
+	         task_order/GEAR/task_order.h task_order/EAGLE/task_order.h task_order/none/task_order.h \
+		 neutrino/cosmology.h
 
 
 # Sources and special flags for the gravity library
 libgrav_la_SOURCES = runner_doiact_grav.c
-libgrav_la_CFLAGS = $(AM_CFLAGS) $(GRAVITY_CFLAGS) 
+libgrav_la_CFLAGS = $(AM_CFLAGS) $(GRAVITY_CFLAGS)
 libgrav_la_LDFLAGS = $(AM_LDFLAGS) $(EXTRA_LIBS)
 
 # Sources and special flags for the gravity MPI library

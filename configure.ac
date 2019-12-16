@@ -1066,7 +1066,7 @@ if test "x$with_python" != "xno"; then
       # use linux default python
       with_python="/usr/"
    fi
-   AM_PATH_PYTHON([3], [], [AC_MSG_ERROR(python not found)])   
+   AM_PATH_PYTHON([3], [], [AC_MSG_ERROR(python not found)])
    AC_ARG_VAR([PYTHON_INCS], [Include flags for python, bypassing python-config])
    AC_ARG_VAR([PYTHON_CONFIG], [Path to python-config])
    AS_IF([test -z "$PYTHON_INCS"], [
@@ -2014,9 +2014,9 @@ case "$with_potential" in
 esac
 
 #  Entropy floor
-AC_ARG_WITH([entropy-floor], 
+AC_ARG_WITH([entropy-floor],
     [AS_HELP_STRING([--with-entropy-floor=<floor>],
-       [entropy floor @<:@none, EAGLE, default: none@:>@] 
+       [entropy floor @<:@none, EAGLE, default: none@:>@]
     )],
     [with_entropy_floor="$withval"],
     [with_entropy_floor="none"]
@@ -2039,10 +2039,10 @@ case "$with_entropy_floor" in
    *)
       AC_MSG_ERROR([Unknown entropy floor model])
    ;;
-esac 
+esac
 
 #  Pressure floor
-AC_ARG_WITH([pressure-floor], 
+AC_ARG_WITH([pressure-floor],
     [AS_HELP_STRING([--with-pressure-floor=<floor>],
        [pressure floor @<:@none, GEAR, default: none@:>@
        The hydro model needs to be compatible.]
@@ -2068,12 +2068,12 @@ case "$with_pressure_floor" in
    *)
       AC_MSG_ERROR([Unknown pressure floor model])
    ;;
-esac 
+esac
 
 #  Star formation
-AC_ARG_WITH([star-formation], 
+AC_ARG_WITH([star-formation],
     [AS_HELP_STRING([--with-star-formation=<sfm>],
-       [star formation @<:@none, EAGLE, GEAR, default: none@:>@] 
+       [star formation @<:@none, EAGLE, GEAR, default: none@:>@]
     )],
     [with_star_formation="$withval"],
     [with_star_formation="none"]
@@ -2099,7 +2099,31 @@ case "$with_star_formation" in
    *)
       AC_MSG_ERROR([Unknown star formation model])
    ;;
-esac 
+esac
+
+#  Neutrino cosmology
+AC_ARG_WITH([neutrinos],
+    [AS_HELP_STRING([--with-neutrinos=<sfm>],
+       [neutrino model @<:@none, BACKGROUND, default: none@:>@]
+    )],
+    [with_neutrinos="$withval"],
+    [with_neutrinos="none"]
+)
+
+case "$with_neutrinos" in
+   none)
+      AC_DEFINE([NEUTRINO_NONE], [1], [No neutrinos])
+   ;;
+   BACKGROUND)
+      AC_DEFINE([NEUTRINO_BACKGROUND], [1], [Neutrino effects on background cosmology])
+   ;;
+   *)
+      AC_MSG_ERROR([Unknown neutrino model])
+   ;;
+esac
+
+# Check if including neutrino effects on background cosmology
+AM_CONDITIONAL([COSMO_WITH_NEUTRINOS], [test $with_neutrinos = "BACKGROUND"])
 
 #  Gravity multipole order
 AC_ARG_WITH([multipole-order],
@@ -2119,7 +2143,7 @@ AC_SUBST([GIT_CMD])
 DX_INIT_DOXYGEN(libswift,doc/Doxyfile,doc/)
 AM_CONDITIONAL([HAVE_DOXYGEN], [test "$ac_cv_path_ac_pt_DX_DOXYGEN" != ""])
 
-# Check if using EAGLE cooling
+# Check if using EAGLE coolingwith_feedback
 AM_CONDITIONAL([HAVEEAGLECOOLING], [test $with_cooling = "EAGLE"])
 
 # Check if using EAGLE feedback
@@ -2205,6 +2229,7 @@ AC_MSG_RESULT([
    Star feedback model  : $with_feedback
    Black holes model    : $with_black_holes
    Task dependencies    : $with_task_order
+   Neutrino model       : $with_neutrinos
 
    Individual timers           : $enable_timers
    Task debugging              : $enable_task_debugging

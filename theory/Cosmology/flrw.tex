@@ -91,12 +91,15 @@ The non-relativistic transition of massive neutrinos occurs at
 $a^{-1}\approx 1890 (m_\nu/1\text{ eV})$, which typically is in the timeframe of
 cosmological simulations. This changes the background evolution slightly,
 affecting the Hubble rate $E(a)$ and most integrated quantities described in this
-document by a few tenths of a percent. To account for this effect, we allow users
-to specify the photon density $\Omega_\gamma$ (or $T_\text{CMB}$), the number of
+document by a few tenths of a percent.
+
+If SWIFT is compiled with a neutrino model, users can include this effect by
+specifying the photon density $\Omega_\gamma$ (or $T_\text{CMB}$), the number of
 neutrino species $N_\nu$, the neutrino temperature $T_{\nu,0}$ (or $N_\text{eff}$)
 and neutrino masses $m_{\nu,i}$. These quantities replace the total radiation
-density parameter $\Omega_r$. The radiation term appearing in (\ref{eq:Ea}) is
-replaced by
+density parameter $\Omega_r$. Note that the matter density $\Omega_m=\Omega_c+\Omega_b$
+does not include massive neutrinos in this convention. The radiation term appearing in
+(\ref{eq:Ea}) is replaced by
 \begin{align}
     \Omega_r a^{-4} = \left[\Omega_\gamma + \Omega_\nu(a)\right] a^{-4}.
 \end{align}
@@ -115,10 +118,12 @@ where $k_b$ is Boltzmann's constant and the function $\mathcal{F}$ is given by t
 \end{align}
 At the start of the simulation, but only if necessary, values of
 (\ref{eq:nudensity}) are tabulated on a finer grid of $10^5$ values of $a$ spaced
-between $\log(a_\text{begin})$ and $\log(a_\text{end})$. The integrals
-$\mathcal{F}(y)$ are evaluated using the 61-points Gauss-Konrod rule implemented
-in the {\sc gsl} library with a relative error limit of $\epsilon=10^{-12}$.
-Tabulated values are then linearly interpolated whenever $E(a)$ is computed.
+between $\log(a_{\nu,\text{begin}})$ and $\log(a_{\nu,\text{end}}) = \log(1)=0$.
+The value of $a_{\nu,\text{begin}}$ is determined iteratively such that the neutrinos
+are still relativistic at the start of the table. The integrals $\mathcal{F}(y)$ are
+evaluated using the 61-points Gauss-Konrod rule implemented in the {\sc gsl} library
+with a relative error limit of $\epsilon=10^{-12}$. Tabulated values are then
+linearly interpolated whenever $E(a)$ is computed.
 
 As indicated above, users have some flexibility with regard to input parameters
 that are related. If one of $\Omega_\gamma$/$T_\text{CMB}$ and $N_\text{eff}$/$T_{\nu,0}$
