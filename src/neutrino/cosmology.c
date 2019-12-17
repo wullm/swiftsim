@@ -787,9 +787,9 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* Curvature density (for closure) */
   if (c->Omega_g > 0) {
-    c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
+      c->Omega_k = 1. - (c->Omega_m + c->Omega_nu + c->Omega_g + c->Omega_lambda);
   } else {
-    c->Omega_k = 1. - (c->Omega_m + c->Omega_nu + c->Omega_g + c->Omega_lambda);
+      c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
   }
 
   /* Initialise the interpolation tables */
@@ -1200,10 +1200,10 @@ double cosmology_get_neutrino_density_param(const struct cosmology *c,
 void cosmology_print(const struct cosmology *c) {
 
   message(
-      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r] = [%f, %f, %f, %f, "
-      "%f, %f]",
+      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = [%f, %f, %f, %f, "
+      "%f, %f %f]",
       c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k,
-      c->Omega_r);
+      c->Omega_r, c->Omega_g);
   message("Dark energy equation of state: w_0=%f w_a=%f", c->w_0, c->w_a);
   message("Hubble constant: h = %f, H_0 = %e U_t^(-1)", c->h, c->H0);
   message("Hubble time: 1/H0 = %e U_t", c->Hubble_time);
