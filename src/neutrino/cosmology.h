@@ -20,7 +20,6 @@
 #ifndef SWIFT_NEUTRINO_COSMOLOGY_H
 #define SWIFT_NEUTRINO_COSMOLOGY_H
 
-
 /**
  * @brief Cosmological parameters
  */
@@ -217,7 +216,6 @@ struct cosmology {
 
 double cosmology_get_neutrino_density_param(const struct cosmology *c,
                                             double a);
-
 
 void cosmology_neutrino_init(struct swift_params *params,
                              const struct unit_system *us,

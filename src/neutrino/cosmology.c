@@ -24,7 +24,7 @@
  *  model
  */
 
-/* This object's header. */
+/* The general cosmology header (this object's header is included there). */
 #include "../cosmology.h"
 
 /* Some standard headers */
@@ -509,7 +509,7 @@ void cosmology_init_neutrino_tables(struct cosmology *c,
   }
 
   c->log_a_nutab_begin = log(a_start);
-  c->log_a_nutab_end = c->log_a_end;  // scale-factor a=1
+  c->log_a_nutab_end = 0;  // scale-factor a=1
 
   /* Prepare a longer table of scale factors for the integral bounds */
   const double delta_fine_a =
@@ -787,9 +787,9 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* Curvature density (for closure) */
   if (c->Omega_g > 0) {
-      c->Omega_k = 1. - (c->Omega_m + c->Omega_nu + c->Omega_g + c->Omega_lambda);
+    c->Omega_k = 1. - (c->Omega_m + c->Omega_nu + c->Omega_g + c->Omega_lambda);
   } else {
-      c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
+    c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
   }
 
   /* Initialise the interpolation tables */
@@ -1200,7 +1200,8 @@ double cosmology_get_neutrino_density_param(const struct cosmology *c,
 void cosmology_print(const struct cosmology *c) {
 
   message(
-      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = [%f, %f, %f, %f, "
+      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = [%f, %f, %f, "
+      "%f, "
       "%f, %f %f]",
       c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k,
       c->Omega_r, c->Omega_g);
