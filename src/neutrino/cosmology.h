@@ -180,6 +180,15 @@ struct cosmology {
   /*! Log of final expansion factor */
   double log_a_end;
 
+  /*! Log of starting expansion factor of the interpolation tables */
+  double log_a_table_begin;
+
+  /*! Log of final expansion factor of the interpolation tables */
+  double log_a_table_end;
+
+  /*! Scale-factor interpolation table */
+  double *log_a_interp_table;
+
   /*! Drift factor interpolation table */
   double *drift_fac_interp_table;
 
@@ -192,11 +201,8 @@ struct cosmology {
   /*! Kick factor (hydro correction) interpolation table (GIZMO-MFV only) */
   double *hydro_kick_corr_interp_table;
 
-  /*! Time interpolation table */
+  /*! Time since Big Bang interpolation table */
   double *time_interp_table;
-
-  /*! Scale factor interpolation table */
-  double *scale_factor_interp_table;
 
   /*! Neutrino density interpolation table */
   double *neutrino_density_interp_table;
@@ -206,9 +212,6 @@ struct cosmology {
 
   /*! Log of scale factor at which the neutrino table ends */
   double log_a_nutab_end;
-
-  /*! Time between Big Bang and first entry in the table */
-  double time_interp_table_offset;
 
   /*! Time at the present-day (a=1) */
   double universe_age_at_present_day;
