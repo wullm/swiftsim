@@ -47,6 +47,17 @@ const float damping_scale =
 // Numerical constant [(2/3)*(pi^2/zeta(3))]^(1/3) appearing in neutrino
 // temperature-density relation
 const double T_nu_const = 1.762359429;
+const double T_nu = 1.95;  // Kelvin (today)
+const double mu_nu = 0.0;  // chemical potential
+
+// Neutrino related constants
+const double eV = 1.602176634e-19;    // J
+const double eV_mass = 1.782662e-36;  // kg (this is eV/c^2)
+// Boltzmann's constant in units of eV/K
+const double k_b = 8.617333262145e-5;
+// The mass of the neutrino
+const double M_nu = 0.1;                // eV_mass
+const double M_nu_kg = M_nu * eV_mass;  // kg
 
 // Warm Dark Matter power spectrum, via  Bode, Turok and Ostriker (2001)
 float powerSpectrumWDM(float k) {
@@ -262,6 +273,9 @@ const double Gyr = 3.154e16;  // s
 const double km = 1000;       // m
 const double kg = 1000;       // g
 const double cm = 0.01;       // m
+
+// The speed of light in units of Mpc/Gyr
+const double c_vel = 299792458 * Gyr / Mpc;
 
 // One unit of critical density
 const double H_0_Hz = H_0 / (Mpc / km);  // s^-1

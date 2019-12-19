@@ -15,6 +15,7 @@
 #include "read_transfer.h"
 #include "config.h"
 #include "cosmo.h"
+#include "sampler.h"
 #include "H5Cpp.h"
 
 int main() {
@@ -38,6 +39,7 @@ int main() {
 
     std::default_random_engine oracle;
     oracle.seed(seed);
+	std::normal_distribution<double> Gaussian(0.0, 1.0);
 
     const int N = GRID_WIDTH;
     const int box_len = BOX_WIDTH; //Mpc
@@ -59,14 +61,14 @@ int main() {
     std::cout << "PHASE 0B - Reading in transfer function files" << std::endl;
 
     //Neutrino density Transfer function data (loaded from CLASS)
-    read_transfer(TF_ks, TF_T_rho, TF_T_theta);
+    read_transfer(TF_ks, TF_T_rho, TF_T_rho_nu);
 
 	//Export transfer functions
 	std::ofstream of(std::string(OUTPUT_DIR) + "transfer_functions.txt");
-	of << "k(Mpc/h);T_cdm\n";
+	of << "k(Mpc/h);T_cdm;T_nu\n";
 
 	for (int i = 0; i < TF_ks.size(); i++) {
-		of << TF_ks[i] << " " << TF_T_rho[i] << std::endl;
+		of << TF_ks[i] << ";" << TF_T_rho[i] << ";" << TF_T_rho_nu[i] << std::endl;
 	}
 
 	of.close();
@@ -74,30 +76,10 @@ int main() {
     std::cout << "1) Interpreted transfer functions exported to " << std::string(OUTPUT_DIR) << "transfer_functions.txt." << std::endl;
     std::cout << std::endl;
 
-
-
     std::cout << "PHASE 1A - Generating a Gaussian random field" << std::endl;
 
     //Generate a Gaussian random field
-    generate_grf(oracle, k_box, N, box_len, sigma_func);
-
-    // //Smooth it my man, then we can do the plan
-    // for (int x=0; x<N; x++) {
-    //     for (int y=0; y<N; y++) {
-    //         for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
-    //             double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
-    //             double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
-    //             double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
-    //
-    //             double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
-    //
-    //             if (k>0) {
-    //                 k_box[half_box_idx(N, x, y, z)][0] *= exp(-k*k*1*1);
-    //                 k_box[half_box_idx(N, x, y, z)][1] *= exp(-k*k*1*1);
-    //             }
-    //         }
-    //     }
-    // }
+    generate_grf(oracle, k_box, N, box_len, sigma_func_cdm);
 
     std::cout << "1) Done with generating the box (" << N << "^3 complex numbers)." << std::endl;
     std::cout << std::endl;
@@ -105,7 +87,7 @@ int main() {
 
     //We still need to normalize the power spectrum
     const double R_filter = 8/h; //Mpc
-    double integrated_sigma_8 = integrate_sigma_R(N, box_len, R_filter, sigma_func);
+    double integrated_sigma_8 = integrate_sigma_R(N, box_len, R_filter, sigma_func_cdm);
 
     std::cout << "PHASE 1B - Normalizing the random field" << std::endl;
     std::cout << "1a) Planck sigma_8 = " << sigma_8 << "." << std::endl;
@@ -158,7 +140,7 @@ int main() {
     const long int particle_num = PARTICLE_NUM;
     std::vector<corpuscle> bodies(particle_num);
     if (gridgen) {
-        std::cout << "PHASE 2A - Placing particles on a grid" << std::endl;
+        std::cout << "PHASE 2A - Placing CDM particles on a grid" << std::endl;
         for (int x=0; x<NP; x++) {
             for (int y=0; y<NP; y++) {
                 for (int z=0; z<NP; z++) {
@@ -173,7 +155,7 @@ int main() {
                 }
             }
         }
-        std::cout << "1) Done with placing " << NP << "^3 particles." << std::endl << std::endl;
+        std::cout << "1) Done with placing " << NP << "^3 CDM particles." << std::endl << std::endl;
     }
 
     //Compute the displacement field from the random field
@@ -191,7 +173,7 @@ int main() {
     //FTT the primordial box
     fftw_plan another_plan  = fftw_plan_dft_r2c_3d(N, N, N, primordial_box, k_box, FFTW_ESTIMATE);
     fftw_execute(another_plan);
-    fftw_destroy_plan(another_plan);
+    // fftw_destroy_plan(another_plan); //destroy later
 
     //Normalization
     for (int x=0; x<N; x++) {
@@ -236,18 +218,18 @@ int main() {
 	//Do the IFFTs
 	fftw_plan px  = fftw_plan_dft_c2r_3d(N, N, N, psi_k_x_box, psi_x_box, FFTW_ESTIMATE);
 	fftw_execute(px);
-	fftw_destroy_plan(px);
-    fftw_free(psi_k_x_box);
+	// fftw_destroy_plan(px); //destroy later
+    // fftw_free(psi_k_x_box); //destroy later
 
 	fftw_plan py  = fftw_plan_dft_c2r_3d(N, N, N, psi_k_y_box, psi_y_box, FFTW_ESTIMATE);
 	fftw_execute(py);
-	fftw_destroy_plan(py);
-    fftw_free(psi_k_y_box);
+	// fftw_destroy_plan(py); //destroy later
+    // fftw_free(psi_k_y_box); //destroy later
 
 	fftw_plan pz  = fftw_plan_dft_c2r_3d(N, N, N, psi_k_z_box, psi_z_box, FFTW_ESTIMATE);
 	fftw_execute(pz);
-	fftw_destroy_plan(pz);
-    fftw_free(psi_k_z_box);
+	// fftw_destroy_plan(pz); //destroy later
+    // fftw_free(psi_k_z_box); //destroy later
 
     //Normalization
 	for (int x=0; x<N; x++) {
@@ -285,7 +267,7 @@ int main() {
     std::cout << "4) Proportionality constant dVdX = a^2Hf = " << dVdX << "." << std::endl;
     std::cout << "  " << std::endl;
 
-    std::cout << "PHASE 2D - Displace the particles" << std::endl;
+    std::cout << "PHASE 2D - Displace the CDM particles" << std::endl;
 
 
     for (auto body : bodies) {
@@ -342,12 +324,286 @@ int main() {
 		bodies[body.id] = body;
 	}
 
-    std::cout << "1) Displaced " << particle_num << " particles." << std::endl;
+    std::cout << "1) Displaced " << particle_num << " CDM particles." << std::endl;
     std::cout << "2) Particle mass " << bodies[0].mass << " kg." << std::endl;
+    std::cout << "  " << std::endl;
 
 
 
 
+    /* NEXT, the neutrinos */
+
+    //Next, we either load particle positions (e.g. from a glass) or
+    // generate them from a grid
+    bool gridgen_nu = true;
+    const long int neutrino_num = NEUTRINO_NUM;
+    std::vector<corpuscle> bodies_nu(neutrino_num);
+    if (gridgen_nu) {
+        std::cout << "PHASE 3A - Placing neutrino particles on a grid" << std::endl;
+        for (int x=0; x<NNUP; x++) {
+            for (int y=0; y<NNUP; y++) {
+                for (int z=0; z<NNUP; z++) {
+                    corpuscle body;
+
+                    body.id = (long int) box_idx(NNUP, x, y, z);
+                    body.X = x*(box_len/NNUP);
+                    body.Y = y*(box_len/NNUP);
+                    body.Z = z*(box_len/NNUP);
+
+                    bodies_nu[body.id] = body;
+                }
+            }
+        }
+        std::cout << "1) Done with placing " << NNUP << "^3 neutrino particles." << std::endl << std::endl;
+    }
+
+    std::cout << "PHASE 3B - Applying the neutrino transfer function" << std::endl;
+
+    //Undo the CDM transfer function and apply the neutrino transfer function
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                if (k > 0) {
+                    k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
+                    k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
+                }
+            }
+        }
+    }
+
+    //FTT back
+    fftw_execute(the_plan);
+
+    //Normalization (from Fourier conventions alone)
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<N; z++) {
+                primordial_box[box_idx(N, x, y, z)] /= box_volume;
+            }
+        }
+    }
+
+	write_array_to_disk(std::string(OUTPUT_DIR) + "gaussian_nu.box", primordial_box, N);
+    std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_nu.box" << std::endl;
+    std::cout << std::endl;
+
+
+    //Compute the neutrino displacement field from the random field
+    std::cout << "PHASE 3C - Compute the neutrino displacement vector field" << std::endl;
+    std::cout << "1) Apply kernel to the Fourier transform of the primordial field." << std::endl;
+
+    //FTT the primordial box
+    fftw_execute(another_plan);
+
+    //Normalization
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<=N/2; z++) {
+                k_box[half_box_idx(N, x, y, z)][0] *= box_volume/(N*N*N);
+                k_box[half_box_idx(N, x, y, z)][1] *= box_volume/(N*N*N);
+            }
+        }
+    }
+
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                if (k>0) {
+                    psi_k_x_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
+                    psi_k_x_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
+                    psi_k_y_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
+                    psi_k_y_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
+                    psi_k_z_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
+                    psi_k_z_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
+                } else {
+                    psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
+                    psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
+                    psi_k_y_box[half_box_idx(N, x, y, z)][0] = 0;
+                    psi_k_y_box[half_box_idx(N, x, y, z)][1] = 0;
+                    psi_k_z_box[half_box_idx(N, x, y, z)][0] = 0;
+                    psi_k_z_box[half_box_idx(N, x, y, z)][1] = 0;
+                }
+            }
+        }
+    }
+
+    std::cout << "2) Fourier transform back to real coordinates." << std::endl;
+
+	//Do the IFFTs
+	fftw_execute(px);
+	fftw_destroy_plan(px);
+    fftw_free(psi_k_x_box);
+
+	fftw_execute(py);
+	fftw_destroy_plan(py);
+    fftw_free(psi_k_y_box);
+
+	fftw_execute(pz);
+	fftw_destroy_plan(pz);
+    fftw_free(psi_k_z_box);
+
+    //Normalization
+	for (int x=0; x<N; x++) {
+		for (int y=0; y<N; y++) {
+			for (int z=0; z<N; z++) {
+				psi_x_box[box_idx(N, x, y, z)] /= box_volume;
+				psi_y_box[box_idx(N, x, y, z)] /= box_volume;
+				psi_z_box[box_idx(N, x, y, z)] /= box_volume;
+			}
+		}
+	}
+
+    std::cout << "3) Done. The result consists of 3x" << N << "^3 real numbers." << std::endl;
+
+    write_array_to_disk(std::string(OUTPUT_DIR) + "psi_nu_x.box", psi_x_box, N);
+	write_array_to_disk(std::string(OUTPUT_DIR) + "psi_nu_y.box", psi_y_box, N);
+	write_array_to_disk(std::string(OUTPUT_DIR) + "psi_nu_z.box", psi_z_box, N);
+
+    std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "psi_nu_x.box" << std::endl;
+    std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "psi_nu_y.box" << std::endl;
+    std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "psi_nu_z.box" << std::endl;
+    std::cout << "" << std::endl;
+
+    std::cout << "PHASE 3D - Displace the neutrino particles" << std::endl;
+
+    for (auto body : bodies_nu) {
+		double X = body.X;
+		double Y = body.Y;
+		double Z = body.Z;
+
+        //Grid positions
+		int iX = (int) floor(X*N/box_len);
+		int iY = (int) floor(Y*N/box_len);
+		int iZ = (int) floor(Z*N/box_len);
+
+		//Intepolate the necessary fields with TSC
+		float lookLength = 1.0;
+		int lookLftX = (int) floor((X-iX) - lookLength);
+		int lookRgtX = (int) floor((X-iX) + lookLength);
+		int lookLftY = (int) floor((Y-iY) - lookLength);
+		int lookRgtY = (int) floor((Y-iY) + lookLength);
+		int lookLftZ = (int) floor((Z-iZ) - lookLength);
+		int lookRgtZ = (int) floor((Z-iZ) + lookLength);
+
+        //Accumulate interpolated values in psi_{xyz}
+		double psi_x = 0, psi_y = 0, psi_z = 0;
+
+		for (int i=lookLftX; i<=lookRgtX; i++) {
+			for (int j=lookLftY; j<=lookRgtY; j++) {
+				for (int k=lookLftZ; k<=lookRgtZ; k++) {
+					//Pull the interpolated long-range force from the mesh
+					double xx = abs(X - (iX+i));
+					double yy = abs(Y - (iY+j));
+					double zz = abs(Z - (iZ+k));
+
+					double part_x = xx <= 1 ? 1-xx : 0;
+					double part_y = yy <= 1 ? 1-yy : 0;
+					double part_z = zz <= 1 ? 1-zz : 0;
+
+					psi_x += psi_x_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+					psi_y += psi_y_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+					psi_z += psi_z_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+				}
+			}
+		}
+
+		body.X = X - psi_x;
+		body.Y = Y - psi_y;
+		body.Z = Z - psi_z;
+
+		body.v_X = -dVdX * psi_x;
+		body.v_Y = -dVdX * psi_y;
+		body.v_Z = -dVdX * psi_z;
+
+        body.mass = Omega_nu*rho_crit*pow(Mpc,3)*box_volume/neutrino_num;
+
+		bodies_nu[body.id] = body;
+	}
+
+    std::cout << "1) Displaced " << neutrino_num << " neutrino particles." << std::endl;
+    std::cout << "2) Particle mass " << bodies_nu[0].mass << " kg." << std::endl;
+    std::cout << "  " << std::endl;
+
+    std::cout << "PHASE 3E - Add thermal motion to the neutrinos" << std::endl;
+
+    double T = T_nu;
+    double mu = mu_nu;
+    sampler s;
+
+    //Prepare the interpolation intevals of the quantile function
+    prepare_intervals(&s, k_b*T, mu);
+
+    double testdraw = sampler_draw(&s);
+
+    std::cout << "1) Loading Fermi-Dirac sampler with T = " << T << " K, mu = " << mu << "." << std::endl;
+    std::cout << "2) Test draw: " << testdraw << " eV." << std::endl;
+
+    double a_start = 1.0 / (1+z_start);
+    double avg_speed = 0;
+    double max_speed = 0;
+    double avg_hubble_speed = 0;
+
+    for (auto body : bodies_nu) {
+        //Generate a random speed V
+        double draw = sampler_draw(&s); // E=pc in eV
+        double p0 = draw * eV / c_vel * pow(Gyr/Mpc,2); // momentum in kg*Mpc/Gyr
+        double gamma = sqrt(1 + pow(p0 / (M_nu_kg*c_vel), 2)); // Lorentz factor
+        double v0 = p0/(gamma*M_nu_kg); // physical velocity in Mpc/Gyr
+
+        //Multiply by a relativistic correction of order unity to get the comoving velocity
+        //at the starting redshift (see eq 2.2 in 1910.03550)
+        double V = v0 * a_start / sqrt(pow(a_start,2) + pow(v0/c_vel, 2)*(1-pow(a_start,2)));
+
+        avg_speed += V/neutrino_num;
+        avg_hubble_speed += sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z)/neutrino_num;
+        if (V > max_speed) {
+            max_speed = V;
+        }
+
+        //Generate a random point on the sphere
+        double x = Gaussian(oracle);
+        double y = Gaussian(oracle);
+        double z = Gaussian(oracle);
+
+        //And normalize
+        double length = sqrt(x*x + y*y + z*z);
+        if (length > 0) {
+            x /= length;
+            y /= length;
+            z /= length;
+        } else {
+            //done since x=y=z=0
+        }
+
+        body.v_X += V*x;
+        body.v_Y += V*y;
+        body.v_Z += V*z;
+
+        bodies_nu[body.id] = body;
+    }
+
+    std::cout << "3) Added thermal motion to " << neutrino_num << " particles." << std::endl;
+    std::cout << "4) Average speed " << avg_speed << " comoving Mpc/Gyr or " << avg_speed/a_start/c_vel << " c physical." << std::endl;
+    std::cout << "4) Maximum speed " << max_speed << " comoving Mpc/Gyr or " << max_speed/a_start/c_vel << " c physical." << std::endl;
+    std::cout << "5) Average Hubble flow speed " << avg_hubble_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "  " << std::endl;
+
+    /* NEXT, exporting the data in HDF5 format */
+
+    std::cout << "Phase 4 - Exporting initial conditions to HDF5 files." << std::endl;
+    std::cout << "  " << std::endl;
 
     //Convert to Swift units. The below values are conversions to cgs
     double swift_unitcurrent = 1;
@@ -361,9 +617,18 @@ int main() {
         bodies[i].mass /= (swift_unitmass/kg); //from kg to swift unit
     }
 
+    //Convert the neutrino masses (lengths and times are unchanged)
+    for (int i=0; i<neutrino_num; i++) {
+        bodies_nu[i].mass /= (swift_unitmass/kg); //from kg to swift unit
+    }
+
     double swift_rho_crit = rho_crit * pow(Mpc,3) / (swift_unitmass/kg);
-    std::cout << particle_num * bodies[0].mass / (swift_rho_crit*box_volume) << std::endl;
-    std::cout << "Total mass " << particle_num * bodies[0].mass << std::endl;
+    std::cout << "SUMMARY" << std::endl;
+    std::cout << "Inferred Omega_m = " << particle_num * bodies[0].mass / (swift_rho_crit*box_volume) << std::endl;
+    std::cout << "Inferred Omega_nu = " << neutrino_num * bodies_nu[0].mass / (swift_rho_crit*box_volume) << std::endl;
+    std::cout << "Total CDM mass " << particle_num * bodies[0].mass << std::endl;
+    std::cout << "Total neutrino mass " << neutrino_num * bodies_nu[0].mass << std::endl;
+    std::cout << "Total mass " << (particle_num * bodies[0].mass + neutrino_num * bodies_nu[0].mass) << std::endl;
     std::cout << "Volume " << box_volume << std::endl;
     std::cout << "Rho crit " << swift_rho_crit << std::endl;
 
@@ -532,18 +797,18 @@ int main() {
     float velocities_nu[3*NEUTRINO_NUM];
 
     for (int i=0; i<NEUTRINO_NUM; i++) {
-        positions_nu[0+i*3] = bodies[i].X;
-        positions_nu[1+i*3] = bodies[i].Y;
-        positions_nu[2+i*3] = bodies[i].Z;
+        positions_nu[0+i*3] = bodies_nu[i].X;
+        positions_nu[1+i*3] = bodies_nu[i].Y;
+        positions_nu[2+i*3] = bodies_nu[i].Z;
 
         internal_energy_nu[i] = 1.23734;
-        masses_nu[i] = bodies[i].mass;
-        particleIDs_nu[i] = bodies[i].id + PARTICLE_NUM;
+        masses_nu[i] = bodies_nu[i].mass;
+        particleIDs_nu[i] = bodies_nu[i].id + PARTICLE_NUM;
         smoothingLength_nu[i] = 2.4696;
 
-        velocities_nu[0+i*3] = bodies[i].v_X;
-        velocities_nu[1+i*3] = bodies[i].v_Y;
-        velocities_nu[2+i*3] = bodies[i].v_Z;
+        velocities_nu[0+i*3] = bodies_nu[i].v_X;
+        velocities_nu[1+i*3] = bodies_nu[i].v_Y;
+        velocities_nu[2+i*3] = bodies_nu[i].v_Z;
     }
 
     //std::cout << bodies[PARTICLE_NUM-1].X << " " << bodies[PARTICLE_NUM-1].Y << " " << bodies[PARTICLE_NUM-1].Z << std::endl;

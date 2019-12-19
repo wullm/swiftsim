@@ -40,14 +40,14 @@ struct corpuscle {
 // Tables of transfer functions
 std::vector<double> TF_ks;
 std::vector<double> TF_T_rho;
-std::vector<double> TF_T_theta;
+std::vector<double> TF_T_rho_nu;
 
 // Linearly interpolate the Transfer functon
-inline double Transfer_interpol(double k) {
+inline double Transfer_interpol(double k, std::vector<double> Transfer) {
   if (k > TF_ks[TF_ks.size() - 1]) {
-    return TF_T_rho[TF_ks.size() - 1];
+    return Transfer[TF_ks.size() - 1];
   } else if (k < TF_ks[0]) {
-    return TF_T_rho[0];
+    return Transfer[0];
   } else {
     double k1, k2, T1, T2;
 
@@ -56,8 +56,8 @@ inline double Transfer_interpol(double k) {
         if (k <= TF_ks[i + 1]) {
           k1 = TF_ks[i];
           k2 = TF_ks[i + 1];
-          T1 = TF_T_rho[i];
-          T2 = TF_T_rho[i + 1];
+          T1 = Transfer[i];
+          T2 = Transfer[i + 1];
         }
       }
     }
@@ -70,8 +70,18 @@ inline double Transfer_interpol(double k) {
 }
 
 // Doesn't have to be normalized yet
-inline double sigma_func(double k) {
-  return sqrt(pow(k, 0.97)) * Transfer_interpol(k);
+// inline double sigma_func_no_transfer(double k) {
+//   return sqrt(pow(k, 0.97));
+// }
+
+// Doesn't have to be normalized yet
+inline double sigma_func_cdm(double k) {
+  return sqrt(pow(k, 0.97)) * Transfer_interpol(k, TF_T_rho);
+}
+
+// Doesn't have to be normalized yet
+inline double sigma_func_neutrino(double k) {
+  return sqrt(pow(k, 0.97)) * Transfer_interpol(k, TF_T_rho_nu);
 }
 
 #endif

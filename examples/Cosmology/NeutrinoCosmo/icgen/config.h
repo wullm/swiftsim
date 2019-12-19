@@ -10,7 +10,10 @@
 #define NP 32
 #define PARTICLE_NUM NP* NP* NP
 
-#define NEUTRINO_NUM 10
+// If neutrino particles are generated from a grid, the grid should be size
+// NNUP^3
+#define NNUP 32
+#define NEUTRINO_NUM NNUP* NNUP* NNUP
 
 // Starting redshift of the simulation
 #define Z_START 40;
