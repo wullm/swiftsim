@@ -32,11 +32,11 @@ const double Theta_2p7 = 1;  // CMB T = 2.7 K * Theta_2p7
 // Omega paramters
 const double Omega_b = 0.048275;
 const double Omega_m = 0.31205;
-const double Omega_nu = 0.02;
-const double Omega_c = Omega_m - Omega_b - Omega_nu;
-const double Omega_r = 5.42e-5;
+const double Omega_nu = 0.014137;
+const double Omega_c = Omega_m - Omega_b;
+const double Omega_r = 5.4184744739e-05; //this is Omega_g
 const double Omega_total = 1.0;
-const double Omega_L = Omega_total - Omega_m - Omega_r;
+const double Omega_L = Omega_total - Omega_m - Omega_r - Omega_nu;
 
 // If massive neutrinos are the dark matter, the power spectrum is damped.
 const float mass_neutrino = 0.20 / 30;  // in units of 30 eV
@@ -47,7 +47,7 @@ const float damping_scale =
 // Numerical constant [(2/3)*(pi^2/zeta(3))]^(1/3) appearing in neutrino
 // temperature-density relation
 const double T_nu_const = 1.762359429;
-const double T_nu = 1.95;  // Kelvin (today)
+const double T_nu = 1.952784;  // Kelvin (today)
 const double mu_nu = 0.0;  // chemical potential
 
 // Neutrino related constants
@@ -56,7 +56,7 @@ const double eV_mass = 1.782662e-36;  // kg (this is eV/c^2)
 // Boltzmann's constant in units of eV/K
 const double k_b = 8.617333262145e-5;
 // The mass of the neutrino
-const double M_nu = 0.1;                // eV_mass
+const double M_nu = 0.6;                // eV_mass (sum of 3 species)
 const double M_nu_kg = M_nu * eV_mass;  // kg
 
 // Warm Dark Matter power spectrum, via  Bode, Turok and Ostriker (2001)

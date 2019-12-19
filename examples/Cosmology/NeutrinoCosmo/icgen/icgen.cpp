@@ -54,6 +54,8 @@ int main() {
     std::cout << "PHASE 0A - Cosmology check" << std::endl;
     std::cout << "1) Starting redshift z = " << z_start << ", a = " << a_scale_factor_of_z(z_start) << "." << std::endl;
     std::cout << "2) Cosmology table written to " << std::string(OUTPUT_DIR) << "cosmology.txt." << std::endl;
+    std::cout << "3) Omega_m = " << Omega_m << ", Omega_L = " << Omega_L << ", Omega_b = " << Omega_b << "," << std::endl;
+    std::cout << "   Omega_nu = " << Omega_nu << ", Omega_g = " << Omega_r << "." << std::endl;
     std::cout << std::endl;
 
     test_cosmology(std::string(OUTPUT_DIR) + "cosmology.txt");

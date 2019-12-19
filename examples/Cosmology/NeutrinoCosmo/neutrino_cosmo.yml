@@ -8,14 +8,15 @@ InternalUnitSystem:
 
 Cosmology:
   Omega_m: 0.31205
-  Omega_lambda: 0.68790
+  Omega_lambda: 0.6737588 #chosen to close the universe
   Omega_b: 0.048275
   h: 0.67556
   a_begin: 0.0243902	# z_ini = 40.
   a_end: 1.0		# z_end = 0.
-  T_CMB: 2.73
+  T_CMB: 2.7255
   N_eff: 3.046
   N_nu: 3
+  M_nu: 0.2, 0.2, 0.2
 
 # Boltzmann solver parameters
 #Boltzmann:
