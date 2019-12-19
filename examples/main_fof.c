@@ -499,7 +499,7 @@ int main(int argc, char *argv[]) {
   if (myrank == 0)
     message(
         "Read %lld gas particles, %lld stars particles, %lld black hole "
-        "particles, %lld DM particles, %lld DM background particles, and"
+        "particles, %lld DM particles, %lld DM background particles, and "
         "%lld neutrino particles from the ICs.",
         N_total[swift_type_gas], N_total[swift_type_stars],
         N_total[swift_type_black_hole], N_total[swift_type_dark_matter],

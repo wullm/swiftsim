@@ -1185,7 +1185,7 @@ int main(int argc, char *argv[]) {
                              N_total[swift_type_neutrino];
       message(
           "Running on %lld gas particles, %lld stars particles %lld black "
-          "hole particles and %lld DM particles (%lld gravity particles),"
+          "hole particles and %lld DM particles (%lld gravity particles), "
           "%lld neutrino particles",
           N_total[swift_type_gas], N_total[swift_type_stars],
           N_total[swift_type_black_hole], N_DM, N_total[swift_type_count],

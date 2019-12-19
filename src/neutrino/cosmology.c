@@ -1311,7 +1311,9 @@ void cosmology_write_model(hid_t h_grp, const struct cosmology *c) {
   io_write_attribute_d(h_grp, "N_nu", c->N_nu);
   io_write_attribute_d(h_grp, "N_eff", c->N_eff);
   io_write_attribute_d(h_grp, "M_nu_tot", c->M_nu_tot);
-  io_write_attribute(h_grp, "M_nu", DOUBLE, c->M_nu, c->N_nu);
+  if (c->N_nu > 0) {
+    io_write_attribute(h_grp, "M_nu", DOUBLE, c->M_nu, c->N_nu);
+  }
 
   io_write_attribute_d(h_grp, "w_0", c->w_0);
   io_write_attribute_d(h_grp, "w_a", c->w_a);

@@ -60,6 +60,8 @@ __attribute__((always_inline)) INLINE static float gravity_get_softening(
       return grav_props->epsilon_baryon_cur;
     case swift_type_dark_matter_background:
       return grav_props->epsilon_background_fac * cbrtf(gp->mass);
+    case swift_type_neutrino:
+      return grav_props->epsilon_DM_cur;
     default:
 #ifdef SWIFT_DEBUG_CHECKS
       error("Invalid gpart type!");
