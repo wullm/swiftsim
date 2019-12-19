@@ -164,7 +164,7 @@ int main() {
                 for (int z=0; z<NP; z++) {
                     corpuscle body;
 
-                    body.id = box_idx(NP, x, y, z);
+                    body.id = (long int) box_idx(NP, x, y, z);
                     body.X = x*(box_len/NP);
                     body.Y = y*(box_len/NP);
                     body.Z = z*(box_len/NP);
@@ -409,9 +409,9 @@ int main() {
 
     //Dataspace for a single number
     H5::DataSpace scalarSpace(H5S_SCALAR);
-    //Data space for a row of 6 numbers (one per particle type)
+    //Data space for a row of 7 numbers (one per particle type)
     const std::size_t ptNDIMS = 1;
-    hsize_t ptdims[ptNDIMS] = {6};
+    hsize_t ptdims[ptNDIMS] = {7};
     H5::DataSpace row6Space(ptNDIMS, ptdims);
     //Data space for a row of 3 numbers (one per coordinate)
     const std::size_t cNDIMS = 1;
@@ -432,7 +432,7 @@ int main() {
     att2.write(H5::PredType::NATIVE_INT, &entropyFlag);
 
     H5::Attribute att3 = headerGroup.createAttribute("MassTable", H5::PredType::NATIVE_FLOAT, row6Space);
-    float massTable[6] = {0,0,0,0,0,0};
+    float massTable[7] = {0,0,0,0,0,0,0};
     att3.write(H5::PredType::NATIVE_FLOAT, massTable);
 
     H5::Attribute att4 = headerGroup.createAttribute("NumFilesPerSnapshot", H5::PredType::NATIVE_INT, scalarSpace);
@@ -440,11 +440,11 @@ int main() {
     att4.write(H5::PredType::NATIVE_INT, &NumFilesPerSnapshot);
 
     H5::Attribute att5 = headerGroup.createAttribute("NumPart_Total", H5::PredType::NATIVE_INT, row6Space);
-    int numparttotal[6] = {0,PARTICLE_NUM,0,0,0,0}; //number particles of type 0,1,2,3,4,5,6
+    int numparttotal[7] = {0,PARTICLE_NUM,0,0,0,0,NEUTRINO_NUM}; //number particles of type 0,1,2,3,4,5,6 (3 is dummy, doesn't exist)
     att5.write(H5::PredType::NATIVE_INT, &numparttotal);
 
     H5::Attribute att6 = headerGroup.createAttribute("NumPart_Total_HighWord", H5::PredType::NATIVE_INT, row6Space);
-    int numparttotalhighword[6] = {0,0,0,0,0,0};
+    int numparttotalhighword[7] = {0,0,0,0,0,0,0};
     att6.write(H5::PredType::NATIVE_INT, &numparttotalhighword);
 
     H5::Attribute att7 = headerGroup.createAttribute("Time", H5::PredType::NATIVE_FLOAT, scalarSpace);
@@ -517,6 +517,62 @@ int main() {
     //Write the velocity array to disk
     H5::DataSet dataset_v = group.createDataSet("Velocities", H5::PredType::NATIVE_FLOAT, dataspace);
     dataset_v.write(velocities, H5::PredType::NATIVE_FLOAT);
+
+
+    /* Next, export the neutrinos */
+
+    //Choose particle group (neutrinos is particle type 6)
+    H5::Group group_nu(file.createGroup("/PartType6"));
+
+    float positions_nu[3*NEUTRINO_NUM];
+    float internal_energy_nu[NEUTRINO_NUM];
+    float masses_nu[NEUTRINO_NUM];
+    long int particleIDs_nu[NEUTRINO_NUM];
+    float smoothingLength_nu[NEUTRINO_NUM];
+    float velocities_nu[3*NEUTRINO_NUM];
+
+    for (int i=0; i<NEUTRINO_NUM; i++) {
+        positions_nu[0+i*3] = bodies[i].X;
+        positions_nu[1+i*3] = bodies[i].Y;
+        positions_nu[2+i*3] = bodies[i].Z;
+
+        internal_energy_nu[i] = 1.23734;
+        masses_nu[i] = bodies[i].mass;
+        particleIDs_nu[i] = bodies[i].id + PARTICLE_NUM;
+        smoothingLength_nu[i] = 2.4696;
+
+        velocities_nu[0+i*3] = bodies[i].v_X;
+        velocities_nu[1+i*3] = bodies[i].v_Y;
+        velocities_nu[2+i*3] = bodies[i].v_Z;
+    }
+
+    //std::cout << bodies[PARTICLE_NUM-1].X << " " << bodies[PARTICLE_NUM-1].Y << " " << bodies[PARTICLE_NUM-1].Z << std::endl;
+
+    //Create two dataspaces (one 3xPARTICLE_NUM and one row 1xPARTICLE_NUM)
+    hsize_t dims_nu[NDIMS] = {NEUTRINO_NUM,3};
+    hsize_t pdims_nu[pNDIMS] = {NEUTRINO_NUM};
+    H5::DataSpace dataspace_nu(NDIMS, dims_nu);
+    H5::DataSpace particle_dataspace_nu(pNDIMS, pdims_nu);
+
+    //Write the position array to disk
+    H5::DataSet dataset_nu = group_nu.createDataSet("Coordinates", H5::PredType::NATIVE_FLOAT, dataspace_nu);
+    dataset_nu.write(positions_nu, H5::PredType::NATIVE_FLOAT);
+
+    //Write the masses array to disk
+    H5::DataSet dataset_mass_nu = group_nu.createDataSet("Masses", H5::PredType::NATIVE_FLOAT, particle_dataspace_nu);
+    dataset_mass_nu.write(masses_nu, H5::PredType::NATIVE_FLOAT);
+
+    //Write the particleIDs array to disk
+    H5::DataSet dataset_pid_nu = group_nu.createDataSet("ParticleIDs", H5::PredType::NATIVE_LONG, particle_dataspace_nu);
+    dataset_pid_nu.write(particleIDs_nu, H5::PredType::NATIVE_LONG);
+
+    //Write the velocity array to disk
+    H5::DataSet dataset_v_nu = group_nu.createDataSet("Velocities", H5::PredType::NATIVE_FLOAT, dataspace_nu);
+    dataset_v_nu.write(velocities_nu, H5::PredType::NATIVE_FLOAT);
+
+
+
+
 
 
     //Write more attributes

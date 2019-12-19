@@ -9,13 +9,14 @@
  * Read CLASS format transfer function files.
  */
 
- #ifndef READ_TRANSFER_H
- #define READ_TRANSFER_H
+#ifndef READ_TRANSFER_H
+#define READ_TRANSFER_H
 
- #include <fstream>
- #include <math.h>
- #include <vector>
+#include <math.h>
+#include <fstream>
+#include <vector>
 
- void read_transfer(std::vector<double>&, std::vector<double>&, std::vector<double>&);
+void read_transfer(std::vector<double>&, std::vector<double>&,
+                   std::vector<double>&);
 
- #endif
+#endif
