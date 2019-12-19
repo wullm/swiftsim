@@ -408,7 +408,7 @@ double neutrino_density_integrand(double x, void *param) {
 
   /* Handle overflows */
   if (x > 20 + log(numerator)) {
-    return 0;
+    return numerator * exp(-x);
   }
 
   return numerator / (1.0 + exp(x));
