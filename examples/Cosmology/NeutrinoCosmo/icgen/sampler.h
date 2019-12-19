@@ -15,36 +15,36 @@
 
 #include <vector>
 
-//Linked list of intervals
-struct interval{
-    int id;
-    double l,r; //endpoints left and right
-    double Fl,Fr; //cdf evaluations at endpoints
-    double a0,a1,a2,a3; //cubic Hermite coefficients
-    double error; //error at midpoint
-    int nid; //the next interval
+// Linked list of intervals
+struct interval {
+  int id;
+  double l, r;            // endpoints left and right
+  double Fl, Fr;          // cdf evaluations at endpoints
+  double a0, a1, a2, a3;  // cubic Hermite coefficients
+  double error;           // error at midpoint
+  int nid;                // the next interval
 };
 
 inline bool compareByLeft(const interval &a, const interval &b) {
-    return a.Fl < b.Fl;
+  return a.Fl < b.Fl;
 }
 inline bool compareByRight(const interval &a, const interval &b) {
-    return a.Fr < b.Fr;
+  return a.Fr < b.Fr;
 }
 
-struct sampler{
-    //The normalization of the pdf (will be updated later)
-    double norm = 1;
+struct sampler {
+  // The normalization of the pdf (will be updated later)
+  double norm = 1;
 
-    //The intervals used in the interpolation
-    std::vector<interval> intervals;
+  // The intervals used in the interpolation
+  std::vector<interval> intervals;
 
-    //The number of intervals
-    int intervalNum;
+  // The number of intervals
+  int intervalNum;
 
-    //Make an indexed search table
-    const int I_max = 5000;
-    float *index;
+  // Make an indexed search table
+  const int I_max = 5000;
+  float *index;
 };
 
 void prepare_intervals(struct sampler *s, double T, double mu);

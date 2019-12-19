@@ -1263,7 +1263,8 @@ void cosmology_print(const struct cosmology *c) {
       "%f, %f %f]",
       c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k,
       c->Omega_r, c->Omega_g);
-  message("CMB and neutrino temperatures %f %f Omega_g: %.10e", c->T_CMB, c->T_nu, c->Omega_g);
+  message("CMB and neutrino temperatures %f %f Omega_g: %.10e", c->T_CMB,
+          c->T_nu, c->Omega_g);
   message("Dark energy equation of state: w_0=%f w_a=%f", c->w_0, c->w_a);
   message("Hubble constant: h = %f, H_0 = %e U_t^(-1)", c->h, c->H0);
   message("Hubble time: 1/H0 = %e U_t", c->Hubble_time);

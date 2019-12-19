@@ -34,7 +34,7 @@ const double Omega_b = 0.048275;
 const double Omega_m = 0.31205;
 const double Omega_nu = 0.014137;
 const double Omega_c = Omega_m - Omega_b;
-const double Omega_r = 5.4184744739e-05; //this is Omega_g
+const double Omega_r = 5.4184744739e-05;  // this is Omega_g
 const double Omega_total = 1.0;
 const double Omega_L = Omega_total - Omega_m - Omega_r - Omega_nu;
 
@@ -48,7 +48,7 @@ const float damping_scale =
 // temperature-density relation
 const double T_nu_const = 1.762359429;
 const double T_nu = 1.952784;  // Kelvin (today)
-const double mu_nu = 0.0;  // chemical potential
+const double mu_nu = 0.0;      // chemical potential
 
 // Neutrino related constants
 const double eV = 1.602176634e-19;    // J
