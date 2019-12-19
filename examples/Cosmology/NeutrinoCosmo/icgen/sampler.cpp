@@ -13,7 +13,6 @@
 #include "sampler.h"
 
 #include <iostream>
-#include <random>
 #include <math.h>
 #include <chrono>
 #include <algorithm>
@@ -36,6 +35,11 @@ double cdf(double x, double T, double mu, int N) {
     return out;
 }
 
+//Prepare the sampler to draw uniform random numbers
+void seed_rng(struct sampler *s, int seed) {
+    s->oracle.seed(seed);
+    s->Uniform = std::uniform_real_distribution<double> (0.0, 1.0);
+}
 
 void prepare_intervals(struct sampler *s, double T, double mu = 0) {
     //Setup
@@ -176,7 +180,7 @@ void prepare_intervals(struct sampler *s, double T, double mu = 0) {
 }
 
 double sampler_draw(struct sampler *s) {
-    float u = (float) rand() / RAND_MAX;
+    float u = s->Uniform(s->oracle);
     const int I_max = s->I_max;
     int I = floor(u*I_max);
     int idx = s->index[I<I_max ? I : I_max-1];

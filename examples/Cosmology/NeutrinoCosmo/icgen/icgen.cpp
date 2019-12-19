@@ -544,6 +544,9 @@ int main() {
     double mu = mu_nu;
     sampler s;
 
+    //Provide a reproducible random seed to the Fermi-Dirac sampler
+    seed_rng(&s, seed+1);
+
     //Prepare the interpolation intevals of the quantile function
     prepare_intervals(&s, k_b*T, mu);
 

@@ -13,6 +13,7 @@
 #ifndef SAMPLER_H
 #define SAMPLER_H
 
+#include <random>
 #include <vector>
 
 // Linked list of intervals
@@ -36,6 +37,10 @@ struct sampler {
   // The normalization of the pdf (will be updated later)
   double norm = 1;
 
+  // The random number generator
+  std::default_random_engine oracle;
+  std::uniform_real_distribution<double> Uniform;
+
   // The intervals used in the interpolation
   std::vector<interval> intervals;
 
@@ -46,6 +51,8 @@ struct sampler {
   const int I_max = 5000;
   float *index;
 };
+
+void seed_rng(struct sampler *s, int seed);
 
 void prepare_intervals(struct sampler *s, double T, double mu);
 
