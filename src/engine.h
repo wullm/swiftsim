@@ -247,6 +247,7 @@ struct engine {
   long long total_nr_sparts;
   long long total_nr_bparts;
   long long total_nr_DM_background_gparts;
+  long long total_nr_nuparts;
 
   /* Total numbers of cells (top-level and sub-cells) in the system. */
   long long total_nr_cells;
@@ -501,7 +502,8 @@ void engine_init_output_lists(struct engine *e, struct swift_params *params);
 void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  long long Ngas, long long Ngparts, long long Nstars,
                  long long Nblackholes, long long Nbackground_gparts,
-                 int policy, int verbose, struct repartition *reparttype,
+                 long long Nnuparts, int policy, int verbose,
+                 struct repartition *reparttype,
                  const struct unit_system *internal_units,
                  const struct phys_const *physical_constants,
                  struct cosmology *cosmo, struct hydro_props *hydro,

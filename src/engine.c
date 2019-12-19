@@ -2574,7 +2574,8 @@ void engine_check_for_index_dump(struct engine *e) {
   const float mem_frac = log->index.mem_frac;
   const size_t total_nr_parts =
       (e->total_nr_parts + e->total_nr_gparts + e->total_nr_sparts +
-       e->total_nr_bparts + e->total_nr_DM_background_gparts);
+       e->total_nr_bparts + e->total_nr_DM_background_gparts +
+       e->total_nr_nuparts);
   const size_t index_file_size =
       total_nr_parts * sizeof(struct logger_part_data);
 
@@ -3343,6 +3344,7 @@ void engine_unpin(void) {
  * @param Nstars total number of star particles in the simulation.
  * @param Nblackholes total number of black holes in the simulation.
  * @param Nbackground_gparts Total number of background DM particles.
+ * @param Nnuparts Total number of neutrino particles.
  * @param policy The queuing policy to use.
  * @param verbose Is this #engine talkative ?
  * @param reparttype What type of repartition algorithm are we using ?
@@ -3365,7 +3367,8 @@ void engine_unpin(void) {
 void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  long long Ngas, long long Ngparts, long long Nstars,
                  long long Nblackholes, long long Nbackground_gparts,
-                 int policy, int verbose, struct repartition *reparttype,
+                 long long Nnuparts, int policy, int verbose,
+                 struct repartition *reparttype,
                  const struct unit_system *internal_units,
                  const struct phys_const *physical_constants,
                  struct cosmology *cosmo, struct hydro_props *hydro,
@@ -3391,6 +3394,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->total_nr_sparts = Nstars;
   e->total_nr_bparts = Nblackholes;
   e->total_nr_DM_background_gparts = Nbackground_gparts;
+  e->total_nr_nuparts = Nnuparts;
   e->proxy_ind = NULL;
   e->nr_proxies = 0;
   e->reparttype = reparttype;
@@ -4622,15 +4626,17 @@ void engine_recompute_displacement_constraint(struct engine *e) {
   /* Get the counts of each particle types */
   const long long total_nr_baryons =
       e->total_nr_parts + e->total_nr_sparts + e->total_nr_bparts;
-  const long long total_nr_dm_gparts =
-      e->total_nr_gparts - e->total_nr_DM_background_gparts - total_nr_baryons;
+  const long long total_nr_dm_gparts = e->total_nr_gparts -
+                                       e->total_nr_DM_background_gparts -
+                                       total_nr_baryons - e->total_nr_nuparts;
   float count_parts[swift_type_count] = {
       (float)e->total_nr_parts,
       (float)total_nr_dm_gparts,
       (float)e->total_nr_DM_background_gparts,
       0.f,
       (float)e->total_nr_sparts,
-      (float)e->total_nr_bparts};
+      (float)e->total_nr_bparts,
+      (float)e->total_nr_nuparts};
 
   /* Count of particles for the two species */
   const float N_dm = count_parts[1];

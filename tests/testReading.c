@@ -28,7 +28,8 @@
 
 int main(int argc, char *argv[]) {
 
-  size_t Ngas = 0, Ngpart = 0, Ngpart_background = 0, Nspart = 0, Nbpart = 0;
+  size_t Ngas = 0, Ngpart = 0, Ngpart_background = 0, Nnupart = 0, Nspart = 0,
+         Nbpart = 0;
   int flag_entropy_ICs = -1;
   int i, j, k;
   double dim[3];
@@ -51,7 +52,7 @@ int main(int argc, char *argv[]) {
 
   /* Read data */
   read_ic_single("input.hdf5", &us, dim, &parts, &gparts, &sparts, &bparts,
-                 &Ngas, &Ngpart, &Ngpart_background, &Nspart, &Nbpart,
+                 &Ngas, &Ngpart, &Ngpart_background, &Nnupart, &Nspart, &Nbpart,
                  &flag_entropy_ICs,
                  /*with_hydro=*/1,
                  /*with_gravity=*/1,

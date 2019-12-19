@@ -21,4 +21,4 @@
 #include "part_type.h"
 
 const char* part_type_names[swift_type_count] = {
-    "Gas", "DM", "DM_background", "Dummy", "Stars", "BH"};
+    "Gas", "DM", "DM_background", "Dummy", "Stars", "BH", "Neutrino"};

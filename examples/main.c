@@ -907,7 +907,8 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
 
     /* Get ready to read particles of all kinds */
-    size_t Ngas = 0, Ngpart = 0, Ngpart_background = 0, Nspart = 0, Nbpart = 0;
+    size_t Ngas = 0, Ngpart = 0, Ngpart_background = 0, Nnupart = 0, Nspart = 0,
+           Nbpart = 0;
     double dim[3] = {0., 0., 0.};
 
     if (myrank == 0) clocks_gettime(&tic);
@@ -915,25 +916,25 @@ int main(int argc, char *argv[]) {
 #if defined(WITH_MPI)
 #if defined(HAVE_PARALLEL_HDF5)
     read_ic_parallel(ICfileName, &us, dim, &parts, &gparts, &sparts, &bparts,
-                     &Ngas, &Ngpart, &Ngpart_background, &Nspart, &Nbpart,
-                     &flag_entropy_ICs, with_hydro, with_gravity, with_stars,
-                     with_black_holes, with_cosmology, cleanup_h,
+                     &Ngas, &Ngpart, &Ngpart_background, &Nnupart, &Nspart,
+                     &Nbpart, &flag_entropy_ICs, with_hydro, with_gravity,
+                     with_stars, with_black_holes, with_cosmology, cleanup_h,
                      cleanup_sqrt_a, cosmo.h, cosmo.a, myrank, nr_nodes,
                      MPI_COMM_WORLD, MPI_INFO_NULL, nr_threads, dry_run);
 #else
     read_ic_serial(ICfileName, &us, dim, &parts, &gparts, &sparts, &bparts,
-                   &Ngas, &Ngpart, &Ngpart_background, &Nspart, &Nbpart,
-                   &flag_entropy_ICs, with_hydro, with_gravity, with_stars,
-                   with_black_holes, with_cosmology, cleanup_h, cleanup_sqrt_a,
-                   cosmo.h, cosmo.a, myrank, nr_nodes, MPI_COMM_WORLD,
-                   MPI_INFO_NULL, nr_threads, dry_run);
+                   &Ngas, &Ngpart, &Ngpart_background, &Nnupart, &Nspart,
+                   &Nbpart, &flag_entropy_ICs, with_hydro, with_gravity,
+                   with_stars, with_black_holes, with_cosmology, cleanup_h,
+                   cleanup_sqrt_a, cosmo.h, cosmo.a, myrank, nr_nodes,
+                   MPI_COMM_WORLD, MPI_INFO_NULL, nr_threads, dry_run);
 #endif
 #else
     read_ic_single(ICfileName, &us, dim, &parts, &gparts, &sparts, &bparts,
-                   &Ngas, &Ngpart, &Ngpart_background, &Nspart, &Nbpart,
-                   &flag_entropy_ICs, with_hydro, with_gravity, with_stars,
-                   with_black_holes, with_cosmology, cleanup_h, cleanup_sqrt_a,
-                   cosmo.h, cosmo.a, nr_threads, dry_run);
+                   &Ngas, &Ngpart, &Ngpart_background, &Nnupart, &Nspart,
+                   &Nbpart, &flag_entropy_ICs, with_hydro, with_gravity,
+                   with_stars, with_black_holes, with_cosmology, cleanup_h,
+                   cleanup_sqrt_a, cosmo.h, cosmo.a, nr_threads, dry_run);
 #endif
 #endif
 
@@ -978,8 +979,9 @@ int main(int argc, char *argv[]) {
     long long N_long[swift_type_count + 1] = {0};
     N_long[swift_type_gas] = Ngas;
     N_long[swift_type_dark_matter] =
-        with_gravity ? Ngpart - Ngpart_background - Nbaryons : 0;
+        with_gravity ? Ngpart - Ngpart_background - Nbaryons - Nnupart : 0;
     N_long[swift_type_dark_matter_background] = Ngpart_background;
+    N_long[swift_type_neutrino] = Nnupart;
     N_long[swift_type_stars] = Nspart;
     N_long[swift_type_black_hole] = Nbpart;
     N_long[swift_type_count] = Ngpart;
@@ -988,8 +990,9 @@ int main(int argc, char *argv[]) {
 #else
     N_total[swift_type_gas] = Ngas;
     N_total[swift_type_dark_matter] =
-        with_gravity ? Ngpart - Ngpart_background - Nbaryons : 0;
+        with_gravity ? Ngpart - Ngpart_background - Nbaryons - Nnupart : 0;
     N_total[swift_type_dark_matter_background] = Ngpart_background;
+    N_total[swift_type_neutrino] = Nnupart;
     N_total[swift_type_stars] = Nspart;
     N_total[swift_type_black_hole] = Nbpart;
     N_total[swift_type_count] = Ngpart;
@@ -998,11 +1001,12 @@ int main(int argc, char *argv[]) {
     if (myrank == 0)
       message(
           "Read %lld gas particles, %lld stars particles, %lld black hole "
-          "particles, %lld DM particles and %lld DM background particles from "
-          "the ICs.",
+          "particles, %lld DM particles, %lld DM background particles, and "
+          "%lld neutrino particles from the ICs.",
           N_total[swift_type_gas], N_total[swift_type_stars],
           N_total[swift_type_black_hole], N_total[swift_type_dark_matter],
-          N_total[swift_type_dark_matter_background]);
+          N_total[swift_type_dark_matter_background],
+          N_total[swift_type_neutrino]);
 
     const int with_DM_particles = N_total[swift_type_dark_matter] > 0;
     const int with_baryon_particles =
@@ -1014,6 +1018,9 @@ int main(int argc, char *argv[]) {
     /* Do we have background DM particles? */
     const int with_DM_background_particles =
         N_total[swift_type_dark_matter_background] > 0;
+
+    /* Do we have neutrino particles? */
+    // const int with_neutrino_particles = N_total[swift_type_neutrino] > 0;
 
     /* Verify that the fields to dump actually exist */
     if (myrank == 0) io_check_output_fields(params, N_total);
@@ -1069,7 +1076,8 @@ int main(int argc, char *argv[]) {
 #if defined(WITH_MPI)
     N_long[swift_type_gas] = s.nr_parts;
     N_long[swift_type_dark_matter] =
-        with_gravity ? s.nr_gparts - Ngpart_background - Nbaryons : 0;
+        with_gravity ? s.nr_gparts - Ngpart_background - Nbaryons - Nnupart : 0;
+    // N_long[swift_type_neutrino] = s.nr_nuparts;
     N_long[swift_type_count] = s.nr_gparts;
     N_long[swift_type_stars] = s.nr_sparts;
     N_long[swift_type_black_hole] = s.nr_bparts;
@@ -1078,7 +1086,8 @@ int main(int argc, char *argv[]) {
 #else
     N_total[swift_type_gas] = s.nr_parts;
     N_total[swift_type_dark_matter] =
-        with_gravity ? s.nr_gparts - Ngpart_background - Nbaryons : 0;
+        with_gravity ? s.nr_gparts - Ngpart_background - Nbaryons - Nnupart : 0;
+    // N_total[swift_type_neutrino] = s.nr_nuparts;
     N_total[swift_type_count] = s.nr_gparts;
     N_total[swift_type_stars] = s.nr_sparts;
     N_total[swift_type_black_hole] = s.nr_bparts;
@@ -1153,11 +1162,12 @@ int main(int argc, char *argv[]) {
     engine_init(
         &e, &s, params, N_total[swift_type_gas], N_total[swift_type_count],
         N_total[swift_type_stars], N_total[swift_type_black_hole],
-        N_total[swift_type_dark_matter_background], engine_policies, talking,
-        &reparttype, &us, &prog_const, &cosmo, &hydro_properties,
-        &entropy_floor, &gravity_properties, &stars_properties,
-        &black_holes_properties, &feedback_properties, &mesh, &potential,
-        &cooling_func, &starform, &chemistry, &fof_properties);
+        N_total[swift_type_dark_matter_background],
+        N_total[swift_type_neutrino], engine_policies, talking, &reparttype,
+        &us, &prog_const, &cosmo, &hydro_properties, &entropy_floor,
+        &gravity_properties, &stars_properties, &black_holes_properties,
+        &feedback_properties, &mesh, &potential, &cooling_func, &starform,
+        &chemistry, &fof_properties);
     engine_config(/*restart=*/0, /*fof=*/0, &e, params, nr_nodes, myrank,
                   nr_threads, with_aff, talking, restart_file);
 
@@ -1171,12 +1181,15 @@ int main(int argc, char *argv[]) {
     /* Get some info to the user. */
     if (myrank == 0) {
       const long long N_DM = N_total[swift_type_dark_matter] +
-                             N_total[swift_type_dark_matter_background];
+                             N_total[swift_type_dark_matter_background] +
+                             N_total[swift_type_neutrino];
       message(
           "Running on %lld gas particles, %lld stars particles %lld black "
-          "hole particles and %lld DM particles (%lld gravity particles)",
+          "hole particles and %lld DM particles (%lld gravity particles),"
+          "%lld neutrino particles",
           N_total[swift_type_gas], N_total[swift_type_stars],
-          N_total[swift_type_black_hole], N_DM, N_total[swift_type_count]);
+          N_total[swift_type_black_hole], N_DM, N_total[swift_type_count],
+          N_total[swift_type_neutrino]);
       message(
           "from t=%.3e until t=%.3e with %d ranks, %d threads / rank and %d "
           "task queues / rank (dt_min=%.3e, dt_max=%.3e)...",

@@ -84,7 +84,8 @@ int main(int argc, char *argv[]) {
   clocks_set_cpufreq(cpufreq);
 
   const char *base_name = "testSelectOutput";
-  size_t Ngas = 0, Ngpart = 0, Ngpart_background = 0, Nspart = 0, Nbpart = 0;
+  size_t Ngas = 0, Ngpart = 0, Ngpart_background = 0, Nnupart = 0, Nspart = 0,
+         Nbpart = 0;
   int flag_entropy_ICs = -1;
   int periodic = 1;
   double dim[3];
@@ -112,7 +113,7 @@ int main(int argc, char *argv[]) {
   /* Read data */
   message("Reading initial conditions.");
   read_ic_single("input.hdf5", &us, dim, &parts, &gparts, &sparts, &bparts,
-                 &Ngas, &Ngpart, &Ngpart_background, &Nspart, &Nbpart,
+                 &Ngas, &Ngpart, &Ngpart_background, &Nnupart, &Nspart, &Nbpart,
                  &flag_entropy_ICs,
                  /*with_hydro=*/1,
                  /*with_gravity=*/0,

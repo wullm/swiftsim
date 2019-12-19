@@ -377,6 +377,8 @@ void writeArray(const struct engine* e, hid_t grp, char* fileName,
  * @param bparts (output) Array of #bpart particles.
  * @param Ngas (output) number of Gas particles read.
  * @param Ngparts (output) The number of #gpart read.
+ * @param Ngparts_background (output) The number of background #gpart read.
+ * @param Nnuparts (output) The number of neutrino #gpart read.
  * @param Nstars (output) The number of #spart read.
  * @param Nblackholes (output) The number of #bpart read.
  * @param flag_entropy (output) 1 if the ICs contained Entropy in the
@@ -405,11 +407,12 @@ void read_ic_single(const char* fileName,
                     const struct unit_system* internal_units, double dim[3],
                     struct part** parts, struct gpart** gparts,
                     struct spart** sparts, struct bpart** bparts, size_t* Ngas,
-                    size_t* Ngparts, size_t* Ngparts_background, size_t* Nstars,
-                    size_t* Nblackholes, int* flag_entropy, int with_hydro,
-                    int with_gravity, int with_stars, int with_black_holes,
-                    int with_cosmology, int cleanup_h, int cleanup_sqrt_a,
-                    double h, double a, int n_threads, int dry_run) {
+                    size_t* Ngparts, size_t* Ngparts_background,
+                    size_t* Nnuparts, size_t* Nstars, size_t* Nblackholes,
+                    int* flag_entropy, int with_hydro, int with_gravity,
+                    int with_stars, int with_black_holes, int with_cosmology,
+                    int cleanup_h, int cleanup_sqrt_a, double h, double a,
+                    int n_threads, int dry_run) {
 
   hid_t h_file = 0, h_grp = 0;
   /* GADGET has only cubic boxes (in cosmological mode) */
@@ -421,9 +424,10 @@ void read_ic_single(const char* fileName,
   int dimension = 3; /* Assume 3D if nothing is specified */
   size_t Ndm = 0;
   size_t Ndm_background = 0;
+  size_t Ndm_neutrino = 0;
 
   /* Initialise counters */
-  *Ngas = 0, *Ngparts = 0, *Ngparts_background = 0, *Nstars = 0,
+  *Ngas = 0, *Ngparts = 0, *Ngparts_background = 0, *Nnuparts = 0, *Nstars = 0,
   *Nblackholes = 0;
 
   /* Open file */
@@ -574,12 +578,14 @@ void read_ic_single(const char* fileName,
   if (with_gravity) {
     Ndm = N[swift_type_dark_matter];
     Ndm_background = N[swift_type_dark_matter_background];
+    Ndm_neutrino = N[swift_type_neutrino];
     *Ngparts = (with_hydro ? N[swift_type_gas] : 0) +
                N[swift_type_dark_matter] +
-               N[swift_type_dark_matter_background] +
+               N[swift_type_dark_matter_background] + N[swift_type_neutrino] +
                (with_stars ? N[swift_type_stars] : 0) +
                (with_black_holes ? N[swift_type_black_hole] : 0);
     *Ngparts_background = Ndm_background;
+    *Nnuparts = Ndm_neutrino;
     if (swift_memalign("gparts", (void**)gparts, gpart_align,
                        *Ngparts * sizeof(struct gpart)) != 0)
       error("Error while allocating memory for gravity particles");
@@ -635,6 +641,14 @@ void read_ic_single(const char* fileName,
         }
         break;
 
+      case swift_type_neutrino:
+        if (with_gravity) {
+          Nparticles = Ndm_neutrino;
+          darkmatter_read_particles(*gparts + Ndm + Ndm_background, list,
+                                    &num_fields);
+        }
+        break;
+
       case swift_type_stars:
         if (with_stars) {
           Nparticles = *Nstars;
@@ -676,20 +690,24 @@ void read_ic_single(const char* fileName,
     /* Prepare the DM background particles */
     io_prepare_dm_background_gparts(&tp, *gparts + Ndm, Ndm_background);
 
+    /* Prepare the neutrino particles */
+    io_prepare_nuparts(&tp, *gparts + Ndm + Ndm_background, Ndm_neutrino);
+
     /* Duplicate the hydro particles into gparts */
     if (with_hydro)
       io_duplicate_hydro_gparts(&tp, *parts, *gparts, *Ngas,
-                                Ndm + Ndm_background);
+                                Ndm + Ndm_background + Ndm_neutrino);
 
     /* Duplicate the star particles into gparts */
     if (with_stars)
       io_duplicate_stars_gparts(&tp, *sparts, *gparts, *Nstars,
-                                Ndm + Ndm_background + *Ngas);
+                                Ndm + Ndm_background + Ndm_neutrino + *Ngas);
 
     /* Duplicate the black hole particles into gparts */
     if (with_black_holes)
-      io_duplicate_black_holes_gparts(&tp, *bparts, *gparts, *Nblackholes,
-                                      Ndm + Ndm_background + *Ngas + *Nstars);
+      io_duplicate_black_holes_gparts(
+          &tp, *bparts, *gparts, *Nblackholes,
+          Ndm + Ndm_background + Ndm_neutrino + *Ngas + *Nstars);
 
     threadpool_clean(&tp);
   }
@@ -756,6 +774,8 @@ void write_output_single(struct engine* e, const char* baseName,
     Ndm_background = io_count_dm_background_gparts(gparts, Ntot);
   }
 
+  const size_t Ndm_neutrino = io_count_nuparts(gparts, Ntot);
+
   /* Number of particles that we will write
    * Recall that background particles are never inhibited and have no extras */
   const size_t Ntot_written =
@@ -769,13 +789,16 @@ void write_output_single(struct engine* e, const char* baseName,
   const size_t Nbaryons_written =
       Ngas_written + Nstars_written + Nblackholes_written;
   const size_t Ndm_written =
-      Ntot_written > 0 ? Ntot_written - Nbaryons_written - Ndm_background : 0;
+      Ntot_written > 0
+          ? Ntot_written - Nbaryons_written - Ndm_background - Ndm_neutrino
+          : 0;
 
   /* Format things in a Gadget-friendly array */
   long long N_total[swift_type_count] = {
       (long long)Ngas_written,   (long long)Ndm_written,
       (long long)Ndm_background, 0,
-      (long long)Nstars_written, (long long)Nblackholes_written};
+      (long long)Nstars_written, (long long)Nblackholes_written,
+      (long long)Ndm_neutrino};
 
   /* File name */
   char fileName[FILENAME_BUFFER_SIZE];
@@ -1078,7 +1101,8 @@ void write_output_single(struct engine* e, const char* baseName,
       case swift_type_dark_matter: {
         if (Ntot == Ndm_written) {
 
-          /* This is a DM-only run without background or inhibited particles */
+          /* This is a DM-only run without background or inhibited particles or
+           * neutrinos */
           N = Ntot;
           darkmatter_write_particles(gparts, list, &num_fields);
           if (with_fof) {
@@ -1151,6 +1175,43 @@ void write_output_single(struct engine* e, const char* baseName,
         io_collect_gparts_background_to_write(
             gparts, e->s->gpart_group_data, gparts_written,
             gpart_group_data_written, Ntot, Ndm_background, with_stf);
+
+        /* Select the fields to write */
+        darkmatter_write_particles(gparts_written, list, &num_fields);
+        if (with_fof) {
+          num_fields += fof_write_gparts(gparts_written, list + num_fields);
+        }
+        if (with_stf) {
+          num_fields += velociraptor_write_gparts(gpart_group_data_written,
+                                                  list + num_fields);
+        }
+      } break;
+
+      case swift_type_neutrino: {
+
+        /* Ok, we need to fish out the particles we want */
+        N = Ndm_neutrino;
+
+        /* Allocate temporary array */
+        if (swift_memalign("gparts_written", (void**)&gparts_written,
+                           gpart_align,
+                           Ndm_neutrino * sizeof(struct gpart)) != 0)
+          error("Error while allocating temporart memory for gparts");
+
+        if (with_stf) {
+          if (swift_memalign(
+                  "gpart_group_written", (void**)&gpart_group_data_written,
+                  gpart_align,
+                  Ndm_neutrino * sizeof(struct velociraptor_gpart_data)) != 0)
+            error(
+                "Error while allocating temporart memory for gparts STF "
+                "data");
+        }
+
+        /* Collect the non-inhibited neutrino particles from gpart */
+        io_collect_nuparts_to_write(gparts, e->s->gpart_group_data,
+                                    gparts_written, gpart_group_data_written,
+                                    Ntot, Ndm_neutrino, with_stf);
 
         /* Select the fields to write */
         darkmatter_write_particles(gparts_written, list, &num_fields);
