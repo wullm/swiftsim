@@ -84,4 +84,6 @@ inline double sigma_func_neutrino(double k) {
   return sqrt(pow(k, 0.97)) * Transfer_interpol(k, TF_T_rho_nu);
 }
 
+void writeGRF_H5(double *box, size_t N, float box_len, std::string fname);
+
 #endif

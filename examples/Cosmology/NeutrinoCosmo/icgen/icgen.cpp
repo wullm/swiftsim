@@ -130,9 +130,13 @@ int main() {
         }
     }
 
+    //Write GRF to binary file
     write_array_to_disk(std::string(OUTPUT_DIR) + "gaussian.box", primordial_box, N);
+    //Write GRF to H5 format
+    writeGRF_H5(primordial_box, N, box_len, std::string(OUTPUT_DIR) + "gaussian.hdf5");
 
     std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian.box" << std::endl;
+    std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian.hdf5" << std::endl;
     std::cout << std::endl;
 
 
@@ -391,10 +395,14 @@ int main() {
         }
     }
 
-	write_array_to_disk(std::string(OUTPUT_DIR) + "gaussian_nu.box", primordial_box, N);
-    std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_nu.box" << std::endl;
-    std::cout << std::endl;
+    //Write GRF to binary file
+    write_array_to_disk(std::string(OUTPUT_DIR) + "gaussian_nu.box", primordial_box, N);
+    //Write GRF to H5 format
+    writeGRF_H5(primordial_box, N, box_len, std::string(OUTPUT_DIR) + "gaussian_nu.hdf5");
 
+    std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_nu.box" << std::endl;
+    std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_nu.hdf5" << std::endl;
+    std::cout << std::endl;
 
     //Compute the neutrino displacement field from the random field
     std::cout << "PHASE 3C - Compute the neutrino displacement vector field" << std::endl;
@@ -637,45 +645,12 @@ int main() {
     std::cout << "Volume " << box_volume << std::endl;
     std::cout << "Rho crit " << swift_rho_crit << std::endl;
 
-    /*
-        //Convert to Swift units. The below values are conversions to cgs
-        double swift_unitcurrent = 1;
-        double swift_unitlength = 3.08568e+24;
-        double swift_unitmass = 1.98848e+43;
-        double swift_unittemp = 1;
-        double swift_unittime = 3.08568e+19;
-
-        double M_hewon_to_swift = swift_unitmass/kg;
-        double L_hewon_to_swift = swift_unitlength/(Mpc/cm);
-        double T_hewon_to_swift = swift_unittime/Gyr;
-
-        for (int i=0; i<PARTICLE_NUM; i++) {
-            bodies[i].mass *= M_hewon_to_swift; //from kg to swift unit
-            bodies[i].X *= L_hewon_to_swift; //from Mpc to swift unit
-            bodies[i].Y *= L_hewon_to_swift; //from Mpc to swift unit
-            bodies[i].Z *= L_hewon_to_swift; //from Mpc to swift unit
-            bodies[i].v_X *= L_hewon_to_swift / T_hewon_to_swift; //from Mpc/Gyr to swift unit
-            bodies[i].v_Y *= L_hewon_to_swift / T_hewon_to_swift; //from Mpc/Gyr to swift unit
-            bodies[i].v_Z *= L_hewon_to_swift / T_hewon_to_swift; //from Mpc/Gyr to swift unit
-        }
-
-        double swift_rho_crit = rho_crit * M_hewon_to_swift / pow(swift_unitlength*cm,3);
-        std::cout << PARTICLE_NUM * bodies[0].mass / (swift_rho_crit*box_volume*pow(L_hewon_to_swift,3)) << std::endl;
-    */
-
 
     //Export the particles to an HDF5 file
     H5::H5File file(std::string(OUTPUT_DIR) + "particles.hdf5", H5F_ACC_TRUNC);
 
     //Write Header group
     H5::Group headerGroup(file.createGroup("/Header"));
-
-    //Create new dataspace for attribute
-    // DataSpace attr_dataspace = DataSpace(H5S_SCALAR);
-
-// // Create new string datatype for attribute
-    // H5::StrType strdatatype(H5::PredType::C_S1, 256); // of length 256 characters
-    // const std::string strwritebuf ("This attribute is of type StrType");
 
     //Dataspace for a single number
     H5::DataSpace scalarSpace(H5S_SCALAR);
@@ -720,13 +695,6 @@ int main() {
     H5::Attribute att7 = headerGroup.createAttribute("Time", H5::PredType::NATIVE_FLOAT, scalarSpace);
     float Time = 0;
     att7.write(H5::PredType::NATIVE_FLOAT, &Time);
-
-
-
-
-// // Set up write buffer for attribute
-// // Create attribute and write to it
-
 
 
     //Choose particle group (dark matter is particle type 1)
@@ -840,11 +808,6 @@ int main() {
     H5::DataSet dataset_v_nu = group_nu.createDataSet("Velocities", H5::PredType::NATIVE_FLOAT, dataspace_nu);
     dataset_v_nu.write(velocities_nu, H5::PredType::NATIVE_FLOAT);
 
-
-
-
-
-
     //Write more attributes
 
     //Write RuntimePars group
@@ -873,11 +836,19 @@ int main() {
     units_att4.write(H5::PredType::NATIVE_DOUBLE, &swift_unittime);
 
     file.close();
+}
 
 
+void writeGRF_H5(double *box, size_t N, float box_len, std::string fname) {
+    //Dataspace for a single number
+    H5::DataSpace scalarSpace(H5S_SCALAR);
+    //Data space for a row of 3 numbers (one per coordinate)
+    const std::size_t cNDIMS = 1;
+    hsize_t cdims[cNDIMS] = {3};
+    H5::DataSpace row3Space(cNDIMS, cdims);
 
     //Export the primordial Gaussian random field to another HDF5 file
-    H5::H5File grf_file(std::string(OUTPUT_DIR) + "gaussian.hdf5", H5F_ACC_TRUNC);
+    H5::H5File grf_file(fname, H5F_ACC_TRUNC);
 
     //Write Header group
     H5::Group grf_headerGroup(grf_file.createGroup("/Header"));
@@ -899,34 +870,20 @@ int main() {
     hsize_t grf_dims[grf_NDIMS] = {N,N,N};
     H5::DataSpace grf_dataspace(grf_NDIMS, grf_dims);
 
-    //Fourier transform back to real coordinates
-    fftw_execute(the_plan);
-    fftw_destroy_plan(the_plan);
-
-    //Normalization (from Fourier conventions alone)
-    for (int x=0; x<N; x++) {
-        for (int y=0; y<N; y++) {
-            for (int z=0; z<N; z++) {
-                primordial_box[box_idx(N, x, y, z)] /= box_volume;
-            }
-        }
-    }
 
     //Copy the Gaussian random field from FFTW format to a suitable formatted array
     float gaussian_arr[N*N*N];
     for (int x=0; x<N; x++) {
         for (int y=0; y<N; y++) {
             for (int z=0; z<N; z++) {
-                gaussian_arr[box_idx(N, x, y, z)] = primordial_box[box_idx(N, x, y, z)];
+                gaussian_arr[box_idx(N, x, y, z)] = box[box_idx(N, x, y, z)];
             }
         }
     }
 
-
     //Write the gaussian field array to disk
     H5::DataSet grf_dataset = grf_fieldGroup.createDataSet("GaussianRandomField", H5::PredType::NATIVE_FLOAT, grf_dataspace);
     grf_dataset.write(gaussian_arr, H5::PredType::NATIVE_FLOAT);
-
 
     grf_file.close();
 }
