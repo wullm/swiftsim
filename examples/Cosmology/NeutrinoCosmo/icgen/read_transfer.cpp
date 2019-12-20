@@ -63,3 +63,29 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho, std::vec
         T_rho_nu[j] /= amplitude_k_min;
     }
 }
+
+//Make an indexed search table for the transfer function interpolation
+void make_index_table(int TF_I_max, float *TF_index, std::vector<double>& TF_ks, float *log_k_min, float *log_k_max) {
+    //The smallest and largest k-values in the transfer fucntion tables
+    float k_min = TF_ks[0];
+    float k_max = TF_ks[TF_ks.size() - 1];
+    *log_k_min = log(k_min);
+    *log_k_max = log(k_max);
+
+    //Make the index table
+    for (int i=0; i<TF_I_max; i++) {
+        float u = (float) i/TF_I_max;
+        float v = *log_k_min + u * (*log_k_max - *log_k_min);
+        float w = exp(v);
+
+        //Find the largest bin such that w > k
+        float maxJ = 0;
+        int int_id = 0;
+        for(int j=0; j<TF_ks.size(); j++) {
+            if (TF_ks[j] < w) {
+                maxJ = j;
+            }
+        }
+        TF_index[i] = maxJ;
+    }
+}

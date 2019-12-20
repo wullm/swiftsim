@@ -42,28 +42,43 @@ std::vector<double> TF_ks;
 std::vector<double> TF_T_rho;
 std::vector<double> TF_T_rho_nu;
 
+// Indexed search table for the transfer function interpolation
+const int TF_I_max = 100;
+float *TF_index;
+
+// The smallest and largest k-values
+float log_k_min, log_k_max;
+
 // Linearly interpolate the Transfer functon
-inline double Transfer_interpol(double k, std::vector<double> Transfer) {
+inline double Transfer_interpol(double k, std::vector<double> *Transfer) {
   if (k > TF_ks[TF_ks.size() - 1]) {
-    return Transfer[TF_ks.size() - 1];
+    return (*Transfer)[TF_ks.size() - 1];
   } else if (k < TF_ks[0]) {
-    return Transfer[0];
+    return (*Transfer)[0];
   } else {
     double k1, k2, T1, T2;
 
-    for (int i = 0; i < TF_ks.size(); i++) {
+    // Quickly find a starting index using the indexed seach
+    float v = log(k);
+    float u = (v - log_k_min) / (log_k_max - log_k_min);
+    int I = floor(u * TF_I_max);
+    int idx = TF_index[I < TF_I_max ? I : TF_I_max - 1];
+
+    // Search in the TF table
+    for (int i = idx; i < TF_ks.size(); i++) {
       if (k >= TF_ks[i] && i < TF_ks.size() - 1) {
         if (k <= TF_ks[i + 1]) {
           k1 = TF_ks[i];
           k2 = TF_ks[i + 1];
-          T1 = Transfer[i];
-          T2 = Transfer[i + 1];
+          T1 = (*Transfer)[i];
+          T2 = (*Transfer)[i + 1];
         }
       }
     }
 
-    double u = (k - k1) / (k2 - k1);
-    double T = T1 + u * (T2 - T1);
+    // Linear interpolation
+    double z = (k - k1) / (k2 - k1);
+    double T = T1 + z * (T2 - T1);
 
     return T;
   }
@@ -76,12 +91,12 @@ inline double Transfer_interpol(double k, std::vector<double> Transfer) {
 
 // Doesn't have to be normalized yet
 inline double sigma_func_cdm(double k) {
-  return sqrt(pow(k, 0.97)) * Transfer_interpol(k, TF_T_rho);
+  return sqrt(pow(k, 0.97)) * Transfer_interpol(k, &TF_T_rho);
 }
 
 // Doesn't have to be normalized yet
 inline double sigma_func_neutrino(double k) {
-  return sqrt(pow(k, 0.97)) * Transfer_interpol(k, TF_T_rho_nu);
+  return sqrt(pow(k, 0.97)) * Transfer_interpol(k, &TF_T_rho_nu);
 }
 
 void writeGRF_H5(double *box, size_t N, float box_len, std::string fname);

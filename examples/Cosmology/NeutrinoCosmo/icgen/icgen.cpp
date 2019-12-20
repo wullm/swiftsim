@@ -62,8 +62,12 @@ int main() {
 
     std::cout << "PHASE 0B - Reading in transfer function files" << std::endl;
 
-    //Neutrino density Transfer function data (loaded from CLASS)
+    //Prepare an indexed search table for the transfer functions
+    TF_index = (float*) malloc(TF_I_max * sizeof(float));
+
+    //Neutrino and CDM density Transfer function data (loaded from CLASS)
     read_transfer(TF_ks, TF_T_rho, TF_T_rho_nu);
+    make_index_table(TF_I_max, TF_index, TF_ks, &log_k_min, &log_k_max);
 
 	//Export transfer functions
 	std::ofstream of(std::string(OUTPUT_DIR) + "transfer_functions.txt");
@@ -645,9 +649,16 @@ int main() {
     std::cout << "Volume " << box_volume << std::endl;
     std::cout << "Rho crit " << swift_rho_crit << std::endl;
 
+    //The particle file
+    std::string fname = std::string(OUTPUT_DIR) + "particles.hdf5";
+
+    //Convert to char array to please H5
+    char fname_chars[fname.size() + 1];
+    fname.copy(fname_chars, fname.size() + 1);
+    fname_chars[fname.size()] = '\0';
 
     //Export the particles to an HDF5 file
-    H5::H5File file(std::string(OUTPUT_DIR) + "particles.hdf5", H5F_ACC_TRUNC);
+    H5::H5File file(fname_chars, H5F_ACC_TRUNC);
 
     //Write Header group
     H5::Group headerGroup(file.createGroup("/Header"));
@@ -847,8 +858,13 @@ void writeGRF_H5(double *box, size_t N, float box_len, std::string fname) {
     hsize_t cdims[cNDIMS] = {3};
     H5::DataSpace row3Space(cNDIMS, cdims);
 
+    //Convert to char array to please H5
+    char fname_chars[fname.size() + 1];
+    fname.copy(fname_chars, fname.size() + 1);
+    fname_chars[fname.size()] = '\0';
+
     //Export the primordial Gaussian random field to another HDF5 file
-    H5::H5File grf_file(fname, H5F_ACC_TRUNC);
+    H5::H5File grf_file(fname_chars, H5F_ACC_TRUNC);
 
     //Write Header group
     H5::Group grf_headerGroup(grf_file.createGroup("/Header"));
