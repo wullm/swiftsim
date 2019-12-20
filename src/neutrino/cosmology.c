@@ -40,8 +40,8 @@
 #include "../restart.h"
 
 #ifdef HAVE_LIBGSL
-#include <../gsl/gsl_integration.h>
-#include <../gsl/gsl_interp.h>
+#include <gsl/gsl_integration.h>
+#include <gsl/gsl_interp.h>
 #endif
 
 /*! Number of values stored in the cosmological interpolation tables */
