@@ -42,7 +42,7 @@ int main() {
 	std::normal_distribution<double> Gaussian(0.0, 1.0);
 
     const int N = GRID_WIDTH;
-    const int box_len = BOX_WIDTH; //Mpc
+    const double box_len = BOX_WIDTH; //Mpc
     const double delta_k = 2*M_PI/box_len; //Mpc^-1
     const double box_volume = box_len*box_len*box_len; //Mpc^3
     const double z_start = Z_START;
