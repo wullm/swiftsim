@@ -156,7 +156,8 @@ int main(int argc, char *argv[]) {
         times2[i] = time;
       }
 
-      double my_a = cosmology_get_scale_factor_from_time(&cosmo, time);
+      // double my_a = cosmology_get_scale_factor_from_time(&cosmo, time); //from the integration branch
+      double my_a = cosmology_get_scale_factor(&cosmo, time);
 
       /* check accuracy */
       double rel_err = (my_a - a) / a;
