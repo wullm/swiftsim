@@ -14,7 +14,7 @@
 #include <math.h>
 
 // Spectral index of primordial fluctuations
-const double n_s = 0.9667;
+const double n_s = N_S;
 
 // Matter power spectrum flucutations on scale 8 Mpc/h
 const double sigma_8 = 0.8159;
@@ -25,7 +25,7 @@ float powerSpectrum(float k) {
 }
 
 // User-defined paramters
-const double H_0 = 67.556;  // km/s/Mpc
+// const double H_0 = 67.556;  // km/s/Mpc (now defined in config.h)
 const double h = H_0 / 100;
 const double Theta_2p7 = 1;  // CMB T = 2.7 K * Theta_2p7
 

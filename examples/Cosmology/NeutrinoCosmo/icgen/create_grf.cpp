@@ -91,7 +91,7 @@ double integrate_sigma_R(int width, double box_len, double R_filter, double (&si
 
 	//Output debug file
 	std::ofstream of(std::string(OUTPUT_DIR) + "sigma_8_integration.txt");
-	of << "k(Mpc);W(k);P(k);partial_sum(sigma^2)\n";
+	of << "k(1/Mpc);W(k);P(k);partial_sum(sigma^2)\n";
 
  	while(k>k_min) {
 		double W = 3.0 / pow(k*R_filter, 3) *(sin(k*R_filter) - k*R_filter*cos(k*R_filter)); //top-hat filter

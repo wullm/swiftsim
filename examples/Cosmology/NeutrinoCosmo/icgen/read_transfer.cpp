@@ -10,6 +10,7 @@
  */
 
 #include "read_transfer.h"
+#include "config.h"
 
 void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho, std::vector<double>& T_rho_nu) {
     std::ifstream f("transfer/class_transfer_z40.dat");
@@ -61,6 +62,11 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho, std::vec
     for (int j=0; j<kvals; j++) {
         T_rho[j] /= amplitude_k_min;
         T_rho_nu[j] /= amplitude_k_min;
+    }
+
+    //Convert from h/Mpc to 1/Mpc
+    for (int j=0; j<kvals; j++) {
+        ks[j] /= (H_0 / 100.0);
     }
 }
 

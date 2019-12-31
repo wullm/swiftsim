@@ -9,12 +9,12 @@
  * Generate initial conditions for a cosmological N-body simulation.
  */
 
+#include "config.h"
 #include "icgen.h"
 
 #include "create_grf.h"
-#include "read_transfer.h"
-#include "config.h"
 #include "cosmo.h"
+#include "read_transfer.h"
 #include "sampler.h"
 #include "H5Cpp.h"
 
