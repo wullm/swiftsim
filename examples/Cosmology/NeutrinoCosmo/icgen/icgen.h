@@ -27,6 +27,7 @@ struct corpuscle {
 #include <random>
 #include <vector>
 
+
 // #include <sstream>
 // #include <fstream>
 // #include <algorithm>
@@ -91,12 +92,12 @@ inline double Transfer_interpol(double k, std::vector<double> *Transfer) {
 
 // Doesn't have to be normalized yet
 inline double sigma_func_cdm(double k) {
-  return sqrt(pow(k, 0.97)) * Transfer_interpol(k, &TF_T_rho);
+  return sqrt(pow(k, N_S)) * Transfer_interpol(k, &TF_T_rho);
 }
 
 // Doesn't have to be normalized yet
 inline double sigma_func_neutrino(double k) {
-  return sqrt(pow(k, 0.97)) * Transfer_interpol(k, &TF_T_rho_nu);
+  return sqrt(pow(k, N_S)) * Transfer_interpol(k, &TF_T_rho_nu);
 }
 
 void writeGRF_H5(double *box, size_t N, float box_len, std::string fname);
