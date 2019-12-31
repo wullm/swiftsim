@@ -27,7 +27,6 @@ struct corpuscle {
 #include <random>
 #include <vector>
 
-
 // #include <sstream>
 // #include <fstream>
 // #include <algorithm>
