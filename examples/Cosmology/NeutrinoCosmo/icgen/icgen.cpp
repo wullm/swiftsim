@@ -71,7 +71,7 @@ int main() {
 
 	//Export transfer functions
 	std::ofstream of(std::string(OUTPUT_DIR) + "transfer_functions.txt");
-	of << "k(Mpc/h);T_cdm;T_nu\n";
+	of << "k(1/Mpc);T_cdm;T_nu\n";
 
 	for (int i = 0; i < TF_ks.size(); i++) {
 		of << TF_ks[i] << ";" << TF_T_rho[i] << ";" << TF_T_rho_nu[i] << std::endl;
