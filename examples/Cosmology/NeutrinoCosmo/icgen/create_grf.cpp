@@ -73,21 +73,20 @@ void generate_grf(std::default_random_engine& oracle, fftw_complex* k_box, int w
  * Calculate the value of sigma_R (e.g. sigma_8), corresponding to a given power spectrum,
  * by integrating over the whole Fourier domain.
  *
- * @param width The dimension of the grid (=N)
- * @param box_len Physical dimension of the box in Mpc
- * @param R_filter Filtering scale in Mpc (note: not Mpc/h)
+ * @param width The dimension of the grid (=N) --- not used
+ * @param box_len Physical dimension of the box in Mpc --- not used
+ * @param R_filter Filtering scale in Mpc
  * @param sigma_func Reference to a function specifying the square root of the power spectrum
  */
 double integrate_sigma_R(int width, double box_len, double R_filter, double (&sigma_func)(double)) {
 	double total = 0;
 
 	//Integrate sigma^2(k) between k_min and k_max
-	double k_max = 10.0;
-	double k_min = 0.0001;
+	double k_max = 10.0; // 1/Mpc
+	double k_min = 0.0001; // 1/Mpc
 
-	double k = k_max;
-	double k_scaling = 1.02;
-
+	double k = k_max; // 1/Mpc
+	double k_scaling = 1.001;
 
 	//Output debug file
 	std::ofstream of(std::string(OUTPUT_DIR) + "sigma_8_integration.txt");
@@ -96,7 +95,7 @@ double integrate_sigma_R(int width, double box_len, double R_filter, double (&si
  	while(k>k_min) {
 		double W = 3.0 / pow(k*R_filter, 3) *(sin(k*R_filter) - k*R_filter*cos(k*R_filter)); //top-hat filter
 		double Delta_k = k-k/k_scaling;
-		total += Delta_k * (W*W) * sigma_func(k)*sigma_func(k) * pow(k,2) / (2*pow(M_PI,2));
+		total += Delta_k * (W*W) * pow(sigma_func(k),2) * pow(k,2) / (2*pow(M_PI,2));
 		of << k << ";" << W << ";" << pow(sigma_func(k),2) << ";" << total << "\n";
 		k /= k_scaling;
 	}

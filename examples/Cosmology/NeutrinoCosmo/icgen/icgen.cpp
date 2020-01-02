@@ -95,6 +95,9 @@ int main() {
     const double R_filter = 8/h; //Mpc
     double integrated_sigma_8 = integrate_sigma_R(N, box_len, R_filter, sigma_func_cdm);
 
+    //Account for little h factor
+    // integrated_sigma_8 *= sqrt(h);
+
     std::cout << "PHASE 1B - Normalizing the random field" << std::endl;
     std::cout << "1a) Planck sigma_8 = " << sigma_8 << "." << std::endl;
     std::cout << "1b) Integrated sigma_8 = " << integrated_sigma_8 << " from unnormalized power spectrum." << std::endl;
@@ -103,6 +106,8 @@ int main() {
 
     //Normalize the Gaussian random field by multiplying the Fourier modes by the appropriate factor
     double global_PS_normalization = (sigma_8 / integrated_sigma_8) * (D_growth_factor(z_start) / D_growth_factor(0));
+
+    // global_PS_normalization *= h;
 
     for (int x=0; x<N; x++) {
         for (int y=0; y<N; y++) {
@@ -116,6 +121,12 @@ int main() {
     std::cout << "2a) Growth factor at z=" << z_start << " is " << D_growth_factor(z_start) << "." << std::endl;
     std::cout << "2b) Growth factor at z=" << 0 << " is " << D_growth_factor(0) << "." << std::endl;
     std::cout << "=> The overall normalization is " << global_PS_normalization << "." << std::endl;
+    std::cout << std::endl;
+    std::cout << "Fluctuation at smallest k:" << std::endl;
+    std::cout << "1) k_min = " << 2*M_PI/box_len << " Mpc^-1." << std::endl;
+    std::cout << "3) P(k) = " << pow(sigma_func_cdm(2*M_PI/box_len)*global_PS_normalization,2) << " Mpc^3." << std::endl;
+    std::cout << "2) R_max = " << box_len/(2*M_PI) << " Mpc." << std::endl;
+    std::cout << "5) sigma_R = " << integrate_sigma_R(N, box_len,  box_len/(2*M_PI), sigma_func_cdm)*global_PS_normalization << "." << std::endl;
     std::cout << std::endl;
 
     std::cout << "PHASE 1C - Fourier transform of the random field" << std::endl;
@@ -141,8 +152,17 @@ int main() {
 
     std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian.box" << std::endl;
     std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian.hdf5" << std::endl;
-    std::cout << std::endl;
 
+    //Find the maximum and minimum values
+    double box_min = primordial_box[0];
+    double box_max = primordial_box[0];
+    for (int i=1; i<N*N*N; i++) {
+        box_min = (primordial_box[i] < box_min ? primordial_box[i] : box_min);
+        box_max = (primordial_box[i] > box_max ? primordial_box[i] : box_max);
+    }
+
+    std::cout << "3) Random field range: " << box_min << " <= x <= " << box_max << "." << std::endl;
+    std::cout << std::endl;
 
     //Next, we either load particle positions (e.g. from a glass) or
     // generate them from a grid

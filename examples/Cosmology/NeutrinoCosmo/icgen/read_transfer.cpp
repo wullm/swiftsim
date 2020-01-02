@@ -50,11 +50,6 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho, std::vec
     //Number of rows
     int kvals = ks.size();
 
-    //Convert from h/Mpc to 1/Mpc. Needs to happen before dividing T(k) by -k^2
-    for (int j=0; j<kvals; j++) {
-        ks[j] /= (H_0 / 100.0);
-    }
-
     //Multiply the transfer functions by -1/k^2 to get the same format as
     //the Eisenstein-Hu transfer functions (also the format of CAMB)
     for (int j=0; j<kvals; j++) {
@@ -67,6 +62,12 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho, std::vec
     for (int j=0; j<kvals; j++) {
         T_rho[j] /= amplitude_k_min;
         T_rho_nu[j] /= amplitude_k_min;
+    }
+
+    //Conversion of the table from h/Mpc to 1/Mpc. This is an inverse
+    //transformation of f(k in h/Mpc) to f'(k in 1/Mpc).
+    for (int j=0; j<kvals; j++) {
+        ks[j] *= (H_0 / 100.0);
     }
 }
 
