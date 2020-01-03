@@ -39,8 +39,11 @@ struct corpuscle {
 
 // Tables of transfer functions
 std::vector<double> TF_ks;
-std::vector<double> TF_T_rho;
+std::vector<double> TF_T_rho_cdm;
 std::vector<double> TF_T_rho_nu;
+std::vector<double> TF_T_rho_b;
+std::vector<double> TF_T_rho_cb; //cdm and baryon weighted mean
+
 
 // Indexed search table for the transfer function interpolation
 const int TF_I_max = 100;
@@ -84,17 +87,11 @@ inline double Transfer_interpol(double k, std::vector<double> *Transfer) {
   }
 }
 
-// Doesn't have to be normalized yet
-// inline double sigma_func_no_transfer(double k) {
-//   return sqrt(pow(k, 0.97));
-// }
 
-// Doesn't have to be normalized yet
 inline double sigma_func_cdm(double k) {
-  return sqrt(pow(k, N_S)) * Transfer_interpol(k, &TF_T_rho);
+  return sqrt(pow(k, N_S)) * Transfer_interpol(k, &TF_T_rho_cb);
 }
 
-// Doesn't have to be normalized yet
 inline double sigma_func_neutrino(double k) {
   return sqrt(pow(k, N_S)) * Transfer_interpol(k, &TF_T_rho_nu);
 }

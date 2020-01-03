@@ -11,7 +11,6 @@
 
  #include "create_grf.h"
 
-
 long int sayhello() {
     return 7369767679;
 }

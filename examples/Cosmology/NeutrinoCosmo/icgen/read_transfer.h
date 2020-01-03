@@ -17,7 +17,8 @@
 #include <vector>
 
 void read_transfer(std::vector<double> &, std::vector<double> &,
-                   std::vector<double> &);
+                   std::vector<double> &, std::vector<double> &,
+                   std::vector<double> &, double, double);
 
 void make_index_table(int TF_I_max, float *TF_index, std::vector<double> &TF_ks,
                       float *log_k_min, float *log_k_max);

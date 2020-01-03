@@ -11,13 +11,22 @@
  * growth factor D(redshift).
  */
 
+ #ifndef COSMO_H
+ #define COSMO_H
+
 #include <math.h>
 
 // Spectral index of primordial fluctuations
 const double n_s = N_S;
 
+// Normalization of the CMB power spectrum
+const double A_s = A_S;
+
+// Pivot scale in 1/Mpc
+const double k_pivot = PIVOT_SCALE;
+
 // Matter power spectrum flucutations on scale 8 Mpc/h
-const double sigma_8 = 0.8159;
+const double sigma_8 = SIGMA_8;
 
 float powerSpectrum(float k) {
   return pow(k, n_s);  // normalization is fixed by sigma_8 in main code, so
@@ -189,6 +198,19 @@ double H_hubble(double t) {             // time in Gyr
   return Hubble / conversion_factor;        // in units of Gyr^-1
 }
 
+//The fractional contribution of cdm at redshift z
+double Omega_cdm_at_z(double z) {
+    double conversion_factor = 978.5706;  //(km/s/Mpc)^-1 to Gyr
+    double Hubble_ratio = (H_0 / conversion_factor) / H_hubble_of_z(z);
+    return Omega_c * pow(1 + z, 3) * pow(Hubble_ratio, 2);
+}
+//The fractional contribution of baryons at redshift z
+double Omega_b_at_z(double z) {
+    double conversion_factor = 978.5706;  //(km/s/Mpc)^-1 to Gyr
+    double Hubble_ratio = (H_0 / conversion_factor) / H_hubble_of_z(z);
+    return Omega_b * pow(1 + z, 3) * pow(Hubble_ratio, 2);
+}
+
 double D_growth_factor(double z) {
   double conversion_factor = 978.5706;  //(km/s/Mpc)^-1 to Gyr
   double Hubble_ratio = (H_0 / conversion_factor) / H_hubble_of_z(z);
@@ -322,3 +344,5 @@ inline void test_cosmology(std::string fname) {
               << std::endl;
   }
 }
+
+#endif

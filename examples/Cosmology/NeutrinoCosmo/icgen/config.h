@@ -4,10 +4,24 @@
 // User defined parameters
 #define OUTPUT_DIR "output/"
 #define GRID_WIDTH 64   // cells
-#define BOX_WIDTH 1000  // Mpc
+#define BOX_WIDTH 378.944875363  // Mpc
 
-// Spectral index
+// Spectral index and power spectrum normalization
 #define N_S 0.9619
+#define A_S 2.215e-9
+#define PIVOT_SCALE 0.05 // in 1/Mpc
+
+// Present-day fluctuation scale
+#define SIGMA_8 0.8159
+
+// Normalization methods
+#define NORM_SIGMA 0
+#define NORM_CMB 1
+
+// Whether to normalize using sigma_8 (NORM_SIGMA) or A_S (NORM_CMB)
+#define NORMALIZATION_METHOD    NORM_CMB
+
+
 
 // Hubble constant
 #define H_0 67.556  // km/s/Mpc

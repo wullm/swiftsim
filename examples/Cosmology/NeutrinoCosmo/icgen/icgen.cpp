@@ -60,21 +60,34 @@ int main() {
 
     test_cosmology(std::string(OUTPUT_DIR) + "cosmology.txt");
 
-    std::cout << "PHASE 0B - Reading in transfer function files" << std::endl;
+    //Compute the relative contributions of cdm and baryons at the starting redshift
+    std::cout << "PHASE 0B - Computing contributions to cold component" << std::endl;
+
+    double Omega_cdm_at_start = Omega_cdm_at_z(z_start);
+    double Omega_b_at_start = Omega_b_at_z(z_start);
+    double Omega_cb_at_start = Omega_cdm_at_start + Omega_b_at_start;
+    double weight_cdm = Omega_cdm_at_start / Omega_cb_at_start;
+    double weight_b = Omega_b_at_start / Omega_cb_at_start;
+    std::cout << "Weight of CDM in cold component: " << weight_cdm << "." << std::endl;
+    std::cout << "Weight of baryons in cold component: " << weight_b << "." << std::endl;
+    std::cout << std::endl;
+
+
+    std::cout << "PHASE 0C - Reading in transfer function files" << std::endl;
 
     //Prepare an indexed search table for the transfer functions
     TF_index = (float*) malloc(TF_I_max * sizeof(float));
 
     //Neutrino and CDM density Transfer function data (loaded from CLASS)
-    read_transfer(TF_ks, TF_T_rho, TF_T_rho_nu);
+    read_transfer(TF_ks, TF_T_rho_cdm, TF_T_rho_nu, TF_T_rho_b, TF_T_rho_cb, weight_cdm, weight_b);
     make_index_table(TF_I_max, TF_index, TF_ks, &log_k_min, &log_k_max);
 
 	//Export transfer functions
 	std::ofstream of(std::string(OUTPUT_DIR) + "transfer_functions.txt");
-	of << "k(1/Mpc);T_cdm;T_nu\n";
+	of << "k(1/Mpc);T_cdm;T_nu;T_b;T_cb\n";
 
 	for (int i = 0; i < TF_ks.size(); i++) {
-		of << TF_ks[i] << ";" << TF_T_rho[i] << ";" << TF_T_rho_nu[i] << std::endl;
+		of << TF_ks[i] << ";" << TF_T_rho_cdm[i] << ";" << TF_T_rho_nu[i] << ";" << TF_T_rho_b[i] << ";" << TF_T_rho_cb[i] << std::endl;
 	}
 
 	of.close();
@@ -95,19 +108,31 @@ int main() {
     const double R_filter = 8/h; //Mpc
     double integrated_sigma_8 = integrate_sigma_R(N, box_len, R_filter, sigma_func_cdm);
 
-    //Account for little h factor
-    // integrated_sigma_8 *= sqrt(h);
+    double global_PS_normalization = 1;
 
-    std::cout << "PHASE 1B - Normalizing the random field" << std::endl;
-    std::cout << "1a) Planck sigma_8 = " << sigma_8 << "." << std::endl;
-    std::cout << "1b) Integrated sigma_8 = " << integrated_sigma_8 << " from unnormalized power spectrum." << std::endl;
-    std::cout << "1ba) Hubble ratio: " << H_hubble_of_z(z_start)/H_hubble_of_z(0) << "." << std::endl;
-    std::cout << "   See " << std::string(OUTPUT_DIR) << "sigma_8_integration.txt." << std::endl;
+    if (NORMALIZATION_METHOD == NORM_CMB) {
+        std::cout << "PHASE 1B - Normalizing the random field using A_s*k_pivot^-n_s" << std::endl;
+        std::cout << "1a) The pivot scale is k = " << PIVOT_SCALE << " Mpc^-1." << std::endl;
+        std::cout << "1b) The spectral index is n_s = " << N_S << "." << std::endl;
+        std::cout << "1c) The normalization is A_s = " << A_S << "." << std::endl;
 
-    //Normalize the Gaussian random field by multiplying the Fourier modes by the appropriate factor
-    double global_PS_normalization = (sigma_8 / integrated_sigma_8) * (D_growth_factor(z_start) / D_growth_factor(0));
+        global_PS_normalization = sqrt(A_S * pow(1.0 / PIVOT_SCALE, N_S));
+    } else if (NORMALIZATION_METHOD == NORM_SIGMA){
+        std::cout << "PHASE 1B - Normalizing the random field using sigma_8" << std::endl;
+        std::cout << "1a) Planck sigma_8 = " << sigma_8 << "." << std::endl;
+        std::cout << "1b) Integrated sigma_8 = " << integrated_sigma_8 << " from unnormalized power spectrum." << std::endl;
+        std::cout << "1ba) Hubble ratio: " << H_hubble_of_z(z_start)/H_hubble_of_z(0) << "." << std::endl;
+        std::cout << "   See " << std::string(OUTPUT_DIR) << "sigma_8_integration.txt." << std::endl;
+        std::cout << "2a) Growth factor at z=" << z_start << " is " << D_growth_factor(z_start) << "." << std::endl;
+        std::cout << "2b) Growth factor at z=" << 0 << " is " << D_growth_factor(0) << "." << std::endl;
 
-    // global_PS_normalization *= h;
+        //Normalize the Gaussian random field by multiplying the Fourier modes by the appropriate factor
+        global_PS_normalization = (sigma_8 / integrated_sigma_8) * (D_growth_factor(z_start) / D_growth_factor(0));
+    } else {
+        std::cout << "No valid normalization method specified. Exiting" << std::endl;
+        return 0;
+    }
+
 
     for (int x=0; x<N; x++) {
         for (int y=0; y<N; y++) {
@@ -118,15 +143,11 @@ int main() {
         }
     }
 
-    std::cout << "2a) Growth factor at z=" << z_start << " is " << D_growth_factor(z_start) << "." << std::endl;
-    std::cout << "2b) Growth factor at z=" << 0 << " is " << D_growth_factor(0) << "." << std::endl;
     std::cout << "=> The overall normalization is " << global_PS_normalization << "." << std::endl;
     std::cout << std::endl;
     std::cout << "Fluctuation at smallest k:" << std::endl;
     std::cout << "1) k_min = " << 2*M_PI/box_len << " Mpc^-1." << std::endl;
-    std::cout << "3) P(k) = " << pow(sigma_func_cdm(2*M_PI/box_len)*global_PS_normalization,2) << " Mpc^3." << std::endl;
-    std::cout << "2) R_max = " << box_len/(2*M_PI) << " Mpc." << std::endl;
-    std::cout << "5) sigma_R = " << integrate_sigma_R(N, box_len,  box_len/(2*M_PI), sigma_func_cdm)*global_PS_normalization << "." << std::endl;
+    std::cout << "2) P(k) = " << pow(sigma_func_cdm(2*M_PI/box_len)*global_PS_normalization,2) << " Mpc^3." << std::endl;
     std::cout << std::endl;
 
     std::cout << "PHASE 1C - Fourier transform of the random field" << std::endl;
@@ -170,7 +191,7 @@ int main() {
     const long int particle_num = PARTICLE_NUM;
     std::vector<corpuscle> bodies(particle_num);
     if (gridgen) {
-        std::cout << "PHASE 2A - Placing CDM particles on a grid" << std::endl;
+        std::cout << "PHASE 2A - Placing cold particles on a grid" << std::endl;
         for (int x=0; x<NP; x++) {
             for (int y=0; y<NP; y++) {
                 for (int z=0; z<NP; z++) {
@@ -185,7 +206,7 @@ int main() {
                 }
             }
         }
-        std::cout << "1) Done with placing " << NP << "^3 CDM particles." << std::endl << std::endl;
+        std::cout << "1) Done with placing " << NP << "^3 cold particles." << std::endl << std::endl;
     }
 
     //Compute the displacement field from the random field
@@ -297,7 +318,7 @@ int main() {
     std::cout << "4) Proportionality constant dVdX = a^2Hf = " << dVdX << "." << std::endl;
     std::cout << "  " << std::endl;
 
-    std::cout << "PHASE 2D - Displace the CDM particles" << std::endl;
+    std::cout << "PHASE 2D - Displace the cold particles" << std::endl;
 
 
     for (auto body : bodies) {
@@ -354,7 +375,7 @@ int main() {
 		bodies[body.id] = body;
 	}
 
-    std::cout << "1) Displaced " << particle_num << " CDM particles." << std::endl;
+    std::cout << "1) Displaced " << particle_num << " cold particles." << std::endl;
     std::cout << "2) Particle mass " << bodies[0].mass << " kg." << std::endl;
     std::cout << "  " << std::endl;
 
@@ -663,7 +684,7 @@ int main() {
     std::cout << "SUMMARY" << std::endl;
     std::cout << "Inferred Omega_m = " << particle_num * bodies[0].mass / (swift_rho_crit*box_volume) << std::endl;
     std::cout << "Inferred Omega_nu = " << neutrino_num * bodies_nu[0].mass / (swift_rho_crit*box_volume) << std::endl;
-    std::cout << "Total CDM mass " << particle_num * bodies[0].mass << std::endl;
+    std::cout << "Total cold mass (cdm+b) " << particle_num * bodies[0].mass << std::endl;
     std::cout << "Total neutrino mass " << neutrino_num * bodies_nu[0].mass << std::endl;
     std::cout << "Total mass " << (particle_num * bodies[0].mass + neutrino_num * bodies_nu[0].mass) << std::endl;
     std::cout << "Volume " << box_volume << std::endl;
