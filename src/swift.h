@@ -91,4 +91,6 @@
 #include "velociraptor_interface.h"
 #include "version.h"
 
+#include "/home/qvgd89/class4/class_public/include/class.h"
+
 #endif /* SWIFT_SWIFT_H */

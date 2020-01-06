@@ -109,6 +109,41 @@ int main(int argc, char *argv[]) {
 
   int nr_nodes = 1, myrank = 0;
 
+  struct precision pr;        /* for precision parameters */
+  struct background ba;       /* for cosmological background */
+  struct thermo th;           /* for thermodynamics */
+  struct perturbs pt;         /* for source functions */
+  struct transfers tr;        /* for transfer functions */
+  struct primordial pm;       /* for primordial spectra */
+  struct spectra sp;          /* for output spectra */
+  struct nonlinear nl;        /* for non-linear spectra */
+  struct lensing le;          /* for lensed spectra */
+  struct output op;           /* for output files */
+  ErrorMsg errmsg;            /* for error messages */
+
+  int class_argc=2;
+  char* class_argv[] = { "", "class_file.ini", NULL };
+
+  if (input_init_from_arguments(class_argc, class_argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
+    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
+    return _FAILURE_;
+  }
+  if (background_init(&pr,&ba) == _FAILURE_) {
+  printf("\n\nError running background_init \n=>%s\n",ba.error_message);
+  return _FAILURE_;
+}
+
+if (thermodynamics_init(&pr,&ba,&th) == _FAILURE_) {
+  printf("\n\nError in thermodynamics_init \n=>%s\n",th.error_message);
+  return _FAILURE_;
+}
+
+if (perturb_init(&pr,&ba,&th,&pt) == _FAILURE_) {
+  printf("\n\nError in perturb_init \n=>%s\n",pt.error_message);
+  return _FAILURE_;
+}
+printf("Hiero\n");
+
 #ifdef WITH_MPI
   /* Start by initializing MPI. */
   int res = 0, prov = 0;
