@@ -15,8 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# CLASS interface flags
+CLASS_LIBS = -fopenmp -I../class/include ../class/libclass.a
+
 # Add the non-standard paths to the included library headers
-AM_CFLAGS = $(HDF5_CPPFLAGS) $(GSL_INCS) $(FFTW_INCS) $(NUMA_INCS) $(GRACKLE_INCS) -I/home/qvgd89/class4/class_public/include -L/home/qvgd89/class4/class_public/build -L/home/qvgd89/class4/class_public/build/lib /home/qvgd89/class4/class_public/libclass.a /home/qvgd89/class4/class_public/build/output.o /home/qvgd89/class4/class_public/build/input.o
+AM_CFLAGS = $(HDF5_CPPFLAGS) $(CLASS_LIBS) $(GSL_INCS) $(FFTW_INCS) $(NUMA_INCS) $(GRACKLE_INCS)
 
 # Assign a "safe" version number
 AM_LDFLAGS = $(HDF5_LDFLAGS) $(FFTW_LIBS)
