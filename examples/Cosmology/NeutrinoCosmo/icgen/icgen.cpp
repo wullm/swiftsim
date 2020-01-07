@@ -63,11 +63,12 @@ int main() {
     //Compute the relative contributions of cdm and baryons at the starting redshift
     std::cout << "PHASE 0B - Computing contributions to cold component" << std::endl;
 
-    double Omega_cdm_at_start = Omega_cdm_at_z(z_start);
-    double Omega_b_at_start = Omega_b_at_z(z_start);
-    double Omega_cb_at_start = Omega_cdm_at_start + Omega_b_at_start;
-    double weight_cdm = Omega_cdm_at_start / Omega_cb_at_start;
-    double weight_b = Omega_b_at_start / Omega_cb_at_start;
+    // double Omega_cdm_at_start = Omega_cdm_at_z(z_start);
+    // double Omega_b_at_start = Omega_b_at_z(z_start);
+    // double Omega_cb_at_start = Omega_cdm_at_start + Omega_b_at_start;
+
+    double weight_b = Omega_b / Omega_m;
+    double weight_cdm = (Omega_m - Omega_b) / Omega_m;
     std::cout << "Weight of CDM in cold component: " << weight_cdm << "." << std::endl;
     std::cout << "Weight of baryons in cold component: " << weight_b << "." << std::endl;
     std::cout << std::endl;
@@ -79,15 +80,16 @@ int main() {
     TF_index = (float*) malloc(TF_I_max * sizeof(float));
 
     //Neutrino and CDM density Transfer function data (loaded from CLASS)
-    read_transfer(TF_ks, TF_T_rho_cdm, TF_T_rho_nu, TF_T_rho_b, TF_T_rho_cb, weight_cdm, weight_b);
+    read_transfer(TF_ks, TF_T_rho_cdm, TF_T_rho_nu, TF_T_rho_b, TF_T_rho_cb, weight_cdm, weight_b,
+                    TF_T_theta_nu, TF_T_theta_b, TF_T_theta_cb);
     make_index_table(TF_I_max, TF_index, TF_ks, &log_k_min, &log_k_max);
 
 	//Export transfer functions
 	std::ofstream of(std::string(OUTPUT_DIR) + "transfer_functions.txt");
-	of << "k(1/Mpc);T_cdm;T_nu;T_b;T_cb\n";
+	of << "k(1/Mpc);T_cdm;T_nu;T_b;T_cb;T_theta_cdm;T_theta_nu;T_theta_b;T_theta_cb\n";
 
 	for (int i = 0; i < TF_ks.size(); i++) {
-		of << TF_ks[i] << ";" << TF_T_rho_cdm[i] << ";" << TF_T_rho_nu[i] << ";" << TF_T_rho_b[i] << ";" << TF_T_rho_cb[i] << std::endl;
+		of << TF_ks[i] << ";" << TF_T_rho_cdm[i] << ";" << TF_T_rho_nu[i] << ";" << TF_T_rho_b[i] << ";" << TF_T_rho_cb[i] << ";" << 0. << ";" << TF_T_theta_nu[i] << ";" << TF_T_theta_b[i] << ";" << TF_T_theta_cb[i] << std::endl;
 	}
 
 	of.close();

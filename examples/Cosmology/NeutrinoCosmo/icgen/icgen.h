@@ -44,6 +44,10 @@ std::vector<double> TF_T_rho_nu;
 std::vector<double> TF_T_rho_b;
 std::vector<double> TF_T_rho_cb; //cdm and baryon weighted mean
 
+//Velocity transfer functions
+std::vector<double> TF_T_theta_nu;
+std::vector<double> TF_T_theta_b;
+std::vector<double> TF_T_theta_cb; //cdm and baryon weighted mean
 
 // Indexed search table for the transfer function interpolation
 const int TF_I_max = 100;

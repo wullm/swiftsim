@@ -13,7 +13,8 @@
 #include "config.h"
 #include <iostream>
 
-void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std::vector<double>& T_rho_nu, std::vector<double>& T_rho_b, std::vector<double>& T_rho_cb, double weight_cdm, double weight_b) {
+void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std::vector<double>& T_rho_nu, std::vector<double>& T_rho_b, std::vector<double>& T_rho_cb, double weight_cdm, double weight_b,
+  std::vector<double>& T_theta_nu, std::vector<double>& T_theta_b, std::vector<double>& T_theta_cb) {
     std::ifstream f("transfer/class_transfer_z40.dat");
 
     //Ignore lines starting with # until we find a line that doesn't
@@ -27,7 +28,7 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
     }
 
     //Number of columns in the CLASS transfer function output file
-    int ncol = 15;
+    int ncol = 18;
     //Column that contains the wavenumber k (h/Mpc)
     int kcol = 0;
     //Column that contains the cdm transfer function d_cdm
@@ -36,6 +37,11 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
     int d_ncdm_col = 5;
     //Column that contains the baryon transfer function d_b
     int d_b_col = 2;
+
+    //Column that contains the neutrino velocity transfer function t_ncdm
+    int t_ncdm_col = 14;
+    //Column that contains the baryon velocity transfer function t_b
+    int t_b_col = 12;
 
     int i = 0;
     double dbl;
@@ -48,6 +54,10 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
             T_rho_nu.push_back(dbl);
         } else if (i%ncol == d_b_col) {
             T_rho_b.push_back(dbl);
+        } else if (i%ncol == t_ncdm_col) {
+            T_theta_nu.push_back(dbl);
+        } else if (i%ncol == t_b_col) {
+            T_theta_b.push_back(dbl);
         }
         i++;
     }
@@ -58,6 +68,7 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
     //Compute the cold (CDM + b) transfer function
     for (int j=0; j<kvals; j++) {
         T_rho_cb.push_back(weight_cdm * T_rho_cdm[j] + weight_b * T_rho_b[j]);
+        T_theta_cb.push_back(weight_cdm * 0. + weight_b * T_theta_b[j]); // theta_cdm = 0 in N-body gauge
     }
 
     //Conversion of the table from h/Mpc to 1/Mpc. This needs to happen before
@@ -73,6 +84,10 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
         T_rho_nu[j] *= -pow(ks[j], -2);
         T_rho_b[j] *= -pow(ks[j], -2);
         T_rho_cb[j] *= -pow(ks[j], -2);
+
+        T_theta_nu[j] *= -pow(ks[j], -2);
+        T_theta_b[j] *= -pow(ks[j], -2);
+        T_theta_cb[j] *= -pow(ks[j], -2);
     }
 
     //Current version: leave the CLASS normalization in place. If we use our own
@@ -85,6 +100,10 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
     //     T_rho_nu[j] /= amplitude_k_min;
     //     T_rho_b[j] /= amplitude_k_min;
     //     T_rho_cb[j] /= amplitude_k_min;
+
+    //     T_theta_nu[j] /= amplitude_k_min;
+    //     T_theta_b[j] /= amplitude_k_min;
+    //     T_theta_cb[j] /= amplitude_k_min;
     // }
 }
 
