@@ -152,7 +152,7 @@ int main() {
     std::cout << "2) P(k) = " << pow(sigma_func_cdm(2*M_PI/box_len)*global_PS_normalization,2) << " Mpc^3." << std::endl;
     std::cout << std::endl;
 
-    std::cout << "PHASE 1C - Fourier transform of the random field" << std::endl;
+    std::cout << "PHASE 1C - Fourier transform of the random field to real field" << std::endl;
 
     //FTT
     fftw_plan the_plan  = fftw_plan_dft_c2r_3d(N, N, N, k_box, primordial_box, FFTW_ESTIMATE);
@@ -306,81 +306,322 @@ int main() {
     std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "psi_z.box" << std::endl;
     std::cout << "" << std::endl;
 
-    std::cout << "PHASE 2C - Compute the velocity proportionality constant" << std::endl;
 
-    //Compute the constant of proportionality
-    double a = a_scale_factor_of_z(z_start);
-    double H = H_hubble_of_z(z_start);
-    double f = logarithmic_derivative_f_1(z_start);
-    double dVdX = pow(a,2)*H*f;
-
-    std::cout << "1) Expansion factor a(z) = " << a << "." << std::endl;
-    std::cout << "2) Hubble rate H(z) = " << H << "." << std::endl;
-    std::cout << "3) Logarithmic derivative of growth factor f(z) = " << f << "." << std::endl;
-    std::cout << "4) Proportionality constant dVdX = a^2Hf = " << dVdX << "." << std::endl;
-    std::cout << "  " << std::endl;
-
-    std::cout << "PHASE 2D - Displace the cold particles" << std::endl;
-
+    std::cout << "PHASE 2C - Displace the cold particles" << std::endl;
 
     for (auto body : bodies) {
-		double X = body.X;
-		double Y = body.Y;
-		double Z = body.Z;
+        double X = body.X;
+        double Y = body.Y;
+        double Z = body.Z;
 
         //Grid positions
-		int iX = (int) floor(X*N/box_len);
-		int iY = (int) floor(Y*N/box_len);
-		int iZ = (int) floor(Z*N/box_len);
+        int iX = (int) floor(X*N/box_len);
+        int iY = (int) floor(Y*N/box_len);
+        int iZ = (int) floor(Z*N/box_len);
 
-		//Intepolate the necessary fields with TSC
-		float lookLength = 1.0;
-		int lookLftX = (int) floor((X-iX) - lookLength);
-		int lookRgtX = (int) floor((X-iX) + lookLength);
-		int lookLftY = (int) floor((Y-iY) - lookLength);
-		int lookRgtY = (int) floor((Y-iY) + lookLength);
-		int lookLftZ = (int) floor((Z-iZ) - lookLength);
-		int lookRgtZ = (int) floor((Z-iZ) + lookLength);
+        //Intepolate the necessary fields with TSC
+        float lookLength = 1.0;
+        int lookLftX = (int) floor((X-iX) - lookLength);
+        int lookRgtX = (int) floor((X-iX) + lookLength);
+        int lookLftY = (int) floor((Y-iY) - lookLength);
+        int lookRgtY = (int) floor((Y-iY) + lookLength);
+        int lookLftZ = (int) floor((Z-iZ) - lookLength);
+        int lookRgtZ = (int) floor((Z-iZ) + lookLength);
 
         //Accumulate interpolated values in psi_{xyz}
-		double psi_x = 0, psi_y = 0, psi_z = 0;
+        double psi_x = 0, psi_y = 0, psi_z = 0;
 
-		for (int i=lookLftX; i<=lookRgtX; i++) {
-			for (int j=lookLftY; j<=lookRgtY; j++) {
-				for (int k=lookLftZ; k<=lookRgtZ; k++) {
-					//Pull the interpolated long-range force from the mesh
-					double xx = abs(X - (iX+i));
-					double yy = abs(Y - (iY+j));
-					double zz = abs(Z - (iZ+k));
+        for (int i=lookLftX; i<=lookRgtX; i++) {
+            for (int j=lookLftY; j<=lookRgtY; j++) {
+                for (int k=lookLftZ; k<=lookRgtZ; k++) {
+                    //Pull the interpolated long-range force from the mesh
+                    double xx = abs(X - (iX+i));
+                    double yy = abs(Y - (iY+j));
+                    double zz = abs(Z - (iZ+k));
 
-					double part_x = xx <= 1 ? 1-xx : 0;
-					double part_y = yy <= 1 ? 1-yy : 0;
-					double part_z = zz <= 1 ? 1-zz : 0;
+                    double part_x = xx <= 1 ? 1-xx : 0;
+                    double part_y = yy <= 1 ? 1-yy : 0;
+                    double part_z = zz <= 1 ? 1-zz : 0;
 
-					psi_x += psi_x_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
-					psi_y += psi_y_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
-					psi_z += psi_z_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
-				}
-			}
-		}
+                    psi_x += psi_x_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                    psi_y += psi_y_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                    psi_z += psi_z_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                }
+            }
+        }
 
-		body.X = X - psi_x;
-		body.Y = Y - psi_y;
-		body.Z = Z - psi_z;
+        body.X = X - psi_x;
+        body.Y = Y - psi_y;
+        body.Z = Z - psi_z;
 
-		body.v_X = -dVdX * psi_x;
-		body.v_Y = -dVdX * psi_y;
-		body.v_Z = -dVdX * psi_z;
+        // body.v_X = -dVdX * psi_x;
+        // body.v_Y = -dVdX * psi_y;
+        // body.v_Z = -dVdX * psi_z;
 
         body.mass = Omega_m*rho_crit*pow(Mpc,3)*box_volume/particle_num;
 
-		bodies[body.id] = body;
-	}
+        bodies[body.id] = body;
+    }
 
     std::cout << "1) Displaced " << particle_num << " cold particles." << std::endl;
     std::cout << "2) Particle mass " << bodies[0].mass << " kg." << std::endl;
     std::cout << "  " << std::endl;
 
+
+    double dVdX;
+    if (VELOCITY_METHOD == VEL_ZELDOVICH) {
+        std::cout << "PHASE 2D - Compute the velocity proportionality constant for the Zel'dovich method" << std::endl;
+
+        //Compute the constant of proportionality
+        double a = a_scale_factor_of_z(z_start);
+        double H = H_hubble_of_z(z_start);
+        double f = logarithmic_derivative_f_1(z_start);
+
+        dVdX = pow(a,2)*H*f;
+
+        std::cout << "1) Expansion factor a(z) = " << a << "." << std::endl;
+        std::cout << "2) Hubble rate H(z) = " << H << " Gyr^-1." << std::endl;
+        std::cout << "3) Logarithmic derivative of growth factor f(z) = " << f << "." << std::endl;
+        std::cout << "4) Proportionality constant dVdX = a^2Hf = " << dVdX << " Gyr^-1." << std::endl;
+        std::cout << "  " << std::endl;
+
+        std::cout << "PHASE 2E - Assign initial velocities to the cold particles using the Zel'dovich method" << std::endl;
+
+        for (auto body : bodies) {
+            double X = body.X;
+            double Y = body.Y;
+            double Z = body.Z;
+
+            //Grid positions
+            int iX = (int) floor(X*N/box_len);
+            int iY = (int) floor(Y*N/box_len);
+            int iZ = (int) floor(Z*N/box_len);
+
+            //Intepolate the necessary fields with TSC
+            float lookLength = 1.0;
+            int lookLftX = (int) floor((X-iX) - lookLength);
+            int lookRgtX = (int) floor((X-iX) + lookLength);
+            int lookLftY = (int) floor((Y-iY) - lookLength);
+            int lookRgtY = (int) floor((Y-iY) + lookLength);
+            int lookLftZ = (int) floor((Z-iZ) - lookLength);
+            int lookRgtZ = (int) floor((Z-iZ) + lookLength);
+
+            //Accumulate interpolated values in psi_{xyz}
+            double psi_x = 0, psi_y = 0, psi_z = 0;
+
+            for (int i=lookLftX; i<=lookRgtX; i++) {
+                for (int j=lookLftY; j<=lookRgtY; j++) {
+                    for (int k=lookLftZ; k<=lookRgtZ; k++) {
+                        //Pull the interpolated long-range force from the mesh
+                        double xx = abs(X - (iX+i));
+                        double yy = abs(Y - (iY+j));
+                        double zz = abs(Z - (iZ+k));
+
+                        double part_x = xx <= 1 ? 1-xx : 0;
+                        double part_y = yy <= 1 ? 1-yy : 0;
+                        double part_z = zz <= 1 ? 1-zz : 0;
+
+                        psi_x += psi_x_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                        psi_y += psi_y_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                        psi_z += psi_z_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                    }
+                }
+            }
+
+            body.v_X = -dVdX * psi_x;
+            body.v_Y = -dVdX * psi_y;
+            body.v_Z = -dVdX * psi_z;
+
+            bodies[body.id] = body;
+        }
+
+        std::cout << "1) Assigned velocities to " << particle_num << " cold particles." << std::endl;
+        std::cout << "  " << std::endl;
+    } else if (VELOCITY_METHOD == VEL_CLASS) {
+        std::cout << "PHASE 2E - Applying the cold velocity transfer function" << std::endl;
+
+        //Undo the CDM density transfer function and apply the CDM velocity transfer function
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                    double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                    double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                    double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                    double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                    if (k > 0) {
+                        k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_vel_cdm(k)/sigma_func_cdm(k);
+                        k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_vel_cdm(k)/sigma_func_cdm(k);
+                    }
+                }
+            }
+        }
+
+        //FTT back
+        fftw_execute(the_plan);
+
+        //Normalization (from Fourier conventions alone)
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<N; z++) {
+                    primordial_box[box_idx(N, x, y, z)] /= box_volume;
+                }
+            }
+        }
+
+        //Write GRF to binary file
+        write_array_to_disk(std::string(OUTPUT_DIR) + "gaussian_theta.box", primordial_box, N);
+        //Write GRF to H5 format
+        writeGRF_H5(primordial_box, N, box_len, std::string(OUTPUT_DIR) + "gaussian_theta.hdf5");
+
+        std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta.box" << std::endl;
+        std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta.hdf5" << std::endl;
+        std::cout << "3) Theta is the divergence of the velocity field in Mpc^-1." << std::endl;
+        std::cout << std::endl;
+
+        //Compute the velocity field from the random field
+        std::cout << "PHASE 2F - Compute the cold velocity field" << std::endl;
+        std::cout << "1) Apply kernel to the Fourier transform of the divergence field." << std::endl;
+
+        //FTT the primordial box
+        fftw_execute(another_plan);
+
+        //Normalization
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) {
+                    k_box[half_box_idx(N, x, y, z)][0] *= box_volume/(N*N*N);
+                    k_box[half_box_idx(N, x, y, z)][1] *= box_volume/(N*N*N);
+                }
+            }
+        }
+
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                    double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                    double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                    double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                    double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                    if (k>0) {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
+                    } else {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = 0;
+                    }
+                }
+            }
+        }
+
+        std::cout << "2) Fourier transform back to real coordinates." << std::endl;
+
+        //Do the IFFTs
+        fftw_execute(px);
+        fftw_execute(py);
+        fftw_execute(pz);
+
+        //Normalization
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<N; z++) {
+                    psi_x_box[box_idx(N, x, y, z)] /= box_volume;
+                    psi_y_box[box_idx(N, x, y, z)] /= box_volume;
+                    psi_z_box[box_idx(N, x, y, z)] /= box_volume;
+                }
+            }
+        }
+
+        std::cout << "3) Done. The result consists of 3x" << N << "^3 real numbers." << std::endl;
+        std::cout << "4) Make dimensionful by inserting c = " << c_vel << " Mpc/Gyr." << std::endl;
+
+        //Insert units (convert from c=1 to dimensionful quantity)
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<N; z++) {
+                    psi_x_box[box_idx(N, x, y, z)] *= c_vel;
+                    psi_y_box[box_idx(N, x, y, z)] *= c_vel;
+                    psi_z_box[box_idx(N, x, y, z)] *= c_vel;
+                }
+            }
+        }
+
+        write_array_to_disk(std::string(OUTPUT_DIR) + "v_cdm_x.box", psi_x_box, N);
+        write_array_to_disk(std::string(OUTPUT_DIR) + "v_cdm_y.box", psi_y_box, N);
+        write_array_to_disk(std::string(OUTPUT_DIR) + "v_cdm_z.box", psi_z_box, N);
+
+        std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "v_cdm_x.box" << std::endl;
+        std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "v_cdm_y.box" << std::endl;
+        std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "v_cdm_z.box" << std::endl;
+        std::cout << "" << std::endl;
+
+
+        std::cout << "PHASE 2G - Assign initial velocities to the cold particles" << std::endl;
+        for (auto body : bodies) {
+            double X = body.X;
+            double Y = body.Y;
+            double Z = body.Z;
+
+            //Grid positions
+            int iX = (int) floor(X*N/box_len);
+            int iY = (int) floor(Y*N/box_len);
+            int iZ = (int) floor(Z*N/box_len);
+
+            //Intepolate the necessary fields with TSC
+            float lookLength = 1.0;
+            int lookLftX = (int) floor((X-iX) - lookLength);
+            int lookRgtX = (int) floor((X-iX) + lookLength);
+            int lookLftY = (int) floor((Y-iY) - lookLength);
+            int lookRgtY = (int) floor((Y-iY) + lookLength);
+            int lookLftZ = (int) floor((Z-iZ) - lookLength);
+            int lookRgtZ = (int) floor((Z-iZ) + lookLength);
+
+            //Accumulate interpolated values in psi_{xyz}
+            double psi_x = 0, psi_y = 0, psi_z = 0;
+
+            for (int i=lookLftX; i<=lookRgtX; i++) {
+                for (int j=lookLftY; j<=lookRgtY; j++) {
+                    for (int k=lookLftZ; k<=lookRgtZ; k++) {
+                        //Pull the interpolated long-range force from the mesh
+                        double xx = abs(X - (iX+i));
+                        double yy = abs(Y - (iY+j));
+                        double zz = abs(Z - (iZ+k));
+
+                        double part_x = xx <= 1 ? 1-xx : 0;
+                        double part_y = yy <= 1 ? 1-yy : 0;
+                        double part_z = zz <= 1 ? 1-zz : 0;
+
+                        psi_x += psi_x_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                        psi_y += psi_y_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                        psi_z += psi_z_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                    }
+                }
+            }
+
+            body.v_X = psi_x;
+            body.v_Y = psi_y;
+            body.v_Z = psi_z;
+
+            bodies[body.id] = body;
+        }
+
+        std::cout << "1) Assigned velocities to " << particle_num << " cold particles." << std::endl;
+        std::cout << "  " << std::endl;
+    } else {
+        std::cout << "No valid method to determine the initial velocities. Exiting" << std::endl;
+        return 0;
+    }
 
 
 
@@ -500,16 +741,16 @@ int main() {
 
 	//Do the IFFTs
 	fftw_execute(px);
-	fftw_destroy_plan(px);
-    fftw_free(psi_k_x_box);
+	// fftw_destroy_plan(px);
+    // fftw_free(psi_k_x_box);
 
 	fftw_execute(py);
-	fftw_destroy_plan(py);
-    fftw_free(psi_k_y_box);
+	// fftw_destroy_plan(py);
+    // fftw_free(psi_k_y_box);
 
 	fftw_execute(pz);
-	fftw_destroy_plan(pz);
-    fftw_free(psi_k_z_box);
+	// fftw_destroy_plan(pz);
+    // fftw_free(psi_k_z_box);
 
     //Normalization
 	for (int x=0; x<N; x++) {
@@ -580,9 +821,9 @@ int main() {
 		body.Y = Y - psi_y;
 		body.Z = Z - psi_z;
 
-		body.v_X = -dVdX * psi_x;
-		body.v_Y = -dVdX * psi_y;
-		body.v_Z = -dVdX * psi_z;
+		// body.v_X = -dVdX * psi_x;
+		// body.v_Y = -dVdX * psi_y;
+		// body.v_Z = -dVdX * psi_z;
 
         body.mass = Omega_nu*rho_crit*pow(Mpc,3)*box_volume/neutrino_num;
 
@@ -593,7 +834,247 @@ int main() {
     std::cout << "2) Particle mass " << bodies_nu[0].mass << " kg." << std::endl;
     std::cout << "  " << std::endl;
 
-    std::cout << "PHASE 3E - Add thermal motion to the neutrinos" << std::endl;
+    if (VELOCITY_METHOD == VEL_ZELDOVICH) {
+        std::cout << "PHASE 3E - Assign initial velocities to the neutrinos using the Zel'dovich method" << std::endl;
+
+        for (auto body : bodies_nu) {
+            double X = body.X;
+            double Y = body.Y;
+            double Z = body.Z;
+
+            //Grid positions
+            int iX = (int) floor(X*N/box_len);
+            int iY = (int) floor(Y*N/box_len);
+            int iZ = (int) floor(Z*N/box_len);
+
+            //Intepolate the necessary fields with TSC
+            float lookLength = 1.0;
+            int lookLftX = (int) floor((X-iX) - lookLength);
+            int lookRgtX = (int) floor((X-iX) + lookLength);
+            int lookLftY = (int) floor((Y-iY) - lookLength);
+            int lookRgtY = (int) floor((Y-iY) + lookLength);
+            int lookLftZ = (int) floor((Z-iZ) - lookLength);
+            int lookRgtZ = (int) floor((Z-iZ) + lookLength);
+
+            //Accumulate interpolated values in psi_{xyz}
+            double psi_x = 0, psi_y = 0, psi_z = 0;
+
+            for (int i=lookLftX; i<=lookRgtX; i++) {
+                for (int j=lookLftY; j<=lookRgtY; j++) {
+                    for (int k=lookLftZ; k<=lookRgtZ; k++) {
+                        //Pull the interpolated long-range force from the mesh
+                        double xx = abs(X - (iX+i));
+                        double yy = abs(Y - (iY+j));
+                        double zz = abs(Z - (iZ+k));
+
+                        double part_x = xx <= 1 ? 1-xx : 0;
+                        double part_y = yy <= 1 ? 1-yy : 0;
+                        double part_z = zz <= 1 ? 1-zz : 0;
+
+                        psi_x += psi_x_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                        psi_y += psi_y_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                        psi_z += psi_z_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                    }
+                }
+            }
+
+            body.v_X = -dVdX * psi_x;
+            body.v_Y = -dVdX * psi_y;
+            body.v_Z = -dVdX * psi_z;
+
+            bodies_nu[body.id] = body;
+        }
+
+        std::cout << "1) Assigned velocities to " << neutrino_num << " neutrino particles." << std::endl;
+        std::cout << "  " << std::endl;
+    } else if (VELOCITY_METHOD == VEL_CLASS) {
+        std::cout << "PHASE 3E - Applying the neutrino velocity transfer function" << std::endl;
+
+        //Undo the neutrino density transfer function and apply the neutrino velocity transfer function
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                    double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                    double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                    double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                    double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                    if (k > 0) {
+                        k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_vel_neutrino(k)/sigma_func_neutrino(k);
+                        k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_vel_neutrino(k)/sigma_func_neutrino(k);
+                    }
+                }
+            }
+        }
+
+        //FTT back
+        fftw_execute(the_plan);
+
+        //Normalization (from Fourier conventions alone)
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<N; z++) {
+                    primordial_box[box_idx(N, x, y, z)] /= box_volume;
+                }
+            }
+        }
+
+        //Write GRF to binary file
+        write_array_to_disk(std::string(OUTPUT_DIR) + "gaussian_theta_nu.box", primordial_box, N);
+        //Write GRF to H5 format
+        writeGRF_H5(primordial_box, N, box_len, std::string(OUTPUT_DIR) + "gaussian_theta_nu.hdf5");
+
+        std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta_nu.box" << std::endl;
+        std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta_nu.hdf5" << std::endl;
+        std::cout << "3) Theta is the divergence of the velocity field in Mpc^-1." << std::endl;
+        std::cout << std::endl;
+
+        //Compute the velocity field from the random field
+        std::cout << "PHASE 3F - Compute the neutrino velocity field" << std::endl;
+        std::cout << "1) Apply kernel to the Fourier transform of the divergence field." << std::endl;
+
+        //FTT the primordial box
+        fftw_execute(another_plan);
+
+        //Normalization
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) {
+                    k_box[half_box_idx(N, x, y, z)][0] *= box_volume/(N*N*N);
+                    k_box[half_box_idx(N, x, y, z)][1] *= box_volume/(N*N*N);
+                }
+            }
+        }
+
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                    double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                    double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                    double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                    double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                    if (k>0) {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
+                    } else {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = 0;
+                    }
+                }
+            }
+        }
+
+        std::cout << "2) Fourier transform back to real coordinates." << std::endl;
+
+        //Do the IFFTs
+        fftw_execute(px);
+        fftw_execute(py);
+        fftw_execute(pz);
+
+        //Normalization
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<N; z++) {
+                    psi_x_box[box_idx(N, x, y, z)] /= box_volume;
+                    psi_y_box[box_idx(N, x, y, z)] /= box_volume;
+                    psi_z_box[box_idx(N, x, y, z)] /= box_volume;
+                }
+            }
+        }
+
+        std::cout << "3) Done. The result consists of 3x" << N << "^3 real numbers." << std::endl;
+        std::cout << "4) Make dimensionful by inserting c = " << c_vel << " Mpc/Gyr." << std::endl;
+
+        //Insert units (convert from c=1 to dimensionful quantity)
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<N; z++) {
+                    psi_x_box[box_idx(N, x, y, z)] *= c_vel;
+                    psi_y_box[box_idx(N, x, y, z)] *= c_vel;
+                    psi_z_box[box_idx(N, x, y, z)] *= c_vel;
+                }
+            }
+        }
+
+        write_array_to_disk(std::string(OUTPUT_DIR) + "v_nu_x.box", psi_x_box, N);
+        write_array_to_disk(std::string(OUTPUT_DIR) + "v_nu_y.box", psi_y_box, N);
+        write_array_to_disk(std::string(OUTPUT_DIR) + "v_nu_z.box", psi_z_box, N);
+
+        std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "v_nu_x.box" << std::endl;
+        std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "v_nu_y.box" << std::endl;
+        std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "v_nu_z.box" << std::endl;
+        std::cout << "" << std::endl;
+
+
+        std::cout << "PHASE 3G - Assign initial gravitational flow velocities to the neutrinos" << std::endl;
+        for (auto body : bodies_nu) {
+            double X = body.X;
+            double Y = body.Y;
+            double Z = body.Z;
+
+            //Grid positions
+            int iX = (int) floor(X*N/box_len);
+            int iY = (int) floor(Y*N/box_len);
+            int iZ = (int) floor(Z*N/box_len);
+
+            //Intepolate the necessary fields with TSC
+            float lookLength = 1.0;
+            int lookLftX = (int) floor((X-iX) - lookLength);
+            int lookRgtX = (int) floor((X-iX) + lookLength);
+            int lookLftY = (int) floor((Y-iY) - lookLength);
+            int lookRgtY = (int) floor((Y-iY) + lookLength);
+            int lookLftZ = (int) floor((Z-iZ) - lookLength);
+            int lookRgtZ = (int) floor((Z-iZ) + lookLength);
+
+            //Accumulate interpolated values in psi_{xyz}
+            double psi_x = 0, psi_y = 0, psi_z = 0;
+
+            for (int i=lookLftX; i<=lookRgtX; i++) {
+                for (int j=lookLftY; j<=lookRgtY; j++) {
+                    for (int k=lookLftZ; k<=lookRgtZ; k++) {
+                        //Pull the interpolated long-range force from the mesh
+                        double xx = abs(X - (iX+i));
+                        double yy = abs(Y - (iY+j));
+                        double zz = abs(Z - (iZ+k));
+
+                        double part_x = xx <= 1 ? 1-xx : 0;
+                        double part_y = yy <= 1 ? 1-yy : 0;
+                        double part_z = zz <= 1 ? 1-zz : 0;
+
+                        psi_x += psi_x_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                        psi_y += psi_y_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                        psi_z += psi_z_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                    }
+                }
+            }
+
+            body.v_X = psi_x;
+            body.v_Y = psi_y;
+            body.v_Z = psi_z;
+
+            bodies_nu[body.id] = body;
+        }
+
+        std::cout << "1) Assigned velocities to " << neutrino_num << " neutrino particles." << std::endl;
+        std::cout << "  " << std::endl;
+    } else {
+        std::cout << "No valid method to determine the initial velocities. Exiting" << std::endl;
+        return 0;
+    }
+
+
+    std::cout << "PHASE 4 - Add thermal motion to the neutrinos" << std::endl;
 
     double T = T_nu;
     double mu = mu_nu;
@@ -656,13 +1137,13 @@ int main() {
 
     std::cout << "3) Added thermal motion to " << neutrino_num << " particles." << std::endl;
     std::cout << "4) Average speed " << avg_speed << " comoving Mpc/Gyr or " << avg_speed/a_start/c_vel << " c physical." << std::endl;
-    std::cout << "4) Maximum speed " << max_speed << " comoving Mpc/Gyr or " << max_speed/a_start/c_vel << " c physical." << std::endl;
-    std::cout << "5) Average Hubble flow speed " << avg_hubble_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "5) Maximum speed " << max_speed << " comoving Mpc/Gyr or " << max_speed/a_start/c_vel << " c physical." << std::endl;
+    std::cout << "6) Average Hubble flow speed " << avg_hubble_speed << " comoving Mpc/Gyr." << std::endl;
     std::cout << "  " << std::endl;
 
     /* NEXT, exporting the data in HDF5 format */
 
-    std::cout << "Phase 4 - Exporting initial conditions to HDF5 files." << std::endl;
+    std::cout << "Phase 5 - Exporting initial conditions to HDF5 files." << std::endl;
     std::cout << "  " << std::endl;
 
     //Convert to Swift units. The below values are conversions to cgs

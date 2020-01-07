@@ -65,10 +65,14 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
     //Number of rows
     int kvals = ks.size();
 
-    //Compute the cold (CDM + b) transfer function
+    //Compute the cold (CDM + b) transfer functions
     for (int j=0; j<kvals; j++) {
+        // delta_cb = (rho_c/rho_m) delta_c + (rho_b/rho_m) delta_b
         T_rho_cb.push_back(weight_cdm * T_rho_cdm[j] + weight_b * T_rho_b[j]);
-        T_theta_cb.push_back(weight_cdm * 0. + weight_b * T_theta_b[j]); // theta_cdm = 0 in N-body gauge
+
+        // theta_cb = (rho_b + p_b)/(rho_m + p_m) theta_b = (rho_b/rho_m) theta_b,
+        // since p_b = 0 to 0th order and theta_cdm = 0 in N-body gauge
+        T_theta_cb.push_back(weight_cdm * 0. + weight_b * T_theta_b[j]);
     }
 
     //Conversion of the table from h/Mpc to 1/Mpc. This needs to happen before
@@ -78,7 +82,8 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
     }
 
     //Multiply the transfer functions by -1/k^2 to get the same format as
-    //the Eisenstein-Hu transfer functions (also the format of CAMB)
+    //the Eisenstein-Hu transfer functions (also the format of CAMB) -- except
+    //for the normalization which is fixed later
     for (int j=0; j<kvals; j++) {
         T_rho_cdm[j] *= -pow(ks[j], -2);
         T_rho_nu[j] *= -pow(ks[j], -2);

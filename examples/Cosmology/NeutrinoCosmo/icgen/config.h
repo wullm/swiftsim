@@ -21,7 +21,11 @@
 // Whether to normalize using sigma_8 (NORM_SIGMA) or A_S (NORM_CMB)
 #define NORMALIZATION_METHOD    NORM_CMB
 
+// Initial velocity methods
+#define VEL_ZELDOVICH 0
+#define VEL_CLASS 1
 
+#define VELOCITY_METHOD     VEL_CLASS
 
 // Hubble constant
 #define H_0 67.556  // km/s/Mpc
