@@ -507,12 +507,12 @@ int main() {
                     double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
 
                     if (k>0) {
-                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
-                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
-                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
-                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
-                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
-                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
                     } else {
                         psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
                         psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
@@ -664,8 +664,16 @@ int main() {
                 double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
 
                 if (k > 0) {
-                    k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
-                    k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
+                    if (VELOCITY_METHOD == VEL_ZELDOVICH) {
+                        k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
+                        k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
+                    } else if (VELOCITY_METHOD == VEL_CLASS) {
+                        k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_vel_cdm(k);
+                        k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_vel_cdm(k);
+                    } else {
+                        std::cout << "No valid method to determine the initial velocities. Exiting" << std::endl;
+                        return 0;
+                    }
                 }
             }
         }
@@ -957,12 +965,12 @@ int main() {
                     double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
 
                     if (k>0) {
-                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
-                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
-                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
-                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
-                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = -k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
-                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
                     } else {
                         psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
                         psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;

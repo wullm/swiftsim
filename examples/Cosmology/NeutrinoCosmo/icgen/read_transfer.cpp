@@ -28,7 +28,7 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
     }
 
     //Number of columns in the CLASS transfer function output file
-    int ncol = 18;
+    int ncol = 24;
     //Column that contains the wavenumber k (h/Mpc)
     int kcol = 0;
     //Column that contains the cdm transfer function d_cdm
@@ -39,9 +39,9 @@ void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std:
     int d_b_col = 2;
 
     //Column that contains the neutrino velocity transfer function t_ncdm
-    int t_ncdm_col = 14;
+    int t_ncdm_col = 20;
     //Column that contains the baryon velocity transfer function t_b
-    int t_b_col = 12;
+    int t_b_col = 18;
 
     int i = 0;
     double dbl;
