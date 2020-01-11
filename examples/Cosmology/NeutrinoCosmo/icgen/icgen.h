@@ -14,8 +14,9 @@
 
 struct corpuscle {
   long int id;
-  double X, Y, Z;
-  double v_X, v_Y, v_Z;
+  double X, Y, Z; //position
+  double v_X, v_Y, v_Z; //velocity
+  double delta_X, delta_Y, delta_Z; //displacement from grid/glass position
   double mass;
   double smoothing_length;
   double internal_energy;
@@ -45,6 +46,7 @@ std::vector<double> TF_T_rho_b;
 std::vector<double> TF_T_rho_cb; //cdm and baryon weighted mean
 
 //Velocity transfer functions
+std::vector<double> TF_T_theta_cdm;
 std::vector<double> TF_T_theta_nu;
 std::vector<double> TF_T_theta_b;
 std::vector<double> TF_T_theta_cb; //cdm and baryon weighted mean

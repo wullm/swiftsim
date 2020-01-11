@@ -36,16 +36,15 @@ int main() {
         std::cout << "Using seed: " << seed << "." << std::endl << std::endl;
     }
 
-
     std::default_random_engine oracle;
     oracle.seed(seed);
-	std::normal_distribution<double> Gaussian(0.0, 1.0);
+	std::normal_distribution<double> Gaussian(0.0, 1.0); //standard normal
 
     const int N = GRID_WIDTH;
     const double box_len = BOX_WIDTH; //Mpc
     const double delta_k = 2*M_PI/box_len; //Mpc^-1
     const double box_volume = box_len*box_len*box_len; //Mpc^3
-    const double z_start = Z_START;
+    const double z_start = Z_START; //starting redshift
 
     //The primordial Gaussian random field and its Fourier transform
     double *primordial_box = (double*) fftw_malloc(sizeof(double)*N*N*N);
@@ -63,10 +62,6 @@ int main() {
     //Compute the relative contributions of cdm and baryons at the starting redshift
     std::cout << "PHASE 0B - Computing contributions to cold component" << std::endl;
 
-    // double Omega_cdm_at_start = Omega_cdm_at_z(z_start);
-    // double Omega_b_at_start = Omega_b_at_z(z_start);
-    // double Omega_cb_at_start = Omega_cdm_at_start + Omega_b_at_start;
-
     double weight_b = Omega_b / Omega_m;
     double weight_cdm = (Omega_m - Omega_b) / Omega_m;
     std::cout << "Weight of CDM in cold component: " << weight_cdm << "." << std::endl;
@@ -79,9 +74,9 @@ int main() {
     //Prepare an indexed search table for the transfer functions
     TF_index = (float*) malloc(TF_I_max * sizeof(float));
 
-    //Neutrino and CDM density Transfer function data (loaded from CLASS)
+    //Neutrino and CDM density Transfer function data (loaded from CLASS output)
     read_transfer(TF_ks, TF_T_rho_cdm, TF_T_rho_nu, TF_T_rho_b, TF_T_rho_cb, weight_cdm, weight_b,
-                    TF_T_theta_nu, TF_T_theta_b, TF_T_theta_cb);
+                    TF_T_theta_cdm, TF_T_theta_nu, TF_T_theta_b, TF_T_theta_cb);
     make_index_table(TF_I_max, TF_index, TF_ks, &log_k_min, &log_k_max);
 
 	//Export transfer functions
@@ -89,7 +84,7 @@ int main() {
 	of << "k(1/Mpc);T_cdm;T_nu;T_b;T_cb;T_theta_cdm;T_theta_nu;T_theta_b;T_theta_cb\n";
 
 	for (int i = 0; i < TF_ks.size(); i++) {
-		of << TF_ks[i] << ";" << TF_T_rho_cdm[i] << ";" << TF_T_rho_nu[i] << ";" << TF_T_rho_b[i] << ";" << TF_T_rho_cb[i] << ";" << 0. << ";" << TF_T_theta_nu[i] << ";" << TF_T_theta_b[i] << ";" << TF_T_theta_cb[i] << std::endl;
+		of << TF_ks[i] << ";" << TF_T_rho_cdm[i] << ";" << TF_T_rho_nu[i] << ";" << TF_T_rho_b[i] << ";" << TF_T_rho_cb[i] << ";" << TF_T_theta_cdm[i] << ";" << TF_T_theta_nu[i] << ";" << TF_T_theta_b[i] << ";" << TF_T_theta_cb[i] << std::endl;
 	}
 
 	of.close();
@@ -155,9 +150,8 @@ int main() {
     std::cout << "PHASE 1C - Fourier transform of the random field to real field" << std::endl;
 
     //FTT
-    fftw_plan the_plan  = fftw_plan_dft_c2r_3d(N, N, N, k_box, primordial_box, FFTW_ESTIMATE);
-    fftw_execute(the_plan);
-    // fftw_destroy_plan(the_plan); //destroy later
+    fftw_plan c2r_plan  = fftw_plan_dft_c2r_3d(N, N, N, k_box, primordial_box, FFTW_ESTIMATE);
+    fftw_execute(c2r_plan);
 
     //Normalization (from Fourier conventions alone)
     for (int x=0; x<N; x++) {
@@ -224,9 +218,8 @@ int main() {
     fftw_complex *psi_k_z_box = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N*N*(N/2+1));
 
     //FTT the primordial box
-    fftw_plan another_plan  = fftw_plan_dft_r2c_3d(N, N, N, primordial_box, k_box, FFTW_ESTIMATE);
-    fftw_execute(another_plan);
-    // fftw_destroy_plan(another_plan); //destroy later
+    fftw_plan r2c_plan  = fftw_plan_dft_r2c_3d(N, N, N, primordial_box, k_box, FFTW_ESTIMATE);
+    fftw_execute(r2c_plan);
 
     //Normalization
     for (int x=0; x<N; x++) {
@@ -238,6 +231,7 @@ int main() {
         }
     }
 
+    //Multiply with the inverse Poisson kernel and differentiate
     for (int x=0; x<N; x++) {
         for (int y=0; y<N; y++) {
             for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
@@ -271,18 +265,12 @@ int main() {
 	//Do the IFFTs
 	fftw_plan px  = fftw_plan_dft_c2r_3d(N, N, N, psi_k_x_box, psi_x_box, FFTW_ESTIMATE);
 	fftw_execute(px);
-	// fftw_destroy_plan(px); //destroy later
-    // fftw_free(psi_k_x_box); //destroy later
 
 	fftw_plan py  = fftw_plan_dft_c2r_3d(N, N, N, psi_k_y_box, psi_y_box, FFTW_ESTIMATE);
 	fftw_execute(py);
-	// fftw_destroy_plan(py); //destroy later
-    // fftw_free(psi_k_y_box); //destroy later
 
 	fftw_plan pz  = fftw_plan_dft_c2r_3d(N, N, N, psi_k_z_box, psi_z_box, FFTW_ESTIMATE);
 	fftw_execute(pz);
-	// fftw_destroy_plan(pz); //destroy later
-    // fftw_free(psi_k_z_box); //destroy later
 
     //Normalization
 	for (int x=0; x<N; x++) {
@@ -350,9 +338,13 @@ int main() {
             }
         }
 
-        body.X = X - psi_x;
-        body.Y = Y - psi_y;
-        body.Z = Z - psi_z;
+        body.delta_X = -psi_x;
+        body.delta_Y = -psi_y;
+        body.delta_Z = -psi_z;
+
+        // body.X = X - psi_x;
+        // body.Y = Y - psi_y;
+        // body.Z = Z - psi_z;
 
         // body.v_X = -dVdX * psi_x;
         // body.v_Y = -dVdX * psi_y;
@@ -428,6 +420,10 @@ int main() {
                 }
             }
 
+            body.X += body.delta_X;
+            body.Y += body.delta_Y;
+            body.Z += body.delta_Z;
+
             body.v_X = -dVdX * psi_x;
             body.v_Y = -dVdX * psi_y;
             body.v_Z = -dVdX * psi_z;
@@ -459,7 +455,7 @@ int main() {
         }
 
         //FTT back
-        fftw_execute(the_plan);
+        fftw_execute(c2r_plan);
 
         //Normalization (from Fourier conventions alone)
         for (int x=0; x<N; x++) {
@@ -485,7 +481,7 @@ int main() {
         std::cout << "1) Apply kernel to the Fourier transform of the divergence field." << std::endl;
 
         //FTT the primordial box
-        fftw_execute(another_plan);
+        fftw_execute(r2c_plan);
 
         //Normalization
         for (int x=0; x<N; x++) {
@@ -609,6 +605,10 @@ int main() {
                 }
             }
 
+            body.X += body.delta_X;
+            body.Y += body.delta_Y;
+            body.Z += body.delta_Z;
+
             body.v_X = psi_x;
             body.v_Y = psi_y;
             body.v_Z = psi_z;
@@ -680,7 +680,7 @@ int main() {
     }
 
     //FTT back
-    fftw_execute(the_plan);
+    fftw_execute(c2r_plan);
 
     //Normalization (from Fourier conventions alone)
     for (int x=0; x<N; x++) {
@@ -705,7 +705,7 @@ int main() {
     std::cout << "1) Apply kernel to the Fourier transform of the primordial field." << std::endl;
 
     //FTT the primordial box
-    fftw_execute(another_plan);
+    fftw_execute(r2c_plan);
 
     //Normalization
     for (int x=0; x<N; x++) {
@@ -825,9 +825,13 @@ int main() {
 			}
 		}
 
-		body.X = X - psi_x;
-		body.Y = Y - psi_y;
-		body.Z = Z - psi_z;
+        body.delta_X = -psi_x;
+        body.delta_Y = -psi_y;
+        body.delta_Z = -psi_z;
+
+		// body.X = X - psi_x;
+		// body.Y = Y - psi_y;
+		// body.Z = Z - psi_z;
 
 		// body.v_X = -dVdX * psi_x;
 		// body.v_Y = -dVdX * psi_y;
@@ -886,6 +890,10 @@ int main() {
                 }
             }
 
+            body.X += body.delta_X;
+            body.Y += body.delta_Y;
+            body.Z += body.delta_Z;
+
             body.v_X = -dVdX * psi_x;
             body.v_Y = -dVdX * psi_y;
             body.v_Z = -dVdX * psi_z;
@@ -917,7 +925,7 @@ int main() {
         }
 
         //FTT back
-        fftw_execute(the_plan);
+        fftw_execute(c2r_plan);
 
         //Normalization (from Fourier conventions alone)
         for (int x=0; x<N; x++) {
@@ -943,7 +951,7 @@ int main() {
         std::cout << "1) Apply kernel to the Fourier transform of the divergence field." << std::endl;
 
         //FTT the primordial box
-        fftw_execute(another_plan);
+        fftw_execute(r2c_plan);
 
         //Normalization
         for (int x=0; x<N; x++) {
@@ -1066,6 +1074,10 @@ int main() {
                     }
                 }
             }
+
+            body.X += body.delta_X;
+            body.Y += body.delta_Y;
+            body.Z += body.delta_Z;
 
             body.v_X = psi_x;
             body.v_Y = psi_y;
