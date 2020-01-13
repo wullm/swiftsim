@@ -182,6 +182,13 @@ int main() {
     std::cout << "3) Random field range: " << box_min << " <= x <= " << box_max << "." << std::endl;
     std::cout << std::endl;
 
+
+    //Do infinite LPT
+    double *phi_box = (double*) fftw_malloc(sizeof(double)*N*N*N);
+    do_infini_lpt(phi_box, primordial_box, N, box_len);
+
+
+
     //Next, we either load particle positions (e.g. from a glass) or
     // generate them from a grid
     bool gridgen = true;
