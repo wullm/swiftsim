@@ -16,6 +16,7 @@
 #include "cosmo.h"
 #include "read_transfer.h"
 #include "sampler.h"
+#include "infini_lpt.h"
 #include "H5Cpp.h"
 
 int main() {
@@ -432,7 +433,6 @@ int main() {
         }
 
         std::cout << "1) Assigned velocities to " << particle_num << " cold particles." << std::endl;
-        std::cout << "  " << std::endl;
     } else if (VELOCITY_METHOD == VEL_CLASS) {
         std::cout << "PHASE 2E - Applying the cold velocity transfer function" << std::endl;
 
@@ -617,11 +617,28 @@ int main() {
         }
 
         std::cout << "1) Assigned velocities to " << particle_num << " cold particles." << std::endl;
-        std::cout << "  " << std::endl;
     } else {
         std::cout << "No valid method to determine the initial velocities. Exiting" << std::endl;
         return 0;
     }
+
+
+    //Determine the average & maximum cold velocity for diagnostic purposes
+    double avg_cb_speed = 0;
+    double max_cb_speed = 0;
+    double V = 0;
+
+    for (auto body : bodies) {
+        double V = sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z);
+        avg_cb_speed += V/particle_num;
+        if (V > max_cb_speed) {
+            max_cb_speed = V;
+        }
+    }
+
+    std::cout << "2) Average speed " << avg_cb_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "3) Maximum speed " << max_cb_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "  " << std::endl;
 
 
 
@@ -1158,7 +1175,7 @@ int main() {
     std::cout << "3) Added thermal motion to " << neutrino_num << " particles." << std::endl;
     std::cout << "4) Average speed " << avg_speed << " comoving Mpc/Gyr or " << avg_speed/a_start/c_vel << " c physical." << std::endl;
     std::cout << "5) Maximum speed " << max_speed << " comoving Mpc/Gyr or " << max_speed/a_start/c_vel << " c physical." << std::endl;
-    std::cout << "6) Average Hubble flow speed " << avg_hubble_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "6) Average flow speed " << avg_hubble_speed << " comoving Mpc/Gyr." << std::endl;
     std::cout << "  " << std::endl;
 
     /* NEXT, exporting the data in HDF5 format */
