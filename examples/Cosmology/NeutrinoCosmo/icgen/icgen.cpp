@@ -50,6 +50,7 @@ int main() {
     //The primordial Gaussian random field and its Fourier transform
     double *primordial_box = (double*) fftw_malloc(sizeof(double)*N*N*N);
     fftw_complex *k_box = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N*N*(N/2+1));
+    fftw_plan r2c_plan  = fftw_plan_dft_r2c_3d(N, N, N, primordial_box, k_box, FFTW_ESTIMATE);
 
     std::cout << "PHASE 0A - Cosmology check" << std::endl;
     std::cout << "1) Starting redshift z = " << z_start << ", a = " << a_scale_factor_of_z(z_start) << "." << std::endl;
@@ -182,11 +183,18 @@ int main() {
     std::cout << "3) Random field range: " << box_min << " <= x <= " << box_max << "." << std::endl;
     std::cout << std::endl;
 
+    //FFT the primordial box for later
+    fftw_execute(r2c_plan);
 
-    //Do infinite LPT
-    double *phi_box = (double*) fftw_malloc(sizeof(double)*N*N*N);
-    do_infini_lpt(phi_box, primordial_box, N, box_len);
-
+    //Normalization
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<=N/2; z++) {
+                k_box[half_box_idx(N, x, y, z)][0] *= box_volume/(N*N*N);
+                k_box[half_box_idx(N, x, y, z)][1] *= box_volume/(N*N*N);
+            }
+        }
+    }
 
 
     //Next, we either load particle positions (e.g. from a glass) or
@@ -213,9 +221,6 @@ int main() {
         std::cout << "1) Done with placing " << NP << "^3 cold particles." << std::endl << std::endl;
     }
 
-    //Compute the displacement field from the random field
-    std::cout << "PHASE 2B - Compute the displacement vector field" << std::endl;
-    std::cout << "1) Apply kernel to the Fourier transform of the primordial field." << std::endl;
 
     //Now determine the displacement field psi
     double *psi_x_box = (double*) fftw_malloc(sizeof(double)*N*N*N);
@@ -225,44 +230,96 @@ int main() {
     fftw_complex *psi_k_y_box = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N*N*(N/2+1));
     fftw_complex *psi_k_z_box = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N*N*(N/2+1));
 
-    //FTT the primordial box
-    fftw_plan r2c_plan  = fftw_plan_dft_r2c_3d(N, N, N, primordial_box, k_box, FFTW_ESTIMATE);
-    fftw_execute(r2c_plan);
+    //If necessary, solve the Monge-Ampère equation for infinite LPT
+    if (USE_INFINI_LPT) {
+        double *phi_box = (double*) fftw_malloc(sizeof(double)*N*N*N);
+        fftw_complex *phi_k_box = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N*N*(N/2+1));
 
-    //Normalization
-    for (int x=0; x<N; x++) {
-        for (int y=0; y<N; y++) {
-            for (int z=0; z<=N/2; z++) {
-                k_box[half_box_idx(N, x, y, z)][0] *= box_volume/(N*N*N);
-                k_box[half_box_idx(N, x, y, z)][1] *= box_volume/(N*N*N);
+        std::cout << "PHASE 2B.i - Solve the Monge-Ampère equation for infinite LPT" << std::endl;
+        double tol = 1e-15;
+        do_infini_lpt(phi_box, primordial_box, N, box_len, tol);
+        std::cout << std::endl;
+
+        //Write GRF to binary file
+        write_array_to_disk(std::string(OUTPUT_DIR) + "phi.box", phi_box, N);
+        std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "phi.box" << std::endl;
+        std::cout << std::endl;
+
+        std::cout << "PHASE 2B.ii - Compute the displacement vector field" << std::endl;
+        std::cout << "1) Apply kernel to the Fourier transform of the potential field." << std::endl;
+
+        //FFT the potential phi
+        fftw_plan phi_plan = fftw_plan_dft_r2c_3d(N, N, N, phi_box, phi_k_box, FFTW_ESTIMATE);
+    	fftw_execute(phi_plan);
+
+        //Normalization
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) {
+                    phi_k_box[half_box_idx(N, x, y, z)][0] *= box_volume/(N*N*N);
+                    phi_k_box[half_box_idx(N, x, y, z)][1] *= box_volume/(N*N*N);
+                }
             }
         }
-    }
 
-    //Multiply with the inverse Poisson kernel and differentiate
-    for (int x=0; x<N; x++) {
-        for (int y=0; y<N; y++) {
-            for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
-                double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
-                double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
-                double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+        //Now differentiate to find psi
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                    double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                    double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                    double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
 
-                double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+                    double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
 
-                if (k>0) {
-                    psi_k_x_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
-                    psi_k_x_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
-                    psi_k_y_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
-                    psi_k_y_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
-                    psi_k_z_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
-                    psi_k_z_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
-                } else {
-                    psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
-                    psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
-                    psi_k_y_box[half_box_idx(N, x, y, z)][0] = 0;
-                    psi_k_y_box[half_box_idx(N, x, y, z)][1] = 0;
-                    psi_k_z_box[half_box_idx(N, x, y, z)][0] = 0;
-                    psi_k_z_box[half_box_idx(N, x, y, z)][1] = 0;
+                    if (k>0) {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = phi_k_box[half_box_idx(N, x, y, z)][1] * k_x;
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = -phi_k_box[half_box_idx(N, x, y, z)][0] * k_x;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = phi_k_box[half_box_idx(N, x, y, z)][1] * k_y;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = -phi_k_box[half_box_idx(N, x, y, z)][0] * k_y;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = phi_k_box[half_box_idx(N, x, y, z)][1] * k_z;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = -phi_k_box[half_box_idx(N, x, y, z)][0] * k_z;
+                    } else {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = 0;
+                    }
+                }
+            }
+        }
+    } else {
+        //Compute the displacement field from the random field
+        std::cout << "PHASE 2B - Compute the displacement vector field" << std::endl;
+        std::cout << "1) Apply kernel to the Fourier transform of the primordial field." << std::endl;
+
+        //Multiply with the inverse Poisson kernel and differentiate
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                    double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                    double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                    double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                    double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                    if (k>0) {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
+                    } else {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = 0;
+                    }
                 }
             }
         }
@@ -724,11 +781,7 @@ int main() {
     std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_nu.hdf5" << std::endl;
     std::cout << std::endl;
 
-    //Compute the neutrino displacement field from the random field
-    std::cout << "PHASE 3C - Compute the neutrino displacement vector field" << std::endl;
-    std::cout << "1) Apply kernel to the Fourier transform of the primordial field." << std::endl;
-
-    //FTT the primordial box
+    //FTT the primordial box with (neutrino transfer function) for later
     fftw_execute(r2c_plan);
 
     //Normalization
@@ -741,29 +794,95 @@ int main() {
         }
     }
 
-    for (int x=0; x<N; x++) {
-        for (int y=0; y<N; y++) {
-            for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
-                double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
-                double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
-                double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+    //Compute the neutrino displacement field from the random field
 
-                double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+    //If necessary, solve the Monge-Ampère equation for infinite LPT
+    if (USE_INFINI_LPT) {
+        double *phi_box = (double*) fftw_malloc(sizeof(double)*N*N*N);
+        fftw_complex *phi_k_box = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N*N*(N/2+1));
 
-                if (k>0) {
-                    psi_k_x_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
-                    psi_k_x_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
-                    psi_k_y_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
-                    psi_k_y_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
-                    psi_k_z_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
-                    psi_k_z_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
-                } else {
-                    psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
-                    psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
-                    psi_k_y_box[half_box_idx(N, x, y, z)][0] = 0;
-                    psi_k_y_box[half_box_idx(N, x, y, z)][1] = 0;
-                    psi_k_z_box[half_box_idx(N, x, y, z)][0] = 0;
-                    psi_k_z_box[half_box_idx(N, x, y, z)][1] = 0;
+        std::cout << "PHASE 3C.i - Solve the Monge-Ampère equation for infinite LPT" << std::endl;
+        double tol = 1e-12;
+        do_infini_lpt(phi_box, primordial_box, N, box_len, tol);
+        std::cout << std::endl;
+
+        //Write GRF to binary file
+        write_array_to_disk(std::string(OUTPUT_DIR) + "phi_nu.box", phi_box, N);
+        std::cout << "   Output written to " << std::string(OUTPUT_DIR) + "phi_nu.box" << std::endl;
+        std::cout << std::endl;
+
+        std::cout << "PHASE 3C.ii - Compute the neutrino displacement vector field" << std::endl;
+        std::cout << "1) Apply kernel to the Fourier transform of the potential field." << std::endl;
+
+        //FFT the potential phi
+        fftw_plan phi_plan = fftw_plan_dft_r2c_3d(N, N, N, phi_box, phi_k_box, FFTW_ESTIMATE);
+        fftw_execute(phi_plan);
+
+        //Normalization
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) {
+                    phi_k_box[half_box_idx(N, x, y, z)][0] *= box_volume/(N*N*N);
+                    phi_k_box[half_box_idx(N, x, y, z)][1] *= box_volume/(N*N*N);
+                }
+            }
+        }
+
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                    double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                    double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                    double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                    double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                    if (k>0) {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = phi_k_box[half_box_idx(N, x, y, z)][1] * k_x;
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = -phi_k_box[half_box_idx(N, x, y, z)][0] * k_x;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = phi_k_box[half_box_idx(N, x, y, z)][1] * k_y;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = -phi_k_box[half_box_idx(N, x, y, z)][0] * k_y;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = phi_k_box[half_box_idx(N, x, y, z)][1] * k_z;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = -phi_k_box[half_box_idx(N, x, y, z)][0] * k_z;
+                    } else {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = 0;
+                    }
+                }
+            }
+        }
+    } else {
+        std::cout << "PHASE 3C - Compute the neutrino displacement vector field" << std::endl;
+        std::cout << "1) Apply kernel to the Fourier transform of the primordial field." << std::endl;
+
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                    double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                    double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                    double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                    double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                    if (k>0) {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_x / (k*k);
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_x / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_y / (k*k);
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_y / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = k_box[half_box_idx(N, x, y, z)][1] * k_z / (k*k);
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = -k_box[half_box_idx(N, x, y, z)][0] * k_z / (k*k);
+                    } else {
+                        psi_k_x_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_x_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_y_box[half_box_idx(N, x, y, z)][1] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][0] = 0;
+                        psi_k_z_box[half_box_idx(N, x, y, z)][1] = 0;
+                    }
                 }
             }
         }

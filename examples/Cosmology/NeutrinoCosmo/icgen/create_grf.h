@@ -1,5 +1,5 @@
 /**
- * @create_grf.cpp
+ * @create_grf.h
  * @author  Willem Elbers <whe@willemelbers.com>
  * @version 1.0
  * @license MIT (https://opensource.org/licenses/MIT)

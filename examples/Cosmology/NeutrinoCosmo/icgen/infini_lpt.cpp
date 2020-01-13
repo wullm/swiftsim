@@ -193,11 +193,25 @@ void do_infini_lpt(double* phi_box, double* src_box, int width, double box_len, 
         //Get rid of the constant mode for diagnostic purposes (doesn't affect
         // phi, but it reveals the real difference)
         double var = 0;
+        double rho_var = 0;
+        double D_var = 0;
         for (int x=0; x<N; x++) {
             for (int y=0; y<N; y++) {
                 for (int z=0; z<N; z++) {
                     dif_box[box_idx(N, x, y, z)] -= mean_dif;
                     var += pow(dif_box[box_idx(N, x, y, z)],2)/(N*N*N-1);
+
+                    int idx = box_idx(N, x, y, z);
+
+                    Hessian << H_xx_box[idx], H_xy_box[idx], H_xz_box[idx],
+                               H_xy_box[idx], H_yy_box[idx], H_yz_box[idx],
+                               H_xz_box[idx], H_yz_box[idx], H_zz_box[idx];
+
+                    double Det = (Hessian + Eye).determinant();
+                    double rho = 1.0 + src_box[idx];
+
+                    rho_var += (rho-1)*(rho-1)/(N*N*N-1);
+                    D_var += (Det-1+mean_dif)*(Det-1+mean_dif)/(N*N*N-1);
                 }
             }
         }
@@ -206,7 +220,7 @@ void do_infini_lpt(double* phi_box, double* src_box, int width, double box_len, 
         err1 = sqrt(var);
 
         if (MONGE_AMPERE_VERBOSE) {
-            std::cout << "MAE solver step " << ITER << " \t eps = " << err1 << "." << std::endl;
+            std::cout << "" << ITER << ") eps = " << err1 << " \t relative " << (D_var-rho_var)/rho_var << "." << std::endl;
         }
 
         if (ITER >= MONGE_AMPERE_MAX_ITER || err1 <= tol) {
@@ -219,7 +233,7 @@ void do_infini_lpt(double* phi_box, double* src_box, int width, double box_len, 
     if (err1 > tol) {
         throw std::logic_error("Maximum number of iterations exceeded, tolerance not reached.");
     } else if (MONGE_AMPERE_VERBOSE) {
-        std::cout << "MAE solver converged." << std::endl;
+        std::cout << ITER << ") MAE solver converged." << std::endl;
     }
 
     //Perform the final IFFT to get phi

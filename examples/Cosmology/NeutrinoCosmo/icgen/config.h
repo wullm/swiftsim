@@ -14,18 +14,18 @@
 // Present-day fluctuation scale
 #define SIGMA_8 0.8159
 
-// Normalization methods
+// Whether to normalize using sigma_8 (NORM_SIGMA) or A_S (NORM_CMB)
 #define NORM_SIGMA 0
 #define NORM_CMB 1
-
-// Whether to normalize using sigma_8 (NORM_SIGMA) or A_S (NORM_CMB)
 #define NORMALIZATION_METHOD    NORM_CMB
 
 // Initial velocity methods
 #define VEL_ZELDOVICH 0
 #define VEL_CLASS 1
-
 #define VELOCITY_METHOD     VEL_CLASS
+
+// Whether to set the initial displacements with Zel'dovich or Infinite-LPT
+#define USE_INFINI_LPT 1
 
 // Hubble constant
 #define H_0 67.556  // km/s/Mpc
