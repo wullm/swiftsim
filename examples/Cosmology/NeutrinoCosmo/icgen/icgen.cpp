@@ -57,6 +57,7 @@ int main() {
     std::cout << "2) Cosmology table written to " << std::string(OUTPUT_DIR) << "cosmology.txt." << std::endl;
     std::cout << "3) Omega_m = " << Omega_m << ", Omega_L = " << Omega_L << ", Omega_b = " << Omega_b << "," << std::endl;
     std::cout << "   Omega_nu = " << Omega_nu << ", Omega_g = " << Omega_r << "." << std::endl;
+    std::cout << "4) Note that Omega_nu is not part of Omega_m." << std::endl;
     std::cout << std::endl;
 
     test_cosmology(std::string(OUTPUT_DIR) + "cosmology.txt");
@@ -434,12 +435,18 @@ int main() {
         double H = H_hubble_of_z(z_start);
         double f = logarithmic_derivative_f_1(z_start);
 
+        /* N.B. The reason we have a^2Hf, is because HeWon and Swift both use
+         * generalized velocity coordinates p = a^2 (dx/dt) where x is the
+         * comoving position. This is also the convention of Quinn et al. (1997)
+         * astro-ph/9710043 where kick and drift operators are derived.
+         */
         dVdX = pow(a,2)*H*f;
 
-        std::cout << "1) Expansion factor a(z) = " << a << "." << std::endl;
-        std::cout << "2) Hubble rate H(z) = " << H << " Gyr^-1." << std::endl;
-        std::cout << "3) Logarithmic derivative of growth factor f(z) = " << f << "." << std::endl;
-        std::cout << "4) Proportionality constant dVdX = a^2Hf = " << dVdX << " Gyr^-1." << std::endl;
+        std::cout << "1) Velocity convention v = a^2 (dx/dt), where x=r/a is comoving." << std::endl;
+        std::cout << "2) Expansion factor a(z) = " << a << "." << std::endl;
+        std::cout << "3) Hubble rate H(z) = " << H << " Gyr^-1." << std::endl;
+        std::cout << "4) Logarithmic derivative of growth factor f(z) = " << f << "." << std::endl;
+        std::cout << "5) Proportionality constant dVdX = a^2Hf = " << dVdX << " Gyr^-1." << std::endl;
         std::cout << "  " << std::endl;
 
         std::cout << "PHASE 2E - Assign initial velocities to the cold particles using the Zel'dovich method" << std::endl;
@@ -537,12 +544,13 @@ int main() {
 
         std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta.box" << std::endl;
         std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta.hdf5" << std::endl;
-        std::cout << "3) Theta is the divergence of the velocity field in Mpc^-1." << std::endl;
+        std::cout << "3) Theta is the divergence of the peculiar velocity a*(dx/dt) in Mpc^-1." << std::endl;
         std::cout << std::endl;
 
         //Compute the velocity field from the random field
         std::cout << "PHASE 2F - Compute the cold velocity field" << std::endl;
-        std::cout << "1) Apply kernel to the Fourier transform of the divergence field." << std::endl;
+        std::cout << "1) Velocity convention v = a^2 (dx/dt), where x=r/a is comoving." << std::endl;
+        std::cout << "2) Apply kernel to the Fourier transform of the divergence field." << std::endl;
 
         //FTT the primordial box
         fftw_execute(r2c_plan);
@@ -585,7 +593,7 @@ int main() {
             }
         }
 
-        std::cout << "2) Fourier transform back to real coordinates." << std::endl;
+        std::cout << "3) Fourier transform back to real coordinates." << std::endl;
 
         //Do the IFFTs
         fftw_execute(px);
@@ -603,8 +611,9 @@ int main() {
             }
         }
 
-        std::cout << "3) Done. The result consists of 3x" << N << "^3 real numbers." << std::endl;
-        std::cout << "4) Make dimensionful by inserting c = " << c_vel << " Mpc/Gyr." << std::endl;
+
+        std::cout << "4) Done. The result consists of 3x" << N << "^3 real numbers." << std::endl;
+        std::cout << "5) Make dimensionful by inserting c = " << c_vel << " Mpc/Gyr." << std::endl;
 
         //Insert units (convert from c=1 to dimensionful quantity)
         for (int x=0; x<N; x++) {
@@ -613,6 +622,20 @@ int main() {
                     psi_x_box[box_idx(N, x, y, z)] *= c_vel;
                     psi_y_box[box_idx(N, x, y, z)] *= c_vel;
                     psi_z_box[box_idx(N, x, y, z)] *= c_vel;
+                }
+            }
+        }
+
+        double a = a_scale_factor_of_z(z_start);
+        std::cout << "6) Multiply by the scale factor a = " << a << " to get v = a^2 (dx/dt)." << std::endl;
+
+        //Insert scale factor
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<N; z++) {
+                    psi_x_box[box_idx(N, x, y, z)] *= a;
+                    psi_y_box[box_idx(N, x, y, z)] *= a;
+                    psi_z_box[box_idx(N, x, y, z)] *= a;
                 }
             }
         }
@@ -991,6 +1014,7 @@ int main() {
 
     if (VELOCITY_METHOD == VEL_ZELDOVICH) {
         std::cout << "PHASE 3E - Assign initial velocities to the neutrinos using the Zel'dovich method" << std::endl;
+        std::cout << "1) Velocity convention v = a^2 (dx/dt), where x=r/a is comoving." << std::endl;
 
         for (auto body : bodies_nu) {
             double X = body.X;
@@ -1044,7 +1068,7 @@ int main() {
             bodies_nu[body.id] = body;
         }
 
-        std::cout << "1) Assigned velocities to " << neutrino_num << " neutrino particles." << std::endl;
+        std::cout << "2) Assigned velocities to " << neutrino_num << " neutrino particles." << std::endl;
         std::cout << "  " << std::endl;
     } else if (VELOCITY_METHOD == VEL_CLASS) {
         std::cout << "PHASE 3E - Applying the neutrino velocity transfer function" << std::endl;
@@ -1086,12 +1110,13 @@ int main() {
 
         std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta_nu.box" << std::endl;
         std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta_nu.hdf5" << std::endl;
-        std::cout << "3) Theta is the divergence of the velocity field in Mpc^-1." << std::endl;
+        std::cout << "3) Theta is the divergence of the peculiar velocity a*(dx/dt) in Mpc^-1." << std::endl;
         std::cout << std::endl;
 
         //Compute the velocity field from the random field
         std::cout << "PHASE 3F - Compute the neutrino velocity field" << std::endl;
-        std::cout << "1) Apply kernel to the Fourier transform of the divergence field." << std::endl;
+        std::cout << "1) Velocity convention v = a^2 (dx/dt), where x=r/a is comoving." << std::endl;
+        std::cout << "2) Apply kernel to the Fourier transform of the divergence field." << std::endl;
 
         //FTT the primordial box
         fftw_execute(r2c_plan);
@@ -1134,7 +1159,7 @@ int main() {
             }
         }
 
-        std::cout << "2) Fourier transform back to real coordinates." << std::endl;
+        std::cout << "3) Fourier transform back to real coordinates." << std::endl;
 
         //Do the IFFTs
         fftw_execute(px);
@@ -1152,8 +1177,8 @@ int main() {
             }
         }
 
-        std::cout << "3) Done. The result consists of 3x" << N << "^3 real numbers." << std::endl;
-        std::cout << "4) Make dimensionful by inserting c = " << c_vel << " Mpc/Gyr." << std::endl;
+        std::cout << "4) Done. The result consists of 3x" << N << "^3 real numbers." << std::endl;
+        std::cout << "5) Make dimensionful by inserting c = " << c_vel << " Mpc/Gyr." << std::endl;
 
         //Insert units (convert from c=1 to dimensionful quantity)
         for (int x=0; x<N; x++) {
@@ -1162,6 +1187,20 @@ int main() {
                     psi_x_box[box_idx(N, x, y, z)] *= c_vel;
                     psi_y_box[box_idx(N, x, y, z)] *= c_vel;
                     psi_z_box[box_idx(N, x, y, z)] *= c_vel;
+                }
+            }
+        }
+
+        double a = a_scale_factor_of_z(z_start);
+        std::cout << "6) Multiply by the scale factor a = " << a << " to get v = a^2 (dx/dt)." << std::endl;
+
+        //Insert scale factor
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<N; z++) {
+                    psi_x_box[box_idx(N, x, y, z)] *= a;
+                    psi_y_box[box_idx(N, x, y, z)] *= a;
+                    psi_z_box[box_idx(N, x, y, z)] *= a;
                 }
             }
         }
