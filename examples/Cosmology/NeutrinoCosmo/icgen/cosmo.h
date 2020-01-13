@@ -47,12 +47,6 @@ const double Omega_r = 5.4184744739e-05;  // this is Omega_g
 const double Omega_total = 1.0;
 const double Omega_L = Omega_total - Omega_m - Omega_r - Omega_nu;
 
-// If massive neutrinos are the dark matter, the power spectrum is damped.
-const float mass_neutrino = 0.20 / 30;  // in units of 30 eV
-const float damping_scale =
-    41.0 /
-    mass_neutrino;  // Mpc - see eq. (2) in Frenk, White, and Davis (1983)
-
 // Numerical constant [(2/3)*(pi^2/zeta(3))]^(1/3) appearing in neutrino
 // temperature-density relation
 const double T_nu_const = 1.762359429;
