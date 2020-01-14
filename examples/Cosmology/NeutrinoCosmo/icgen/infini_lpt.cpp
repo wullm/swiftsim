@@ -233,7 +233,7 @@ void do_infini_lpt(double* phi_box, double* src_box, int width, double box_len, 
     if (err1 > tol) {
         throw std::logic_error("Maximum number of iterations exceeded, tolerance not reached.");
     } else if (MONGE_AMPERE_VERBOSE) {
-        std::cout << ITER << ") MAE solver converged." << std::endl;
+        std::cout << (ITER+1) << ") MAE solver converged." << std::endl;
     }
 
     //Perform the final IFFT to get phi

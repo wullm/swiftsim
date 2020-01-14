@@ -1003,6 +1003,7 @@ int main() {
 		// body.v_Y = -dVdX * psi_y;
 		// body.v_Z = -dVdX * psi_z;
 
+        //We are treating the three species as degenerate for now
         body.mass = Omega_nu*rho_crit*pow(Mpc,3)*box_volume/neutrino_num;
 
 		bodies_nu[body.id] = body;
@@ -1276,7 +1277,7 @@ int main() {
     }
 
 
-    std::cout << "PHASE 4 - Add thermal motion to the neutrinos" << std::endl;
+    std::cout << "PHASE 4A - Add thermal motion to the neutrinos" << std::endl;
 
     double T = T_nu;
     double mu = mu_nu;
@@ -1296,7 +1297,7 @@ int main() {
     double a_start = 1.0 / (1+z_start);
     double avg_speed = 0;
     double max_speed = 0;
-    double avg_hubble_speed = 0;
+    double avg_bulk_speed = 0;
 
     for (auto body : bodies_nu) {
         //Generate a random speed V
@@ -1306,11 +1307,12 @@ int main() {
         double v0 = p0/(gamma*M_nu_kg); // physical velocity in Mpc/Gyr
 
         //Multiply by a relativistic correction of order unity to get the comoving velocity
-        //at the starting redshift (see eq 2.2 in 1910.03550)
-        double V = v0 * a_start / sqrt(pow(a_start,2) + pow(v0/c_vel, 2)*(1-pow(a_start,2)));
+        //at the starting redshift (see eq 2.2 in 1910.03550). Recall that our internal
+        //velocity variable is V = a^2(dx/dt).
+        double V = v0 * pow(a_start,2) / sqrt(pow(a_start,2) + pow(v0/c_vel, 2)*(1-pow(a_start,2)));
 
         avg_speed += V/neutrino_num;
-        avg_hubble_speed += sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z)/neutrino_num;
+        avg_bulk_speed += sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z)/neutrino_num;
         if (V > max_speed) {
             max_speed = V;
         }
@@ -1338,9 +1340,12 @@ int main() {
     }
 
     std::cout << "3) Added thermal motion to " << neutrino_num << " particles." << std::endl;
-    std::cout << "4) Average speed " << avg_speed << " comoving Mpc/Gyr or " << avg_speed/a_start/c_vel << " c physical." << std::endl;
-    std::cout << "5) Maximum speed " << max_speed << " comoving Mpc/Gyr or " << max_speed/a_start/c_vel << " c physical." << std::endl;
-    std::cout << "6) Average flow speed " << avg_hubble_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "  " << std::endl;
+    std::cout << "PHASE 4B - Summary" << std::endl;
+    std::cout << "1) Average speed " << avg_speed << " comoving Mpc/Gyr or " << avg_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
+    std::cout << "2) Maximum speed " << max_speed << " comoving Mpc/Gyr or " << max_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
+    std::cout << "3) Average bulk flow speed " << avg_bulk_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "4) Comoving speed means v = a^2 |dx/dt|, where x=r/a is comoving." << std::endl;
     std::cout << "  " << std::endl;
 
     /* NEXT, exporting the data in HDF5 format */
