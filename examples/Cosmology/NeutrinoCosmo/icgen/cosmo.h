@@ -59,7 +59,7 @@ const double eV_mass = 1.782662e-36;  // kg (this is eV/c^2)
 // Boltzmann's constant in units of eV/K
 const double k_b = 8.617333262145e-5;
 // The mass of the neutrino
-const double M_nu = 0.6;                // eV_mass (sum of 3 species)
+const double M_nu = 0.2;                // eV_mass (per species)
 const double M_nu_kg = M_nu * eV_mass;  // kg
 
 // Warm Dark Matter power spectrum, via  Bode, Turok and Ostriker (2001)
