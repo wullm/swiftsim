@@ -408,20 +408,23 @@ int main() {
         body.delta_Y = -psi_y;
         body.delta_Z = -psi_z;
 
-        // body.X = X - psi_x;
-        // body.Y = Y - psi_y;
-        // body.Z = Z - psi_z;
-
-        // body.v_X = -dVdX * psi_x;
-        // body.v_Y = -dVdX * psi_y;
-        // body.v_Z = -dVdX * psi_z;
+        //Displace the particles before assigning the velocities
+        if (VELOCITY_AT_DISPLACED_POS) {
+            body.X += body.delta_X;
+            body.Y += body.delta_Y;
+            body.Z += body.delta_Z;
+        }
 
         body.mass = Omega_m*rho_crit*pow(Mpc,3)*box_volume/particle_num;
 
         bodies[body.id] = body;
     }
 
-    std::cout << "1) Displaced " << particle_num << " cold particles." << std::endl;
+    if (VELOCITY_AT_DISPLACED_POS) {
+        std::cout << "1) Displaced " << particle_num << " cold particles." << std::endl;
+    } else {
+        std::cout << "1) Determined " << particle_num << " displacement vectors, particles will be moved later." << std::endl;
+    }
     std::cout << "2) Particle mass " << bodies[0].mass << " kg." << std::endl;
     std::cout << "  " << std::endl;
 
@@ -492,19 +495,26 @@ int main() {
                 }
             }
 
-            body.X += body.delta_X;
-            body.Y += body.delta_Y;
-            body.Z += body.delta_Z;
-
             body.v_X = -dVdX * psi_x;
             body.v_Y = -dVdX * psi_y;
             body.v_Z = -dVdX * psi_z;
+
+            //Displace the particles if this has not yet been done
+            if (!VELOCITY_AT_DISPLACED_POS) {
+                body.X += body.delta_X;
+                body.Y += body.delta_Y;
+                body.Z += body.delta_Z;
+            }
 
             bodies[body.id] = body;
         }
 
         std::cout << "1) Assigned velocities to " << particle_num << " cold particles." << std::endl;
-    } else if (VELOCITY_METHOD == VEL_CLASS) {
+        if (!VELOCITY_AT_DISPLACED_POS) {
+            std::cout << "2) Displaced " << particle_num << " cold particles." << std::endl;
+        }
+
+    } else if (VELOCITY_METHOD == VEL_TRANSFER) {
         std::cout << "PHASE 2E - Applying the cold velocity transfer function" << std::endl;
 
         //Undo the CDM density transfer function and apply the CDM velocity transfer function
@@ -652,6 +662,7 @@ int main() {
 
 
         std::cout << "PHASE 2G - Assign initial velocities to the cold particles" << std::endl;
+
         for (auto body : bodies) {
             double X = body.X;
             double Y = body.Y;
@@ -693,18 +704,24 @@ int main() {
                 }
             }
 
-            body.X += body.delta_X;
-            body.Y += body.delta_Y;
-            body.Z += body.delta_Z;
-
             body.v_X = psi_x;
             body.v_Y = psi_y;
             body.v_Z = psi_z;
+
+            //Displace the particles if this has not yet been done
+            if (!VELOCITY_AT_DISPLACED_POS) {
+                body.X += body.delta_X;
+                body.Y += body.delta_Y;
+                body.Z += body.delta_Z;
+            }
 
             bodies[body.id] = body;
         }
 
         std::cout << "1) Assigned velocities to " << particle_num << " cold particles." << std::endl;
+        if (!VELOCITY_AT_DISPLACED_POS) {
+            std::cout << "2) Displaced " << particle_num << " cold particles." << std::endl;
+        }
     } else {
         std::cout << "No valid method to determine the initial velocities. Exiting" << std::endl;
         return 0;
@@ -772,7 +789,7 @@ int main() {
                     if (VELOCITY_METHOD == VEL_ZELDOVICH) {
                         k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
                         k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
-                    } else if (VELOCITY_METHOD == VEL_CLASS) {
+                    } else if (VELOCITY_METHOD == VEL_TRANSFER) {
                         k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_vel_cdm(k);
                         k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_vel_cdm(k);
                     } else {
@@ -996,13 +1013,12 @@ int main() {
         body.delta_Y = -psi_y;
         body.delta_Z = -psi_z;
 
-		// body.X = X - psi_x;
-		// body.Y = Y - psi_y;
-		// body.Z = Z - psi_z;
-
-		// body.v_X = -dVdX * psi_x;
-		// body.v_Y = -dVdX * psi_y;
-		// body.v_Z = -dVdX * psi_z;
+        //Displace the particles before assigning the velocities
+        if (VELOCITY_AT_DISPLACED_POS) {
+            body.X += body.delta_X;
+            body.Y += body.delta_Y;
+            body.Z += body.delta_Z;
+        }
 
         //We are treating the three species as degenerate for now
         body.mass = Omega_nu*rho_crit*pow(Mpc,3)*box_volume/neutrino_num;
@@ -1010,7 +1026,12 @@ int main() {
 		bodies_nu[body.id] = body;
 	}
 
-    std::cout << "1) Displaced " << neutrino_num << " neutrino particles." << std::endl;
+    if (VELOCITY_AT_DISPLACED_POS) {
+        std::cout << "1) Displaced " << neutrino_num << " neutrino particles." << std::endl;
+    } else {
+        std::cout << "1) Determined " << neutrino_num << " displacement vectors, particles will be moved later." << std::endl;
+    }
+
     std::cout << "2) Particle mass " << bodies_nu[0].mass << " kg." << std::endl;
     std::cout << "  " << std::endl;
 
@@ -1059,20 +1080,26 @@ int main() {
                 }
             }
 
-            body.X += body.delta_X;
-            body.Y += body.delta_Y;
-            body.Z += body.delta_Z;
-
             body.v_X = -dVdX * psi_x;
             body.v_Y = -dVdX * psi_y;
             body.v_Z = -dVdX * psi_z;
+
+            //Displace the particles after assigning velocities
+            if (!VELOCITY_AT_DISPLACED_POS) {
+                body.X += body.delta_X;
+                body.Y += body.delta_Y;
+                body.Z += body.delta_Z;
+            }
 
             bodies_nu[body.id] = body;
         }
 
         std::cout << "2) Assigned velocities to " << neutrino_num << " neutrino particles." << std::endl;
+        if (!VELOCITY_AT_DISPLACED_POS) {
+            std::cout << "3) Displaced " << particle_num << " cold particles." << std::endl;
+        }
         std::cout << "  " << std::endl;
-    } else if (VELOCITY_METHOD == VEL_CLASS) {
+    } else if (VELOCITY_METHOD == VEL_TRANSFER) {
         std::cout << "PHASE 3E - Applying the neutrino velocity transfer function" << std::endl;
 
         //Undo the neutrino density transfer function and apply the neutrino velocity transfer function
@@ -1219,6 +1246,7 @@ int main() {
 
 
         std::cout << "PHASE 3G - Assign initial gravitational flow velocities to the neutrinos" << std::endl;
+
         for (auto body : bodies_nu) {
             double X = body.X;
             double Y = body.Y;
@@ -1260,18 +1288,24 @@ int main() {
                 }
             }
 
-            body.X += body.delta_X;
-            body.Y += body.delta_Y;
-            body.Z += body.delta_Z;
-
             body.v_X = psi_x;
             body.v_Y = psi_y;
             body.v_Z = psi_z;
 
+            //Displace the particles if this has not yet been done
+            if (!VELOCITY_AT_DISPLACED_POS) {
+                body.X += body.delta_X;
+                body.Y += body.delta_Y;
+                body.Z += body.delta_Z;
+            }
+
             bodies_nu[body.id] = body;
         }
 
-        std::cout << "1) Assigned velocities to " << neutrino_num << " neutrino particles." << std::endl;
+        std::cout << "2) Assigned velocities to " << neutrino_num << " neutrino particles." << std::endl;
+        if (!VELOCITY_AT_DISPLACED_POS) {
+            std::cout << "3) Displaced " << particle_num << " cold particles." << std::endl;
+        }
         std::cout << "  " << std::endl;
     } else {
         std::cout << "No valid method to determine the initial velocities. Exiting" << std::endl;

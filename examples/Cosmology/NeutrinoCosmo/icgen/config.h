@@ -21,11 +21,17 @@
 
 // Initial velocity methods
 #define VEL_ZELDOVICH 0
-#define VEL_CLASS 1
-#define VELOCITY_METHOD     VEL_CLASS
+#define VEL_TRANSFER 1
+#define VELOCITY_METHOD     VEL_ZELDOVICH
 
 // Whether to set the initial displacements with Zel'dovich or Infinite-LPT
-#define USE_INFINI_LPT 1
+#define FALSE 0
+#define TRUE 1
+#define USE_INFINI_LPT TRUE
+
+// Whether to infer the velocity of the particles from the original grid/glass
+// position (FALSE) or from the velocity field at the displaced position (TRUE)
+#define VELOCITY_AT_DISPLACED_POS TRUE
 
 // Hubble constant
 #define H_0 67.556  // km/s/Mpc
