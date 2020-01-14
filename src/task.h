@@ -94,6 +94,7 @@ enum task_types {
   task_type_bh_swallow_ghost3, /* Implicit */
   task_type_fof_self,
   task_type_fof_pair,
+  task_type_weight,
   task_type_count
 } __attribute__((packed));
 
@@ -130,6 +131,7 @@ enum task_subtypes {
   task_subtype_do_gas_swallow,
   task_subtype_do_bh_swallow,
   task_subtype_bh_feedback,
+  task_subtype_weight,
   task_subtype_count
 } __attribute__((packed));
 
@@ -144,6 +146,7 @@ enum task_actions {
   task_action_bpart,
   task_action_all,
   task_action_multipole,
+  task_action_nupart,
   task_action_count
 };
 

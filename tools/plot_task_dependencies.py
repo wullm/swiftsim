@@ -269,6 +269,9 @@ def getFunctionCalls(name):
     if "force" in name and "end" not in name:
         txt = "runner_iact_nonsym_density, runner_iact_density"
 
+    if "weight" in name:
+        txt = "weight"
+
     if txt is None:
         return None
     else:

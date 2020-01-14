@@ -98,7 +98,7 @@ AM_SOURCES = space.c runner_main.c runner_doiact_hydro.c runner_doiact_limiter.c
     collectgroup.c hydro_space.c equation_of_state.c \
     chemistry.c restart.c mesh_gravity.c velociraptor_interface.c \
     outputlist.c velociraptor_dummy.c logger_io.c memuse.c mpiuse.c memuse_rnodes.c fof.c \
-    hashmap.c pressure_floor.c \
+    hashmap.c pressure_floor.c runner_weighting.c \
     $(EAGLE_COOLING_SOURCES) $(EAGLE_FEEDBACK_SOURCES) $(COSMOLOGY_SOURCES)
 
 # Include files for distribution, not installation.

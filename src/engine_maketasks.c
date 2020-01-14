@@ -915,7 +915,13 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
       c->grav.end_force = scheduler_addtask(s, task_type_end_grav_force,
                                             task_subtype_none, 0, 0, c, NULL);
 
-      scheduler_addunlock(s, c->grav.end_force, c->super->kick2);
+      // scheduler_addunlock(s, c->grav.end_force, c->super->kick2);
+
+      /* Weighting task for pseudo-particles (neutrinos) */
+      c->grav.weight = scheduler_addtask(s, task_type_weight, task_subtype_weight, 0, 0, c, NULL);
+
+      scheduler_addunlock(s, c->grav.end_force, c->grav.weight);
+      scheduler_addunlock(s, c->grav.weight, c->super->kick2);
 
       if (is_self_gravity) {
 

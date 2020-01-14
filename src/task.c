@@ -99,7 +99,8 @@ const char *taskID_names[task_type_count] = {"none",
                                              "bh_swallow_ghost2",
                                              "bh_swallow_ghost3",
                                              "fof_self",
-                                             "fof_pair"};
+                                             "fof_pair",
+                                             "weight"};
 
 /* Sub-task type names. */
 const char *subtaskID_names[task_subtype_count] = {
@@ -110,7 +111,7 @@ const char *subtaskID_names[task_subtype_count] = {
     "multipole",  "spart",        "stars_density",  "stars_feedback",
     "sf_count",   "bpart_rho",    "bpart_swallow",  "bpart_feedback",
     "bh_density", "bh_swallow",   "do_gas_swallow", "do_bh_swallow",
-    "bh_feedback"};
+    "bh_feedback", "weight"};
 
 #ifdef WITH_MPI
 /* MPI communicators for the subtypes. */
@@ -265,7 +266,9 @@ __attribute__((always_inline)) INLINE static enum task_actions task_acts_on(
     case task_type_grav_mesh:
       return task_action_gpart;
       break;
-
+    case task_type_weight:
+      return task_action_nupart;
+      break;
     default:
 #ifdef SWIFT_DEBUG_CHECKS
       error("Unknown task_action for task %s/%s", taskID_names[t->type],

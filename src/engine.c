@@ -1789,6 +1789,7 @@ void engine_skip_force_and_kick(struct engine *e) {
         t->type == task_type_bh_swallow_ghost1 ||
         t->type == task_type_bh_swallow_ghost2 ||
         t->type == task_type_bh_swallow_ghost3 ||
+        t->type == task_type_weight || 
         t->subtype == task_subtype_gradient ||
         t->subtype == task_subtype_stars_feedback ||
         t->subtype == task_subtype_bh_feedback ||
