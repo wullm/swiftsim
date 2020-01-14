@@ -12,7 +12,7 @@
 #define PIVOT_SCALE 0.05 // in 1/Mpc
 
 // Present-day fluctuation scale
-#define SIGMA_8 0.8159
+#define SIGMA_8 0.8282
 
 // Whether to normalize using sigma_8 (NORM_SIGMA) or A_S (NORM_CMB)
 #define NORM_SIGMA 0
