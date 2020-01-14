@@ -544,7 +544,8 @@ int main() {
 
         std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta.box" << std::endl;
         std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta.hdf5" << std::endl;
-        std::cout << "3) Theta is the divergence of the peculiar velocity a*(dx/dt) in Mpc^-1." << std::endl;
+        std::cout << "3) Theta is the divergence of the peculiar velocity in Mpc^-1," << std::endl;
+        std::cout << "   where the velocity is (dx/dtau) = a*(dx/dt) with x=r/a comoving." << std::endl;
         std::cout << std::endl;
 
         //Compute the velocity field from the random field
@@ -627,7 +628,7 @@ int main() {
         }
 
         double a = a_scale_factor_of_z(z_start);
-        std::cout << "6) Multiply by the scale factor a = " << a << " to get v = a^2 (dx/dt)." << std::endl;
+        std::cout << "6) Multiply by the scale factor a = " << a << " to get v = a*(dx/tau) = a^2*(dx/dt)." << std::endl;
 
         //Insert scale factor
         for (int x=0; x<N; x++) {
@@ -1111,7 +1112,8 @@ int main() {
 
         std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta_nu.box" << std::endl;
         std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta_nu.hdf5" << std::endl;
-        std::cout << "3) Theta is the divergence of the peculiar velocity a*(dx/dt) in Mpc^-1." << std::endl;
+        std::cout << "3) Theta is the divergence of the peculiar velocity in Mpc^-1," << std::endl;
+        std::cout << "   where the velocity is (dx/dtau) = a*(dx/dt) with x=r/a comoving." << std::endl;
         std::cout << std::endl;
 
         //Compute the velocity field from the random field
@@ -1193,7 +1195,7 @@ int main() {
         }
 
         double a = a_scale_factor_of_z(z_start);
-        std::cout << "6) Multiply by the scale factor a = " << a << " to get v = a^2 (dx/dt)." << std::endl;
+        std::cout << "6) Multiply by the scale factor a = " << a << " to get v = a*(dx/tau) = a^2*(dx/dt)." << std::endl;
 
         //Insert scale factor
         for (int x=0; x<N; x++) {
@@ -1297,6 +1299,8 @@ int main() {
     double a_start = 1.0 / (1+z_start);
     double avg_speed = 0;
     double max_speed = 0;
+    double avg_thermal_speed = 0;
+    double max_thermal_speed = 0;
     double avg_bulk_speed = 0;
 
     for (auto body : bodies_nu) {
@@ -1306,16 +1310,13 @@ int main() {
         double gamma = sqrt(1 + pow(p0 / (M_nu_kg*c_vel), 2)); // Lorentz factor
         double v0 = p0/(gamma*M_nu_kg); // physical velocity in Mpc/Gyr
 
-        //Multiply by a relativistic correction of order unity to get the comoving velocity
+        //Multiply by a relativistic correction and the scale factor squared to get the velocity
         //at the starting redshift (see eq 2.2 in 1910.03550). Recall that our internal
-        //velocity variable is V = a^2(dx/dt).
+        //velocity variable is V = a^2(dx/dt), where x=r/a is comoving.
         double V = v0 * pow(a_start,2) / sqrt(pow(a_start,2) + pow(v0/c_vel, 2)*(1-pow(a_start,2)));
 
-        avg_speed += V/neutrino_num;
-        avg_bulk_speed += sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z)/neutrino_num;
-        if (V > max_speed) {
-            max_speed = V;
-        }
+        //Just for diagnostics, look at the bulk speed before adding the thermal component
+        double V_bulk = sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z);
 
         //Generate a random point on the sphere
         double x = Gaussian(oracle);
@@ -1336,16 +1337,32 @@ int main() {
         body.v_Y += V*y;
         body.v_Z += V*z;
 
+        //For diagnostics, look at the new total speed
+        double V_tot = sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z);
+
+        //Record statistics for diagnostics
+        avg_speed += V_tot/neutrino_num;
+        avg_thermal_speed += V/neutrino_num;
+        avg_bulk_speed += V_bulk/neutrino_num;
+        if (V > max_thermal_speed) {
+            max_thermal_speed = V;
+        }
+        if (V_tot > max_speed) {
+            max_speed = V_tot;
+        }
+
         bodies_nu[body.id] = body;
     }
 
     std::cout << "3) Added thermal motion to " << neutrino_num << " particles." << std::endl;
     std::cout << "  " << std::endl;
     std::cout << "PHASE 4B - Summary" << std::endl;
-    std::cout << "1) Average speed " << avg_speed << " comoving Mpc/Gyr or " << avg_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
-    std::cout << "2) Maximum speed " << max_speed << " comoving Mpc/Gyr or " << max_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
-    std::cout << "3) Average bulk flow speed " << avg_bulk_speed << " comoving Mpc/Gyr." << std::endl;
-    std::cout << "4) Comoving speed means v = a^2 |dx/dt|, where x=r/a is comoving." << std::endl;
+    std::cout << "1) Average total speed " << avg_speed << " comoving Mpc/Gyr or " << avg_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
+    std::cout << "2) Maximum total speed " << max_speed << " comoving Mpc/Gyr or " << max_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
+    std::cout << "3) Average thermal speed " << avg_thermal_speed << " comoving Mpc/Gyr or " << avg_thermal_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
+    std::cout << "4) Maximum thermal speed " << max_thermal_speed << " comoving Mpc/Gyr or " << max_thermal_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
+    std::cout << "5) Average bulk flow speed " << avg_bulk_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "6) Comoving speed means v = a^2 |dx/dt|, where x=r/a is comoving." << std::endl;
     std::cout << "  " << std::endl;
 
     /* NEXT, exporting the data in HDF5 format */
