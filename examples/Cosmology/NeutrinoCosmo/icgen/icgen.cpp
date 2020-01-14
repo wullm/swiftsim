@@ -741,11 +741,14 @@ int main() {
         }
     }
 
-    std::cout << "2) Average speed " << avg_cb_speed << " comoving Mpc/Gyr." << std::endl;
-    std::cout << "3) Maximum speed " << max_cb_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "  " << std::endl;
+    std::cout << "PHASE 2F - Summary" << std::endl;
+    std::cout << "1) Average speed " << avg_cb_speed << " comoving Mpc/Gyr." << std::endl;
+    std::cout << "2) Maximum speed " << max_cb_speed << " comoving Mpc/Gyr." << std::endl;
     std::cout << "  " << std::endl;
 
-
+    std::cout << "  ...  " << std::endl;
+    std::cout << "  " << std::endl;
 
     /* NEXT, the neutrinos */
 
@@ -1401,7 +1404,7 @@ int main() {
 
     /* NEXT, exporting the data in HDF5 format */
 
-    std::cout << "Phase 5 - Exporting initial conditions to HDF5 files." << std::endl;
+    std::cout << "PHASE 5 - Exporting initial conditions to HDF5 files." << std::endl;
     std::cout << "  " << std::endl;
 
     //Convert to Swift units. The below values are conversions to cgs
