@@ -58,10 +58,11 @@ Scheduler:
   cell_split_size:     50
   
 Gravity:
-  mesh_side_length:   64
+  mesh_side_length:   256
   eta: 0.025
   theta: 0.3
-  comoving_DM_softening: 0.08	# 80 kpc = 1/25 of mean inter-particle separation
-  max_physical_DM_softening: 0.08  # 80 kpc = 1/25 of mean inter-particle separation
-  comoving_baryon_softening: 0.08	# 80 kpc = 1/25 of mean inter-particle separation
+  dithering: 0
+  comoving_DM_softening: 0.08 # in internal units
+  max_physical_DM_softening: 0.08 # in internal units
+  comoving_baryon_softening: 0.08 # in internal units
   max_physical_baryon_softening: 0.08  # 80 kpc = 1/25 of mean inter-particle separation
