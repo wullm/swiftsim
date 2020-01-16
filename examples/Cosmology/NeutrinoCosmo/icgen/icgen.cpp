@@ -765,9 +765,9 @@ int main() {
                     corpuscle body;
 
                     body.id = (long int) box_idx(NNUP, x, y, z);
-                    body.X = x*(box_len/NNUP);
-                    body.Y = y*(box_len/NNUP);
-                    body.Z = z*(box_len/NNUP);
+                    body.X = (x+0.5)*(box_len/NNUP);
+                    body.Y = (y+0.5)*(box_len/NNUP);
+                    body.Z = (z+0.5)*(box_len/NNUP);
 
                     bodies_nu[body.id] = body;
                 }
