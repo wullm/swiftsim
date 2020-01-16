@@ -556,7 +556,7 @@ int main() {
         std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta.box" << std::endl;
         std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta.hdf5" << std::endl;
         std::cout << "3) Theta is the divergence of the peculiar velocity in Mpc^-1," << std::endl;
-        std::cout << "   where the velocity is (dx/dtau) = a*(dx/dt) with x=r/a comoving." << std::endl;
+        std::cout << "   which is (dx/dtau) = a*(dx/dt) with x=r/a comoving." << std::endl;
         std::cout << std::endl;
 
         //Compute the velocity field from the random field
@@ -1144,7 +1144,7 @@ int main() {
         std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta_nu.box" << std::endl;
         std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_theta_nu.hdf5" << std::endl;
         std::cout << "3) Theta is the divergence of the peculiar velocity in Mpc^-1," << std::endl;
-        std::cout << "   where the velocity is (dx/dtau) = a*(dx/dt) with x=r/a comoving." << std::endl;
+        std::cout << "   which is (dx/dtau) = a*(dx/dt) with x=r/a comoving." << std::endl;
         std::cout << std::endl;
 
         //Compute the velocity field from the random field
@@ -1348,10 +1348,13 @@ int main() {
         double gamma = sqrt(1 + pow(p0 / (M_nu_kg*c_vel), 2)); // Lorentz factor
         double v0 = p0/(gamma*M_nu_kg); // physical velocity in Mpc/Gyr
 
-        //Multiply by a relativistic correction and the scale factor squared to get the velocity
-        //at the starting redshift (see eq 2.2 in 1910.03550). Recall that our internal
-        //velocity variable is V = a^2(dx/dt), where x=r/a is comoving.
-        double V = v0 * pow(a_start,2) / sqrt(pow(a_start,2) + pow(v0/c_vel, 2)*(1-pow(a_start,2)));
+        //Multiply by a relativistic correction to get the preculiar velocity
+        //at the starting redshift (see eq 2.2 in 1910.03550). This is a*(dx/dt)
+        double V = v0 / sqrt(pow(a_start,2) + pow(v0/c_vel, 2)*(1-pow(a_start,2)));
+
+        //Recall that our internal velocity variable is V = a^2(dx/dt),
+        //where x=r/a is comoving. We therefore multiply by a.
+        V *= a_start;
 
         //Just for diagnostics, look at the bulk speed before adding the thermal component
         double V_bulk = sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z);
@@ -1395,12 +1398,12 @@ int main() {
     std::cout << "3) Added thermal motion to " << neutrino_num << " particles." << std::endl;
     std::cout << "  " << std::endl;
     std::cout << "PHASE 4B - Summary" << std::endl;
-    std::cout << "1) Average total speed " << avg_speed << " comoving Mpc/Gyr or " << avg_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
-    std::cout << "2) Maximum total speed " << max_speed << " comoving Mpc/Gyr or " << max_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
-    std::cout << "3) Average thermal speed " << avg_thermal_speed << " comoving Mpc/Gyr or " << avg_thermal_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
-    std::cout << "4) Maximum thermal speed " << max_thermal_speed << " comoving Mpc/Gyr or " << max_thermal_speed/pow(a_start,2)/c_vel << " c physical." << std::endl;
-    std::cout << "5) Average bulk flow speed " << avg_bulk_speed << " comoving Mpc/Gyr." << std::endl;
-    std::cout << "6) Comoving speed means v = a^2 |dx/dt|, where x=r/a is comoving." << std::endl;
+    std::cout << "1) Average total speed " << avg_speed << " (internal) Mpc/Gyr or " << avg_speed/a_start/c_vel << " c physical." << std::endl;
+    std::cout << "2) Maximum total speed " << max_speed << " (internal) Mpc/Gyr or " << max_speed/a_start/c_vel << " c physical." << std::endl;
+    std::cout << "3) Average thermal speed " << avg_thermal_speed << " (internal) Mpc/Gyr or " << avg_thermal_speed/a_start/c_vel << " c physical." << std::endl;
+    std::cout << "4) Maximum thermal speed " << max_thermal_speed << " (internal) Mpc/Gyr or " << max_thermal_speed/a_start/c_vel << " c physical." << std::endl;
+    std::cout << "5) Average bulk flow speed " << avg_bulk_speed << " (internal) Mpc/Gyr." << std::endl;
+    std::cout << "6) Internal speed means v = a^2 |dx/dt|, where x=r/a is comoving." << std::endl;
     std::cout << "  " << std::endl;
 
     /* NEXT, exporting the data in HDF5 format */
