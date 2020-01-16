@@ -290,6 +290,10 @@ const double km = 1000;       // m
 const double kg = 1000;       // g
 const double cm = 0.01;       // m
 
+//Mass unit used by Swift is 10^10 M_sol
+const double M_sol = 1.98848e+33; //g
+const double M_swift = 1e10 * M_sol; //g
+
 // The speed of light in units of Mpc/Gyr
 const double c_vel = 299792458 * Gyr / Mpc;
 

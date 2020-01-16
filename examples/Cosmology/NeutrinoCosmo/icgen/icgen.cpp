@@ -438,7 +438,8 @@ int main() {
         double H = H_hubble_of_z(z_start);
         double f = logarithmic_derivative_f_1(z_start);
 
-        /* N.B. The reason we have a^2Hf, is because HeWon and Swift both use
+        /* N.B. The reason we have a^2Hf, is because HeWon and Swift (although
+         * Swift wants the peculiar velocity v=a(dx/dt) in the ic file) both use
          * generalized velocity coordinates p = a^2 (dx/dt) where x is the
          * comoving position. This is also the convention of Quinn et al. (1997)
          * astro-ph/9710043 where kick and drift operators are derived.
@@ -1410,9 +1411,14 @@ int main() {
     //Convert to Swift units. The below values are conversions to cgs
     double swift_unitcurrent = 1;
     double swift_unitlength = Mpc/cm;
-    double swift_unitmass = 1.98848e+43;
+    double swift_unitmass = M_swift;
     double swift_unittemp = 1;
     double swift_unittime = Gyr;
+
+    std::cout << "Output length unit: Mpc (" << Mpc/cm << " cm)." << std::endl;
+    std::cout << "Output time unit: Gyr (" << Gyr << " s)." << std::endl;
+    std::cout << "Output mass unit: 10^10 M_sol (" << swift_unitmass << " g)." << std::endl;
+    std::cout << "  " << std::endl;
 
     //Convert the masses (lengths and times are unchanged)
     for (int i=0; i<particle_num; i++) {
@@ -1422,6 +1428,27 @@ int main() {
     //Convert the neutrino masses (lengths and times are unchanged)
     for (int i=0; i<neutrino_num; i++) {
         bodies_nu[i].mass /= (swift_unitmass/kg); //from kg to swift unit
+    }
+
+    std::cout << "Converted masses from kg to U_M = " << swift_unitmass << " g." << std::endl;
+
+    //Convert generalized velocities a^2(dx/dt) to peculiar velocities a(dx/dt)
+    if (OUTPUT_VELOCITY_FORMAT == PECULIAR_VELOCITY) {
+        double a = 1.0/(1.0 + z_start);
+        for (int i=0; i<particle_num; i++) {
+            bodies[i].v_X /= a;
+            bodies[i].v_Y /= a;
+            bodies[i].v_Z /= a;
+        }
+
+        for (int i=0; i<neutrino_num; i++) {
+            bodies_nu[i].v_X /= a;
+            bodies_nu[i].v_Y /= a;
+            bodies_nu[i].v_Z /= a;
+        }
+
+        std::cout << "Converted generalized velocities a^2(dx/dt) to peculiar velocities a*(dx/dt)." << std::endl;
+        std::cout << "  " << std::endl;
     }
 
     double swift_rho_crit = rho_crit * pow(Mpc,3) / (swift_unitmass/kg);

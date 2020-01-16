@@ -22,16 +22,23 @@
 // Initial velocity methods
 #define VEL_ZELDOVICH 0
 #define VEL_TRANSFER 1
-#define VELOCITY_METHOD     VEL_ZELDOVICH
+#define VELOCITY_METHOD     VEL_TRANSFER
 
 // Whether to set the initial displacements with Zel'dovich or Infinite-LPT
 #define FALSE 0
 #define TRUE 1
-#define USE_INFINI_LPT TRUE
+#define USE_INFINI_LPT FALSE
 
 // Whether to infer the velocity of the particles from the original grid/glass
 // position (FALSE) or from the velocity field at the displaced position (TRUE)
 #define VELOCITY_AT_DISPLACED_POS TRUE
+
+// Whether to output the generalized velocity coordinate p = a^2(dx/dt) or the
+// peculiar velocity coordinate v = a (dx/dt) = p/a. HeWon and Swift use p
+// internally, but Swift wants v in the initial condition files.
+#define GENERALIZED_VELOCITY 0
+#define PECULIAR_VELOCITY 1
+#define OUTPUT_VELOCITY_FORMAT PECULIAR_VELOCITY
 
 // Hubble constant
 #define H_0 67.556  // km/s/Mpc
