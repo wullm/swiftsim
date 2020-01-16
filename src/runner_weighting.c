@@ -82,6 +82,15 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           } else {
             gp->f_phase = fermi_dirac_density(cosmo, gp->x, gp->v_full);
             gp->mass = (gp->f_phase_i - gp->f_phase) / gp->f_phase_i;
+            if (gp->id_or_neg_offset >= 262144 && gp->id_or_neg_offset < 262144+5) {
+                double vx = gp->v_full[0];
+                double vy = gp->v_full[1];
+                double vz = gp->v_full[2];
+                // double v = sqrt(vx*vx+vy*vy+vz*vz);
+                message("%i \t%f \t%f \t%f \t%f \t%f", (int) gp->id_or_neg_offset, gp->mass, vx, vy, vz, fermi_dirac_momentum(cosmo, gp->x, gp->v_full));
+            }
+            // if (abs(gp->mass) > 0.01 )
+            //   message("Nana %.10e \t%.10e \t%f", gp->f_phase_i, gp->f_phase, gp->mass);
           }
         }
       }
