@@ -77,10 +77,12 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           /* Set up the initial phase space density if necessary */
           if (e->step == 0) {
             gp->f_phase_i = fermi_dirac_density(cosmo, gp->x, gp->v_full);
+            gp->f_phase = gp->f_phase_i;
+            gp->mass = 1e-10; //dither in the first time step
+          } else {
+            gp->f_phase = fermi_dirac_density(cosmo, gp->x, gp->v_full);
+            gp->mass = (gp->f_phase_i - gp->f_phase) / gp->f_phase_i;
           }
-
-          gp->f_phase = fermi_dirac_density(cosmo, gp->x, gp->v_full);
-          gp->mass = (gp->f_phase_i - gp->f_phase) / gp->f_phase_i + 1e-10;
         }
       }
     }
