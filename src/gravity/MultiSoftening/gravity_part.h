@@ -88,6 +88,12 @@ struct gpart {
   double potential_exact;
 #endif
 
+  /* Phase space density at initial time */
+  double f_phase_i;
+
+  /* Phase space density at the present time */
+  double f_phase;
+
 } SWIFT_STRUCT_ALIGN;
 
 #endif /* SWIFT_MULTI_SOFTENING_GRAVITY_PART_H */

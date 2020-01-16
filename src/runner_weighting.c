@@ -23,6 +23,9 @@
 /* This object's header. */
 #include "runner.h"
 
+/* Phase space density functions needed */
+#include "neutrino/phase_space.h"
+
 /* Local headers. */
 #include "active.h"
 #include "cell.h"
@@ -46,7 +49,7 @@
 void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 
   const struct engine *e = r->e;
-  // const struct cosmology *cosmo = e->cosmology;
+  const struct cosmology *cosmo = e->cosmology;
   // const int with_cosmology = (e->policy & engine_policy_cosmology);
   struct gpart *restrict gparts = c->grav.parts;
   const int gcount = c->grav.count;
@@ -54,8 +57,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   TIMER_TIC;
 
   /* Anything to do here? */
-  if (!cell_is_active_hydro(c, e) && !cell_is_active_gravity(c, e) &&
-      !cell_is_active_stars(c, e) && !cell_is_active_black_holes(c, e))
+  if (!cell_is_starting_gravity(c, e) && !cell_is_active_gravity(c, e))
     return;
 
   /* Recurse? */
@@ -71,7 +73,17 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 
       /* If the g-particle is a neutrino and needs to be weighted */
       if (gp->type == swift_type_neutrino && true) {
-        gp->mass *= 1.01;
+        if (gpart_is_active(gp, e)) {
+          /* Set up the initial phase space density if necessary */
+          if (e->step == 0) {
+            gp->f_phase_i = fermi_dirac_density(cosmo, gp->x, gp->v_full);
+          }
+
+          gp->f_phase = fermi_dirac_density(cosmo, gp->x, gp->v_full);
+          gp->mass = (gp->f_phase_i - gp->f_phase) / gp->f_phase_i;
+
+          // message("%.10e \t%.10e \t%.10e", gp->f_phase_i, gp->f_phase, gp->mass);
+        }
       }
     }
 

@@ -5407,7 +5407,7 @@ void space_check_cosmology(struct space *s, const struct cosmology *cosmo,
     const double Omega_m = (total_mass / volume) / rho_crit0;
 
     if (fabs(Omega_m - cosmo->Omega_m - cosmo->Omega_nu) > 1e-3)
-      error(
+      message(
           "The matter content of the simulation does not match the cosmology "
           "in the parameter file cosmo.Omega_m + cosmo.Omega_nu=%e Omega_m=%e",
           cosmo->Omega_m + cosmo->Omega_nu, Omega_m);
