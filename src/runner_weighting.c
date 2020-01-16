@@ -80,9 +80,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           }
 
           gp->f_phase = fermi_dirac_density(cosmo, gp->x, gp->v_full);
-          gp->mass = (gp->f_phase_i - gp->f_phase) / gp->f_phase_i;
-
-          // message("%.10e \t%.10e \t%.10e", gp->f_phase_i, gp->f_phase, gp->mass);
+          gp->mass = (gp->f_phase_i - gp->f_phase) / gp->f_phase_i + 1e-10;
         }
       }
     }
