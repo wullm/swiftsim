@@ -1346,10 +1346,12 @@ int main() {
         double draw = sampler_draw(&s); // E=pc in eV
         double p0 = draw * eV / c_vel * pow(Gyr/Mpc,2); // momentum in kg*Mpc/Gyr
         double gamma = sqrt(1 + pow(p0 / (M_nu_kg*c_vel), 2)); // Lorentz factor
-        double v0 = p0/(gamma*M_nu_kg); // physical velocity in Mpc/Gyr
+        double v0 = p0/(gamma*M_nu_kg); // physical speed in Mpc/Gyr
 
-        //Multiply by a relativistic correction to get the preculiar velocity
-        //at the starting redshift (see eq 2.2 in 1910.03550). This is a*(dx/dt)
+        //Multiply by a relativistic correction to get the peculiar velocity
+        //at the starting redshift (see eq 2.2 in 1910.03550). This is a*|dx/dt|,
+        //also known as the the physical or proper speed.
+        //This equation is derived simply from p=p0/a and p=mv/(1-v^2/c^2).
         double V = v0 / sqrt(pow(a_start,2) + pow(v0/c_vel, 2)*(1-pow(a_start,2)));
 
         //Recall that our internal velocity variable is V = a^2(dx/dt),
