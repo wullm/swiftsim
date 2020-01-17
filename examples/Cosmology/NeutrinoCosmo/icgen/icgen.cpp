@@ -364,14 +364,14 @@ int main() {
     std::cout << "PHASE 2C - Displace the cold particles" << std::endl;
 
     for (auto body : bodies) {
-        double X = body.X;
-        double Y = body.Y;
-        double Z = body.Z;
+        double X = body.X*N/box_len;
+        double Y = body.Y*N/box_len;
+        double Z = body.Z*N/box_len;
 
         //Grid positions
-        int iX = (int) floor(X*N/box_len);
-        int iY = (int) floor(Y*N/box_len);
-        int iZ = (int) floor(Z*N/box_len);
+        int iX = (int) floor(X);
+        int iY = (int) floor(Y);
+        int iZ = (int) floor(Z);
 
         //Intepolate the necessary fields with TSC
         float lookLength = 1.0;
@@ -456,14 +456,14 @@ int main() {
         std::cout << "PHASE 2E - Assign initial velocities to the cold particles using the Zel'dovich method" << std::endl;
 
         for (auto body : bodies) {
-            double X = body.X;
-            double Y = body.Y;
-            double Z = body.Z;
+            double X = body.X*N/box_len;
+            double Y = body.Y*N/box_len;
+            double Z = body.Z*N/box_len;
 
             //Grid positions
-            int iX = (int) floor(X*N/box_len);
-            int iY = (int) floor(Y*N/box_len);
-            int iZ = (int) floor(Z*N/box_len);
+            int iX = (int) floor(X);
+            int iY = (int) floor(Y);
+            int iZ = (int) floor(Z);
 
             //Intepolate the necessary fields with TSC
             float lookLength = 1.0;
@@ -665,14 +665,14 @@ int main() {
         std::cout << "PHASE 2G - Assign initial velocities to the cold particles" << std::endl;
 
         for (auto body : bodies) {
-            double X = body.X;
-            double Y = body.Y;
-            double Z = body.Z;
+            double X = body.X*N/box_len;
+            double Y = body.Y*N/box_len;
+            double Z = body.Z*N/box_len;
 
             //Grid positions
-            int iX = (int) floor(X*N/box_len);
-            int iY = (int) floor(Y*N/box_len);
-            int iZ = (int) floor(Z*N/box_len);
+            int iX = (int) floor(X);
+            int iY = (int) floor(Y);
+            int iZ = (int) floor(Z);
 
             //Intepolate the necessary fields with TSC
             float lookLength = 1.0;
@@ -973,14 +973,14 @@ int main() {
     std::cout << "PHASE 3D - Displace the neutrino particles" << std::endl;
 
     for (auto body : bodies_nu) {
-		double X = body.X;
-		double Y = body.Y;
-		double Z = body.Z;
+		double X = body.X*N/box_len;
+		double Y = body.Y*N/box_len;
+		double Z = body.Z*N/box_len;
 
         //Grid positions
-		int iX = (int) floor(X*N/box_len);
-		int iY = (int) floor(Y*N/box_len);
-		int iZ = (int) floor(Z*N/box_len);
+		int iX = (int) floor(X);
+		int iY = (int) floor(Y);
+		int iZ = (int) floor(Z);
 
 		//Intepolate the necessary fields with TSC
 		float lookLength = 1.0;
@@ -1044,14 +1044,14 @@ int main() {
         std::cout << "1) Velocity convention v = a^2 (dx/dt), where x=r/a is comoving." << std::endl;
 
         for (auto body : bodies_nu) {
-            double X = body.X;
-            double Y = body.Y;
-            double Z = body.Z;
+            double X = body.X*N/box_len;
+            double Y = body.Y*N/box_len;
+            double Z = body.Z*N/box_len;
 
             //Grid positions
-            int iX = (int) floor(X*N/box_len);
-            int iY = (int) floor(Y*N/box_len);
-            int iZ = (int) floor(Z*N/box_len);
+            int iX = (int) floor(X);
+            int iY = (int) floor(Y);
+            int iZ = (int) floor(Z);
 
             //Intepolate the necessary fields with TSC
             float lookLength = 1.0;
@@ -1252,14 +1252,14 @@ int main() {
         std::cout << "PHASE 3G - Assign initial gravitational flow velocities to the neutrinos" << std::endl;
 
         for (auto body : bodies_nu) {
-            double X = body.X;
-            double Y = body.Y;
-            double Z = body.Z;
+            double X = body.X*N/box_len;
+            double Y = body.Y*N/box_len;
+            double Z = body.Z*N/box_len;
 
             //Grid positions
-            int iX = (int) floor(X*N/box_len);
-            int iY = (int) floor(Y*N/box_len);
-            int iZ = (int) floor(Z*N/box_len);
+            int iX = (int) floor(X);
+            int iY = (int) floor(Y);
+            int iZ = (int) floor(Z);
 
             //Intepolate the necessary fields with TSC
             float lookLength = 1.0;
