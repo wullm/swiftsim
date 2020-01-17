@@ -34,11 +34,10 @@
 
 
 double fermi_dirac_density(const struct engine *engine, double* x, float* v) {
-    const struct cosmo* = engine->cosmo;
-    const struct unit_system *internal_units = engine->internal_units;
+    const struct cosmology *cosmo = engine->cosmology;
     const struct phys_const *physical_constants = engine->physical_constants;
 
-    const double T_nu = cosmo->T_nu * internal_units->UnitTemperature_in_cgs;
+    const double T_nu = cosmo->T_nu;
     const double k_b = physical_constants->const_boltzmann_k;
     const double eV = physical_constants->const_electron_volt;
     const double T_eV = k_b*T_nu/eV; // temperature in eV
@@ -52,8 +51,7 @@ double fermi_dirac_density(const struct engine *engine, double* x, float* v) {
 
 /* Calculate the momentum in eV, using E = a*sqrt(p^2 + m^2) ~ ap. */
 double fermi_dirac_momentum(const struct engine *engine, float* v) {
-    const struct cosmo* = engine->cosmo;
-    const struct unit_system *internal_units = engine->internal_units;
+    const struct cosmology *cosmo = engine->cosmology;
     const struct phys_const *physical_constants = engine->physical_constants;
 
     //Some constants

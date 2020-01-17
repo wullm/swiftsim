@@ -67,7 +67,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   const double H_ratio = cosmo->H0/cosmo->H;
   const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
   const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
-  const double particle_mass = neutrino_mass / cosmo->e->total_nr_nuparts;
+  const double particle_mass = neutrino_mass / e->total_nr_nuparts;
 
   /* Recurse? */
   if (c->split) {
@@ -89,7 +89,6 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             gp->f_phase = gp->f_phase_i;
             gp->mass = 1e-10; //dither in the first time step
           } else {
-            double numass = cosmo->e->total_nr_nuparts;
             gp->f_phase = fermi_dirac_density(e, gp->x, gp->v_full);
             gp->mass = particle_mass * (gp->f_phase_i - gp->f_phase) / gp->f_phase_i;
             if (gp->id_or_neg_offset >= 262144 && gp->id_or_neg_offset < 262144+5) {

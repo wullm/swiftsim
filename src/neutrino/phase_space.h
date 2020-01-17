@@ -22,6 +22,9 @@
 /* The general cosmology header */
 #include "../cosmology.h"
 
+/* Engine header */
+#include "../engine.h"
+
 double fermi_dirac_density(const struct engine *engine, double* x, float* v);
 double fermi_dirac_momentum(const struct engine *engine, float* v);
 
