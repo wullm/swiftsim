@@ -22,8 +22,8 @@
 /* The general cosmology header */
 #include "../cosmology.h"
 
-double fermi_dirac_density(const struct cosmology *cosmo, double* x, float* v);
-double fermi_dirac_momentum(const struct cosmology *cosmo, double* x, float* v);
+double fermi_dirac_density(const struct engine *engine, double* x, float* v);
+double fermi_dirac_momentum(const struct engine *engine, float* v);
 
 
 #endif /* SWIFT_NEUTRINO_PHASE_SPACE_H */

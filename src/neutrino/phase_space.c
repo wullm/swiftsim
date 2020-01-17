@@ -32,48 +32,50 @@
   /* Some standard headers */
   #include <math.h>
 
-double fermi_dirac_density(const struct cosmology *cosmo, double* x, float* v) {
-    double T_nu = 1.952784; //K
-    double k_b = 8.617333262145e-5; //eV/K
 
-    //Convert to eV
-    double p = fermi_dirac_momentum(cosmo, x, v);
+double fermi_dirac_density(const struct engine *engine, double* x, float* v) {
+    const struct cosmo* = engine->cosmo;
+    const struct unit_system *internal_units = engine->internal_units;
+    const struct phys_const *physical_constants = engine->physical_constants;
 
-    return p*p/(exp(p/(k_b*T_nu)) + 1.0);
+    const double T_nu = cosmo->T_nu * internal_units->UnitTemperature_in_cgs;
+    const double k_b = physical_constants->const_boltzmann_k;
+    const double eV = physical_constants->const_electron_volt;
+    const double T_eV = k_b*T_nu/eV; // temperature in eV
+
+    //Calculate momentum in eV
+    double p = fermi_dirac_momentum(engine, v);
+
+    return p*p / (exp(p / T_eV) + 1.0);
 }
 
-double fermi_dirac_momentum(const struct cosmology *cosmo, double* x, float* v) {
-    double a = cosmo->a;
-    double aa = a*a;
 
+/* Calculate the momentum in eV, using E = a*sqrt(p^2 + m^2) ~ ap. */
+double fermi_dirac_momentum(const struct engine *engine, float* v) {
+    const struct cosmo* = engine->cosmo;
+    const struct unit_system *internal_units = engine->internal_units;
+    const struct phys_const *physical_constants = engine->physical_constants;
+
+    //Some constants
+    const double c = physical_constants->const_speed_light_c;
+    const double cc = c*c;
+    const double a = cosmo->a;
+    const double aa = a*a;
+    const double eV = physical_constants->const_electron_volt;
+    const double eV_mass = eV/cc; // 1 eV/c^2 in internal mass units
+
+    //Calculate the neutrino mass in internal units
+    const double M_nu = cosmo->M_nu[0] * eV_mass; // just select the first species for now
+
+    //The internal velocity V = a^2*(dx/dt), where x=r/a is comoving
     double VV = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
     double V = sqrt(VV);
 
-    //Convert to Mpc/Gyr
-    V *= 1.0;
-    VV = V*V;
-
-    //Some constants
-    double c = 306.4;
-    double cc = c*c;
-    double M_nu = 0.2; //eV
-    double eV_mass = 1.782662e-36;  // kg (this is eV/c^2)
-    double M_nu_kg = M_nu*eV_mass; //kg
-    double Mpc = 3.086e22;  // m
-    double Gyr = 3.154e16;  // s
-    double eV = 1.602176634e-19;    // J
-
-    //Relativistic correction, u=(dx/dt) with x=r/a comoving coordinates and t coordinate time
+    //Calculate the length of the physical 3-velocity u=a*|dx/dt|
     double u = a*c*V/sqrt(aa*cc + aa*VV - VV);
+    double gamma = 1.0/sqrt(1.0 - u*u/cc); //Lorentz factor
+    double p_ph = u*gamma*M_nu; //The physical 3-momentum
+    double p_eV = p_ph * c/eV; //in eV
 
-    //The Lorentz factor
-    double gamma = 1.0/sqrt(1.0 - u*u/cc);
-
-    //Get the physical momentum
-    double p_ph = u*gamma*M_nu_kg;
-
-    //Convert to eV
-    double p = p_ph * c/eV * (Mpc/Gyr)*(Mpc/Gyr);
-
-    return p;
+    return p_eV;
 }
