@@ -952,7 +952,7 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
          c->grav.weight = scheduler_addtask(s, task_type_weight, task_subtype_weight, 0, 0, c, NULL);
          scheduler_addunlock(s, c->grav.drift, c->grav.weight);
 
-        // if (periodic) scheduler_addunlock(s, c->grav.drift, c->grav.mesh);
+        if (periodic) scheduler_addunlock(s, c->grav.drift, c->grav.mesh);
         if (periodic) scheduler_addunlock(s, c->grav.weight, c->grav.mesh);
         if (periodic) scheduler_addunlock(s, c->grav.mesh, c->grav.down);
         scheduler_addunlock(s, c->grav.init, c->grav.long_range);
@@ -962,7 +962,7 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
         /* Link in the implicit tasks */
         scheduler_addunlock(s, c->grav.init, c->grav.init_out);
         scheduler_addunlock(s, c->grav.down_in, c->grav.down);
-        // scheduler_addunlock(s, c->grav.drift, c->grav.drift_out);
+        scheduler_addunlock(s, c->grav.drift, c->grav.drift_out);
         scheduler_addunlock(s, c->grav.weight, c->grav.drift_out);
       }
     }
