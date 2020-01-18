@@ -45,9 +45,27 @@ double fermi_dirac_density(const struct engine *engine, double* x, float* v) {
     //Calculate momentum in eV
     double p = fermi_dirac_momentum(engine, v);
 
-    return p*p / (exp(p / T_eV) + 1.0);
+    double norm = 1.16748e+11;
+
+    return norm * p*p / (exp(p / T_eV) + 1.0);
 }
 
+double sample_density(const struct engine *engine, double* x, float* v) {
+    const struct cosmology *cosmo = engine->cosmology;
+    const struct phys_const *physical_constants = engine->physical_constants;
+
+    const double T_nu = cosmo->T_nu;
+    const double k_b = physical_constants->const_boltzmann_k;
+    const double eV = physical_constants->const_electron_volt;
+    const double T_eV = k_b*T_nu/eV; // temperature in eV
+
+    //Calculate momentum in eV
+    double p = fermi_dirac_momentum(engine, v);
+
+    double norm = 8573.24;
+
+    return norm * 1.0 / (exp(p / T_eV) + 1.0);
+}
 
 /* Calculate the momentum in eV, using E = a*sqrt(p^2 + m^2) ~ ap. */
 double fermi_dirac_momentum(const struct engine *engine, float* v) {

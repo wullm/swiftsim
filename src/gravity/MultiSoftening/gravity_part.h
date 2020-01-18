@@ -94,6 +94,9 @@ struct gpart {
   /* Phase space density at the present time */
   double f_phase;
 
+  /* Initial sampling density in phase space */
+  double g_phase_i;
+
 } SWIFT_STRUCT_ALIGN;
 
 #endif /* SWIFT_MULTI_SOFTENING_GRAVITY_PART_H */

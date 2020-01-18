@@ -26,6 +26,7 @@
 #include "../engine.h"
 
 double fermi_dirac_density(const struct engine *engine, double* x, float* v);
+double sample_density(const struct engine *engine, double* x, float* v);
 double fermi_dirac_momentum(const struct engine *engine, float* v);
 
 

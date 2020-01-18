@@ -1301,7 +1301,7 @@ int main(int argc, char *argv[]) {
     /* Take a step. */
     engine_step(&e);
 
-    space_check_cosmology(e.s, e.cosmology, 0);
+    // space_check_cosmology(e.s, e.cosmology, 0);
 
     /* Print the timers. */
     if (with_verbose_timers) timers_print(e.step);
