@@ -43,16 +43,16 @@ void seed_rng(struct sampler *s, int seed) {
 
 void prepare_intervals(struct sampler *s, double T, double mu = 0) {
     //Setup
-    double bl = 0.001;
+    double bl = 1e-10;
     double br = 10*T;
     int numIntegrateN = 1000;
 
-    double err = 1e-10;
+    double err = 1e-6;
 
     //Iteratively determine a good lower bound
-    while(pdf(bl,T,mu) > err) {
-        bl /= 1.1;
-    }
+    // while(pdf(bl,T,mu) > err) {
+    //     bl /= 1.1;
+    // }
 
     //Iteratively determine a good upper bound
     while(pdf(br,T,mu) > err) {

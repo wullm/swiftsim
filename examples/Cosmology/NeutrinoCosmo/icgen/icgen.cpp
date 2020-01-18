@@ -1332,7 +1332,8 @@ int main() {
     double testdraw = sampler_draw(&s);
 
     std::cout << "1) Loading Fermi-Dirac sampler with T = " << T << " K, mu = " << mu << "." << std::endl;
-    std::cout << "2) Test draw: " << testdraw << " eV." << std::endl;
+    std::cout << "2) The normalization is " << s.norm << "." << std::endl;
+    std::cout << "3) Test draw: " << testdraw << " eV." << std::endl;
 
     double a_start = 1.0 / (1+z_start);
     double avg_speed = 0;
@@ -1397,7 +1398,7 @@ int main() {
         bodies_nu[body.id] = body;
     }
 
-    std::cout << "3) Added thermal motion to " << neutrino_num << " particles." << std::endl;
+    std::cout << "4) Added thermal motion to " << neutrino_num << " particles." << std::endl;
     std::cout << "  " << std::endl;
     std::cout << "PHASE 4B - Summary" << std::endl;
     std::cout << "1) Average total speed " << avg_speed << " (internal) Mpc/Gyr or " << avg_speed/a_start/c_vel << " c physical." << std::endl;
