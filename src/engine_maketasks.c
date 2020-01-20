@@ -964,6 +964,7 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
         scheduler_addunlock(s, c->grav.down_in, c->grav.down);
         scheduler_addunlock(s, c->grav.drift, c->grav.drift_out);
         scheduler_addunlock(s, c->grav.weight, c->grav.drift_out);
+        scheduler_addunlock(s, c->grav.weight, c->grav.init);
       }
     }
   }
