@@ -103,7 +103,7 @@ double fermi_dirac_energy(const struct engine *engine, float* v) {
     //Calculate the energy in eV
     double M_nu = cosmo->M_nu[0]; // just select the first species for now
     double p_eV = fermi_dirac_momentum(engine, v);
-    double E_eV = sqrt(p_eV*p_eV + M_nu*M_nu);
+    double E_eV = hypot(p_eV, M_nu); //=sqrt(p^2+m^2)
 
     return E_eV/M_nu; //energy in units of M_nu
 }
