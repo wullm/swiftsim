@@ -50,7 +50,7 @@
 void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 
   const struct engine *e = r->e;
-  const struct cosmology *cosmo = e->cosmology;
+  // const struct cosmology *cosmo = e->cosmology;
   const int with_cosmology = (e->policy & engine_policy_cosmology);
   struct gpart *restrict gparts = c->grav.parts;
   const int gcount = c->grav.count;
@@ -63,11 +63,11 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   if (!with_cosmology)
     error("Phase space weighting without cosmology not implemented.");
 
-  const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
-  const double H_ratio = cosmo->H0/cosmo->H;
-  const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
-  const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
-  const double particle_mass = neutrino_mass / e->total_nr_nuparts;
+  // const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
+  // const double H_ratio = cosmo->H0/cosmo->H;
+  // const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
+  // const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
+  // const double particle_mass = neutrino_mass / e->total_nr_nuparts;
 
   /* Recurse? */
   if (c->split) {
@@ -85,13 +85,14 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
         if (gpart_is_active(gp, e)) {
           /* Set up the initial phase space density if necessary */
           if (e->step == 0) {
-            gp->f_phase_i = fermi_dirac_density(e, gp->x, gp->v_full);
+            gp->f_phase_i = fermi_dirac_energy(e, gp->v_full);
             gp->f_phase = gp->f_phase_i;
-            gp->g_phase_i = sample_density(e, gp->x, gp->v_full);
+            // gp->g_phase_i = sample_density(e, gp->x, gp->v_full);
             gp->mass = 1e-10; //dither in the first time step
           } else {
-            gp->f_phase = fermi_dirac_density(e, gp->x, gp->v_full);
-            gp->mass = particle_mass * (gp->f_phase_i - gp->f_phase) / gp->g_phase_i;
+            gp->f_phase = fermi_dirac_energy(e, gp->v_full);
+            // gp->mass = particle_mass * (gp->f_phase_i - gp->f_phase) / gp->g_phase_i;
+            gp->mass = gp->f_phase - gp->f_phase_i;
 
             // if (gp->id_or_neg_offset >= 262144 && gp->id_or_neg_offset < 262144+5) {
             //     double vx = gp->v_full[0];

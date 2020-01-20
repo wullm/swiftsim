@@ -95,3 +95,25 @@ double fermi_dirac_momentum(const struct engine *engine, float* v) {
 
     return p_eV;
 }
+
+/* Calculate the energy in kg */
+double fermi_dirac_energy(const struct engine *engine, float* v) {
+    const struct cosmology *cosmo = engine->cosmology;
+    const struct phys_const *physical_constants = engine->physical_constants;
+
+    //Some constants
+    const double c = physical_constants->const_speed_light_c;
+    const double cc = c*c;
+    const double eV = physical_constants->const_electron_volt;
+    const double eV_mass = eV/cc; // 1 eV/c^2 in internal mass units
+
+    //Calculate the energy in eV
+    double M_nu = cosmo->M_nu[0]; // just select the first species for now
+    double p_eV = fermi_dirac_momentum(engine, v);
+    double E_eV = sqrt(p_eV*p_eV + M_nu*M_nu);
+
+    //Return the energy in internal mass units
+    double E = E_eV * eV_mass;
+
+    return E;
+}
