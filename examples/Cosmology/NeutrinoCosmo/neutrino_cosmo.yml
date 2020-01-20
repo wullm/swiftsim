@@ -58,7 +58,7 @@ Scheduler:
   cell_split_size:     50
   
 Gravity:
-  mesh_side_length:   256
+  mesh_side_length:  64 
   eta: 0.025
   theta: 0.3
   dithering: 0
