@@ -107,3 +107,16 @@ double fermi_dirac_energy(const struct engine *engine, float* v) {
 
     return E_eV/M_nu; //energy in units of M_nu
 }
+
+
+double beta_limit_factor(float* v) {
+    //The internal velocity V = a^2*(dx/dt), where x=r/a is comoving
+    double VV = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+    double V = sqrt(VV);
+
+    double v0 = 0.1; //Mpc/Gyr
+
+    double beta = v0/hypot(V,v0);
+
+    return beta;
+}

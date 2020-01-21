@@ -29,6 +29,7 @@ double fermi_dirac_density(const struct engine *engine, double* x, float* v);
 double sample_density(const struct engine *engine, double* x, float* v);
 double fermi_dirac_momentum(const struct engine *engine, float* v);
 double fermi_dirac_energy(const struct engine *engine, float* v);
+double beta_limit_factor(float* v);
 
 
 #endif /* SWIFT_NEUTRINO_PHASE_SPACE_H */

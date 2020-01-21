@@ -33,6 +33,8 @@
 #include "part.h"
 #include "stars.h"
 
+#include "neutrino/phase_space.h"
+
 /**
  * @brief Perform the 'drift' operation on a #gpart.
  *
@@ -57,9 +59,17 @@ __attribute__((always_inline)) INLINE static void drift_gpart(
 #endif
 
   /* Drift... */
-  gp->x[0] += gp->v_full[0] * dt_drift;
-  gp->x[1] += gp->v_full[1] * dt_drift;
-  gp->x[2] += gp->v_full[2] * dt_drift;
+   if (gp->type == swift_type_neutrino) {
+       double beta = beta_limit_factor(gp->v_full);
+       gp->x[0] += gp->v_full[0] * dt_drift * beta;
+       gp->x[1] += gp->v_full[1] * dt_drift * beta;
+       gp->x[2] += gp->v_full[2] * dt_drift * beta;
+   } else {
+       gp->x[0] += gp->v_full[0] * dt_drift;
+       gp->x[1] += gp->v_full[1] * dt_drift;
+       gp->x[2] += gp->v_full[2] * dt_drift;
+   }
+
 }
 
 /**
