@@ -85,21 +85,23 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
         if (gpart_is_active(gp, e)) {
           /* Set up the initial phase space density if necessary */
           if (e->step == 0) {
-            gp->f_phase_i = fermi_dirac_energy(e, gp->v_full);
+            gp->f_phase_i = fermi_dirac_density(e, gp->x, gp->v_full);
             gp->f_phase = gp->f_phase_i;
             // gp->g_phase_i = sample_density(e, gp->x, gp->v_full);
             gp->mass = 1e-10; //dither in the first time step
           } else {
-            gp->f_phase = fermi_dirac_energy(e, gp->v_full);
-            // gp->mass = particle_mass * (gp->f_phase_i - gp->f_phase) / gp->g_phase_i;
-            gp->mass = particle_mass * (gp->f_phase - gp->f_phase_i);
+            gp->f_phase = fermi_dirac_density(e, gp->x, gp->v_full);
+            gp->mass = particle_mass * (gp->f_phase_i - gp->f_phase) / gp->f_phase_i;
+            gp->f_phase_i = 0.99 * gp->f_phase_i + 0.01 * gp->f_phase;
+
+            // gp->mass = particle_mass * (gp->f_phase - gp->f_phase_i);
 
             // if (gp->id_or_neg_offset >= 262144 && gp->id_or_neg_offset < 262144+5) {
             //     double vx = gp->v_full[0];
             //     double vy = gp->v_full[1];
             //     double vz = gp->v_full[2];
             //     // double v = sqrt(vx*vx+vy*vy+vz*vz);
-            //     message("%i \t%.10e \t%f \t%f \t%f \t%f \t%.10e", (int) gp->id_or_neg_offset, gp->mass, vx, vy, vz, fermi_dirac_momentum(e, gp->v_full), fermi_dirac_energy(e, gp->v_full));
+            //     message("%i \t%.10e \t%f \t%f \t%f \t%f \t%.10e", (int) gp->id_or_neg_offset, gp->mass, vx, vy, vz, gp->f_phase_i, gp->f_phase);
             // }
 
           }
