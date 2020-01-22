@@ -29,8 +29,6 @@
 #include "stars.h"
 #include "timeline.h"
 
-#include "neutrino/phase_space.h"
-
 /**
  * @brief Perform the 'kick' operation on a #gpart
  *
@@ -55,17 +53,9 @@ __attribute__((always_inline)) INLINE static void kick_gpart(
 #endif
 
   /* Kick particles in momentum space */
-  if (gp->type == swift_type_neutrino) {
-      double beta = beta_limit_factor(gp->v_full);
-      gp->v_full[0] += gp->a_grav[0] * dt_kick_grav * beta;
-      gp->v_full[1] += gp->a_grav[1] * dt_kick_grav * beta;
-      gp->v_full[2] += gp->a_grav[2] * dt_kick_grav * beta;
-  } else {
-      gp->v_full[0] += gp->a_grav[0] * dt_kick_grav;
-      gp->v_full[1] += gp->a_grav[1] * dt_kick_grav;
-      gp->v_full[2] += gp->a_grav[2] * dt_kick_grav;
-  }
-
+  gp->v_full[0] += gp->a_grav[0] * dt_kick_grav;
+  gp->v_full[1] += gp->a_grav[1] * dt_kick_grav;
+  gp->v_full[2] += gp->a_grav[2] * dt_kick_grav;
 
   /* Kick extra variables */
   gravity_kick_extra(gp, dt_kick_grav);
