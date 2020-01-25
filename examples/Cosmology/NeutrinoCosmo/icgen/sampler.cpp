@@ -18,8 +18,9 @@
 #include <algorithm>
 
 //The unnormalized pdf (Fermi-Dirac version)
+const double sqp = sqrt(M_PI);
 double pdf(double x, double T, double mu) {
-    return x*x/(exp((x-mu)/T) + 1);
+    return x*x/(exp((x-mu)/T) + 1) + 0.15 * T * exp(-(x*x)/(T*T))*x*(0.5*sqp - x/T);
 }
 
 //Numerically integrate the unnormalized pdf to find the cdf and the normalization

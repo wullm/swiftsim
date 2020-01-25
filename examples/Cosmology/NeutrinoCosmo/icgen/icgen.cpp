@@ -1331,7 +1331,7 @@ int main() {
 
     double testdraw = sampler_draw(&s);
 
-    std::cout << "1) Loading Fermi-Dirac sampler with T = " << T << " K, mu = " << mu << "." << std::endl;
+    std::cout << "1) Loading Fermi-Dirac sampler with T = " << T << " K, mu = " << mu << ", kT = " << k_b*T << " eV." << std::endl;
     std::cout << "2) The normalization is " << s.norm << "." << std::endl;
     std::cout << "3) Test draw: " << testdraw << " eV." << std::endl;
 
