@@ -20,10 +20,10 @@
 //The unnormalized pdf (Fermi-Dirac version)
 const double sqp = sqrt(M_PI);
 double pdf(double x, double T, double mu) {
-    double alpha = 0.7;
-    double beta = 1.3;
+    double alpha = 1.0;
+    double beta = 3.5;
     double bT = beta*T;
-    return x*x/(exp((x-mu)/T) + 1) + alpha * bT*bT * exp(-x*x/(bT*bT))*(1.0/sqp - x/bT);
+    return x*x/(exp((x-mu)/T) + 1) + alpha * T*T * exp(-x*x/(bT*bT))*(1.0/sqp - x/bT);
 }
 
 //Numerically integrate the unnormalized pdf to find the cdf and the normalization
