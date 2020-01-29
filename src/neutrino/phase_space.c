@@ -45,9 +45,9 @@ double fermi_dirac_density(const struct engine *engine, double* x, float* v) {
     //Calculate momentum in eV
     double p = fermi_dirac_momentum(engine, v);
 
-    double norm = 1.16748e+11;
+    double norm = 1.0; //normalization irrelevant unless using different g(x,p)
 
-    return norm * p*p / (exp(p / T_eV) + 1.0);
+    return norm / (exp(p / T_eV) + 1.0);
 }
 
 double sample_density(const struct engine *engine, double* x, float* v) {
