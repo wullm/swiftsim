@@ -45,7 +45,7 @@ void seed_rng(struct sampler *s, int seed) {
 void prepare_intervals(struct sampler *s, double T, double mu = 0) {
     //Setup
     double bl = 0;
-    double br = 0.00037;
+    double br = 10*T;
     int numIntegrateN = 1000;
 
     double err = 1e-6;
