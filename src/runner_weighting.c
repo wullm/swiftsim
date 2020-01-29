@@ -38,6 +38,9 @@
 #include "timestep_sync.h"
 #include "tracers.h"
 
+/* For convert_gpart_vel() */
+#include "gravity_io.h"
+
 
 /**
  * @brief Weight the active neutrino particles in a cell to satisfy Liouville's
@@ -90,8 +93,12 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             // gp->g_phase_i = fermi_dirac_momentum(e, gp->v_full);
             gp->mass = 1e-12; //dither in the first time step
           } else {
-            gp->f_phase = fermi_dirac_density(e, gp->x, gp->v_full);
-            gp->mass = particle_mass * 1e-5 * gp->f_phase_i;
+            /* Extrapolate the velocites to the current time */
+            float v[3];
+            convert_gpart_vel(e, gp, v);
+
+            gp->f_phase = fermi_dirac_density(e, gp->x, v);
+            gp->mass = particle_mass * (1.0 - gp->f_phase / gp->f_phase_i);
 
             // double pnow = fermi_dirac_momentum(e, gp->v_full);
 
