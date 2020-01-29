@@ -67,7 +67,10 @@ double sample_density(const struct engine *engine, double* x, float* v) {
     return norm * 1.0 / (exp(p / T_eV) + 1.0);
 }
 
-/* Calculate the momentum in eV, using E = a*sqrt(p^2 + m^2) ~ ap. */
+/* Calculate the momentum in eV, using E = a*sqrt(p^2 + m^2) ~ ap.
+ * Note that this is the present-day momentum, i.e. p0 = ap, which is
+ * constant in a homogenous Universe,
+ */
 double fermi_dirac_momentum(const struct engine *engine, float* v) {
     const struct cosmology *cosmo = engine->cosmology;
     const struct phys_const *physical_constants = engine->physical_constants;
@@ -76,7 +79,6 @@ double fermi_dirac_momentum(const struct engine *engine, float* v) {
     const double c = physical_constants->const_speed_light_c;
     const double cc = c*c;
     const double a = cosmo->a;
-    const double aa = a*a;
     const double eV = physical_constants->const_electron_volt;
     const double eV_mass = eV/cc; // 1 eV/c^2 in internal mass units
 
@@ -88,12 +90,13 @@ double fermi_dirac_momentum(const struct engine *engine, float* v) {
     double V = sqrt(VV);
 
     //Calculate the length of the physical 3-velocity u=a*|dx/dt|
-    double u = a*c*V/sqrt(aa*cc + aa*VV - VV);
+    double u = V/a;
     double gamma = 1.0/sqrt(1.0 - u*u/cc); //Lorentz factor
     double p_ph = u*gamma*M_nu; //The physical 3-momentum
     double p_eV = p_ph * c/eV; //in eV
+    double p0_eV = p_eV * a; //present-day momentum in eV
 
-    return p_eV;
+    return p0_eV;
 }
 
 /* Calculate the energy in units of M_nu */
