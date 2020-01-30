@@ -17,96 +17,97 @@
  *
  ******************************************************************************/
 
- /**
-  *  @file phase_space.c
-  *  @brief Functions relating to the phase space density function, for use
-  *  by pseudo-particles (neutrinos).
-  */
+/**
+ *  @file phase_space.c
+ *  @brief Functions relating to the phase space density function, for use
+ *  by pseudo-particles (neutrinos).
+ */
 
-  /* This object's header. */
-  #include "phase_space.h"
+/* This object's header. */
+#include "phase_space.h"
 
-  /* The general cosmology header */
-  #include "../cosmology.h"
+/* The general cosmology header */
+#include "../cosmology.h"
 
-  /* Some standard headers */
-  #include <math.h>
+/* Some standard headers */
+#include <math.h>
 
+double fermi_dirac_density(const struct engine *engine, double *x, float *v) {
+  const struct cosmology *cosmo = engine->cosmology;
+  const struct phys_const *physical_constants = engine->physical_constants;
 
-double fermi_dirac_density(const struct engine *engine, double* x, float* v) {
-    const struct cosmology *cosmo = engine->cosmology;
-    const struct phys_const *physical_constants = engine->physical_constants;
+  const double T_nu = cosmo->T_nu;
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double eV = physical_constants->const_electron_volt;
+  const double T_eV = k_b * T_nu / eV;  // temperature in eV
 
-    const double T_nu = cosmo->T_nu;
-    const double k_b = physical_constants->const_boltzmann_k;
-    const double eV = physical_constants->const_electron_volt;
-    const double T_eV = k_b*T_nu/eV; // temperature in eV
+  // Calculate momentum in eV
+  double p = fermi_dirac_momentum(engine, v);
 
-    //Calculate momentum in eV
-    double p = fermi_dirac_momentum(engine, v);
+  double norm = 1.0;  // normalization irrelevant unless using different g(x,p)
 
-    double norm = 1.0; //normalization irrelevant unless using different g(x,p)
-
-    return norm / (exp(p / T_eV) + 1.0);
+  return norm / (exp(p / T_eV) + 1.0);
 }
 
-double sample_density(const struct engine *engine, double* x, float* v) {
-    const struct cosmology *cosmo = engine->cosmology;
-    const struct phys_const *physical_constants = engine->physical_constants;
+double sample_density(const struct engine *engine, double *x, float *v) {
+  const struct cosmology *cosmo = engine->cosmology;
+  const struct phys_const *physical_constants = engine->physical_constants;
 
-    const double T_nu = cosmo->T_nu;
-    const double k_b = physical_constants->const_boltzmann_k;
-    const double eV = physical_constants->const_electron_volt;
-    const double T_eV = k_b*T_nu/eV; // temperature in eV
+  const double T_nu = cosmo->T_nu;
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double eV = physical_constants->const_electron_volt;
+  const double T_eV = k_b * T_nu / eV;  // temperature in eV
 
-    //Calculate momentum in eV
-    double p = fermi_dirac_momentum(engine, v);
+  // Calculate momentum in eV
+  double p = fermi_dirac_momentum(engine, v);
 
-    double norm = 8573.24;
+  double norm = 8573.24;
 
-    return norm * 1.0 / (exp(p / T_eV) + 1.0);
+  return norm * 1.0 / (exp(p / T_eV) + 1.0);
 }
 
 /* Calculate the momentum in eV, using E = a*sqrt(p^2 + m^2) ~ ap.
  * Note that this is the present-day momentum, i.e. p0 = ap, which is
  * constant in a homogenous Universe,
  */
-double fermi_dirac_momentum(const struct engine *engine, float* v) {
-    const struct cosmology *cosmo = engine->cosmology;
-    const struct phys_const *physical_constants = engine->physical_constants;
+double fermi_dirac_momentum(const struct engine *engine, float *v) {
+  const struct cosmology *cosmo = engine->cosmology;
+  const struct phys_const *physical_constants = engine->physical_constants;
 
-    //Some constants
-    const double c = physical_constants->const_speed_light_c;
-    const double cc = c*c;
-    const double a = cosmo->a;
-    const double eV = physical_constants->const_electron_volt;
-    const double eV_mass = eV/cc; // 1 eV/c^2 in internal mass units
+  // Some constants
+  const double c = physical_constants->const_speed_light_c;
+  const double cc = c * c;
+  const double a = cosmo->a;
+  const double eV = physical_constants->const_electron_volt;
+  const double eV_mass = eV / cc;  // 1 eV/c^2 in internal mass units
 
-    //Calculate the neutrino mass in internal units
-    const double M_nu = cosmo->M_nu[0] * eV_mass; // just select the first species for now
+  // Calculate the neutrino mass in internal units
+  const double M_nu =
+      cosmo->M_nu[0] * eV_mass;  // just select the first species for now
 
-    //The internal velocity V = a^2*(dx/dt), where x=r/a is comoving
-    double VV = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
-    double V = sqrt(VV);
+  // The internal velocity V = a^2*(dx/dt), where x=r/a is comoving
+  double VV = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+  double V = sqrt(VV);
 
-    //Calculate the length of the physical 3-velocity u=a*|dx/dt|
-    double u = V/a;
-    double gamma = 1.0/sqrt(1.0 - u*u/cc); //Lorentz factor
-    double p_ph = u*gamma*M_nu; //The physical 3-momentum
-    double p_eV = p_ph * c/eV; //in eV
-    double p0_eV = p_eV * a; //present-day momentum in eV
+  // Calculate the length of the physical 3-velocity u=a*|dx/dt|
+  double u = V / a;
+  // double gamma = 1.0/sqrt(1.0 - u*u/cc); //Lorentz factor
+  double gamma = 1.0;              // disable relativity
+  double p_ph = u * gamma * M_nu;  // The physical 3-momentum
+  double p_eV = p_ph * c / eV;     // in eV
+  double p0_eV = p_eV * a;         // present-day momentum in eV
 
-    return p0_eV;
+  return p0_eV;
 }
 
 /* Calculate the energy in units of M_nu */
-double fermi_dirac_energy(const struct engine *engine, float* v) {
-    const struct cosmology *cosmo = engine->cosmology;
+double fermi_dirac_energy(const struct engine *engine, float *v) {
+  const struct cosmology *cosmo = engine->cosmology;
 
-    //Calculate the energy in eV
-    double M_nu = cosmo->M_nu[0]; // just select the first species for now
-    double p_eV = fermi_dirac_momentum(engine, v);
-    double E_eV = hypot(p_eV, M_nu); //=sqrt(p^2+m^2)
+  // Calculate the energy in eV
+  double M_nu = cosmo->M_nu[0];  // just select the first species for now
+  double p_eV = fermi_dirac_momentum(engine, v);
+  double E_eV = hypot(p_eV, M_nu);  //=sqrt(p^2+m^2)
 
-    return E_eV/M_nu; //energy in units of M_nu
+  return E_eV / M_nu;  // energy in units of M_nu
 }
