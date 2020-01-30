@@ -3770,6 +3770,7 @@ int cell_unskip_gravity_tasks(struct cell *c, struct scheduler *s) {
   if (c->nodeID == nodeID && cell_is_active_gravity(c, e)) {
     if (c->grav.init != NULL) scheduler_activate(s, c->grav.init);
     if (c->grav.init_out != NULL) scheduler_activate(s, c->grav.init_out);
+    if (c->grav.weight != NULL) scheduler_activate(s, c->grav.weight);
     if (c->kick1 != NULL) scheduler_activate(s, c->kick1);
     if (c->kick2 != NULL) scheduler_activate(s, c->kick2);
     if (c->timestep != NULL) scheduler_activate(s, c->timestep);

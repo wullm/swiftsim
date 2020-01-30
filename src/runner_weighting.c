@@ -41,7 +41,6 @@
 /* For convert_gpart_vel() */
 #include "gravity_io.h"
 
-
 /**
  * @brief Weight the active neutrino particles in a cell to satisfy Liouville's
  * equation.
@@ -61,13 +60,12 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   TIMER_TIC;
 
   /* Anything to do here? */
-  if (!cell_is_starting_gravity(c, e) && !cell_is_active_gravity(c, e))
-    return;
+  if (!cell_is_starting_gravity(c, e) && !cell_is_active_gravity(c, e)) return;
   if (!with_cosmology)
     error("Phase space weighting without cosmology not implemented.");
 
   const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
-  const double H_ratio = cosmo->H0/cosmo->H;
+  const double H_ratio = cosmo->H0 / cosmo->H;
   const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
   const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
   const double particle_mass = neutrino_mass / e->total_nr_nuparts;
@@ -91,7 +89,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             gp->f_phase_i = fermi_dirac_density(e, gp->x, gp->v_full);
             gp->f_phase = gp->f_phase_i;
             // gp->g_phase_i = fermi_dirac_momentum(e, gp->v_full);
-            gp->mass = 1e-12; //dither in the first time step
+            gp->mass = 1e-12;  // dither in the first time step
           } else {
             /* Extrapolate the velocites to the current time */
             float v[3];
@@ -99,23 +97,33 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 
             gp->f_phase = fermi_dirac_density(e, gp->x, v);
             gp->mass = particle_mass * (1.0 - gp->f_phase / gp->f_phase_i);
+            // gp->mass = particle_mass * 1e-5 *
+            //            sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+            // if (gp->id_or_neg_offset >= 262144 && gp->id_or_neg_offset <
+            // 262144+5) {
+            //     message("%f %f", sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]),
+            //     sqrt(gp->v_full[0]*gp->v_full[0] +
+            //     gp->v_full[1]*gp->v_full[1] +
+            //     gp->v_full[2]*gp->v_full[2])/cosmo->a);
+            // }
 
             // double pnow = fermi_dirac_momentum(e, gp->v_full);
 
-            // gp->mass = particle_mass * (1.0 - gp->f_phase / gp->f_phase_i * gp->g_phase_i / pnow);
-            // gp->f_phase_i = 0.99 * gp->f_phase_i + 0.01 * gp->f_phase;
+            // gp->mass = particle_mass * (1.0 - gp->f_phase / gp->f_phase_i *
+            // gp->g_phase_i / pnow); gp->f_phase_i = 0.99 * gp->f_phase_i +
+            // 0.01 * gp->f_phase;
 
             // gp->mass = particle_mass * (gp->f_phase - gp->f_phase_i);
 
-            // if (gp->id_or_neg_offset >= 262144 && gp->id_or_neg_offset < 262144+5) {
-                // double vx = gp->v_full[0];
-                // double vy = gp->v_full[1];
-                // double vz = gp->v_full[2];
-                // double v = sqrt(vx*vx+vy*vy+vz*vz);
-                // message("%i \t%.10e \t%f \t%f \t%f \t%f \t%f", (int) gp->id_or_neg_offset, gp->mass, vx, vy, vz, gp->f_phase_i, gp->f_phase);
-                // message("%f", particle_mass);
+            // if (gp->id_or_neg_offset >= 262144 && gp->id_or_neg_offset <
+            // 262144+5) { double vx = gp->v_full[0]; double vy = gp->v_full[1];
+            // double vz = gp->v_full[2];
+            // double v = sqrt(vx*vx+vy*vy+vz*vz);
+            // message("%i \t%.10e \t%f \t%f \t%f \t%f \t%f", (int)
+            // gp->id_or_neg_offset, gp->mass, vx, vy, vz, gp->f_phase_i,
+            // gp->f_phase); message("%f", particle_mass);
             // }
-
           }
         }
       }

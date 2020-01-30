@@ -917,7 +917,6 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
 
       scheduler_addunlock(s, c->grav.end_force, c->super->kick2);
 
-
       // scheduler_addunlock(s, c->grav.end_force, c->grav.weight);
       // scheduler_addunlock(s, c->grav.weight, c->super->kick2);
 
@@ -948,9 +947,10 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
           c->grav.mesh = scheduler_addtask(s, task_type_grav_mesh,
                                            task_subtype_none, 0, 0, c, NULL);
 
-         /* Weighting task for pseudo-particles (neutrinos) */
-         c->grav.weight = scheduler_addtask(s, task_type_weight, task_subtype_weight, 0, 0, c, NULL);
-         scheduler_addunlock(s, c->grav.drift, c->grav.weight);
+        /* Weighting task for pseudo-particles (neutrinos) */
+        c->grav.weight = scheduler_addtask(s, task_type_weight,
+                                           task_subtype_weight, 0, 0, c, NULL);
+        // scheduler_addunlock(s, c->grav.drift, c->grav.weight);
 
         if (periodic) scheduler_addunlock(s, c->grav.drift, c->grav.mesh);
         if (periodic) scheduler_addunlock(s, c->grav.weight, c->grav.mesh);
@@ -964,7 +964,7 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
         scheduler_addunlock(s, c->grav.down_in, c->grav.down);
         scheduler_addunlock(s, c->grav.drift, c->grav.drift_out);
         scheduler_addunlock(s, c->grav.weight, c->grav.drift_out);
-        scheduler_addunlock(s, c->grav.weight, c->grav.init);
+        // scheduler_addunlock(s, c->grav.weight, c->grav.init);
       }
     }
   }
