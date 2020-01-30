@@ -80,6 +80,11 @@ else
 COSMOLOGY_SOURCES += cosmology.c
 endif
 
+# delta f sources (for neutrino weighting)
+DELTA_F_SOURCES =
+if NEUTRINO_WITH_DELTA_F
+DELTA_F_SOURCES += runner_weighting.c neutrino/phase_space.c
+endif
 
 # Common source files
 AM_SOURCES = space.c runner_main.c runner_doiact_hydro.c runner_doiact_limiter.c \
@@ -98,8 +103,8 @@ AM_SOURCES = space.c runner_main.c runner_doiact_hydro.c runner_doiact_limiter.c
     collectgroup.c hydro_space.c equation_of_state.c \
     chemistry.c restart.c mesh_gravity.c velociraptor_interface.c \
     outputlist.c velociraptor_dummy.c logger_io.c memuse.c mpiuse.c memuse_rnodes.c fof.c \
-    hashmap.c pressure_floor.c runner_weighting.c \
-    $(EAGLE_COOLING_SOURCES) $(EAGLE_FEEDBACK_SOURCES) $(COSMOLOGY_SOURCES) neutrino/phase_space.c
+    hashmap.c pressure_floor.c \
+    $(EAGLE_COOLING_SOURCES) $(EAGLE_FEEDBACK_SOURCES) $(COSMOLOGY_SOURCES) $(DELTA_F_SOURCES)
 
 # Include files for distribution, not installation.
 nobase_noinst_HEADERS = align.h approx_math.h atomic.h barrier.h cycle.h error.h inline.h kernel_hydro.h kernel_gravity.h \

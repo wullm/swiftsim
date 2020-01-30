@@ -52,7 +52,6 @@
 void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 
   const struct engine *e = r->e;
-  const struct cosmology *cosmo = e->cosmology;
   const int with_cosmology = (e->policy & engine_policy_cosmology);
   struct gpart *restrict gparts = c->grav.parts;
   const int gcount = c->grav.count;
@@ -64,11 +63,20 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   if (!with_cosmology)
     error("Phase space weighting without cosmology not implemented.");
 
-  const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
-  const double H_ratio = cosmo->H0 / cosmo->H;
-  const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
-  const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
-  const double particle_mass = neutrino_mass / e->total_nr_nuparts;
+  // const struct phys_const *physical_constants = e->physical_constants;
+  // const struct cosmology *cosmo = e->cosmology;
+  // const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
+  // const double H_ratio = cosmo->H0 / cosmo->H;
+  // const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
+  // const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
+  // const double particle_mass = neutrino_mass / e->total_nr_nuparts;
+  // const double T_nu = cosmo->T_nu;
+  // const double k_b = physical_constants->const_boltzmann_k;
+  // const double eV = physical_constants->const_electron_volt;
+  // const double T_eV = k_b * T_nu / eV; // temperature in eV
+
+  /* Conversion factor from macro particle mass to neutrino mass in eV */
+  const double mult = e->neutrino_mass_conversion_factor;
 
   /* Recurse? */
   if (c->split) {
@@ -86,43 +94,21 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
         if (gpart_is_active(gp, e)) {
           /* Set up the initial phase space density if necessary */
           if (e->step == 0) {
-            gp->f_phase_i = fermi_dirac_density(e, gp->x, gp->v_full);
+            gp->mass_i = gp->mass;
+            gp->f_phase_i = fermi_dirac_density(e, gp->v_full, gp->mass * mult);
             gp->f_phase = gp->f_phase_i;
-            // gp->g_phase_i = fermi_dirac_momentum(e, gp->v_full);
             gp->mass = 1e-12;  // dither in the first time step
           } else {
-            /* Extrapolate the velocites to the current time */
-            float v[3];
-            convert_gpart_vel(e, gp, v);
+            gp->f_phase = fermi_dirac_density(e, gp->v_full, gp->mass_i * mult);
+            gp->mass = gp->mass_i * (1.0 - gp->f_phase / gp->f_phase_i);
 
-            gp->f_phase = fermi_dirac_density(e, gp->x, v);
-            gp->mass = particle_mass * (1.0 - gp->f_phase / gp->f_phase_i);
-            // gp->mass = particle_mass * 1e-5 *
-            //            sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-
-            // if (gp->id_or_neg_offset >= 262144 && gp->id_or_neg_offset <
-            // 262144+5) {
-            //     message("%f %f", sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]),
-            //     sqrt(gp->v_full[0]*gp->v_full[0] +
-            //     gp->v_full[1]*gp->v_full[1] +
-            //     gp->v_full[2]*gp->v_full[2])/cosmo->a);
-            // }
-
-            // double pnow = fermi_dirac_momentum(e, gp->v_full);
-
-            // gp->mass = particle_mass * (1.0 - gp->f_phase / gp->f_phase_i *
-            // gp->g_phase_i / pnow); gp->f_phase_i = 0.99 * gp->f_phase_i +
-            // 0.01 * gp->f_phase;
-
-            // gp->mass = particle_mass * (gp->f_phase - gp->f_phase_i);
-
-            // if (gp->id_or_neg_offset >= 262144 && gp->id_or_neg_offset <
-            // 262144+5) { double vx = gp->v_full[0]; double vy = gp->v_full[1];
-            // double vz = gp->v_full[2];
-            // double v = sqrt(vx*vx+vy*vy+vz*vz);
-            // message("%i \t%.10e \t%f \t%f \t%f \t%f \t%f", (int)
-            // gp->id_or_neg_offset, gp->mass, vx, vy, vz, gp->f_phase_i,
-            // gp->f_phase); message("%f", particle_mass);
+            // if (gp->id_or_neg_offset >= 262144 &&
+            //     gp->id_or_neg_offset < 262144 + 5) {
+            //   // double m = neutrino_mass_factor(e) * gp->mass_i;
+            //   // double m2 = neutrino_mass_factor(e) * particle_mass;
+            //   double p = fermi_dirac_momentum(e, gp->v_full, gp->mass_i *
+            //   mult); message("%.10e %.10e %.10e %.10e %f", p, gp->mass_i *
+            //   mult, gp->f_phase, gp->f_phase_i, gp->mass);
             // }
           }
         }

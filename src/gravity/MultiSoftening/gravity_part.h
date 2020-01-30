@@ -88,14 +88,17 @@ struct gpart {
   double potential_exact;
 #endif
 
+#ifdef NEUTRINO_DELTA_F
   /* Phase space density at initial time */
   double f_phase_i;
 
   /* Phase space density at the present time */
   double f_phase;
 
-  /* Initial sampling density in phase space */
-  double g_phase_i;
+  /* The initial mass (as given by the initial conditions) */
+  float mass_i;
+
+#endif
 
 } SWIFT_STRUCT_ALIGN;
 

@@ -92,6 +92,10 @@
 #include "velociraptor_interface.h"
 #include "version.h"
 
+#ifdef NEUTRINO_DELTA_F
+#include "neutrino/phase_space.h"
+#endif
+
 /* Particle cache size. */
 #define CACHE_SIZE 512
 
@@ -3535,6 +3539,11 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   if (e->policy & engine_policy_star_formation) {
     star_formation_logger_accumulator_init(&e->sfh);
   }
+
+#ifdef NEUTRINO_DELTA_F
+  /* Initialize the neutrino mass conversion factor */
+  e->neutrino_mass_conversion_factor = neutrino_mass_factor(e);
+#endif
 
   engine_init_output_lists(e, params);
 }

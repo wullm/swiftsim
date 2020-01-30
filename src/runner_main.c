@@ -467,9 +467,11 @@ void *runner_main(void *data) {
         case task_type_fof_pair:
           runner_do_fof_pair(r, t->ci, t->cj, 1);
           break;
+#ifdef NEUTRINO_DELTA_F
         case task_type_weight:
           runner_do_weighting(r, ci, 1);
           break;
+#endif
         default:
           error("Unknown/invalid task type (%d).", t->type);
       }

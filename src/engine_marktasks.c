@@ -861,12 +861,14 @@ void engine_marktasks_mapper(void *map_data, int num_elements,
       if (cell_is_active_gravity(t->ci, e)) scheduler_activate(s, t);
     }
 
+#ifdef NEUTRINO_DELTA_F
     /* Activate the weighting task for pseudo-particles (neutrinos) */
     else if (t_type == task_type_weight) {
       if (cell_is_active_gravity(t->ci, e)) {
         scheduler_activate(s, t);
       }
     }
+#endif
 
     /* Kick ? */
     else if (t_type == task_type_kick1 || t_type == task_type_kick2) {

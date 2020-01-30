@@ -32,82 +32,94 @@
 /* Some standard headers */
 #include <math.h>
 
-double fermi_dirac_density(const struct engine *engine, double *x, float *v) {
-  const struct cosmology *cosmo = engine->cosmology;
-  const struct phys_const *physical_constants = engine->physical_constants;
+double fermi_dirac_density(const struct engine *e, float *v, double m_eV) {
+  const struct phys_const *physical_constants = e->physical_constants;
 
+/* Retrieve the neutrino temperature today */
+#ifdef NEUTRINO_BACKGROUND
+  const struct cosmology *cosmo = e->cosmology;
   const double T_nu = cosmo->T_nu;
+#else
+  /* No neutrino cosmology module, use the fiducial value */
+  const struct unit_system *internal_units = e->internal_units;
+  const double T_nu_K = NEUTRINO_FIDUCIAL_TEMPERATURE_KELVIN;
+  const double T_nu = T_nu_K * internal_units->UnitTemperature_in_cgs;
+#endif
+
+  /* Convert temperature to eV (to prevent overflows)*/
   const double k_b = physical_constants->const_boltzmann_k;
   const double eV = physical_constants->const_electron_volt;
   const double T_eV = k_b * T_nu / eV;  // temperature in eV
 
-  // Calculate momentum in eV
-  double p = fermi_dirac_momentum(engine, v);
+  /* Calculate the momentum in eV */
+  double p_eV = fermi_dirac_momentum(e, v, m_eV);
 
-  double norm = 1.0;  // normalization irrelevant unless using different g(x,p)
-
-  return norm / (exp(p / T_eV) + 1.0);
+  return 1.0 / (exp(p_eV / T_eV) + 1.0);
 }
 
-double sample_density(const struct engine *engine, double *x, float *v) {
-  const struct cosmology *cosmo = engine->cosmology;
-  const struct phys_const *physical_constants = engine->physical_constants;
-
-  const double T_nu = cosmo->T_nu;
-  const double k_b = physical_constants->const_boltzmann_k;
-  const double eV = physical_constants->const_electron_volt;
-  const double T_eV = k_b * T_nu / eV;  // temperature in eV
-
-  // Calculate momentum in eV
-  double p = fermi_dirac_momentum(engine, v);
-
-  double norm = 8573.24;
-
-  return norm * 1.0 / (exp(p / T_eV) + 1.0);
-}
-
-/* Calculate the momentum in eV, using E = a*sqrt(p^2 + m^2) ~ ap.
+/* Calculate the momentum in energy units, using E = a*sqrt(p^2 + m^2) ~ ap.
  * Note that this is the present-day momentum, i.e. p0 = ap, which is
- * constant in a homogenous Universe,
+ * constant in a homogenous Universe.
  */
-double fermi_dirac_momentum(const struct engine *engine, float *v) {
-  const struct cosmology *cosmo = engine->cosmology;
-  const struct phys_const *physical_constants = engine->physical_constants;
-
-  // Some constants
+double fermi_dirac_momentum(const struct engine *e, float *v, double m_eV) {
+  const struct cosmology *cosmo = e->cosmology;
+  const struct phys_const *physical_constants = e->physical_constants;
   const double c = physical_constants->const_speed_light_c;
-  const double cc = c * c;
   const double a = cosmo->a;
-  const double eV = physical_constants->const_electron_volt;
-  const double eV_mass = eV / cc;  // 1 eV/c^2 in internal mass units
-
-  // Calculate the neutrino mass in internal units
-  const double M_nu =
-      cosmo->M_nu[0] * eV_mass;  // just select the first species for now
 
   // The internal velocity V = a^2*(dx/dt), where x=r/a is comoving
-  double VV = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-  double V = sqrt(VV);
+  double V = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 
   // Calculate the length of the physical 3-velocity u=a*|dx/dt|
   double u = V / a;
   // double gamma = 1.0/sqrt(1.0 - u*u/cc); //Lorentz factor
-  double gamma = 1.0;              // disable relativity
-  double p_ph = u * gamma * M_nu;  // The physical 3-momentum
-  double p_eV = p_ph * c / eV;     // in eV
-  double p0_eV = p_eV * a;         // present-day momentum in eV
+  double gamma = 1.0;                  // disable relativity
+  double p_eV = u * gamma * m_eV / c;  // The physical 3-momentum in eV
+  double p0_eV = p_eV * a;             // present-day momentum in eV
 
   return p0_eV;
 }
 
-/* Calculate the energy in units of M_nu */
-double fermi_dirac_energy(const struct engine *engine, float *v) {
-  const struct cosmology *cosmo = engine->cosmology;
+/* Compute the conversion factor from macro particle mass to
+ * the mass of one neutrino in eV.
+ */
+double neutrino_mass_factor(const struct engine *e) {
+  const struct phys_const *physical_constants = e->physical_constants;
+  const struct space *s = e->s;
 
-  // Calculate the energy in eV
-  double M_nu = cosmo->M_nu[0];  // just select the first species for now
-  double p_eV = fermi_dirac_momentum(engine, v);
-  double E_eV = hypot(p_eV, M_nu);  //=sqrt(p^2+m^2)
+  /* Some constants */
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double hbar = physical_constants->const_planck_hbar;
+  const double c = physical_constants->const_speed_light_c;
+  const double eV = physical_constants->const_electron_volt;
+  const double eV_mass = eV / (c * c);  // 1 eV/c^2 in internal mass units
+  const double prefactor = (1.5 * M_ZETA_3) / (M_PI * M_PI);
 
-  return E_eV / M_nu;  // energy in units of M_nu
+/* Retrieve the neutrino temperature today & number of flavours */
+#ifdef NEUTRINO_BACKGROUND
+  const struct cosmology *cosmo = e->cosmology;
+  const double T_nu = cosmo->T_nu;
+  const double flavours = cosmo->N_nu;
+#else
+  /* No neutrino cosmology module, use the fiducial values */
+  const struct unit_system *internal_units = e->internal_units;
+  const double T_nu_K = NEUTRINO_FIDUCIAL_TEMPERATURE_KELVIN;
+  const double T_nu = T_nu_K * internal_units->UnitTemperature_in_cgs;
+  const double flavours = NEUTRINO_FIDUCIAL_FLAVOURS_NUMBER;
+#endif
+
+  /* Compute the comoving number density per flavour */
+  const double n = prefactor * pow(k_b * T_nu / (hbar * c), 3);
+  const double volume = s->dim[0] * s->dim[1] * s->dim[2];
+
+  /* The total number of neutrino macropaticles present */
+  const long long nuparts = e->total_nr_nuparts;
+
+  /* Compute the conversion factor */
+  const double mass_factor = nuparts / (flavours * n * volume);
+
+  /* Convert to eV */
+  const double mass_factor_eV = mass_factor / eV_mass;
+
+  return mass_factor_eV;
 }

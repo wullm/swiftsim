@@ -3770,7 +3770,6 @@ int cell_unskip_gravity_tasks(struct cell *c, struct scheduler *s) {
   if (c->nodeID == nodeID && cell_is_active_gravity(c, e)) {
     if (c->grav.init != NULL) scheduler_activate(s, c->grav.init);
     if (c->grav.init_out != NULL) scheduler_activate(s, c->grav.init_out);
-    if (c->grav.weight != NULL) scheduler_activate(s, c->grav.weight);
     if (c->kick1 != NULL) scheduler_activate(s, c->kick1);
     if (c->kick2 != NULL) scheduler_activate(s, c->kick2);
     if (c->timestep != NULL) scheduler_activate(s, c->timestep);
@@ -3779,6 +3778,9 @@ int cell_unskip_gravity_tasks(struct cell *c, struct scheduler *s) {
     if (c->grav.mesh != NULL) scheduler_activate(s, c->grav.mesh);
     if (c->grav.long_range != NULL) scheduler_activate(s, c->grav.long_range);
     if (c->grav.end_force != NULL) scheduler_activate(s, c->grav.end_force);
+#ifdef NEUTRINO_DELTA_F
+    if (c->grav.weight != NULL) scheduler_activate(s, c->grav.weight);
+#endif
 #ifdef WITH_LOGGER
     if (c->logger != NULL) scheduler_activate(s, c->logger);
 #endif

@@ -478,6 +478,11 @@ struct engine {
 
   /* Has there been an stf this timestep? */
   char stf_this_timestep;
+
+#ifdef NEUTRINO_DELTA_F
+  /* Conversion factor from macro particle mass to neutrino mass in eV */
+  double neutrino_mass_conversion_factor;
+#endif
 };
 
 /* Function prototypes, engine.c. */
