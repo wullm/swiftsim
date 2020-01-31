@@ -164,7 +164,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
         }
 
 #ifdef WITH_RELATIVISTIC_KICK
-        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        /* Perform a relativistic correction */
         double correction = relat_corr_kick(e, xp->v_full);
         dt_kick_hydro *= correction;
         dt_kick_grav *= correction;
@@ -224,7 +224,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
         }
 
 #ifdef WITH_RELATIVISTIC_KICK
-        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        /* Perform a relativistic correction */
         double correction = relat_corr_kick(e, gp->v_full);
         dt_kick_grav *= correction;
 #endif
@@ -268,7 +268,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
         }
 
 #ifdef WITH_RELATIVISTIC_KICK
-        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        /* Perform a relativistic correction */
         double correction = relat_corr_kick(e, sp->v);
         dt_kick_grav *= correction;
 #endif
@@ -312,7 +312,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
         }
 
 #ifdef WITH_RELATIVISTIC_KICK
-        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        /* Perform a relativistic correction */
         double correction = relat_corr_kick(e, bp->v);
         dt_kick_grav *= correction;
 #endif
@@ -416,7 +416,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
         }
 
 #ifdef WITH_RELATIVISTIC_KICK
-        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        /* Perform a relativistic correction */
         double correction = relat_corr_kick(e, xp->v_full);
         dt_kick_hydro *= correction;
         dt_kick_grav *= correction;
@@ -470,7 +470,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
         }
 
 #ifdef WITH_RELATIVISTIC_KICK
-        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        /* Perform a relativistic correction */
         double correction = relat_corr_kick(e, gp->v_full);
         dt_kick_grav *= correction;
 #endif
@@ -518,7 +518,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
         }
 
 #ifdef WITH_RELATIVISTIC_KICK
-        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        /* Perform a relativistic correction */
         double correction = relat_corr_kick(e, sp->v);
         dt_kick_grav *= correction;
 #endif
@@ -566,7 +566,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
         }
 
 #ifdef WITH_RELATIVISTIC_KICK
-        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        /* Perform a relativistic correction */
         double correction = relat_corr_kick(e, bp->v);
         dt_kick_grav *= correction;
 #endif

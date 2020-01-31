@@ -4558,13 +4558,13 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
       double dt_kick_hydro_k = dt_kick_hydro;
 
 #ifdef WITH_RELATIVISTIC_DRIFT
-      /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
+      /* Perform a relativistic correction */
       double correction = relat_corr_drift(e, xp->v_full);
       dt_drift_k *= correction;
 #endif
 
 #ifdef WITH_RELATIVISTIC_KICK
-      /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+      /* Perform a relativistic correction */
       double correction2 = relat_corr_kick(e, xp->v_full);
       dt_kick_grav_k *= correction2;
       dt_kick_hydro_k *= correction2;
@@ -4748,7 +4748,7 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
       double dt_drift_k = dt_drift;
 
 #ifdef WITH_RELATIVISTIC_DRIFT
-      /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
+      /* Perform a relativistic correction */
       double correction = relat_corr_drift(e, gp->v_full);
       dt_drift_k *= correction;
 #endif
@@ -4902,7 +4902,7 @@ void cell_drift_spart(struct cell *c, const struct engine *e, int force) {
       double dt_drift_k = dt_drift;
 
 #ifdef WITH_RELATIVISTIC_DRIFT
-      /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
+      /* Perform a relativistic correction */
       double correction = relat_corr_drift(e, sp->v);
       dt_drift_k *= correction;
 #endif
@@ -5081,7 +5081,7 @@ void cell_drift_bpart(struct cell *c, const struct engine *e, int force) {
       double dt_drift_k = dt_drift;
 
 #ifdef WITH_RELATIVISTIC_DRIFT
-      /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
+      /* Perform a relativistic correction */
       double correction = relat_corr_drift(e, bp->v);
       dt_drift_k *= correction;
 #endif
