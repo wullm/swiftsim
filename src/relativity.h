@@ -19,6 +19,9 @@
 #ifndef SWIFT_RELATIVITY_H
 #define SWIFT_RELATIVITY_H
 
+/* Config parameters. */
+#include "../config.h"
+
 #include "engine.h"
 
 /**
