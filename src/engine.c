@@ -3545,26 +3545,29 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->neutrino_mass_conversion_factor = neutrino_mass_factor(e);
 
   /* For diagnostics, collect the range of neutrino masses in eV */
-  float neutrino_mass_min = FLT_MAX;
-  float neutrino_mass_max = -FLT_MAX;
-  float neutrino_mass_mult = e->neutrino_mass_conversion_factor;
+  if (e->nodeID == 0) {
+    float neutrino_mass_min = FLT_MAX;
+    float neutrino_mass_max = -FLT_MAX;
+    float neutrino_mass_mult = e->neutrino_mass_conversion_factor;
 
-  if (s->nr_gparts > 0) {
-    for (size_t k = 0; k < s->nr_gparts; k++) {
-      if (s->gparts[k].type == swift_type_neutrino) {
-        float neutrino_mass = s->gparts[k].mass * neutrino_mass_mult;
-        if (neutrino_mass > neutrino_mass_max)
-          neutrino_mass_max = neutrino_mass;
-        if (neutrino_mass < neutrino_mass_min)
-          neutrino_mass_min = neutrino_mass;
+    if (s->nr_gparts > 0) {
+      for (size_t k = 0; k < s->nr_gparts; k++) {
+        if (s->gparts[k].type == swift_type_neutrino) {
+          float neutrino_mass = s->gparts[k].mass * neutrino_mass_mult;
+          if (neutrino_mass > neutrino_mass_max)
+            neutrino_mass_max = neutrino_mass;
+          if (neutrino_mass < neutrino_mass_min)
+            neutrino_mass_min = neutrino_mass;
+        }
       }
+      message("The neutrino mass multiplier is %.5e eV / U_M",
+              neutrino_mass_mult);
+      message(
+          "The simulation particles correspond to a neutrino mass range [%f, "
+          "%f] "
+          "eV",
+          neutrino_mass_min, neutrino_mass_max);
     }
-    message("The neutrino mass multiplier is %.5e eV / U_M",
-            neutrino_mass_mult);
-    message(
-        "The simulation particles correspond to a neutrino mass range [%f, %f] "
-        "eV",
-        neutrino_mass_min, neutrino_mass_max);
   }
 
 #endif
