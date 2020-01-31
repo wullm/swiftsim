@@ -4549,8 +4549,31 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
       /* Ignore inhibited particles */
       if (part_is_inhibited(p, e)) continue;
 
+      double dt_drift_k = dt_drift;
+      double dt_kick_grav_k = dt_kick_grav;
+      double dt_kick_hydro_k = dt_kick_hydro;
+
+#if defined(WITH_RELATIVISTIC_DRIFT) || defined(WITH_RELATIVISTIC_KICK)
+      double a = e->cosmology->a;
+      float *V = xp->v_full;
+      float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+#endif
+
+#ifdef WITH_RELATIVISTIC_DRIFT
+      /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
+      double correction = a / hypot(v, a);
+      dt_drift_k *= correction;
+#endif
+
+#ifdef WITH_RELATIVISTIC_KICK
+      /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+      double correction2 = (2 * v * v + a * a) / hypot(v, a) / a;
+      dt_kick_grav_k *= correction2;
+      dt_kick_hydro_k *= correction2;
+#endif
+
       /* Drift... */
-      drift_part(p, xp, dt_drift, dt_kick_hydro, dt_kick_grav, dt_therm,
+      drift_part(p, xp, dt_drift_k, dt_kick_hydro_k, dt_kick_grav_k, dt_therm,
                  ti_old_part, ti_current, e->cosmology, e->hydro_properties,
                  e->entropy_floor);
 
@@ -4561,9 +4584,9 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
 
 #ifdef SWIFT_DEBUG_CHECKS
       /* Make sure the particle does not drift by more than a box length. */
-      if (fabs(xp->v_full[0] * dt_drift) > e->s->dim[0] ||
-          fabs(xp->v_full[1] * dt_drift) > e->s->dim[1] ||
-          fabs(xp->v_full[2] * dt_drift) > e->s->dim[2]) {
+      if (fabs(xp->v_full[0] * dt_drift_k) > e->s->dim[0] ||
+          fabs(xp->v_full[1] * dt_drift_k) > e->s->dim[1] ||
+          fabs(xp->v_full[2] * dt_drift_k) > e->s->dim[2]) {
         error(
             "Particle drifts by more than a box length! id %llu xp->v_full "
             "%.5e %.5e %.5e p->v %.5e %.5e %.5e",
@@ -4724,14 +4747,25 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
       /* Ignore inhibited particles */
       if (gpart_is_inhibited(gp, e)) continue;
 
+      double dt_drift_k = dt_drift;
+
+#ifdef WITH_RELATIVISTIC_DRIFT
+      /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
+      double a = e->cosmology->a;
+      float *V = gp->v_full;
+      float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+      double correction = a / hypot(v, a);
+      dt_drift_k *= correction;
+#endif
+
       /* Drift... */
-      drift_gpart(gp, dt_drift, ti_old_gpart, ti_current);
+      drift_gpart(gp, dt_drift_k, ti_old_gpart, ti_current);
 
 #ifdef SWIFT_DEBUG_CHECKS
       /* Make sure the particle does not drift by more than a box length. */
-      if (fabs(gp->v_full[0] * dt_drift) > e->s->dim[0] ||
-          fabs(gp->v_full[1] * dt_drift) > e->s->dim[1] ||
-          fabs(gp->v_full[2] * dt_drift) > e->s->dim[2]) {
+      if (fabs(gp->v_full[0] * dt_drift_k) > e->s->dim[0] ||
+          fabs(gp->v_full[1] * dt_drift_k) > e->s->dim[1] ||
+          fabs(gp->v_full[2] * dt_drift_k) > e->s->dim[2]) {
         error(
             "Particle drifts by more than a box length! gp->v_full %.5e %.5e "
             "%.5e",
@@ -4870,14 +4904,25 @@ void cell_drift_spart(struct cell *c, const struct engine *e, int force) {
       /* Ignore inhibited particles */
       if (spart_is_inhibited(sp, e)) continue;
 
+      double dt_drift_k = dt_drift;
+
+#ifdef WITH_RELATIVISTIC_DRIFT
+      /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
+      double a = e->cosmology->a;
+      float *V = sp->v;
+      float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+      double correction = a / hypot(v, a);
+      dt_drift_k *= correction;
+#endif
+
       /* Drift... */
-      drift_spart(sp, dt_drift, ti_old_spart, ti_current);
+      drift_spart(sp, dt_drift_k, ti_old_spart, ti_current);
 
 #ifdef SWIFT_DEBUG_CHECKS
       /* Make sure the particle does not drift by more than a box length. */
-      if (fabs(sp->v[0] * dt_drift) > e->s->dim[0] ||
-          fabs(sp->v[1] * dt_drift) > e->s->dim[1] ||
-          fabs(sp->v[2] * dt_drift) > e->s->dim[2]) {
+      if (fabs(sp->v[0] * dt_drift_k) > e->s->dim[0] ||
+          fabs(sp->v[1] * dt_drift_k) > e->s->dim[1] ||
+          fabs(sp->v[2] * dt_drift_k) > e->s->dim[2]) {
         error("Particle drifts by more than a box length!");
       }
 #endif
@@ -5041,14 +5086,25 @@ void cell_drift_bpart(struct cell *c, const struct engine *e, int force) {
       /* Ignore inhibited particles */
       if (bpart_is_inhibited(bp, e)) continue;
 
+      double dt_drift_k = dt_drift;
+
+#ifdef WITH_RELATIVISTIC_DRIFT
+      /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
+      double a = e->cosmology->a;
+      float *V = bp->v;
+      float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+      double correction = a / hypot(v, a);
+      dt_drift_k *= correction;
+#endif
+
       /* Drift... */
-      drift_bpart(bp, dt_drift, ti_old_bpart, ti_current);
+      drift_bpart(bp, dt_drift_k, ti_old_bpart, ti_current);
 
 #ifdef SWIFT_DEBUG_CHECKS
       /* Make sure the particle does not drift by more than a box length. */
-      if (fabs(bp->v[0] * dt_drift) > e->s->dim[0] ||
-          fabs(bp->v[1] * dt_drift) > e->s->dim[1] ||
-          fabs(bp->v[2] * dt_drift) > e->s->dim[2]) {
+      if (fabs(bp->v[0] * dt_drift_k) > e->s->dim[0] ||
+          fabs(bp->v[1] * dt_drift_k) > e->s->dim[1] ||
+          fabs(bp->v[2] * dt_drift_k) > e->s->dim[2]) {
         error("Particle drifts by more than a box length!");
       }
 #endif

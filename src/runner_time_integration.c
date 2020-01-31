@@ -159,6 +159,18 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
           dt_kick_corr = (ti_step / 2) * time_base;
         }
 
+#ifdef WITH_RELATIVISTIC_KICK
+        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        double a = e->cosmology->a;
+        float *V = xp->v_full;
+        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        dt_kick_hydro *= correction;
+        dt_kick_grav *= correction;
+        dt_kick_therm *= correction;
+        dt_kick_corr *= correction;
+#endif
+
         /* do the kick */
         kick_part(p, xp, dt_kick_hydro, dt_kick_grav, dt_kick_therm,
                   dt_kick_corr, cosmo, hydro_props, entropy_floor, ti_begin,
@@ -210,6 +222,15 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
           dt_kick_grav = (ti_step / 2) * time_base;
         }
 
+#ifdef WITH_RELATIVISTIC_KICK
+        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        double a = e->cosmology->a;
+        float *V = gp->v_full;
+        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        dt_kick_grav *= correction;
+#endif
+
         /* do the kick */
         kick_gpart(gp, dt_kick_grav, ti_begin, ti_begin + ti_step / 2);
       }
@@ -248,6 +269,15 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
           dt_kick_grav = (ti_step / 2) * time_base;
         }
 
+#ifdef WITH_RELATIVISTIC_KICK
+        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        double a = e->cosmology->a;
+        float *V = sp->v;
+        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        dt_kick_grav *= correction;
+#endif
+
         /* do the kick */
         kick_spart(sp, dt_kick_grav, ti_begin, ti_begin + ti_step / 2);
       }
@@ -285,6 +315,15 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
         } else {
           dt_kick_grav = (ti_step / 2) * time_base;
         }
+
+#ifdef WITH_RELATIVISTIC_KICK
+        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        double a = e->cosmology->a;
+        float *V = bp->v;
+        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        dt_kick_grav *= correction;
+#endif
 
         /* do the kick */
         kick_bpart(bp, dt_kick_grav, ti_begin, ti_begin + ti_step / 2);
@@ -384,6 +423,18 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
           dt_kick_corr = (ti_end - (ti_begin + ti_step / 2)) * time_base;
         }
 
+#ifdef WITH_RELATIVISTIC_KICK
+        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        double a = e->cosmology->a;
+        float *V = xp->v_full;
+        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        dt_kick_hydro *= correction;
+        dt_kick_grav *= correction;
+        dt_kick_therm *= correction;
+        dt_kick_corr *= correction;
+#endif
+
         /* Finish the time-step with a second half-kick */
         kick_part(p, xp, dt_kick_hydro, dt_kick_grav, dt_kick_therm,
                   dt_kick_corr, cosmo, hydro_props, entropy_floor,
@@ -429,6 +480,15 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
           dt_kick_grav = (ti_step / 2) * time_base;
         }
 
+#ifdef WITH_RELATIVISTIC_KICK
+        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        double a = e->cosmology->a;
+        float *V = gp->v_full;
+        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        dt_kick_grav *= correction;
+#endif
+
         /* Finish the time-step with a second half-kick */
         kick_gpart(gp, dt_kick_grav, ti_begin + ti_step / 2,
                    ti_begin + ti_step);
@@ -471,6 +531,15 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
           dt_kick_grav = (ti_step / 2) * time_base;
         }
 
+#ifdef WITH_RELATIVISTIC_KICK
+        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        double a = e->cosmology->a;
+        float *V = sp->v;
+        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        dt_kick_grav *= correction;
+#endif
+
         /* Finish the time-step with a second half-kick */
         kick_spart(sp, dt_kick_grav, ti_begin + ti_step / 2,
                    ti_begin + ti_step);
@@ -512,6 +581,15 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
         } else {
           dt_kick_grav = (ti_step / 2) * time_base;
         }
+
+#ifdef WITH_RELATIVISTIC_KICK
+        /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
+        double a = e->cosmology->a;
+        float *V = bp->v;
+        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
+        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        dt_kick_grav *= correction;
+#endif
 
         /* Finish the time-step with a second half-kick */
         kick_bpart(bp, dt_kick_grav, ti_begin + ti_step / 2,

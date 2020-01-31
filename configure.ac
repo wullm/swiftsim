@@ -2101,6 +2101,17 @@ case "$with_star_formation" in
    ;;
 esac
 
+#  Gravity multipole order
+AC_ARG_WITH([multipole-order],
+   [AS_HELP_STRING([--with-multipole-order=<order>],
+      [order of the multipole and gravitational field expansion @<:@ default: 4@:>@]
+   )],
+   [with_multipole_order="$withval"],
+   [with_multipole_order="4"]
+)
+AC_DEFINE_UNQUOTED([SELF_GRAVITY_MULTIPOLE_ORDER], [$with_multipole_order], [Multipole order])
+
+
 #  Neutrino cosmology
 AC_ARG_WITH([neutrino-cosmo],
     [AS_HELP_STRING([--with-neutrino-cosmo=<model>],
@@ -2129,7 +2140,7 @@ AM_CONDITIONAL([COSMO_WITH_NEUTRINOS], [test $with_neutrino_cosmo = "BACKGROUND"
 #  Neutrino delta-f method
 AC_ARG_WITH([neutrino-df],
     [AS_HELP_STRING([--with-neutrino-df=<model>],
-       [neutrino model @<:@none, FERMI-DIRAC, default: none@:>@]
+       [neutrino delta-f model @<:@none, FERMI-DIRAC, default: none@:>@]
     )],
     [with_neutrino_df="$withval"],
     [with_neutrino_df="none"]
@@ -2152,15 +2163,29 @@ esac
 AM_CONDITIONAL([NEUTRINO_WITH_DELTA_F], [test $with_neutrino_df = "FERMI-DIRAC"])
 
 
-#  Gravity multipole order
-AC_ARG_WITH([multipole-order],
-   [AS_HELP_STRING([--with-multipole-order=<order>],
-      [order of the multipole and gravitational field expansion @<:@ default: 4@:>@]
-   )],
-   [with_multipole_order="$withval"],
-   [with_multipole_order="4"]
+#  Relativistic kick & drift - equation of motion
+AC_ARG_WITH([relativistic-eom],
+    [AS_HELP_STRING([--with-relativistic-eom=<mode>],
+       [use relativistic kick/drift @<:@no, yes, default: no@:>@]
+    )],
+    [with_relativistic_eom="$withval"],
+    [with_relativistic_eom="no"]
 )
-AC_DEFINE_UNQUOTED([SELF_GRAVITY_MULTIPOLE_ORDER], [$with_multipole_order], [Multipole order])
+
+case "$with_relativistic_eom" in
+   no)
+
+   ;;
+   yes)
+      AC_DEFINE([WITH_RELATIVISTIC_KICK], [1], [Relativistic kick step])
+      AC_DEFINE([WITH_RELATIVISTIC_DRIFT], [1], [Relativistic drift step])
+   ;;
+   *)
+      AC_MSG_ERROR([Unknown option for relativistic equation of motion])
+   ;;
+esac
+
+
 
 # Check for git, needed for revision stamps.
 AC_PATH_PROG([GIT_CMD], [git])
@@ -2258,6 +2283,8 @@ AC_MSG_RESULT([
    Task dependencies    : $with_task_order
    Neutrino cosmology   : $with_neutrino_cosmo
    Neutrino delta-f     : $with_neutrino_df
+   Relativistic kick    : $with_relativistic_eom
+   Relativistic drift   : $with_relativistic_eom
 
    Individual timers           : $enable_timers
    Task debugging              : $enable_task_debugging
