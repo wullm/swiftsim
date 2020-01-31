@@ -2102,15 +2102,15 @@ case "$with_star_formation" in
 esac
 
 #  Neutrino cosmology
-AC_ARG_WITH([neutrinos],
-    [AS_HELP_STRING([--with-neutrinos=<sfm>],
-       [neutrino model @<:@none, BACKGROUND, default: none@:>@]
+AC_ARG_WITH([neutrino-cosmo],
+    [AS_HELP_STRING([--with-neutrino-cosmo=<model>],
+       [neutrino cosmology @<:@none, BACKGROUND, default: none@:>@]
     )],
-    [with_neutrinos="$withval"],
-    [with_neutrinos="none"]
+    [with_neutrino_cosmo="$withval"],
+    [with_neutrino_cosmo="none"]
 )
 
-case "$with_neutrinos" in
+case "$with_neutrino_cosmo" in
    none)
       AC_DEFINE([NEUTRINO_NONE], [1], [No neutrinos])
    ;;
@@ -2118,12 +2118,39 @@ case "$with_neutrinos" in
       AC_DEFINE([NEUTRINO_BACKGROUND], [1], [Neutrino effects on background cosmology])
    ;;
    *)
-      AC_MSG_ERROR([Unknown neutrino model])
+      AC_MSG_ERROR([Unknown neutrino cosmology option])
    ;;
 esac
 
 # Check if including neutrino effects on background cosmology
-AM_CONDITIONAL([COSMO_WITH_NEUTRINOS], [test $with_neutrinos = "BACKGROUND"])
+AM_CONDITIONAL([COSMO_WITH_NEUTRINOS], [test $with_neutrino_cosmo = "BACKGROUND"])
+
+
+#  Neutrino delta-f method
+AC_ARG_WITH([neutrino-df],
+    [AS_HELP_STRING([--with-neutrino-df=<model>],
+       [neutrino model @<:@none, FERMI-DIRAC, default: none@:>@]
+    )],
+    [with_neutrino_df="$withval"],
+    [with_neutrino_df="none"]
+)
+
+case "$with_neutrino_df" in
+   none)
+      AC_DEFINE([NEUTRINO_DELTA_F_NONE], [1], [No delta-f step for neutrinos])
+   ;;
+   FERMI-DIRAC)
+      AC_DEFINE([NEUTRINO_DELTA_F], [1], [Include a delta-f step for neutrinos])
+      AC_DEFINE([NEUTRINO_DELTA_F_FERMI_DIRAC], [1], [Fermi-Dirac model for neutrino delta-f step])
+   ;;
+   *)
+      AC_MSG_ERROR([Unknown neutrino delta-f model])
+   ;;
+esac
+
+# Check if including delta-f step for neutrinos
+AM_CONDITIONAL([NEUTRINO_WITH_DELTA_F], [test $with_neutrino_df = "FERMI-DIRAC"])
+
 
 #  Gravity multipole order
 AC_ARG_WITH([multipole-order],
@@ -2229,7 +2256,8 @@ AC_MSG_RESULT([
    Star feedback model  : $with_feedback
    Black holes model    : $with_black_holes
    Task dependencies    : $with_task_order
-   Neutrino model       : $with_neutrinos
+   Neutrino cosmology   : $with_neutrino_cosmo
+   Neutrino delta-f     : $with_neutrino_df
 
    Individual timers           : $enable_timers
    Task debugging              : $enable_task_debugging
