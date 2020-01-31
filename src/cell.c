@@ -72,6 +72,10 @@
 #include "tools.h"
 #include "tracers.h"
 
+#if defined(WITH_RELATIVISTIC_DRIFT) || defined(WITH_RELATIVISTIC_KICK)
+#include "relativity.h"
+#endif
+
 extern int engine_star_resort_task_depth;
 
 /* Global variables. */
@@ -4553,21 +4557,15 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
       double dt_kick_grav_k = dt_kick_grav;
       double dt_kick_hydro_k = dt_kick_hydro;
 
-#if defined(WITH_RELATIVISTIC_DRIFT) || defined(WITH_RELATIVISTIC_KICK)
-      double a = e->cosmology->a;
-      float *V = xp->v_full;
-      float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-#endif
-
 #ifdef WITH_RELATIVISTIC_DRIFT
       /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
-      double correction = a / hypot(v, a);
+      double correction = relat_corr_drift(e, xp->v_full);
       dt_drift_k *= correction;
 #endif
 
 #ifdef WITH_RELATIVISTIC_KICK
       /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-      double correction2 = (2 * v * v + a * a) / hypot(v, a) / a;
+      double correction2 = relat_corr_kick(e, xp->v_full);
       dt_kick_grav_k *= correction2;
       dt_kick_hydro_k *= correction2;
 #endif
@@ -4751,10 +4749,7 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
 
 #ifdef WITH_RELATIVISTIC_DRIFT
       /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
-      double a = e->cosmology->a;
-      float *V = gp->v_full;
-      float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-      double correction = a / hypot(v, a);
+      double correction = relat_corr_drift(e, gp->v_full);
       dt_drift_k *= correction;
 #endif
 
@@ -4908,10 +4903,7 @@ void cell_drift_spart(struct cell *c, const struct engine *e, int force) {
 
 #ifdef WITH_RELATIVISTIC_DRIFT
       /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
-      double a = e->cosmology->a;
-      float *V = sp->v;
-      float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-      double correction = a / hypot(v, a);
+      double correction = relat_corr_drift(e, sp->v);
       dt_drift_k *= correction;
 #endif
 
@@ -5090,10 +5082,7 @@ void cell_drift_bpart(struct cell *c, const struct engine *e, int force) {
 
 #ifdef WITH_RELATIVISTIC_DRIFT
       /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
-      double a = e->cosmology->a;
-      float *V = bp->v;
-      float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-      double correction = a / hypot(v, a);
+      double correction = relat_corr_drift(e, bp->v);
       dt_drift_k *= correction;
 #endif
 

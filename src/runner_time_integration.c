@@ -38,6 +38,10 @@
 #include "timestep_sync.h"
 #include "tracers.h"
 
+#if defined(WITH_RELATIVISTIC_DRIFT) || defined(WITH_RELATIVISTIC_KICK)
+#include "relativity.h"
+#endif
+
 /**
  * @brief Initialize the multipoles before the gravity calculation.
  *
@@ -161,10 +165,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-        double a = e->cosmology->a;
-        float *V = xp->v_full;
-        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        double correction = relat_corr_kick(e, xp->v_full);
         dt_kick_hydro *= correction;
         dt_kick_grav *= correction;
         dt_kick_therm *= correction;
@@ -224,10 +225,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-        double a = e->cosmology->a;
-        float *V = gp->v_full;
-        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        double correction = relat_corr_kick(e, gp->v_full);
         dt_kick_grav *= correction;
 #endif
 
@@ -271,10 +269,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-        double a = e->cosmology->a;
-        float *V = sp->v;
-        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        double correction = relat_corr_kick(e, sp->v);
         dt_kick_grav *= correction;
 #endif
 
@@ -318,10 +313,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-        double a = e->cosmology->a;
-        float *V = bp->v;
-        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        double correction = relat_corr_kick(e, bp->v);
         dt_kick_grav *= correction;
 #endif
 
@@ -425,10 +417,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-        double a = e->cosmology->a;
-        float *V = xp->v_full;
-        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        double correction = relat_corr_kick(e, xp->v_full);
         dt_kick_hydro *= correction;
         dt_kick_grav *= correction;
         dt_kick_therm *= correction;
@@ -482,10 +471,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-        double a = e->cosmology->a;
-        float *V = gp->v_full;
-        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        double correction = relat_corr_kick(e, gp->v_full);
         dt_kick_grav *= correction;
 #endif
 
@@ -533,10 +519,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-        double a = e->cosmology->a;
-        float *V = sp->v;
-        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        double correction = relat_corr_kick(e, sp->v);
         dt_kick_grav *= correction;
 #endif
 
@@ -584,10 +567,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-        double a = e->cosmology->a;
-        float *V = bp->v;
-        float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]);
-        double correction = (2 * v * v + a * a) / hypot(v, a) / a;
+        double correction = relat_corr_kick(e, bp->v);
         dt_kick_grav *= correction;
 #endif
 
