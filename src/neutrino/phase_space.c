@@ -72,8 +72,14 @@ double fermi_dirac_momentum(const struct engine *e, float *v, double m_eV) {
 
   // Calculate the length of the physical 3-velocity u=a*|dx/dt|
   double u = V / a;
-  // double gamma = 1.0/sqrt(1.0 - u*u/cc); //Lorentz factor
-  double gamma = 1.0;                  // disable relativity
+
+#ifdef WITH_RELATIVISTIC_KICK
+  double gamma = 1.0/sqrt(1.0 - u*u/cc); //Lorentz factor
+#else
+  double gamma = 1.0; //no relativity
+#endif
+
+  // Convert to present-day momentum in eV
   double p_eV = u * gamma * m_eV / c;  // The physical 3-momentum in eV
   double p0_eV = p_eV * a;             // present-day momentum in eV
 
