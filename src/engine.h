@@ -38,6 +38,7 @@
 #include "collectgroup.h"
 #include "dump.h"
 #include "mesh_gravity.h"
+#include "neutrino/renderer.h"
 #include "parser.h"
 #include "partition.h"
 #include "potential.h"
@@ -47,12 +48,10 @@
 #include "task.h"
 #include "units.h"
 #include "velociraptor_interface.h"
-#include "neutrino/renderer.h"
 
 #ifdef NEUTRINO_DELTA_F
 #include "neutrino/phase_space.h"
 #endif
-
 
 struct black_holes_properties;
 
@@ -492,7 +491,6 @@ struct engine {
   /* Conversion factor from macro particle mass to neutrino mass in eV */
   double neutrino_mass_conversion_factor;
 #endif
-
 };
 
 /* Function prototypes, engine.c. */
@@ -530,8 +528,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct cooling_function_data *cooling_func,
                  const struct star_formation *starform,
                  const struct chemistry_global_data *chemistry,
-                 struct fof_props *fof_properties,
-                 struct renderer *rend);
+                 struct fof_props *fof_properties, struct renderer *rend);
 void engine_config(int restart, int fof, struct engine *e,
                    struct swift_params *params, int nr_nodes, int nodeID,
                    int nr_threads, int with_aff, int verbose,

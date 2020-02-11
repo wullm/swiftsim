@@ -3385,8 +3385,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct cooling_function_data *cooling_func,
                  const struct star_formation *starform,
                  const struct chemistry_global_data *chemistry,
-                 struct fof_props *fof_properties,
-                 struct renderer *rend) {
+                 struct fof_props *fof_properties, struct renderer *rend) {
 
   /* Clean-up everything */
   bzero(e, sizeof(struct engine));
@@ -3549,8 +3548,8 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
 #endif
 
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
-    /* Initialize the renderer */
-    rend_init(rend, params, e);
+  /* Initialize the renderer */
+  rend_init(rend, params, e);
 #endif
 
   engine_init_output_lists(e, params);
