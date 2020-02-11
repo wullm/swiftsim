@@ -242,9 +242,12 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
 void rend_compute_perturbations(struct renderer *rend) {
     struct precision pr;  /* for precision parameters */
-    struct background *ba = &rend->boltz.ba; /* for cosmological background */
-    struct thermo *th = &rend->boltz.th;     /* for thermodynamics */
-    struct perturbs *pt = &rend->boltz.pt;   /* for source functions */
+    // struct background *ba = &rend->boltz.ba; /* for cosmological background */
+    // struct thermo *th = &rend->boltz.th;     /* for thermodynamics */
+    // struct perturbs *pt = &rend->boltz.pt;   /* for source functions */
+    struct background ba; /* for cosmological background */
+    struct thermo th;     /* for thermodynamics */
+    struct perturbs pt;   /* for source functions */
     struct transfers tr;  /* for transfer functions */
     struct primordial pm; /* for primordial spectra */
     struct spectra sp;    /* for output spectra */
@@ -256,21 +259,63 @@ void rend_compute_perturbations(struct renderer *rend) {
     int class_argc = 2;
     char *class_argv[] = {"", "class_file.ini", NULL};
 
-    if (input_init_from_arguments(class_argc, class_argv, &pr, ba, th, pt, &tr,
+    if (input_init_from_arguments(class_argc, class_argv, &pr, &ba, &th, &pt, &tr,
                                   &pm, &sp, &nl, &le, &op, errmsg) == _FAILURE_) {
       printf("\n\nError running input_init_from_arguments \n=>%s\n", errmsg);
     }
-    if (background_init(&pr, ba) == _FAILURE_) {
-      printf("\n\nError running background_init \n=>%s\n", ba->error_message);
+    if (background_init(&pr, &ba) == _FAILURE_) {
+      printf("\n\nError running background_init \n=>%s\n", ba.error_message);
     }
 
-    if (thermodynamics_init(&pr, ba, th) == _FAILURE_) {
-      printf("\n\nError in thermodynamics_init \n=>%s\n", th->error_message);
+    if (thermodynamics_init(&pr, &ba, &th) == _FAILURE_) {
+      printf("\n\nError in thermodynamics_init \n=>%s\n", th.error_message);
     }
 
-    if (perturb_init(&pr, ba, th, pt) == _FAILURE_) {
-      printf("\n\nError in perturb_init \n=>%s\n", pt->error_message);
+    if (perturb_init(&pr, &ba, &th, &pt) == _FAILURE_) {
+      printf("\n\nError in perturb_init \n=>%s\n", pt.error_message);
     }
 
+
+    //Try getting a source
+    int index_md = pt.index_md_scalars; //scalar mode
+    int index_ic = 0; //index of the initial condition
+    int index_tp = pt.index_tp_delta_ncdm1; //type of source function
+
+    int k_size = pt.k_size[index_md]; //number of k points
+
+    rend->transfer.k_size = k_size;
+    rend->transfer.delta = (double*) calloc(k_size, sizeof(double));
+    rend->transfer.k = (double*) calloc(k_size, sizeof(double));
+
+    message("We have %i initial conditions", pt.ic_size[index_md]);
+
+  //   if (ba->has_ncdm == _TRUE_){
+  //       for (n_ncdm = 0; n_ncdm < ba->N_ncdm; n_ncdm++){
+  //     class_store_double(dataptr,tk[pt.index_tp_delta_ncdm1+n_ncdm],ppt.has_source_delta_ncdm,storeidx);
+  //   }
+  // }
+
+    int index_tau = 100;
+
+    for (int index_k=0; index_k<k_size; index_k++) {
+        double k = pt.k[index_md][index_k];
+        double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] + index_tp][index_tau * k_size + index_k];
+
+        rend->transfer.k[index_k] = k;
+        rend->transfer.delta[index_k] = p;
+        // printf("%.10e %.10e\n", k, p);
+    }
+
+    double tau = pt.tau_sampling[index_tau];
+    printf("The time was %.10e\n", tau);
+
+    // int success = perturb_sources_at_tau(&pt, index_md, index_ic, index_tp, tau, source);
+    //
+    // message("The success is %i", success);
+    //
+    // for (int i=0; i<k_size; i++) {
+    //
+    //     // message("%.10e", source[i]);
+    // }
 
 }

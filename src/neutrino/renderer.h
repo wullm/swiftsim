@@ -49,12 +49,12 @@ struct renderer {
   double *primordial_dims;
   size_t primordial_grid_N;
 
-  /*! CLASS structures */
-  struct boltz {
-    struct background ba; /* for cosmological background */
-    struct thermo th;     /* for thermodynamics */
-    struct perturbs pt;   /* for source functions */
-  } boltz;
+  /*! Neutrino transfer functions */
+  struct transfer {
+    size_t k_size;
+    double *delta;
+    double *k;
+  } transfer;
 
   /*! Desired length of the neutrino perturbation along the k dimension */
   size_t num_of_k_bins;  // user-defined
