@@ -2140,7 +2140,7 @@ AM_CONDITIONAL([COSMO_WITH_NEUTRINOS], [test $with_neutrino_cosmo = "BACKGROUND"
 #  Neutrino delta-f method
 AC_ARG_WITH([neutrino-df],
     [AS_HELP_STRING([--with-neutrino-df=<model>],
-       [neutrino delta-f model @<:@none, FERMI-DIRAC, default: none@:>@]
+       [neutrino delta-f model @<:@none, LINEAR-THEORY, FERMI-DIRAC, default: none@:>@]
     )],
     [with_neutrino_df="$withval"],
     [with_neutrino_df="none"]
@@ -2154,13 +2154,19 @@ case "$with_neutrino_df" in
       AC_DEFINE([NEUTRINO_DELTA_F], [1], [Include a delta-f step for neutrinos])
       AC_DEFINE([NEUTRINO_DELTA_F_FERMI_DIRAC], [1], [Fermi-Dirac model for neutrino delta-f step])
    ;;
+   LINEAR-THEORY)
+      AC_DEFINE([NEUTRINO_DELTA_F], [1], [Include a delta-f step for neutrinos])
+      AC_DEFINE([NEUTRINO_DELTA_F_LINEAR_THEORY], [1], [Linear theory model for neutrino delta-f step])
+   ;;
    *)
       AC_MSG_ERROR([Unknown neutrino delta-f model])
    ;;
 esac
 
 # Check if including delta-f step for neutrinos
-AM_CONDITIONAL([NEUTRINO_WITH_DELTA_F], [test $with_neutrino_df = "FERMI-DIRAC"])
+AM_CONDITIONAL([NEUTRINO_WITH_DELTA_F], [test $with_neutrino_df != "none"])
+AM_CONDITIONAL([NEUTRINO_DELTA_F_FERMI_DIRAC], [test $with_neutrino_df = "FERMI-DIRAC"])
+AM_CONDITIONAL([NEUTRINO_DELTA_F_LINEAR_THEORY], [test $with_neutrino_df = "LINEAR-THEORY"])
 
 
 #  Relativistic kick & drift - equation of motion

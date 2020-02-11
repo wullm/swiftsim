@@ -86,6 +86,11 @@ if NEUTRINO_WITH_DELTA_F
 DELTA_F_SOURCES += runner_weighting.c neutrino/phase_space.c
 endif
 
+# do we need a renderer for higher-order delta f methods
+if NEUTRINO_DELTA_F_LINEAR_THEORY
+DELTA_F_SOURCES += neutrino/renderer.c
+endif
+
 # Common source files
 AM_SOURCES = space.c runner_main.c runner_doiact_hydro.c runner_doiact_limiter.c \
     runner_doiact_stars.c runner_doiact_black_holes.c runner_ghost.c runner_recv.c \
@@ -256,7 +261,7 @@ nobase_noinst_HEADERS = align.h approx_math.h atomic.h barrier.h cycle.h error.h
 		 pressure_floor/GEAR/pressure_floor_iact.h pressure_floor/none/pressure_floor_iact.h \
 		 pressure_floor/GEAR/pressure_floor_struct.h pressure_floor/none/pressure_floor_struct.h \
 	         task_order/GEAR/task_order.h task_order/EAGLE/task_order.h task_order/none/task_order.h \
-		 neutrino/cosmology.h neutrino/phase_space.h
+		 neutrino/cosmology.h neutrino/phase_space.h neutrino/renderer.h
 
 
 # Sources and special flags for the gravity library

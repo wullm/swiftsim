@@ -92,10 +92,6 @@
 #include "velociraptor_interface.h"
 #include "version.h"
 
-#ifdef NEUTRINO_DELTA_F
-#include "neutrino/phase_space.h"
-#endif
-
 /* Particle cache size. */
 #define CACHE_SIZE 512
 
@@ -1513,6 +1509,11 @@ void engine_rebuild(struct engine *e, int repartitioned,
   /* Re-compute the mesh forces */
   if ((e->policy & engine_policy_self_gravity) && e->s->periodic)
     pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose);
+
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+  /* Add the perturbation theory contributions to the mesh forces */
+  rend_add_to_mesh(e->rend, e);
+#endif
 
   /* Re-compute the maximal RMS displacement constraint */
   if (e->policy & engine_policy_cosmology)
@@ -3384,7 +3385,8 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct cooling_function_data *cooling_func,
                  const struct star_formation *starform,
                  const struct chemistry_global_data *chemistry,
-                 struct fof_props *fof_properties) {
+                 struct fof_props *fof_properties,
+                 struct renderer *rend) {
 
   /* Clean-up everything */
   bzero(e, sizeof(struct engine));
@@ -3468,6 +3470,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
 #endif
   e->total_nr_cells = 0;
   e->total_nr_tasks = 0;
+  e->rend = rend;
 
 #if defined(WITH_LOGGER)
   e->logger = (struct logger_writer *)malloc(sizeof(struct logger_writer));
@@ -3543,6 +3546,11 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
 #ifdef NEUTRINO_DELTA_F
   /* Initialize the neutrino mass conversion factor */
   e->neutrino_mass_conversion_factor = neutrino_mass_factor(e);
+#endif
+
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+    /* Initialize the renderer */
+    rend_init(rend, params, e);
 #endif
 
   engine_init_output_lists(e, params);

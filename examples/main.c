@@ -106,6 +106,7 @@ int main(int argc, char *argv[]) {
   struct spart *sparts = NULL;
   struct bpart *bparts = NULL;
   struct unit_system us;
+  struct renderer rend;
 
   int nr_nodes = 1, myrank = 0;
 
@@ -1167,7 +1168,7 @@ int main(int argc, char *argv[]) {
         &us, &prog_const, &cosmo, &hydro_properties, &entropy_floor,
         &gravity_properties, &stars_properties, &black_holes_properties,
         &feedback_properties, &mesh, &potential, &cooling_func, &starform,
-        &chemistry, &fof_properties);
+        &chemistry, &fof_properties, &rend);
     engine_config(/*restart=*/0, /*fof=*/0, &e, params, nr_nodes, myrank,
                   nr_threads, with_aff, talking, restart_file);
 
