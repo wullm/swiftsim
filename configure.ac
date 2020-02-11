@@ -2315,7 +2315,6 @@ AC_MSG_RESULT([
    Task dependencies    : $with_task_order
 
    CLASS library        : $class_path
-   ABC                  : $CLASS_INCS
    Neutrino cosmology   : $with_neutrino_cosmo
    Neutrino delta-f     : $with_neutrino_df
    Relativistic kick    : $with_relativistic_eom
