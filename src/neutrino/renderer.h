@@ -17,44 +17,56 @@
  *
  ******************************************************************************/
 
- /**
+/**
  * renderer.h  -  linear response implementation of the relic neutrinos
  */
 
- #ifndef SWIFT_RENDERER_H
- #define SWIFT_RENDERER_H
+#ifndef SWIFT_RENDERER_H
+#define SWIFT_RENDERER_H
 
- #define BOLTZ_DEFAULT_BINS 20
+#define BOLTZ_DEFAULT_BINS 20
 
- #ifdef HAVE_FFTW
- #include <fftw3.h>
- #endif
+#ifdef HAVE_FFTW
+#include <fftw3.h>
+#endif
 
- #include "../engine.h"
- #include "../common_io.h"
+#include "../common_io.h"
+#include "../engine.h"
 
- #ifdef HAVE_HDF5
- #include <hdf5.h>
- #endif
+#include "class.h"
+
+#ifdef HAVE_HDF5
+#include <hdf5.h>
+#endif
 
 /**
  * @brief Data structure for the renderer
  */
 struct renderer {
 
-    /*! Array containing the primordial fluctuations on a grid */
-    double* primordial_grid;
-    double* primordial_dims;
-    size_t primordial_grid_N;
+  /*! Array containing the primordial fluctuations on a grid */
+  double *primordial_grid;
+  double *primordial_dims;
+  size_t primordial_grid_N;
 
-    /*! Desired length of the neutrino perturbation along the k dimension */
-    size_t num_of_k_bins; //user-defined
+  /*! CLASS structures */
+  struct boltz {
+    struct background ba; /* for cosmological background */
+    struct thermo th;     /* for thermodynamics */
+    struct perturbs pt;   /* for source functions */
+  } boltz;
+
+  /*! Desired length of the neutrino perturbation along the k dimension */
+  size_t num_of_k_bins;  // user-defined
 };
 
-//Initialize and load initial conditions
-void rend_init(struct renderer *rend, struct swift_params *params, const struct engine *e);
+// Initialize and load initial conditions
+void rend_init(struct renderer *rend, struct swift_params *params,
+               const struct engine *e);
 void rend_load_primordial_field(struct renderer *rend, const char *fname);
 
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
+
+void rend_compute_perturbations(struct renderer *rend);
 
 #endif /* SWIFT_RENDERER_H */

@@ -35,6 +35,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#include "class.h"
+#endif
+
 /* MPI headers. */
 #ifdef WITH_MPI
 #include <mpi.h>
@@ -1178,6 +1182,17 @@ int main(int argc, char *argv[]) {
               clocks_getunit());
       fflush(stdout);
     }
+
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+    /* Initialize perturbations to the cosmology with CLASS */
+    if (myrank == 0) {
+        message("Running CLASS to calculate perturbations to the cosmology.");
+
+        rend_compute_perturbations(&rend);
+
+        message("Done with CLASS. The perturbations are now available.");
+    }
+#endif
 
     /* Get some info to the user. */
     if (myrank == 0) {
