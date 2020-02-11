@@ -2169,6 +2169,32 @@ AM_CONDITIONAL([NEUTRINO_DELTA_F_FERMI_DIRAC], [test $with_neutrino_df = "FERMI-
 AM_CONDITIONAL([NEUTRINO_DELTA_F_LINEAR_THEORY], [test $with_neutrino_df = "LINEAR-THEORY"])
 
 
+#  Interface with Boltzmann solver CLASS
+AC_ARG_WITH([class],
+    [AS_HELP_STRING([--with-class=<path>],
+       [path to directory with CLASS library @<:@none, PATH, default: none@:>@]
+    )],
+    [class_path="$withval"],
+    [class_path="none"]
+)
+
+# Check if CLASS is to be included
+AM_CONDITIONAL([WITH_CLASS_INTERFACE], [test $class_path != "none"])
+
+if test $class_path != "none"; then
+    CLASS_LIBS="$class_path/libclass.so"
+    CLASS_INCS="-I$class_path/include"
+    AC_SUBST([CLASS_LIBS])
+    AC_SUBST([CLASS_INCS])
+fi
+
+# Check if the LINEAR-THEORY option was used, but no CLASS path was specified
+if test $class_path == "none" && test $with_neutrino_df = "LINEAR-THEORY"; then
+    $as_echo "$as_me: error: linear theory without CLASS library " >&2
+              { (exit 1); exit 1; };
+fi
+
+
 #  Relativistic kick & drift - equation of motion
 AC_ARG_WITH([relativistic-eom],
     [AS_HELP_STRING([--with-relativistic-eom=<mode>],
@@ -2287,6 +2313,9 @@ AC_MSG_RESULT([
    Star feedback model  : $with_feedback
    Black holes model    : $with_black_holes
    Task dependencies    : $with_task_order
+
+   CLASS library        : $class_path
+   ABC                  : $CLASS_INCS
    Neutrino cosmology   : $with_neutrino_cosmo
    Neutrino delta-f     : $with_neutrino_df
    Relativistic kick    : $with_relativistic_eom

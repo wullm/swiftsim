@@ -26,6 +26,8 @@
 /* We also use the interpolation methods from the Eagle cooling codebase */
 #include "../cooling/EAGLE/interpolate.h"
 
+#include "class.h"
+
 // Array index (this is the row major format)
 inline int box_idx(int N, int x, int y, int z) {
   return z + N * (y + N * x);
