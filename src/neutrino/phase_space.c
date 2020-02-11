@@ -74,9 +74,9 @@ double fermi_dirac_momentum(const struct engine *e, float *v, double m_eV) {
   double u = V / a;
 
 #ifdef WITH_RELATIVISTIC_KICK
-  double gamma = 1.0/sqrt(1.0 - u*u/c/c); //Lorentz factor
+  double gamma = 1.0 / sqrt(1.0 - u * u / c / c);  // Lorentz factor
 #else
-  double gamma = 1.0; //no relativity
+  double gamma = 1.0;  // no relativity
 #endif
 
   // Convert to present-day momentum in eV
