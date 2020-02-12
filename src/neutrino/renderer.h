@@ -45,7 +45,7 @@
 #endif
 
 /**
- * @brief Data structure for the renderer
+ * @brief Data structure for the renderer, generating perturbation theory grids
  */
 struct renderer {
 
@@ -78,5 +78,7 @@ void rend_compute_perturbations_with_class(struct renderer *rend);
 
 void rend_interp_init(struct renderer *rend);
 void rend_interp_free(struct renderer *rend);
+
+void rend_clean(struct renderer *rend);
 
 #endif /* SWIFT_RENDERER_H */

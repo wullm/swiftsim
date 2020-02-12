@@ -4801,6 +4801,10 @@ void engine_clean(struct engine *e, const int fof) {
   free(e->proxy_ind);
   free(e->proxies);
 
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+  rend_clean(e->rend);
+#endif
+
   /* Free types */
   part_free_mpi_types();
   multipole_free_mpi_types();

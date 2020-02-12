@@ -186,6 +186,20 @@ void rend_interp_free(struct renderer *rend) {
 #endif
 }
 
+void rend_clean(struct renderer *rend) {
+  /* Free the Gaussian field */
+  free(rend->primordial_grid);
+  free(rend->primordial_dims);
+
+  /* Free interpolation tables */
+  free(rend->transfer.delta);
+  free(rend->transfer.k);
+  free(rend->transfer.log_tau);
+
+  /* Clean up the interpolation spline */
+  rend_interp_free(rend);
+}
+
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 #ifdef HAVE_FFTW
 #ifdef HAVE_LIBGSL
