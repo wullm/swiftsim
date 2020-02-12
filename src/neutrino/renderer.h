@@ -26,15 +26,20 @@
 
 #define BOLTZ_DEFAULT_BINS 20
 
+#include "../common_io.h"
+#include "../engine.h"
+
+/* We use CLASS for the transfer functions */
+#ifdef WITH_CLASS_INTERFACE
+#include "class.h"
+#endif
+
+/* We use FFTW for Fourier transforming the primordial Gaussian field */
 #ifdef HAVE_FFTW
 #include <fftw3.h>
 #endif
 
-#include "../common_io.h"
-#include "../engine.h"
-
-#include "class.h"
-
+/* We use HDF5 to load the primordial Gaussian field */
 #ifdef HAVE_HDF5
 #include <hdf5.h>
 #endif

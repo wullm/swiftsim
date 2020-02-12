@@ -23,13 +23,8 @@
 /* This object's header. */
 #include "renderer.h"
 
-/* We use CLASS for the transfer functions */
-#include "class.h"
-
 /* We use GSL for accelerated 2D interpolation */
 #ifdef HAVE_LIBGSL
-#include <gsl/gsl_interp2d.h>
-#include <gsl/gsl_math.h>
 #include <gsl/gsl_spline2d.h>
 #endif
 
@@ -184,62 +179,57 @@ void rend_interp_free(struct renderer *rend) {
 }
 
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
-  /* The memory for the transfer functions is located here */
-  // struct transfer *tr = &rend->transfer;
-
-  // Grid size
+  /* Grid size */
   const int N = rend->primordial_grid_N;
   const double box_len = e->s->dim[0];
   const double box_volume = pow(box_len, 3);
-  const double delta_k = 2 * M_PI / box_len;  // Mpc^-1
+  const double delta_k = 2 * M_PI / box_len;  // U_L^-1
 
-  double *restrict prime = (double *)fftw_malloc(sizeof(double) * N * N * N);
-  if (prime == NULL) {
-    error("Error allocating memory for density mesh");
+  /* Current conformal time */
+  // double tau = e->time;
+
+  // cosmology_get_grav_kick_factor
+
+  /* Boxes in configuration and momentum space */
+  double *restrict prime;
+  fftw_complex *restrict fp;
+
+  /* Allocate memory for the rendered field */
+  prime = (double *)fftw_malloc(sizeof(double) * N * N * N);
+  fp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 + 1));
+
+  if (prime == NULL || fp == NULL) {
+    error("Error allocating memory for density mesh or its Fourier transform.");
   }
 
-  /* Allocates some memory for the mesh in Fourier space */
-  fftw_complex *restrict fprime =
-      (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 + 1));
-  if (fprime == NULL) {
-    error("Error allocating memory for transform of density mesh");
-  }
-  memuse_log_allocation("fftw_fprime", fprime, 1,
-                        sizeof(fftw_complex) * N * N * (N / 2 + 1));
+  memuse_log_allocation("prime", prime, 1, sizeof(fftw_complex) * N * N * N);
+  memuse_log_allocation("f", fp, 1, sizeof(fftw_complex) * N * N * (N / 2 + 1));
 
-  /* Prepare the FFT library */
-  fftw_plan r2c = fftw_plan_dft_r2c_3d(N, N, N, prime, fprime, FFTW_ESTIMATE);
-  fftw_plan c2r = fftw_plan_dft_c2r_3d(N, N, N, fprime, prime, FFTW_ESTIMATE);
+  /* Prepare the FFTW plans */
+  fftw_plan r2c = fftw_plan_dft_r2c_3d(N, N, N, prime, fp, FFTW_ESTIMATE);
+  fftw_plan c2r = fftw_plan_dft_c2r_3d(N, N, N, fp, prime, FFTW_ESTIMATE);
 
   // Transfer the data to prime
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      for (int k = 0; k < N; k++) {
-        prime[box_idx(N, i, j, k)] = rend->primordial_grid[box_idx(N, i, j, k)];
-      }
-    }
+  for (int i = 0; i < N * N * N; i++) {
+    prime[i] = rend->primordial_grid[i];
   }
 
   // Transform to momentum space
   fftw_execute(r2c);
 
   // Normalization
-  for (int x = 0; x < N; x++) {
-    for (int y = 0; y < N; y++) {
-      for (int z = 0; z <= N / 2; z++) {
-        fprime[half_box_idx(N, x, y, z)][0] *= box_volume / (N * N * N);
-        fprime[half_box_idx(N, x, y, z)][1] *= box_volume / (N * N * N);
-      }
-    }
+  for (int i = 0; i < N * N * (N / 2 + 1); i++) {
+    fp[i][0] *= box_volume / (N * N * N);
+    fp[i][1] *= box_volume / (N * N * N);
   }
 
   // Apply the transfer function
   for (int x = 0; x < N; x++) {
     for (int y = 0; y < N; y++) {
       for (int z = 0; z <= N / 2; z++) {
-        double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // Mpc^-1
-        double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // Mpc^-1
-        double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // Mpc^-1
+        double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
+        double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
+        double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
 
         double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
 
@@ -248,8 +238,8 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
           double log_tau = log(10000);
           double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
 
-          fprime[half_box_idx(N, x, y, z)][0] *= Tr * Tr;
-          fprime[half_box_idx(N, x, y, z)][1] *= Tr * Tr;
+          fp[half_box_idx(N, x, y, z)][0] *= Tr * Tr;
+          fp[half_box_idx(N, x, y, z)][1] *= Tr * Tr;
         }
       }
     }
@@ -259,21 +249,13 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   fftw_execute(c2r);
 
   // Normalization
-  for (int x = 0; x < N; x++) {
-    for (int y = 0; y < N; y++) {
-      for (int z = 0; z < N; z++) {
-        prime[z + y * N + x * N * N] /= box_volume;
-      }
-    }
+  for (int i = 0; i < N * N * N; i++) {
+    prime[i] /= box_volume;
   }
 
   // Add the contribution to the gravity mesh
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      for (int k = 0; k < N; k++) {
-        e->mesh->potential[box_idx(N, i, j, k)] += prime[box_idx(N, i, j, k)];
-      }
-    }
+  for (int i = 0; i < N * N * N; i++) {
+    e->mesh->potential[i] += prime[i];
   }
 
   message("Adding contributions to mesh.");
