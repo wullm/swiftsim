@@ -1203,9 +1203,9 @@ int main(int argc, char *argv[]) {
 
     /* Allocate memory on the other ranks */
     if (myrank != 0) {
-        tr->delta = (double*) calloc(tr->k_size * tr->tau_size, sizeof(double));
-        tr->k = (double*) calloc(tr->k_size, sizeof(double));
-        tr->tau = (double*) calloc(tr->tau_size, sizeof(double));
+        tr->delta = (double*) malloc(tr->k_size * tr->tau_size * sizeof(double));
+        tr->k = (double*) malloc(tr->k_size * sizeof(double));
+        tr->tau = (double*) malloc(tr->tau_size * sizeof(double));
     }
 
     /* Broadcast the perturbation to the other ranks */
