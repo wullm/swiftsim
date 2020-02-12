@@ -26,13 +26,13 @@
 /* We use GSL for accelerated 2D interpolation */
 #ifdef HAVE_LIBGSL
 #include <gsl/gsl_spline2d.h>
-#endif
 
 /* GSL interpolation objects */
 const gsl_interp2d_type *interp_type;
 gsl_interp_accel *k_acc;
 gsl_interp_accel *tau_acc;
 gsl_spline2d *spline;
+#endif
 
 // Array index (this is the row major format)
 inline int box_idx(int N, int x, int y, int z) { return z + N * (y + N * x); }
@@ -153,6 +153,8 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
 }
 
 void rend_interp_init(struct renderer *rend) {
+#ifdef HAVE_LIBGSL
+
   /* The memory for the transfer functions is located here */
   struct transfer *tr = &rend->transfer;
 
@@ -168,17 +170,25 @@ void rend_interp_init(struct renderer *rend) {
   k_acc = gsl_interp_accel_alloc();
   tau_acc = gsl_interp_accel_alloc();
 
-  message("The spline is available.");
+#else
+  error("No GSL library found. Cannot perform cosmological interpolation.");
+#endif
 }
 
 void rend_interp_free(struct renderer *rend) {
+#ifdef HAVE_LIBGSL
   /* Done with the GSL interpolation */
   gsl_spline2d_free(spline);
   gsl_interp_accel_free(k_acc);
   gsl_interp_accel_free(tau_acc);
+#else
+  error("No GSL library found. Cannot perform cosmological interpolation.");
+#endif
 }
 
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
+#ifdef HAVE_FFTW
+#ifdef HAVE_LIBGSL
   /* Grid size */
   const int N = rend->primordial_grid_N;
   const double box_len = e->s->dim[0];
@@ -259,9 +269,18 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   message("Adding contributions to mesh.");
+
+#else
+  error("No GSL library found. Cannot perform cosmological interpolation.");
+#endif
+
+#else
+  error("No FFTW library found. Cannot compute periodic long-range forces.");
+#endif
 }
 
-void rend_compute_perturbations(struct renderer *rend) {
+void rend_compute_perturbations_with_class(struct renderer *rend) {
+#ifdef WITH_CLASS_INTERFACE
   struct precision pr;  /* for precision parameters */
   struct background ba; /* for cosmological background */
   struct thermo th;     /* for thermodynamics */
@@ -347,4 +366,7 @@ void rend_compute_perturbations(struct renderer *rend) {
   if (background_free(&ba) == _FAILURE_) {
     error("Error in background_free \n%s\n", ba.error_message);
   }
+#else
+    error("No CLASS library found. Cannot compute transfer functions.");
+#endif
 }
