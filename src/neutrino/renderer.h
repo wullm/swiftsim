@@ -52,8 +52,10 @@ struct renderer {
   /*! Neutrino transfer functions */
   struct transfer {
     size_t k_size;
+    size_t tau_size;
     double *delta;
     double *k;
+    double *tau;
   } transfer;
 
   /*! Desired length of the neutrino perturbation along the k dimension */

@@ -1199,16 +1199,19 @@ int main(int argc, char *argv[]) {
 
     /* First broadcast the size of the perturbation to the other ranks */
     MPI_Bcast(&tr->k_size, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&tr->tau_size, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     /* Allocate memory on the other ranks */
     if (myrank != 0) {
-        tr->delta = (double*) calloc(tr->k_size, sizeof(double));
+        tr->delta = (double*) calloc(tr->k_size * tr->tau_size, sizeof(double));
         tr->k = (double*) calloc(tr->k_size, sizeof(double));
+        tr->tau = (double*) calloc(tr->tau_size, sizeof(double));
     }
 
     /* Broadcast the perturbation to the other ranks */
     MPI_Bcast(tr->k, tr->k_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(tr->delta, tr->k_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(tr->tau, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(tr->delta, tr->k_size * tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
 
 #endif

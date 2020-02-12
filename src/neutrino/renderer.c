@@ -240,11 +240,86 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 }
 
 
+
+
+int perturb_free2(
+                 struct perturbs * ppt
+                 ) {
+
+  int index_md,index_ic,index_tp;
+  int filenum;
+
+  if (ppt->has_perturbations == _TRUE_) {
+
+    for (index_md = 0; index_md < ppt->md_size; index_md++) {
+
+      for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+
+        for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+
+          free(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
+          if (ppt->ln_tau_size > 1)
+            free(ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
+
+        }
+      }
+
+      free(ppt->sources[index_md]);
+      free(ppt->late_sources[index_md]);
+      free(ppt->ddlate_sources[index_md]);
+
+      free(ppt->k[index_md]);
+
+    }
+
+    free(ppt->tau_sampling);
+    if (ppt->ln_tau_size > 1)
+      free(ppt->ln_tau);
+
+    free(ppt->tp_size);
+
+    free(ppt->ic_size);
+
+    free(ppt->k);
+
+    free(ppt->k_size_cmb);
+
+    free(ppt->k_size_cl);
+
+    free(ppt->k_size);
+
+    free(ppt->sources);
+    free(ppt->late_sources);
+    free(ppt->ddlate_sources);
+
+    free(ppt->alpha_idm_dr);
+
+    free(ppt->beta_idr);
+
+    /** Stuff related to perturbations output: */
+
+    /** - Free non-NULL pointers */
+    if (ppt->index_k_output_values != NULL)
+      free(ppt->index_k_output_values);
+
+    for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
+      if (ppt->scalar_perturbations_data[filenum] != NULL)
+        free(ppt->scalar_perturbations_data[filenum]);
+      if (ppt->vector_perturbations_data[filenum] != NULL)
+        free(ppt->vector_perturbations_data[filenum]);
+      if (ppt->tensor_perturbations_data[filenum] != NULL)
+        free(ppt->tensor_perturbations_data[filenum]);
+    }
+
+  }
+
+  return _SUCCESS_;
+
+}
+
+
 void rend_compute_perturbations(struct renderer *rend) {
     struct precision pr;  /* for precision parameters */
-    // struct background *ba = &rend->boltz.ba; /* for cosmological background */
-    // struct thermo *th = &rend->boltz.th;     /* for thermodynamics */
-    // struct perturbs *pt = &rend->boltz.pt;   /* for source functions */
     struct background ba; /* for cosmological background */
     struct thermo th;     /* for thermodynamics */
     struct perturbs pt;   /* for source functions */
@@ -261,61 +336,71 @@ void rend_compute_perturbations(struct renderer *rend) {
 
     if (input_init_from_arguments(class_argc, class_argv, &pr, &ba, &th, &pt, &tr,
                                   &pm, &sp, &nl, &le, &op, errmsg) == _FAILURE_) {
-      printf("\n\nError running input_init_from_arguments \n=>%s\n", errmsg);
+      error("Error running input_init_from_arguments \n=>%s\n", errmsg);
     }
+
     if (background_init(&pr, &ba) == _FAILURE_) {
-      printf("\n\nError running background_init \n=>%s\n", ba.error_message);
+      error("Error running background_init \n%s\n", ba.error_message);
     }
 
     if (thermodynamics_init(&pr, &ba, &th) == _FAILURE_) {
-      printf("\n\nError in thermodynamics_init \n=>%s\n", th.error_message);
+      error("Error in thermodynamics_init \n%s\n", th.error_message);
     }
 
     if (perturb_init(&pr, &ba, &th, &pt) == _FAILURE_) {
-      printf("\n\nError in perturb_init \n=>%s\n", pt.error_message);
+      error("Error in perturb_init \n%s\n", pt.error_message);
     }
 
-
-    //Try getting a source
+    /* Try getting a source */
     int index_md = pt.index_md_scalars; //scalar mode
     int index_ic = 0; //index of the initial condition
     int index_tp = pt.index_tp_delta_ncdm1; //type of source function
 
-    int k_size = pt.k_size[index_md]; //number of k points
+    /* Size of the perturbations */
+    int k_size = pt.k_size[index_md];
+    int tau_size = pt.tau_size;
 
+    /* Vector of the wavenumbers */
     rend->transfer.k_size = k_size;
-    rend->transfer.delta = (double*) calloc(k_size, sizeof(double));
     rend->transfer.k = (double*) calloc(k_size, sizeof(double));
 
-    message("We have %i initial conditions", pt.ic_size[index_md]);
+    /* Vector of the conformal times at which the perturbation is sampled */
+    rend->transfer.tau_size = tau_size;
+    rend->transfer.tau = (double*) calloc(tau_size, sizeof(double));
 
-  //   if (ba->has_ncdm == _TRUE_){
-  //       for (n_ncdm = 0; n_ncdm < ba->N_ncdm; n_ncdm++){
-  //     class_store_double(dataptr,tk[pt.index_tp_delta_ncdm1+n_ncdm],ppt.has_source_delta_ncdm,storeidx);
-  //   }
-  // }
+    /* Vector with the transfer functions T(tau, k) */
+    rend->transfer.delta = (double*) calloc(k_size*tau_size, sizeof(double));
 
-    int index_tau = 100;
+    /* Read out the perturbation */
+    for (int index_tau=0; index_tau<tau_size; index_tau++) {
+        for (int index_k=0; index_k<k_size; index_k++) {
+            double k = pt.k[index_md][index_k];
+            double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] + index_tp][index_tau * k_size + index_k];
 
-    for (int index_k=0; index_k<k_size; index_k++) {
-        double k = pt.k[index_md][index_k];
-        double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] + index_tp][index_tau * k_size + index_k];
-
-        rend->transfer.k[index_k] = k;
-        rend->transfer.delta[index_k] = p;
-        // printf("%.10e %.10e\n", k, p);
+            rend->transfer.k[index_k] = k;
+            rend->transfer.delta[index_tau * k_size + index_k] = p;
+        }
+        rend->transfer.tau[index_tau] = pt.tau_sampling[index_tau];
     }
 
-    double tau = pt.tau_sampling[index_tau];
-    printf("The time was %.10e\n", tau);
+    message("The sizes are %i * %i", k_size, tau_size);
 
-    // int success = perturb_sources_at_tau(&pt, index_md, index_ic, index_tp, tau, source);
-    //
-    // message("The success is %i", success);
-    //
-    // for (int i=0; i<k_size; i++) {
-    //
-    //     // message("%.10e", source[i]);
-    // }
+    /* Pre-empt segfault in CLASS if there is no interacting dark radiation */
+    if (ba.has_idr == _FALSE_) {
+        pt.alpha_idm_dr = (double*) malloc(0);
+        pt.beta_idr = (double*) malloc(0);
+    }
 
+    /* Close CLASS again */
+    if (perturb_free(&pt) == _FAILURE_) {
+      error("Error in freeing class memory \n%s\n", pt.error_message);
+    }
+
+    if (thermodynamics_free(&th) == _FAILURE_) {
+      error("Error in thermodynamics_free \n%s\n", th.error_message);
+    }
+
+    if (background_free(&ba) == _FAILURE_) {
+      error("Error in background_free \n%s\n", ba.error_message);
+    }
 }
