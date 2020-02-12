@@ -23,10 +23,21 @@
 /* This object's header. */
 #include "renderer.h"
 
-/* We also use the interpolation methods from the Eagle cooling codebase */
-#include "../cooling/EAGLE/interpolate.h"
-
+/* We use CLASS for the transfer functions */
 #include "class.h"
+
+/* We use GSL for accelerated 2D interpolation */
+#ifdef HAVE_LIBGSL
+#include <gsl/gsl_interp2d.h>
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_spline2d.h>
+#endif
+
+/* GSL interpolation objects */
+const gsl_interp2d_type *interp_type;
+gsl_interp_accel *k_acc;
+gsl_interp_accel *tau_acc;
+gsl_spline2d *spline;
 
 // Array index (this is the row major format)
 inline int box_idx(int N, int x, int y, int z) { return z + N * (y + N * x); }
@@ -35,8 +46,6 @@ inline int box_idx(int N, int x, int y, int z) { return z + N * (y + N * x); }
 inline int half_box_idx(int N, int x, int y, int z) {
   return z + (N / 2 + 1) * (y + N * x);
 }
-
-double rend_transfer(double k) { return exp(-k); }
 
 void rend_init(struct renderer *rend, struct swift_params *params,
                const struct engine *e) {
@@ -67,7 +76,6 @@ void rend_init(struct renderer *rend, struct swift_params *params,
         "Primordial grid is not the same size as the gravity mesh %zu != %zu.",
         rend->primordial_grid_N, (size_t)e->mesh->N);
   }
-
 }
 
 void rend_load_primordial_field(struct renderer *rend, const char *fname) {
@@ -149,47 +157,76 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
   H5Fclose(field_file);
 }
 
+void rend_interp_init(struct renderer *rend) {
+  /* The memory for the transfer functions is located here */
+  struct transfer *tr = &rend->transfer;
+
+  /* We will use bilinear interpolation in (tau, k) space */
+  interp_type = gsl_interp2d_bilinear;
+
+  /* Initialize the spline */
+  spline = gsl_spline2d_alloc(interp_type, tr->k_size, tr->tau_size);
+  gsl_spline2d_init(spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
+                    tr->tau_size);
+
+  /* Initialize accelerator objects */
+  k_acc = gsl_interp_accel_alloc();
+  tau_acc = gsl_interp_accel_alloc();
+
+  message("The spline is available.");
+}
+
+void rend_interp_free(struct renderer *rend) {
+  /* Done with the GSL interpolation */
+  gsl_spline2d_free(spline);
+  gsl_interp_accel_free(k_acc);
+  gsl_interp_accel_free(tau_acc);
+}
+
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
+  /* The memory for the transfer functions is located here */
+  // struct transfer *tr = &rend->transfer;
+
   // Grid size
-  const size_t N = rend->primordial_grid_N;
+  const int N = rend->primordial_grid_N;
   const double box_len = e->s->dim[0];
   const double box_volume = pow(box_len, 3);
   const double delta_k = 2 * M_PI / box_len;  // Mpc^-1
 
   double *restrict prime = (double *)fftw_malloc(sizeof(double) * N * N * N);
-  if (prime == NULL) error("Error allocating memory for density mesh");
-  // bzero(prime, N * N * N * sizeof(double));
+  if (prime == NULL) {
+    error("Error allocating memory for density mesh");
+  }
 
   /* Allocates some memory for the mesh in Fourier space */
   fftw_complex *restrict fprime =
       (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 + 1));
-  if (fprime == NULL)
+  if (fprime == NULL) {
     error("Error allocating memory for transform of density mesh");
+  }
   memuse_log_allocation("fftw_fprime", fprime, 1,
                         sizeof(fftw_complex) * N * N * (N / 2 + 1));
 
   /* Prepare the FFT library */
-  fftw_plan forward_plan = fftw_plan_dft_r2c_3d(
-      N, N, N, prime, fprime, FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
-  fftw_plan inverse_plan = fftw_plan_dft_c2r_3d(
-      N, N, N, fprime, prime, FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+  fftw_plan r2c = fftw_plan_dft_r2c_3d(N, N, N, prime, fprime, FFTW_ESTIMATE);
+  fftw_plan c2r = fftw_plan_dft_c2r_3d(N, N, N, fprime, prime, FFTW_ESTIMATE);
 
   // Transfer the data to prime
-  for (size_t i = 0; i < N; i++) {
-    for (size_t j = 0; j < N; j++) {
-      for (size_t k = 0; k < N; k++) {
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      for (int k = 0; k < N; k++) {
         prime[box_idx(N, i, j, k)] = rend->primordial_grid[box_idx(N, i, j, k)];
       }
     }
   }
 
   // Transform to momentum space
-  fftw_execute(forward_plan);
+  fftw_execute(r2c);
 
   // Normalization
-  for (size_t x = 0; x < N; x++) {
-    for (size_t y = 0; y < N; y++) {
-      for (size_t z = 0; z <= N / 2; z++) {
+  for (int x = 0; x < N; x++) {
+    for (int y = 0; y < N; y++) {
+      for (int z = 0; z <= N / 2; z++) {
         fprime[half_box_idx(N, x, y, z)][0] *= box_volume / (N * N * N);
         fprime[half_box_idx(N, x, y, z)][1] *= box_volume / (N * N * N);
       }
@@ -197,40 +234,43 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   // Apply the transfer function
-  for (size_t x = 0; x < N; x++) {
-    for (size_t y = 0; y < N; y++) {
-      for (size_t z = 0; z <= N / 2; z++) {
+  for (int x = 0; x < N; x++) {
+    for (int y = 0; y < N; y++) {
+      for (int z = 0; z <= N / 2; z++) {
         double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // Mpc^-1
         double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // Mpc^-1
         double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // Mpc^-1
 
         double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
 
-        double T = rend_transfer(k);
-        double TT = T * T;
+        /* Ignore the DC mode */
+        if (k > 0) {
+          double log_tau = log(10000);
+          double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
 
-        fprime[half_box_idx(N, x, y, z)][0] *= TT;
-        fprime[half_box_idx(N, x, y, z)][1] *= TT;
+          fprime[half_box_idx(N, x, y, z)][0] *= Tr * Tr;
+          fprime[half_box_idx(N, x, y, z)][1] *= Tr * Tr;
+        }
       }
     }
   }
 
   // Transform back
-  fftw_execute(inverse_plan);
+  fftw_execute(c2r);
 
   // Normalization
-  for (size_t x = 0; x < N; x++) {
-    for (size_t y = 0; y < N; y++) {
-      for (size_t z = 0; z < N; z++) {
+  for (int x = 0; x < N; x++) {
+    for (int y = 0; y < N; y++) {
+      for (int z = 0; z < N; z++) {
         prime[z + y * N + x * N * N] /= box_volume;
       }
     }
   }
 
   // Add the contribution to the gravity mesh
-  for (size_t i = 0; i < N; i++) {
-    for (size_t j = 0; j < N; j++) {
-      for (size_t k = 0; k < N; k++) {
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      for (int k = 0; k < N; k++) {
         e->mesh->potential[box_idx(N, i, j, k)] += prime[box_idx(N, i, j, k)];
       }
     }
@@ -240,88 +280,89 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 }
 
 void rend_compute_perturbations(struct renderer *rend) {
-    struct precision pr;  /* for precision parameters */
-    struct background ba; /* for cosmological background */
-    struct thermo th;     /* for thermodynamics */
-    struct perturbs pt;   /* for source functions */
-    struct transfers tr;  /* for transfer functions */
-    struct primordial pm; /* for primordial spectra */
-    struct spectra sp;    /* for output spectra */
-    struct nonlinear nl;  /* for non-linear spectra */
-    struct lensing le;    /* for lensed spectra */
-    struct output op;     /* for output files */
-    ErrorMsg errmsg;      /* for error messages */
+  struct precision pr;  /* for precision parameters */
+  struct background ba; /* for cosmological background */
+  struct thermo th;     /* for thermodynamics */
+  struct perturbs pt;   /* for source functions */
+  struct transfers tr;  /* for transfer functions */
+  struct primordial pm; /* for primordial spectra */
+  struct spectra sp;    /* for output spectra */
+  struct nonlinear nl;  /* for non-linear spectra */
+  struct lensing le;    /* for lensed spectra */
+  struct output op;     /* for output files */
+  ErrorMsg errmsg;      /* for error messages */
 
-    int class_argc = 2;
-    char *class_argv[] = {"", "class_file.ini", NULL};
+  int class_argc = 2;
+  char *class_argv[] = {"", "class_file.ini", NULL};
 
-    if (input_init_from_arguments(class_argc, class_argv, &pr, &ba, &th, &pt, &tr,
-                                  &pm, &sp, &nl, &le, &op, errmsg) == _FAILURE_) {
-      error("Error running input_init_from_arguments \n=>%s\n", errmsg);
+  if (input_init_from_arguments(class_argc, class_argv, &pr, &ba, &th, &pt, &tr,
+                                &pm, &sp, &nl, &le, &op, errmsg) == _FAILURE_) {
+    error("Error running input_init_from_arguments \n=>%s\n", errmsg);
+  }
+
+  if (background_init(&pr, &ba) == _FAILURE_) {
+    error("Error running background_init \n%s\n", ba.error_message);
+  }
+
+  if (thermodynamics_init(&pr, &ba, &th) == _FAILURE_) {
+    error("Error in thermodynamics_init \n%s\n", th.error_message);
+  }
+
+  if (perturb_init(&pr, &ba, &th, &pt) == _FAILURE_) {
+    error("Error in perturb_init \n%s\n", pt.error_message);
+  }
+
+  /* Try getting a source */
+  int index_md = pt.index_md_scalars;      // scalar mode
+  int index_ic = 0;                        // index of the initial condition
+  int index_tp = pt.index_tp_delta_ncdm1;  // type of source function
+
+  /* Size of the perturbations */
+  int k_size = pt.k_size[index_md];
+  int tau_size = pt.tau_size;
+
+  /* Vector of the wavenumbers */
+  rend->transfer.k_size = k_size;
+  rend->transfer.k = (double *)calloc(k_size, sizeof(double));
+
+  /* Vector of the conformal times at which the perturbation is sampled */
+  rend->transfer.tau_size = tau_size;
+  rend->transfer.log_tau = (double *)calloc(tau_size, sizeof(double));
+
+  /* Vector with the transfer functions T(tau, k) */
+  rend->transfer.delta = (double *)calloc(k_size * tau_size, sizeof(double));
+
+  /* Read out the perturbation */
+  for (int index_tau = 0; index_tau < tau_size; index_tau++) {
+    for (int index_k = 0; index_k < k_size; index_k++) {
+      double k = pt.k[index_md][index_k];
+      double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] +
+                                      index_tp][index_tau * k_size + index_k];
+
+      rend->transfer.k[index_k] = k;
+      rend->transfer.delta[index_tau * k_size + index_k] = p;
     }
+    rend->transfer.log_tau[index_tau] = log(pt.tau_sampling[index_tau]);
+  }
 
-    if (background_init(&pr, &ba) == _FAILURE_) {
-      error("Error running background_init \n%s\n", ba.error_message);
-    }
+  message("The sizes are %i * %i", k_size, tau_size);
 
-    if (thermodynamics_init(&pr, &ba, &th) == _FAILURE_) {
-      error("Error in thermodynamics_init \n%s\n", th.error_message);
-    }
+  /* Pre-empt segfault in CLASS if there is no interacting dark radiation */
+  if (ba.has_idr == _FALSE_) {
+    pt.alpha_idm_dr = (double *)malloc(0);
+    pt.beta_idr = (double *)malloc(0);
+  }
 
-    if (perturb_init(&pr, &ba, &th, &pt) == _FAILURE_) {
-      error("Error in perturb_init \n%s\n", pt.error_message);
-    }
+  /* Close CLASS again */
+  if (perturb_free(&pt) == _FAILURE_) {
+    error("Error in freeing class memory \n%s\n", pt.error_message);
+  }
 
-    /* Try getting a source */
-    int index_md = pt.index_md_scalars; //scalar mode
-    int index_ic = 0; //index of the initial condition
-    int index_tp = pt.index_tp_delta_ncdm1; //type of source function
+  if (thermodynamics_free(&th) == _FAILURE_) {
+    error("Error in thermodynamics_free \n%s\n", th.error_message);
+  }
 
-    /* Size of the perturbations */
-    int k_size = pt.k_size[index_md];
-    int tau_size = pt.tau_size;
-
-    /* Vector of the wavenumbers */
-    rend->transfer.k_size = k_size;
-    rend->transfer.k = (double*) calloc(k_size, sizeof(double));
-
-    /* Vector of the conformal times at which the perturbation is sampled */
-    rend->transfer.tau_size = tau_size;
-    rend->transfer.tau = (double*) calloc(tau_size, sizeof(double));
-
-    /* Vector with the transfer functions T(tau, k) */
-    rend->transfer.delta = (double*) calloc(k_size*tau_size, sizeof(double));
-
-    /* Read out the perturbation */
-    for (int index_tau=0; index_tau<tau_size; index_tau++) {
-        for (int index_k=0; index_k<k_size; index_k++) {
-            double k = pt.k[index_md][index_k];
-            double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] + index_tp][index_tau * k_size + index_k];
-
-            rend->transfer.k[index_k] = k;
-            rend->transfer.delta[index_tau * k_size + index_k] = p;
-        }
-        rend->transfer.tau[index_tau] = pt.tau_sampling[index_tau];
-    }
-
-    message("The sizes are %i * %i", k_size, tau_size);
-
-    /* Pre-empt segfault in CLASS if there is no interacting dark radiation */
-    if (ba.has_idr == _FALSE_) {
-        pt.alpha_idm_dr = (double*) malloc(0);
-        pt.beta_idr = (double*) malloc(0);
-    }
-
-    /* Close CLASS again */
-    if (perturb_free(&pt) == _FAILURE_) {
-      error("Error in freeing class memory \n%s\n", pt.error_message);
-    }
-
-    if (thermodynamics_free(&th) == _FAILURE_) {
-      error("Error in thermodynamics_free \n%s\n", th.error_message);
-    }
-
-    if (background_free(&ba) == _FAILURE_) {
-      error("Error in background_free \n%s\n", ba.error_message);
-    }
+  if (background_free(&ba) == _FAILURE_) {
+    error("Error in background_free \n%s\n", ba.error_message);
+  }
 }

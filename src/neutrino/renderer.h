@@ -55,7 +55,7 @@ struct renderer {
     size_t tau_size;
     double *delta;
     double *k;
-    double *tau;
+    double *log_tau;
   } transfer;
 
   /*! Desired length of the neutrino perturbation along the k dimension */
@@ -70,5 +70,8 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname);
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
 
 void rend_compute_perturbations(struct renderer *rend);
+
+void rend_interp_init(struct renderer *rend);
+void rend_interp_free(struct renderer *rend);
 
 #endif /* SWIFT_RENDERER_H */

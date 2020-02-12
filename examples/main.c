@@ -1186,11 +1186,14 @@ int main(int argc, char *argv[]) {
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
     /* Initialize perturbations to the cosmology with CLASS */
     if (myrank == 0) {
-        message("Running CLASS to calculate perturbations to the cosmology.");
+      message("Running CLASS to calculate perturbations to the cosmology.");
 
-        rend_compute_perturbations(&rend);
+      rend_compute_perturbations(&rend);
 
-        message("Done with CLASS. The perturbations are now available.");
+      message("Done with CLASS. The perturbations are now available.");
+
+      /* Initialize our own interpolation spline */
+      rend_interp_init(&rend);
     }
 
 #ifdef WITH_MPI
@@ -1203,15 +1206,21 @@ int main(int argc, char *argv[]) {
 
     /* Allocate memory on the other ranks */
     if (myrank != 0) {
-        tr->delta = (double*) malloc(tr->k_size * tr->tau_size * sizeof(double));
-        tr->k = (double*) malloc(tr->k_size * sizeof(double));
-        tr->tau = (double*) malloc(tr->tau_size * sizeof(double));
+      tr->delta = (double *)malloc(tr->k_size * tr->tau_size * sizeof(double));
+      tr->k = (double *)malloc(tr->k_size * sizeof(double));
+      tr->log_tau = (double *)malloc(tr->tau_size * sizeof(double));
     }
 
     /* Broadcast the perturbation to the other ranks */
     MPI_Bcast(tr->k, tr->k_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(tr->tau, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(tr->delta, tr->k_size * tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(tr->log_tau, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(tr->delta, tr->k_size * tr->tau_size, MPI_DOUBLE, 0,
+              MPI_COMM_WORLD);
+
+    /* Initialize the interpolation spline on the other ranks */
+    if (myrank != 0) {
+      rend_interp_init(&rend);
+    }
 #endif
 
 #endif
