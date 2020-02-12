@@ -2182,10 +2182,11 @@ AC_ARG_WITH([class],
 AM_CONDITIONAL([WITH_CLASS_INTERFACE], [test $class_path != "none"])
 
 if test $class_path != "none"; then
-    CLASS_LIBS="-L$class_path/ -lclass"
+    CLASS_LIBS="-L$class_path -lclass"
     CLASS_INCS="-I$class_path/include"
     AC_SUBST([CLASS_LIBS])
     AC_SUBST([CLASS_INCS])
+    AC_DEFINE([WITH_CLASS_INTERFACE], [1], [Interface with the CLASS code])
 fi
 
 # Check if the LINEAR-THEORY option was used, but no CLASS path was specified
