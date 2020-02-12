@@ -258,6 +258,7 @@ void cosmology_update(struct cosmology *c, const struct phys_const *phys_const,
 
   /* Time */
   c->time = cosmology_get_time_since_big_bang(c, a);
+  c->conformal_time = cosmology_get_conformal_time(c, a);
   c->lookback_time = c->universe_age_at_present_day - c->time;
 }
 
@@ -598,6 +599,11 @@ void cosmology_init_tables(struct cosmology *c) {
                      SWIFT_STRUCT_ALIGNMENT,
                      cosmology_table_length * sizeof(double)) != 0)
     error("Failed to allocate cosmology interpolation table");
+  if (swift_memalign("cosmo.table", (void **)&c->conformal_time_interp_table,
+                     SWIFT_STRUCT_ALIGNMENT,
+                     cosmology_table_length * sizeof(double)) != 0)
+    error("Failed to allocate cosmology interpolation table");
+
 
   /* Prepare a table of scale factors for the integral bounds */
   const double delta_a =
@@ -663,6 +669,16 @@ void cosmology_init_tables(struct cosmology *c) {
 
     /* Store result */
     c->time_interp_table[i] = result;
+  }
+
+  /* Integrate the kick factor \int_{0}^{a_table[i]} dt/a */
+  F.function = &gravity_kick_integrand;
+  for (int i = 0; i < cosmology_table_length; i++) {
+    gsl_integration_qag(&F, 0., a_table[i], 0, 1.0e-13, GSL_workspace_size,
+                        GSL_INTEG_GAUSS61, space, &result, &abserr);
+
+    /* Store result */
+    c->conformal_time_interp_table[i] = result;
   }
 
   /* Integrate the time \int_{0}^{1} dt */
@@ -775,6 +791,7 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   c->grav_kick_fac_interp_table = NULL;
   c->hydro_kick_fac_interp_table = NULL;
   c->time_interp_table = NULL;
+  c->conformal_time_interp_table = NULL;
   cosmology_init_tables(c);
 
   /* Set remaining variables to valid values */
@@ -924,6 +941,7 @@ void cosmology_init_no_cosmo(struct cosmology *c) {
 
   c->a_dot = 0.;
   c->time = 0.;
+  c->conformal_time = 0.;
   c->universe_age_at_present_day = 0.;
   c->Hubble_time = 0.;
   c->lookback_time = 0.;
@@ -934,6 +952,7 @@ void cosmology_init_no_cosmo(struct cosmology *c) {
   c->hydro_kick_fac_interp_table = NULL;
   c->hydro_kick_corr_interp_table = NULL;
   c->time_interp_table = NULL;
+  c->conformal_time_interp_table = NULL;
   c->neutrino_density_interp_table = NULL;
   c->log_a_nutab_begin = 0.;
   c->log_a_nutab_end = 0.;
@@ -1124,6 +1143,27 @@ double cosmology_get_time_since_big_bang(const struct cosmology *c, double a) {
 }
 
 /**
+ * @brief Returns the conformal time (in internal units) since Big Bang at a
+ * given scale-factor.
+ *
+ * @param c The current #cosmology.
+ * @param a Scale-factor of interest.
+ */
+double cosmology_get_conformal_time(const struct cosmology *c, double a) {
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (a < c->a_begin) error("Error a can't be smaller than a_begin");
+#endif
+
+  /* Conformal time between a_begin and a */
+  const double delta_t =
+      interp_table(c->conformal_time_interp_table, c->log_a_interp_table,
+                   log(a), c->log_a_table_begin, c->log_a_table_end);
+
+  return delta_t;
+}
+
+/**
  * @brief Compute the cosmic time (in internal units) between two points
  * on the integer time line.
  *
@@ -1281,6 +1321,7 @@ void cosmology_clean(struct cosmology *c) {
   swift_free("cosmo.table", c->hydro_kick_fac_interp_table);
   swift_free("cosmo.table", c->hydro_kick_corr_interp_table);
   swift_free("cosmo.table", c->time_interp_table);
+  swift_free("cosmo.table", c->conformal_time_interp_table);
   if (c->M_nu_tot > 0) {
     swift_free("cosmo.table", c->neutrino_density_interp_table);
   }

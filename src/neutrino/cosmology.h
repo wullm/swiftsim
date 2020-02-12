@@ -88,6 +88,9 @@ struct cosmology {
   /*! Time (in internal units) since the Big Bang */
   double time;
 
+  /*! Conformal time (in internal units) since the Big Bang */
+  double conformal_time;
+
   /*! Lookback time (in internal units) */
   double lookback_time;
 
@@ -203,6 +206,9 @@ struct cosmology {
 
   /*! Time since Big Bang interpolation table */
   double *time_interp_table;
+
+  /*! Conformal time since Big Bang interpolation table */
+  double *conformal_time_interp_table;
 
   /*! Neutrino density interpolation table */
   double *neutrino_density_interp_table;
