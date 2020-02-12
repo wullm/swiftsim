@@ -210,7 +210,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   const double delta_k = 2 * M_PI / box_len;  // U_L^-1
 
   /* Current conformal time */
-  // double tau = e->time;
+  double tau = e->cosmology->conformal_time;
 
   // cosmology_get_grav_kick_factor
 
@@ -259,8 +259,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          double log_tau = log(10000);
-          double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
+          double Tr = gsl_spline2d_eval(spline, k, log(tau), k_acc, tau_acc);
 
           fp[half_box_idx(N, x, y, z)][0] *= Tr * Tr;
           fp[half_box_idx(N, x, y, z)][1] *= Tr * Tr;
@@ -293,8 +292,26 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 #endif
 }
 
-void rend_compute_perturbations_with_class(struct renderer *rend) {
+void rend_compute_perturbations_with_class(struct renderer *rend, const struct engine *e) {
 #ifdef WITH_CLASS_INTERFACE
+
+  /* Load internal units and physical constants */
+  const struct unit_system *us = e->internal_units;
+  const struct phys_const *pc = e->physical_constants;
+
+  /* CLASS to internal units conversion factor */
+  const double Mpc_to_cm = _Mpc_over_m_ * 100; //CLASS uses hard-coded Mpc's
+  const double unit_length_factor = Mpc_to_cm / us->UnitLength_in_cgs;
+  const double unit_time_factor = unit_length_factor / pc->const_speed_light_c;
+
+  message("Converting CLASS Units:");
+  message("(CLASS) Unit system: U_L = \t %.6e cm", Mpc_to_cm);
+  message("(CLASS) Unit system: U_T = \t %.6e cm", unit_time_factor * us->UnitTime_in_cgs);
+  message("to:");
+  message("(internal) Unit system: U_L = \t %.6e cm", us->UnitLength_in_cgs);
+  message("(internal) Unit system: U_T = \t %.6e cm", us->UnitTime_in_cgs);
+
+  /* Define the CLASS structures */
   struct precision pr;  /* for precision parameters */
   struct background ba; /* for cosmological background */
   struct thermo th;     /* for thermodynamics */
@@ -305,7 +322,7 @@ void rend_compute_perturbations_with_class(struct renderer *rend) {
   struct nonlinear nl;  /* for non-linear spectra */
   struct lensing le;    /* for lensed spectra */
   struct output op;     /* for output files */
-  ErrorMsg errmsg;      /* for error messages */
+  ErrorMsg errmsg;      /* for CLASS-specific error messages */
 
   int class_argc = 2;
   char *class_argv[] = {"", "class_file.ini", NULL};
@@ -350,14 +367,15 @@ void rend_compute_perturbations_with_class(struct renderer *rend) {
   /* Read out the perturbation */
   for (int index_tau = 0; index_tau < tau_size; index_tau++) {
     for (int index_k = 0; index_k < k_size; index_k++) {
-      double k = pt.k[index_md][index_k];
+      double k = pt.k[index_md][index_k] / unit_length_factor; //from Mpc^-1
       double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] +
                                       index_tp][index_tau * k_size + index_k];
 
       rend->transfer.k[index_k] = k;
       rend->transfer.delta[index_tau * k_size + index_k] = p;
     }
-    rend->transfer.log_tau[index_tau] = log(pt.tau_sampling[index_tau]);
+    double tau =  pt.tau_sampling[index_tau] * unit_time_factor; //from Mpc
+    rend->transfer.log_tau[index_tau] = log(tau);
   }
 
   message("The sizes are %i * %i", k_size, tau_size);

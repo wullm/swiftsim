@@ -1187,7 +1187,7 @@ int main(int argc, char *argv[]) {
     if (myrank == 0) {
       /* Initialize perturbations to the cosmology with CLASS */
       message("Running CLASS to calculate perturbations to the cosmology.");
-      rend_compute_perturbations_with_class(&rend);
+      rend_compute_perturbations_with_class(&rend, &e);
       message("Done with CLASS. The perturbations are now available.");
 
       /* Initialize our own interpolation spline */
