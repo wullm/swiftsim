@@ -97,6 +97,8 @@ void rend_write_perturb(struct renderer *rend, const struct engine *e,
                         char *fname);
 
 /* Additional functions related to CLASS */
+#ifdef WITH_CLASS_INTERFACE
 #include "class_interface.h"
+#endif
 
 #endif /* SWIFT_RENDERER_H */

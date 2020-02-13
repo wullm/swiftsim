@@ -38,7 +38,6 @@
 #include "collectgroup.h"
 #include "dump.h"
 #include "mesh_gravity.h"
-#include "neutrino/renderer.h"
 #include "parser.h"
 #include "partition.h"
 #include "potential.h"
@@ -48,6 +47,10 @@
 #include "task.h"
 #include "units.h"
 #include "velociraptor_interface.h"
+
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#include "neutrino/renderer.h"
+#endif
 
 #ifdef NEUTRINO_DELTA_F
 #include "neutrino/phase_space.h"
