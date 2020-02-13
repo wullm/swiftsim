@@ -110,9 +110,7 @@ int main(int argc, char *argv[]) {
   struct spart *sparts = NULL;
   struct bpart *bparts = NULL;
   struct unit_system us;
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
   struct renderer rend;
-#endif
 
   int nr_nodes = 1, myrank = 0;
 
