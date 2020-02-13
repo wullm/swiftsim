@@ -490,6 +490,9 @@ struct engine {
 #ifdef NEUTRINO_DELTA_F
   /* Conversion factor from macro particle mass to neutrino mass in eV */
   double neutrino_mass_conversion_factor;
+
+  /* Maximum and minimum neutrino masses present in the simulation */
+  float neutrino_mass_min, neutrino_mass_max;
 #endif
 };
 

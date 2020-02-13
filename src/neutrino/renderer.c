@@ -143,7 +143,7 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
     }
   }
 
-  message("The primordial field has dimensions %f x %f x %f", field_dims[0],
+  message("The primordial field has dimensions %fx%fx%f U_L^3", field_dims[0],
           field_dims[1], field_dims[2]);
   message("The primordial grid has dimensions %zu x %zu x %zu",
           (size_t)grid_dims[0], (size_t)grid_dims[1], (size_t)grid_dims[2]);
@@ -292,21 +292,33 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 #endif
 }
 
-void rend_compute_perturbations_with_class(struct renderer *rend, const struct engine *e) {
+/* Run CLASS and compute the neutrino perturbation */
+void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
+                             const struct engine *e) {
 #ifdef WITH_CLASS_INTERFACE
 
   /* Load internal units and physical constants */
   const struct unit_system *us = e->internal_units;
   const struct phys_const *pc = e->physical_constants;
+  const struct cosmology *cosmo = e->cosmology;
 
   /* CLASS to internal units conversion factor */
-  const double Mpc_to_cm = _Mpc_over_m_ * 100; //CLASS uses hard-coded Mpc's
+  const double Mpc_to_cm = _Mpc_over_m_ * 100;  // CLASS uses hard-coded Mpc's
   const double unit_length_factor = Mpc_to_cm / us->UnitLength_in_cgs;
   const double unit_time_factor = unit_length_factor / pc->const_speed_light_c;
 
+  /* Read the file name of the class parameter files */
+  char class_ini_fname[200] = "";
+  char class_pre_fname[200] = "";
+  parser_get_opt_param_string(params, "Boltzmann:class_ini_file",
+                              class_ini_fname, "");
+  parser_get_opt_param_string(params, "Boltzmann:class_pre_file",
+                              class_pre_fname, "");
+
   message("Converting CLASS Units:");
   message("(CLASS) Unit system: U_L = \t %.6e cm", Mpc_to_cm);
-  message("(CLASS) Unit system: U_T = \t %.6e cm", unit_time_factor * us->UnitTime_in_cgs);
+  message("(CLASS) Unit system: U_T = \t %.6e cm",
+          unit_time_factor * us->UnitTime_in_cgs);
   message("to:");
   message("(internal) Unit system: U_L = \t %.6e cm", us->UnitLength_in_cgs);
   message("(internal) Unit system: U_T = \t %.6e cm", us->UnitTime_in_cgs);
@@ -324,17 +336,89 @@ void rend_compute_perturbations_with_class(struct renderer *rend, const struct e
   struct output op;     /* for output files */
   ErrorMsg errmsg;      /* for CLASS-specific error messages */
 
-  int class_argc = 2;
-  char *class_argv[] = {"", "class_file.ini", NULL};
+  /* If no class .ini file was specified, infer parameters from the cosmology */
+  if (class_ini_fname[0] == '\0') {
+    message("Inferring CLASS parameters from the cosmology.");
 
-  if (input_init_from_arguments(class_argc, class_argv, &pr, &ba, &th, &pt, &tr,
-                                &pm, &sp, &nl, &le, &op, errmsg) == _FAILURE_) {
-    error("Error running input_init_from_arguments \n=>%s\n", errmsg);
+    /* Infer CLASS parameters from the cosmology module */
+    struct file_content fc;
+    rend_infer_class_parameters(rend, e, &fc);
+
+    if (input_init(&fc, &pr, &ba, &th, &pt, &tr, &pm, &sp, &nl, &le, &op,
+                   errmsg) == _FAILURE_) {
+      error("Error running input_init_from_arguments \n=>%s\n", errmsg);
+    }
+  } else {
+    /* Otherwise, initialize CLASS with the parameter files */
+    int class_argc = 2;
+    char *class_argv[] = {"", class_ini_fname, class_pre_fname};
+
+    message("Reading CLASS parameters from '%s'.", class_ini_fname);
+    message("Reading CLASS precision parameters from '%s'.", class_pre_fname);
+
+    if (input_init_from_arguments(class_argc, class_argv, &pr, &ba, &th, &pt,
+                                  &tr, &pm, &sp, &nl, &le, &op,
+                                  errmsg) == _FAILURE_) {
+      error("Error running input_init_from_arguments \n=>%s\n", errmsg);
+    }
   }
+
+  message("Running CLASS.");
 
   if (background_init(&pr, &ba) == _FAILURE_) {
     error("Error running background_init \n%s\n", ba.error_message);
   }
+
+#ifdef NEUTRINO_BACKGROUND
+  double Og = cosmo->Omega_g;
+  double Or = cosmo->Omega_g;
+#else
+  double Or = cosmo->Omega_r;
+  double Og = cosmo->Omega_r;
+#endif
+
+  /* For diagnostics, find the total ncdm pressure from CLASS at z=0 */
+  double rho_ncdm_tot = 0;
+  double p_ncdm_tot = 0;
+  for (int index_ncdm = 0; index_ncdm < ba.N_ncdm; index_ncdm++) {
+    double rho_ncdm;
+    double p_ncdm;
+    background_ncdm_momenta(ba.q_ncdm_bg[index_ncdm], ba.w_ncdm_bg[index_ncdm],
+                            ba.q_size_ncdm_bg[index_ncdm],
+                            ba.M_ncdm[index_ncdm], ba.factor_ncdm[index_ncdm],
+                            0.0, NULL, &rho_ncdm, &p_ncdm, NULL, NULL);
+
+    rho_ncdm_tot += rho_ncdm;
+    p_ncdm_tot += p_ncdm;
+  }
+
+  /* The relativistic part of the neutrino density */
+  double rho_ncdm_rel_tot = 3. * p_ncdm_tot;
+  double Omega_nu_mat = (rho_ncdm_tot - rho_ncdm_rel_tot) / pow(ba.H0, 2);
+  double Omega_nu_rel = rho_ncdm_rel_tot / pow(ba.H0, 2);
+
+  /* In our implementation, neutrinos are treated separately from
+   * matter and radiation. In CLASS, the neutrino density is split
+   * into a radiation part ~3*p_nu and matter part rho_nu - 3*p_nu.
+   * This difference is taken into account in the comparison below.
+   */
+
+  message("Comparison of density parameters:");
+  message(
+      "(internal) \t[O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = "
+      "[%f, %f, %f, %f, %f, %f, %f]",
+      cosmo->Omega_m, cosmo->Omega_lambda, cosmo->Omega_b, cosmo->Omega_nu,
+      cosmo->Omega_k, Or, Og);
+  message(
+      "(CLASS) \t[O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = "
+      "[%f, %f, %f, %f, %f, %f, %f]",
+      ba.Omega0_m - Omega_nu_mat, ba.Omega0_lambda, ba.Omega0_b,
+      ba.Omega0_ncdm_tot, ba.Omega0_k,
+      ba.Omega0_r - ba.Omega0_ur - Omega_nu_rel, ba.Omega0_g);
+  message("Effective matter & radiation contributions of the neutrinos:");
+  message("(CLASS) Massive species: \t[O_nu_m, O_nu_r] = [%f, %f]",
+          Omega_nu_mat, Omega_nu_rel);
+  message("(CLASS) Extra rel. species: \t[O_ur] = [%f]", ba.Omega0_ur);
 
   if (thermodynamics_init(&pr, &ba, &th) == _FAILURE_) {
     error("Error in thermodynamics_init \n%s\n", th.error_message);
@@ -367,18 +451,19 @@ void rend_compute_perturbations_with_class(struct renderer *rend, const struct e
   /* Read out the perturbation */
   for (int index_tau = 0; index_tau < tau_size; index_tau++) {
     for (int index_k = 0; index_k < k_size; index_k++) {
-      double k = pt.k[index_md][index_k] / unit_length_factor; //from Mpc^-1
+      double k = pt.k[index_md][index_k] / unit_length_factor;  // from Mpc^-1
       double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] +
                                       index_tp][index_tau * k_size + index_k];
 
       rend->transfer.k[index_k] = k;
       rend->transfer.delta[index_tau * k_size + index_k] = p;
     }
-    double tau =  pt.tau_sampling[index_tau] * unit_time_factor; //from Mpc
+    double tau = pt.tau_sampling[index_tau] * unit_time_factor;  // from Mpc
     rend->transfer.log_tau[index_tau] = log(tau);
   }
 
-  message("The sizes are %i * %i", k_size, tau_size);
+  message("The neutrino density is sampled at %i * %i points.", k_size,
+          tau_size);
 
   /* Pre-empt segfault in CLASS if there is no interacting dark radiation */
   if (ba.has_idr == _FALSE_) {
@@ -399,6 +484,185 @@ void rend_compute_perturbations_with_class(struct renderer *rend, const struct e
     error("Error in background_free \n%s\n", ba.error_message);
   }
 #else
-    error("No CLASS library found. Cannot compute transfer functions.");
+  error("No CLASS library found. Cannot compute transfer functions.");
+#endif
+}
+
+/* Infer CLASS parameters from the cosmology module */
+void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
+                                 struct file_content *fc) {
+#ifdef WITH_CLASS_INTERFACE
+  const struct cosmology *cosmo = e->cosmology;
+
+  /* For CLASS-specific error messages */
+  ErrorMsg errmsg;
+
+  /* Extract the main cosmological parameters */
+  double h = cosmo->h;
+  double Omega_m = cosmo->Omega_m;
+  double Omega_b = cosmo->Omega_b;
+  double Omega_k = cosmo->Omega_k;
+  double Omega_c = Omega_m - Omega_b;
+  double Omega_l = cosmo->Omega_lambda;
+#ifndef NEUTRINO_BACKGROUND
+  double Omega_r = cosmo->Omega_r;
+#endif
+
+  /* Start and end of the simulation */
+  double z_start = 1. / cosmo->a_begin - 1.;
+  double z_end = 1. / cosmo->a_end - 1.;
+
+  /* Compute redshifts of interest around which the precision is highest */
+  double z_0 = z_start;
+  double z_1 = z_start + 0.4 * (z_end - z_start);
+  double z_2 = z_start + 0.8 * (z_end - z_start);
+  double z_3 = z_start + 0.9 * (z_end - z_start);
+  double z_4 = z_start + 0.95 * (z_end - z_start);
+  double z_5 = z_end;
+
+  /* Default precision values */
+  int fluid_approx = 3;         // method 3
+  int quadrature_strategy = 3;  // strategy 3
+  int nbins = 100;              // number of momentum bins
+  int lmax_ncdm = 20;           // highest multipole for ncdm
+  double k_max = 10.0;          // h/Mpc
+  int k_per_decade = 50;
+
+  message("Precision required at z = %.1f, %.1f, %.1f, %.1f, %.1f, %.1f", z_0,
+          z_1, z_2, z_3, z_4, z_5);
+
+  /* Counter for the parameters */
+  int num = 0;
+
+  /* We will put the parameters into a new file: internal.ini */
+  class_parser_init(fc, 50, "internal.ini", errmsg);
+
+  /* Insert the parameters */
+  strcpy(fc->name[num], "output");
+  strcpy(fc->value[num++], "dTk,vTk");  // we want density & velocity transfers
+  strcpy(fc->name[num], "z_pk");
+  sprintf(fc->value[num++], "%f, %f, %f, %f, %f, %f", z_0, z_1, z_2, z_3, z_4,
+          z_5);
+  strcpy(fc->name[num], "h");
+  sprintf(fc->value[num++], "%e", h);
+  strcpy(fc->name[num], "P_k_max_h/Mpc");
+  sprintf(fc->value[num++], "%e", k_max);
+  strcpy(fc->name[num], "k_per_decade_for_pk");
+  sprintf(fc->value[num++], "%i", k_per_decade);
+  strcpy(fc->name[num], "extra metric transfer functions");
+  strcpy(fc->value[num++], "yes");
+  strcpy(fc->name[num], "Nbody gauge transfer functions");
+  strcpy(fc->value[num++], "yes");
+  strcpy(fc->name[num], "Omega_Lambda");
+  sprintf(fc->value[num++], "%e", Omega_l);
+  strcpy(fc->name[num], "Omega_b");
+  sprintf(fc->value[num++], "%e", Omega_b);
+  strcpy(fc->name[num], "Omega_cdm");
+  sprintf(fc->value[num++], "%e", Omega_c);
+  strcpy(fc->name[num], "Omega_k");
+  sprintf(fc->value[num++], "%e", Omega_k);
+  strcpy(fc->name[num], "l_max_ncdm");
+  sprintf(fc->value[num++], "%i", lmax_ncdm);
+  strcpy(fc->name[num], "ncdm_fluid_approximation");
+  sprintf(fc->value[num++], "%i", fluid_approx);
+  strcpy(fc->name[num], "input_verbose");
+  sprintf(fc->value[num++], "%i", 1);
+
+/* Extra available parameters if using the neutrino cosmology module */
+#ifdef NEUTRINO_BACKGROUND
+  /* Use the internal parameters */
+  strcpy(fc->name[num], "T_cmb");
+  sprintf(fc->value[num++], "%e", cosmo->T_CMB);
+  strcpy(fc->name[num], "N_ncdm");
+  sprintf(fc->value[num++], "%zu", cosmo->N_nu);
+  // strcpy(fc->name[num], "N_eff");
+  // sprintf(fc->value[num++], "%e", cosmo->N_eff);
+
+  /* Count the number of massless neutrinos present */
+  // int N_nu_massless = 0;
+  // for (size_t i=0; i<cosmo->N_nu; i++) {
+  //     if (cosmo->M_nu[i] == 0) {
+  //         N_nu_massless++;
+  //     }
+  // }
+
+  /* This is debatable */
+  message("We assume N_ur = %i", 0);
+  strcpy(fc->name[num], "N_ur");
+  sprintf(fc->value[num++], "%e", 1.0 * 0);
+
+  /* Insert the neutrino masses for each species*/
+  strcpy(fc->name[num], "m_ncdm");
+  for (size_t i = 0; i < cosmo->N_nu; i++) {
+    sprintf(fc->value[num] + strlen(fc->value[num]), "%e", cosmo->M_nu[i]);
+    /* Add commas until the last species */
+    if (i < e->cosmology->N_nu - 1) {
+      sprintf(fc->value[num] + strlen(fc->value[num]), ",");
+    }
+  }
+  num++;
+
+  /* Insert number of momentum bins for each species */
+  strcpy(fc->name[num], "Number of momentum bins");
+  for (size_t i = 0; i < cosmo->N_nu; i++) {
+    sprintf(fc->value[num] + strlen(fc->value[num]), "%i", nbins);
+    /* Add commas until the last species */
+    if (i < e->cosmology->N_nu - 1) {
+      sprintf(fc->value[num] + strlen(fc->value[num]), ",");
+    }
+  }
+  num++;
+
+  /* Insert the quadrature strategy */
+  strcpy(fc->name[num], "Quadrature strategy");
+  for (size_t i = 0; i < cosmo->N_nu; i++) {
+    sprintf(fc->value[num] + strlen(fc->value[num]), "%i", quadrature_strategy);
+    /* Add commas until the last species */
+    if (i < e->cosmology->N_nu - 1) {
+      sprintf(fc->value[num] + strlen(fc->value[num]), ",");
+    }
+  }
+  num++;
+#else
+  /* Infer neutrino mass from the simulation particles */
+  float neutrino_mass_min = e->neutrino_mass_min;
+  float neutrino_mass_max = e->neutrino_mass_max;
+
+  if (neutrino_mass_min != neutrino_mass_max) {
+    error(
+        "Running without CLASS parameter file or neutrino background, \
+       and with non-degenerate simulation particles. Cannot consistently \
+       infer CLASS parameters.");
+  } else {
+    float m_ncdm = neutrino_mass_min;
+    float N_ur = 2.0;  // effectively 2 massless neutrinos
+
+    message("WARNING: no CLASS parameter file or neutrino background.");
+    message("We inferred that M_nu = %.4f eV from the particles.", m_ncdm);
+
+    if (omega_r != 0) {
+      message("We inferred that omega_g = %.3e (photon density).", omega_r);
+      strcpy(fc->name[num], "omega_g");
+      sprintf(fc->value[num++], "%e", omega_r);
+    }
+
+    /* This is debatable */
+    message("We assumed that N_ur = %.2f, i.e. 2 massless species.", N_ur);
+    strcpy(fc->name[num], "N_ur");
+    sprintf(fc->value[num++], "%e", N_ur);
+
+    /* This is correct */
+    strcpy(fc->name[num], "N_ncdm");
+    sprintf(fc->value[num++], "%i", 1);
+    strcpy(fc->name[num], "m_ncdm");
+    sprintf(fc->value[num++], "%e", m_ncdm);
+    strcpy(fc->name[num], "Number of momentum bins");
+    sprintf(fc->value[num++], "%i", nbins);
+    strcpy(fc->name[num], "Quadrature strategy");
+    sprintf(fc->value[num++], "%i", quadrature_strategy);
+  }
+#endif
+#else
+  error("No CLASS library found. Cannot compute transfer functions.");
 #endif
 }

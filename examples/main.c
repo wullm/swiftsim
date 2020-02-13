@@ -1186,15 +1186,15 @@ int main(int argc, char *argv[]) {
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
     if (myrank == 0) {
       /* Initialize perturbations to the cosmology with CLASS */
-      message("Running CLASS to calculate perturbations to the cosmology.");
-      rend_compute_perturbations_with_class(&rend, &e);
+      message("We will run CLASS to calculate perturbations to the cosmology.");
+      rend_perturb_from_class(&rend, params, &e);
       message("Done with CLASS. The perturbations are now available.");
 
       /* Initialize our own interpolation spline */
       rend_interp_init(&rend);
     }
 
-    /* Broadcast the cosmological perturbations to the other ranks */
+      /* Broadcast the cosmological perturbations to the other ranks */
 #ifdef WITH_MPI
     /* The memory for the transfer functions is located here */
     struct transfer *tr = &rend.transfer;

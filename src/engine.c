@@ -3645,12 +3645,16 @@ void engine_config(int restart, int fof, struct engine *e,
     min_max_mass[1] = -min_max_mass[1];
 #endif
 
+    /* Store the global (over all ranks) min & max */
+    e->neutrino_mass_min = min_max_mass[0];
+    e->neutrino_mass_max = min_max_mass[1];
+
     if (e->nodeID == 0) {
       message("The neutrino mass multiplier is %.5e eV / U_M",
               neutrino_mass_mult);
       message(
-          "The simulation particles correspond to a neutrino mass range [%f, "
-          "%f] "
+          "The simulation particles correspond to a neutrino mass range [%.4f, "
+          "%.4f] "
           "eV",
           min_max_mass[0], min_max_mass[1]);
     }

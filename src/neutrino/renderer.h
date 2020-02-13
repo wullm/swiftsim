@@ -74,8 +74,10 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname);
 
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
 
-void rend_compute_perturbations_with_class(struct renderer *rend, const struct engine *e);
-
+void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
+                             const struct engine *e);
+void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
+                                 struct file_content *fc);
 void rend_interp_init(struct renderer *rend);
 void rend_interp_free(struct renderer *rend);
 
