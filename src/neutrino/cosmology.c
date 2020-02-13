@@ -604,7 +604,6 @@ void cosmology_init_tables(struct cosmology *c) {
                      cosmology_table_length * sizeof(double)) != 0)
     error("Failed to allocate cosmology interpolation table");
 
-
   /* Prepare a table of scale factors for the integral bounds */
   const double delta_a =
       (c->log_a_table_end - c->log_a_table_begin) / cosmology_table_length;

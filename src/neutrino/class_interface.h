@@ -35,5 +35,4 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
                                  struct file_content *fc);
 void rend_print_cosmology(struct background *ba, const struct cosmology *cosmo);
 
-
 #endif /* SWIFT_CLASS_INTERFACE_H */
