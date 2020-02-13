@@ -281,6 +281,11 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
     fp[i][1] *= box_volume / (N * N * N);
   }
 
+  // for (size_t i=0; i<rend->transfer.k_size; i++) {
+  //     double k = rend->transfer.k[i];
+  //     printf("%e %e\n", k, -gsl_spline2d_eval(spline, k, log(tau), k_acc, tau_acc)/k/k);
+  // }
+
   // Apply the transfer function
   for (int x = 0; x < N; x++) {
     for (int y = 0; y < N; y++) {

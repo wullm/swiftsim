@@ -112,6 +112,9 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   int k_size = pt.k_size[index_md];
   int tau_size = pt.tau_size;
 
+  /* Little h, which CLASS uses but Swift doesn't */
+  const double h = ba.h;
+
   /* Vector of the wavenumbers */
   rend->transfer.k_size = k_size;
   rend->transfer.k = (double *)calloc(k_size, sizeof(double));
@@ -126,14 +129,21 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   /* Read out the perturbation */
   for (int index_tau = 0; index_tau < tau_size; index_tau++) {
     for (int index_k = 0; index_k < k_size; index_k++) {
-      double k = pt.k[index_md][index_k] / unit_length_factor;  // from Mpc^-1
+      /* Convert k from h/Mpc to 1/U_L */
+      double k = pt.k[index_md][index_k] * h / unit_length_factor;
       double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] +
                                       index_tp][index_tau * k_size + index_k];
 
+      /* Convert transfer functions from CLASS format to CAMB/HeWon/icgen/
+      *  Eisenstein-Hu format by multiplying by -1/k^2.
+      */
+      double T = -p/k/k;
+
       rend->transfer.k[index_k] = k;
-      rend->transfer.delta[index_tau * k_size + index_k] = p;
+      rend->transfer.delta[index_tau * k_size + index_k] = T;
     }
-    double tau = pt.tau_sampling[index_tau] * unit_time_factor;  // from Mpc
+    /* Convert tau from Mpc to U_T */
+    double tau = pt.tau_sampling[index_tau] * unit_time_factor;
     rend->transfer.log_tau[index_tau] = log(tau);
   }
 
