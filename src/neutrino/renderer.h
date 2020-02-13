@@ -70,18 +70,23 @@ struct renderer {
 /* The renderer object renders transfer functions onto the grid */
 void rend_init(struct renderer *rend, struct swift_params *params,
                const struct engine *e);
+void rend_clean(struct renderer *rend);
+
+/* Input of the primordial Gaussian field data */
 void rend_load_primordial_field(struct renderer *rend, const char *fname);
 
+/* Rendering the transfer functions onto the primordial field */
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
 
+/* The GSL interpolation structures */
 void rend_interp_init(struct renderer *rend);
 void rend_interp_free(struct renderer *rend);
 
+/* Input and output for the perturbation data */
 void rend_read_perturb(struct renderer *rend, const struct engine *e,
                        char *fname);
 void rend_write_perturb(struct renderer *rend, const struct engine *e,
                         char *fname);
-void rend_clean(struct renderer *rend);
 
 /* Additional functions related to CLASS */
 #include "class_interface.h"

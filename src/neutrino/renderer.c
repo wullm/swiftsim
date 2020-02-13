@@ -366,7 +366,7 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   if (h_err < 0) error("Error while reading data array '%s'.", "Wavenumbers");
 
   /* Close the dataset */
-  H5Gclose(h_data);
+  H5Dclose(h_data);
 
   /* Read the conformal times */
   h_data = H5Dopen2(h_grp, "Log conformal times", H5P_DEFAULT);
@@ -379,7 +379,7 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
     error("Error while reading data array '%s'.", "Log conformal times");
 
   /* Close the dataset */
-  H5Gclose(h_data);
+  H5Dclose(h_data);
 
   /* Read the transfer functions */
   h_data = H5Dopen2(h_grp, "Transfer functions", H5P_DEFAULT);
@@ -392,7 +392,7 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
     error("Error while reading data array '%s'.", "Transfer functions");
 
   /* Close the dataset */
-  H5Gclose(h_data);
+  H5Dclose(h_data);
 
   /* Close the perturbation group */
   H5Gclose(h_grp);
