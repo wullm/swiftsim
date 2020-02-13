@@ -38,14 +38,6 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   const double unit_length_factor = Mpc_to_cm / us->UnitLength_in_cgs;
   const double unit_time_factor = unit_length_factor / pc->const_speed_light_c;
 
-  /* Read the file name of the class parameter files */
-  char class_ini_fname[200] = "";
-  char class_pre_fname[200] = "";
-  parser_get_opt_param_string(params, "Boltzmann:class_ini_file",
-                              class_ini_fname, "");
-  parser_get_opt_param_string(params, "Boltzmann:class_pre_file",
-                              class_pre_fname, "");
-
   message("Converting CLASS Units:");
   message("(CLASS) Unit system: U_L = \t %.6e cm", Mpc_to_cm);
   message("(CLASS) Unit system: U_T = \t %.6e s",
@@ -68,7 +60,7 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   ErrorMsg errmsg;      /* for CLASS-specific error messages */
 
   /* If no class .ini file was specified, infer parameters from the cosmology */
-  if (class_ini_fname[0] == '\0') {
+  if (rend->class_ini_fname[0] == '\0') {
     message("Inferring CLASS parameters from the cosmology.");
 
     /* Infer CLASS parameters from the cosmology module */
@@ -82,10 +74,10 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   } else {
     /* Otherwise, initialize CLASS with the parameter files */
     int class_argc = 2;
-    char *class_argv[] = {"", class_ini_fname, class_pre_fname};
+    char *class_argv[] = {"", rend->class_ini_fname, rend->class_pre_fname};
 
-    message("Reading CLASS parameters from '%s'.", class_ini_fname);
-    message("Reading CLASS precision parameters from '%s'.", class_pre_fname);
+    message("Reading CLASS parameters from '%s'.", rend->class_ini_fname);
+    message("Reading CLASS precision parameters from '%s'.", rend->class_pre_fname);
 
     if (input_init_from_arguments(class_argc, class_argv, &pr, &ba, &th, &pt,
                                   &tr, &pm, &sp, &nl, &le, &op,

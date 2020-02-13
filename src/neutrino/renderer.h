@@ -54,6 +54,14 @@ struct renderer {
   double *primordial_dims;
   size_t primordial_grid_N;
 
+  /* File name of the perturbation data */
+  char *in_perturb_fname;
+  char *out_perturb_fname;
+
+  /* Names of the CLASS parameter & precision files */
+  char *class_ini_fname;
+  char *class_pre_fname;
+
   /*! Neutrino transfer functions */
   struct transfer {
     size_t k_size;

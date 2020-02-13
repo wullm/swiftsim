@@ -73,6 +73,19 @@ void rend_init(struct renderer *rend, struct swift_params *params,
   char fieldFName[200] = "";
   parser_get_param_string(params, "Boltzmann:field_file_name", fieldFName);
 
+  /* The file names of the perturbation data (either for reading or writing) */
+  rend->in_perturb_fname = (char *) malloc(200 * sizeof(char));
+  rend->out_perturb_fname = (char *) malloc(200 * sizeof(char));
+  parser_get_opt_param_string(params, "Boltzmann:in_perturb_file_name", rend->in_perturb_fname, "");
+  parser_get_opt_param_string(params, "Boltzmann:out_perturb_file_name", rend->out_perturb_fname, "perturb.hdf5");
+
+  /* The file names of the CLASS parameter files */
+  rend->class_ini_fname = (char *) malloc(200 * sizeof(char));
+  rend->class_pre_fname = (char *) malloc(200 * sizeof(char));
+  parser_get_opt_param_string(params, "Boltzmann:class_ini_file", rend->class_ini_fname, "");
+  parser_get_opt_param_string(params, "Boltzmann:class_pre_file", rend->class_pre_fname, "");
+
+
   // Open and load the file with the primordial Gaussian field
   rend_load_primordial_field(rend, fieldFName);
 
@@ -355,9 +368,9 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   /* Close header */
   H5Gclose(h_grp);
 
-  free(tr->k);
-  free(tr->log_tau);
-  free(tr->delta);
+  // free(tr->k);
+  // free(tr->log_tau);
+  // free(tr->delta);
 
   tr->k = (double *)calloc(tr->k_size, sizeof(double));
   tr->log_tau = (double *)malloc(tr->tau_size * sizeof(double));
@@ -412,6 +425,18 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   for (size_t i=0; i<tr->tau_size; i++) {
       tr->log_tau[i] += log(file_time_us) - log(us->UnitTime_in_cgs);
   }
+
+  // for (size_t i=0; i<tr->k_size; i++) {
+  //     printf("%e\n", tr->k[i]);
+  // }
+  //
+  // for (size_t i=0; i<tr->tau_size; i++) {
+  //     printf("%e\n", tr->log_tau[i]);
+  // }
+  //
+  // for (size_t i=0; i<tr->k_size * tr->tau_size; i++) {
+  //     printf("%e\n", tr->delta[i]);
+  // }
 
   /* Close the dataset */
   H5Dclose(h_data);

@@ -1185,22 +1185,30 @@ int main(int argc, char *argv[]) {
 
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
     if (myrank == 0) {
-      /* Initialize perturbations to the cosmology with CLASS */
-      message("We will run CLASS to calculate perturbations to the cosmology.");
-      rend_perturb_from_class(&rend, params, &e);
-      message("Done with CLASS. The perturbations are now available.");
+
+      /* If a perturbation file & a CLASS ini file are both specified */
+      if (rend.in_perturb_fname[0] != '\0' && rend.class_ini_fname[0] != '\0') {
+        error("Specified both perturbation file & CLASS .ini file.");
+      } else if (rend.in_perturb_fname[0] == '\0') {
+        /* Initialize perturbations to the cosmology with CLASS */
+        message("We will run CLASS to calculate perturbations to the cosmology.");
+        rend_perturb_from_class(&rend, params, &e);
+        message("Done with CLASS. The perturbations are now available.");
+
+        /* Save to disk */
+        if (rend.out_perturb_fname[0] != '\0') {
+          rend_write_perturb(&rend, &e, rend.out_perturb_fname);
+        }
+      } else if (rend.in_perturb_fname[0] != '\0') {
+        /* Read from disk */
+        rend_read_perturb(&rend, &e, rend.in_perturb_fname);
+      }
 
       /* Initialize our own interpolation spline */
       rend_interp_init(&rend);
-
-      /* Save to disk */
-      rend_write_perturb(&rend, &e, "perturb.hdf5");
-
-      /* Read from disk */
-      rend_read_perturb(&rend, &e, "perturb.hdf5");
     }
 
-      /* Broadcast the cosmological perturbations to the other ranks */
+    /* Broadcast the cosmological perturbations to the other ranks */
 #ifdef WITH_MPI
     /* The memory for the transfer functions is located here */
     struct transfer *tr = &rend.transfer;
