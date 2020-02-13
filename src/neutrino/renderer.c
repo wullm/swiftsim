@@ -282,8 +282,8 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
         if (k > 0) {
           double Tr = gsl_spline2d_eval(spline, k, log(tau), k_acc, tau_acc);
 
-          fp[half_box_idx(N, x, y, z)][0] *= Tr * Tr;
-          fp[half_box_idx(N, x, y, z)][1] *= Tr * Tr;
+          fp[half_box_idx(N, x, y, z)][0] *= Tr;
+          fp[half_box_idx(N, x, y, z)][1] *= Tr;
         }
       }
     }
@@ -313,4 +313,123 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 #else
   error("No FFTW library found. Cannot compute periodic long-range forces.");
 #endif
+}
+
+void rend_save_perturb(struct renderer *rend, const struct engine *e,
+                       char *fname) {
+  /* The memory for the transfer functions is located here */
+  struct transfer *tr = &rend->transfer;
+  const struct unit_system *us = e->internal_units;
+
+  hid_t h_file, h_grp, h_err;
+
+  /* Open file */
+  h_file = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (h_file < 0) error("Error while opening file '%s'.", fname);
+
+  message("Writing the perturbation to '%s'.", fname);
+
+  /* Open header to write simulation properties */
+  h_grp = H5Gcreate(h_file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  if (h_grp < 0) error("Error while creating file header\n");
+
+  /* Print the relevant information and print status */
+  io_write_attribute(h_grp, "k_size", INT, &tr->k_size, 1);
+  io_write_attribute(h_grp, "tau_size", INT, &tr->tau_size, 1);
+
+  /* Write unit system for this data set */
+  io_write_attribute_d(h_grp, "Unit mass in cgs (U_M)",
+                       units_get_base_unit(us, UNIT_MASS));
+  io_write_attribute_d(h_grp, "Unit length in cgs (U_L)",
+                       units_get_base_unit(us, UNIT_LENGTH));
+  io_write_attribute_d(h_grp, "Unit time in cgs (U_t)",
+                       units_get_base_unit(us, UNIT_TIME));
+  io_write_attribute_d(h_grp, "Unit current in cgs (U_I)",
+                       units_get_base_unit(us, UNIT_CURRENT));
+  io_write_attribute_d(h_grp, "Unit temperature in cgs (U_T)",
+                       units_get_base_unit(us, UNIT_TEMPERATURE));
+
+  /* Close header */
+  H5Gclose(h_grp);
+
+  /* Open group to write the perturbation arrays */
+  h_grp = H5Gcreate(h_file, "/Perturb", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  if (h_grp < 0) error("Error while creating perturbation group\n");
+
+  /* Create data space */
+  const hid_t h_space = H5Screate(H5S_SIMPLE);
+  if (h_space < 0) error("Error while creating data space.");
+
+  /* Set the extent of the data */
+  int rank = 1;
+  hsize_t shape[1] = {tr->k_size};
+  h_err = H5Sset_extent_simple(h_space, rank, shape, shape);
+  if (h_err < 0) error("Error while changing data space shape.");
+
+  /* Dataset properties */
+  const hid_t h_prop = H5Pcreate(H5P_DATASET_CREATE);
+
+  /* Create dataset */
+  const hid_t h_data = H5Dcreate(h_grp, "Wavenumbers", io_hdf5_type(DOUBLE),
+                                 h_space, H5P_DEFAULT, h_prop, H5P_DEFAULT);
+  if (h_data < 0) error("Error while creating dataspace '%s'.", "Wavenumbers");
+
+  /* Write temporary buffer to HDF5 dataspace */
+  h_err = H5Dwrite(h_data, io_hdf5_type(DOUBLE), h_space, H5S_ALL, H5P_DEFAULT,
+                   tr->k);
+  if (h_err < 0) error("Error while writing data array '%s'.", "tr->k");
+
+  /* Close the dataset */
+  H5Dclose(h_data);
+
+  /* Set the extent of the tau data */
+  rank = 1;
+  hsize_t shape_tau[1] = {tr->tau_size};
+  h_err = H5Sset_extent_simple(h_space, rank, shape_tau, shape_tau);
+  if (h_err < 0) error("Error while changing data space shape.");
+
+  /* Create dataset */
+  const hid_t h_data_tau =
+      H5Dcreate(h_grp, "Log conformal times", io_hdf5_type(DOUBLE), h_space,
+                H5P_DEFAULT, h_prop, H5P_DEFAULT);
+  if (h_data < 0)
+    error("Error while creating dataspace '%s'.", "Log conformal times");
+
+  /* Write temporary buffer to HDF5 dataspace */
+  h_err = H5Dwrite(h_data_tau, io_hdf5_type(DOUBLE), h_space, H5S_ALL,
+                   H5P_DEFAULT, tr->log_tau);
+  if (h_err < 0) error("Error while writing data array '%s'.", "tr->log_tau");
+
+  /* Close the dataset */
+  H5Dclose(h_data_tau);
+
+  /* Set the extent of the transfer function data */
+  rank = 2;
+  hsize_t shape_delta[2] = {tr->k_size, tr->tau_size};
+  h_err = H5Sset_extent_simple(h_space, rank, shape_delta, shape_delta);
+  if (h_err < 0) error("Error while changing data space shape.");
+
+  /* Create dataset */
+  const hid_t h_data_delta =
+      H5Dcreate(h_grp, "Transfer functions", io_hdf5_type(DOUBLE), h_space,
+                H5P_DEFAULT, h_prop, H5P_DEFAULT);
+  if (h_data < 0)
+    error("Error while creating dataspace '%s'.", "Transfer functions");
+
+  /* Write temporary buffer to HDF5 dataspace */
+  h_err = H5Dwrite(h_data_delta, io_hdf5_type(DOUBLE), h_space, H5S_ALL,
+                   H5P_DEFAULT, tr->delta);
+  if (h_err < 0) error("Error while writing data array '%s'.", "tr->delta");
+
+  /* Close the dataset */
+  H5Dclose(h_data_delta);
+
+  /* Close the properties */
+  H5Pclose(h_prop);
+
+  /* Close the group */
+  H5Gclose(h_grp);
+
+  /* Close file */
+  H5Fclose(h_file);
 }

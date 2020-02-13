@@ -1192,6 +1192,9 @@ int main(int argc, char *argv[]) {
 
       /* Initialize our own interpolation spline */
       rend_interp_init(&rend);
+
+      /* Save to disk */
+      rend_save_perturb(&rend, &e, "perturb.hdf5");
     }
 
       /* Broadcast the cosmological perturbations to the other ranks */
