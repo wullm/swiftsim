@@ -67,21 +67,19 @@ struct renderer {
   size_t num_of_k_bins;  // user-defined
 };
 
-// Initialize and load initial conditions
+/* The renderer object renders transfer functions onto the grid */
 void rend_init(struct renderer *rend, struct swift_params *params,
                const struct engine *e);
 void rend_load_primordial_field(struct renderer *rend, const char *fname);
 
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
 
-void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
-                             const struct engine *e);
-void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
-                                 struct file_content *fc);
-void rend_print_cosmology(struct background *ba, const struct cosmology *cosmo);
 void rend_interp_init(struct renderer *rend);
 void rend_interp_free(struct renderer *rend);
 
 void rend_clean(struct renderer *rend);
+
+/* Additional functions related to CLASS */
+#include "class_interface.h"
 
 #endif /* SWIFT_RENDERER_H */
