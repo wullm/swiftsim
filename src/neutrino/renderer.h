@@ -77,9 +77,10 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
 void rend_interp_init(struct renderer *rend);
 void rend_interp_free(struct renderer *rend);
 
-void rend_save_perturb(struct renderer *rend, const struct engine *e,
+void rend_read_perturb(struct renderer *rend, const struct engine *e,
                        char *fname);
-
+void rend_write_perturb(struct renderer *rend, const struct engine *e,
+                        char *fname);
 void rend_clean(struct renderer *rend);
 
 /* Additional functions related to CLASS */

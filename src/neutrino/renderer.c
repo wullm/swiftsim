@@ -315,13 +315,100 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 #endif
 }
 
-void rend_save_perturb(struct renderer *rend, const struct engine *e,
+/* Read the perturbation data from a file */
+void rend_read_perturb(struct renderer *rend, const struct engine *e,
                        char *fname) {
+  /* The memory for the transfer functions is located here */
+  struct transfer *tr = &rend->transfer;
+  // const struct unit_system *us = e->internal_units;
+
+  hid_t h_file, h_grp, h_data, h_err;
+
+  /* Open file */
+  h_file = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
+  if (h_file < 0) error("Error while opening file '%s'.", fname);
+
+  message("Reading the perturbation from '%s'.", fname);
+
+  /* Open header to read simulation properties */
+  h_grp = H5Gopen(h_file, "/Header", H5P_DEFAULT);
+  if (h_grp < 0) error("Error while opening file header\n");
+
+  tr->k_size = 0;
+  tr->tau_size = 0;
+
+  io_read_attribute(h_grp, "k_size", INT, &tr->k_size);
+  io_read_attribute(h_grp, "tau_size", INT, &tr->tau_size);
+
+  /* Close header */
+  H5Gclose(h_grp);
+
+  free(tr->k);
+  free(tr->log_tau);
+  free(tr->delta);
+
+  tr->k = (double *)calloc(tr->k_size, sizeof(double));
+  tr->log_tau = (double *)malloc(tr->tau_size * sizeof(double));
+  tr->delta = (double *)malloc(tr->k_size * tr->tau_size * sizeof(double));
+
+  message("We read the perturbation size %zu * %zu", tr->k_size, tr->tau_size);
+
+  /* Open the perturbation data group */
+  h_grp = H5Gopen(h_file, "/Perturb", H5P_DEFAULT);
+  if (h_grp < 0) error("Error while opening perturbation group\n");
+
+  /* Read the wavenumbers */
+  h_data = H5Dopen2(h_grp, "Wavenumbers", H5P_DEFAULT);
+  if (h_data < 0) error("Error while opening data space '%s'.", "Wavenumbers");
+
+  h_err = H5Dread(h_data, io_hdf5_type(DOUBLE), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                  tr->k);
+  if (h_err < 0) error("Error while reading data array '%s'.", "Wavenumbers");
+
+  /* Close the dataset */
+  H5Gclose(h_data);
+
+  /* Read the conformal times */
+  h_data = H5Dopen2(h_grp, "Log conformal times", H5P_DEFAULT);
+  if (h_data < 0)
+    error("Error while opening data space '%s'.", "Log conformal times");
+
+  h_err = H5Dread(h_data, io_hdf5_type(DOUBLE), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                  tr->log_tau);
+  if (h_err < 0)
+    error("Error while reading data array '%s'.", "Log conformal times");
+
+  /* Close the dataset */
+  H5Gclose(h_data);
+
+  /* Read the transfer functions */
+  h_data = H5Dopen2(h_grp, "Transfer functions", H5P_DEFAULT);
+  if (h_data < 0)
+    error("Error while opening data space '%s'.", "Transfer functions");
+
+  h_err = H5Dread(h_data, io_hdf5_type(DOUBLE), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                  tr->delta);
+  if (h_err < 0)
+    error("Error while reading data array '%s'.", "Transfer functions");
+
+  /* Close the dataset */
+  H5Gclose(h_data);
+
+  /* Close the perturbation group */
+  H5Gclose(h_grp);
+
+  /* Close file */
+  H5Fclose(h_file);
+}
+
+/* Save the perturbation data to a file */
+void rend_write_perturb(struct renderer *rend, const struct engine *e,
+                        char *fname) {
   /* The memory for the transfer functions is located here */
   struct transfer *tr = &rend->transfer;
   const struct unit_system *us = e->internal_units;
 
-  hid_t h_file, h_grp, h_err;
+  hid_t h_file, h_grp, h_data, h_err;
 
   /* Open file */
   h_file = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -370,8 +457,8 @@ void rend_save_perturb(struct renderer *rend, const struct engine *e,
   const hid_t h_prop = H5Pcreate(H5P_DATASET_CREATE);
 
   /* Create dataset */
-  const hid_t h_data = H5Dcreate(h_grp, "Wavenumbers", io_hdf5_type(DOUBLE),
-                                 h_space, H5P_DEFAULT, h_prop, H5P_DEFAULT);
+  h_data = H5Dcreate(h_grp, "Wavenumbers", io_hdf5_type(DOUBLE), h_space,
+                     H5P_DEFAULT, h_prop, H5P_DEFAULT);
   if (h_data < 0) error("Error while creating dataspace '%s'.", "Wavenumbers");
 
   /* Write temporary buffer to HDF5 dataspace */
@@ -389,19 +476,18 @@ void rend_save_perturb(struct renderer *rend, const struct engine *e,
   if (h_err < 0) error("Error while changing data space shape.");
 
   /* Create dataset */
-  const hid_t h_data_tau =
-      H5Dcreate(h_grp, "Log conformal times", io_hdf5_type(DOUBLE), h_space,
-                H5P_DEFAULT, h_prop, H5P_DEFAULT);
+  h_data = H5Dcreate(h_grp, "Log conformal times", io_hdf5_type(DOUBLE),
+                     h_space, H5P_DEFAULT, h_prop, H5P_DEFAULT);
   if (h_data < 0)
     error("Error while creating dataspace '%s'.", "Log conformal times");
 
   /* Write temporary buffer to HDF5 dataspace */
-  h_err = H5Dwrite(h_data_tau, io_hdf5_type(DOUBLE), h_space, H5S_ALL,
-                   H5P_DEFAULT, tr->log_tau);
+  h_err = H5Dwrite(h_data, io_hdf5_type(DOUBLE), h_space, H5S_ALL, H5P_DEFAULT,
+                   tr->log_tau);
   if (h_err < 0) error("Error while writing data array '%s'.", "tr->log_tau");
 
   /* Close the dataset */
-  H5Dclose(h_data_tau);
+  H5Dclose(h_data);
 
   /* Set the extent of the transfer function data */
   rank = 2;
@@ -410,19 +496,18 @@ void rend_save_perturb(struct renderer *rend, const struct engine *e,
   if (h_err < 0) error("Error while changing data space shape.");
 
   /* Create dataset */
-  const hid_t h_data_delta =
-      H5Dcreate(h_grp, "Transfer functions", io_hdf5_type(DOUBLE), h_space,
-                H5P_DEFAULT, h_prop, H5P_DEFAULT);
+  h_data = H5Dcreate(h_grp, "Transfer functions", io_hdf5_type(DOUBLE), h_space,
+                     H5P_DEFAULT, h_prop, H5P_DEFAULT);
   if (h_data < 0)
     error("Error while creating dataspace '%s'.", "Transfer functions");
 
   /* Write temporary buffer to HDF5 dataspace */
-  h_err = H5Dwrite(h_data_delta, io_hdf5_type(DOUBLE), h_space, H5S_ALL,
-                   H5P_DEFAULT, tr->delta);
+  h_err = H5Dwrite(h_data, io_hdf5_type(DOUBLE), h_space, H5S_ALL, H5P_DEFAULT,
+                   tr->delta);
   if (h_err < 0) error("Error while writing data array '%s'.", "tr->delta");
 
   /* Close the dataset */
-  H5Dclose(h_data_delta);
+  H5Dclose(h_data);
 
   /* Close the properties */
   H5Pclose(h_prop);

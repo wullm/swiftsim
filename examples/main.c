@@ -1194,7 +1194,10 @@ int main(int argc, char *argv[]) {
       rend_interp_init(&rend);
 
       /* Save to disk */
-      rend_save_perturb(&rend, &e, "perturb.hdf5");
+      rend_write_perturb(&rend, &e, "perturb.hdf5");
+
+      /* Read from disk */
+      rend_read_perturb(&rend, &e, "perturb.hdf5");
     }
 
       /* Broadcast the cosmological perturbations to the other ranks */
