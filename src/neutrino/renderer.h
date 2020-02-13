@@ -78,6 +78,7 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
                              const struct engine *e);
 void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
                                  struct file_content *fc);
+void rend_print_cosmology(struct background *ba, const struct cosmology *cosmo);
 void rend_interp_init(struct renderer *rend);
 void rend_interp_free(struct renderer *rend);
 

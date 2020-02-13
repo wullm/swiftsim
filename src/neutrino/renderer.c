@@ -369,56 +369,8 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
     error("Error running background_init \n%s\n", ba.error_message);
   }
 
-#ifdef NEUTRINO_BACKGROUND
-  double Og = cosmo->Omega_g;
-  double Or = cosmo->Omega_g;
-#else
-  double Or = cosmo->Omega_r;
-  double Og = cosmo->Omega_r;
-#endif
-
-  /* For diagnostics, find the total ncdm pressure from CLASS at z=0 */
-  double rho_ncdm_tot = 0;
-  double p_ncdm_tot = 0;
-  for (int index_ncdm = 0; index_ncdm < ba.N_ncdm; index_ncdm++) {
-    double rho_ncdm;
-    double p_ncdm;
-    background_ncdm_momenta(ba.q_ncdm_bg[index_ncdm], ba.w_ncdm_bg[index_ncdm],
-                            ba.q_size_ncdm_bg[index_ncdm],
-                            ba.M_ncdm[index_ncdm], ba.factor_ncdm[index_ncdm],
-                            0.0, NULL, &rho_ncdm, &p_ncdm, NULL, NULL);
-
-    rho_ncdm_tot += rho_ncdm;
-    p_ncdm_tot += p_ncdm;
-  }
-
-  /* The relativistic part of the neutrino density */
-  double rho_ncdm_rel_tot = 3. * p_ncdm_tot;
-  double Omega_nu_mat = (rho_ncdm_tot - rho_ncdm_rel_tot) / pow(ba.H0, 2);
-  double Omega_nu_rel = rho_ncdm_rel_tot / pow(ba.H0, 2);
-
-  /* In our implementation, neutrinos are treated separately from
-   * matter and radiation. In CLASS, the neutrino density is split
-   * into a radiation part ~3*p_nu and matter part rho_nu - 3*p_nu.
-   * This difference is taken into account in the comparison below.
-   */
-
-  message("Comparison of density parameters:");
-  message(
-      "(internal) \t[O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = "
-      "[%f, %f, %f, %f, %f, %f, %f]",
-      cosmo->Omega_m, cosmo->Omega_lambda, cosmo->Omega_b, cosmo->Omega_nu,
-      cosmo->Omega_k, Or, Og);
-  message(
-      "(CLASS) \t[O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = "
-      "[%f, %f, %f, %f, %f, %f, %f]",
-      ba.Omega0_m - Omega_nu_mat, ba.Omega0_lambda, ba.Omega0_b,
-      ba.Omega0_ncdm_tot, ba.Omega0_k,
-      ba.Omega0_r - ba.Omega0_ur - Omega_nu_rel, ba.Omega0_g);
-  message("Effective matter & radiation contributions of the neutrinos:");
-  message("(CLASS) Massive species: \t[O_nu_m, O_nu_r] = [%f, %f]",
-          Omega_nu_mat, Omega_nu_rel);
-  message("(CLASS) Extra rel. species: \t[O_ur] = [%f]", ba.Omega0_ur);
+  /* Compare cosmological parameters between CLASS & SWIFT */
+  rend_print_cosmology(&ba, cosmo);
 
   if (thermodynamics_init(&pr, &ba, &th) == _FAILURE_) {
     error("Error in thermodynamics_init \n%s\n", th.error_message);
@@ -488,6 +440,72 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
 #endif
 }
 
+/* Print cosmological information from SWIFT & CLASS */
+void rend_print_cosmology(struct background *ba,
+                          const struct cosmology *cosmo) {
+#ifdef WITH_CLASS_INTERFACE
+  /* For diagnostics, find the total ncdm pressure from CLASS at z=0 */
+  double rho_ncdm_tot = 0;
+  double p_ncdm_tot = 0;
+  for (int index_ncdm = 0; index_ncdm < ba->N_ncdm; index_ncdm++) {
+    double rho_ncdm;
+    double p_ncdm;
+    background_ncdm_momenta(
+        ba->q_ncdm_bg[index_ncdm], ba->w_ncdm_bg[index_ncdm],
+        ba->q_size_ncdm_bg[index_ncdm], ba->M_ncdm[index_ncdm],
+        ba->factor_ncdm[index_ncdm], 0.0, NULL, &rho_ncdm, &p_ncdm, NULL, NULL);
+
+    rho_ncdm_tot += rho_ncdm;
+    p_ncdm_tot += p_ncdm;
+  }
+
+  /* The relativistic part of the neutrino density */
+  double rho_ncdm_rel_tot = 3. * p_ncdm_tot;
+  double Omega_nu_mat = (rho_ncdm_tot - rho_ncdm_rel_tot) / pow(ba->H0, 2);
+  double Omega_nu_rel = rho_ncdm_rel_tot / pow(ba->H0, 2);
+
+#ifdef NEUTRINO_BACKGROUND
+  double Og = cosmo->Omega_g;
+  double Or = cosmo->Omega_g;
+#else
+  double Or = cosmo->Omega_r;
+  double Og = cosmo->Omega_r;
+#endif
+
+  /*
+   * WITH NEUTRINO_BACKGROUND enabled:
+   * In our implementation, neutrinos are treated separately from
+   * matter and radiation. In CLASS, the neutrino density is split
+   * into a radiation part ~3*p_nu and matter part rho_nu - 3*p_nu.
+   * This difference is taken into account in the comparison below.
+   *
+   * WITHOUT NEUTRINO_BACKGROUND enabled:
+   * Neutrinos are treated as pure matter.
+   */
+
+  message("Comparison of density parameters:");
+  message(
+      "(internal) \t[O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = "
+      "[%f, %f, %f, %f, %f, %f, %f]",
+      cosmo->Omega_m, cosmo->Omega_lambda, cosmo->Omega_b, cosmo->Omega_nu,
+      cosmo->Omega_k, Or, Og);
+  message(
+      "(CLASS) \t[O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = "
+      "[%f, %f, %f, %f, %f, %f, %f]",
+      ba->Omega0_m - Omega_nu_mat, ba->Omega0_lambda, ba->Omega0_b,
+      ba->Omega0_ncdm_tot, ba->Omega0_k,
+      ba->Omega0_r - ba->Omega0_ur - Omega_nu_rel, ba->Omega0_g);
+  message("Effective matter & radiation contributions of the neutrinos:");
+  message("(CLASS) Massive neutrinos: \t[O_nu_m, O_nu_r] = [%f, %f]",
+          Omega_nu_mat, Omega_nu_rel);
+  message("(CLASS) Extra rel. species: \t[O_ur] = [%f]", ba->Omega0_ur);
+  message("(CLASS) Extra fluid species: \t[O_fld] = [%f]", ba->Omega0_fld);
+
+#else
+  error("No CLASS library found. Cannot compute transfer functions.");
+#endif
+}
+
 /* Infer CLASS parameters from the cosmology module */
 void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
                                  struct file_content *fc) {
@@ -523,7 +541,7 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
   /* Default precision values */
   int fluid_approx = 3;         // method 3
   int quadrature_strategy = 3;  // strategy 3
-  int nbins = 100;              // number of momentum bins
+  int nbins = 15;              // number of momentum bins
   int lmax_ncdm = 20;           // highest multipole for ncdm
   double k_max = 10.0;          // h/Mpc
   int k_per_decade = 50;
@@ -565,8 +583,10 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
   sprintf(fc->value[num++], "%i", lmax_ncdm);
   strcpy(fc->name[num], "ncdm_fluid_approximation");
   sprintf(fc->value[num++], "%i", fluid_approx);
-  strcpy(fc->name[num], "input_verbose");
-  sprintf(fc->value[num++], "%i", 1);
+  // strcpy(fc->name[num], "input_verbose");
+  // sprintf(fc->value[num++], "%i", 1);
+  // strcpy(fc->name[num], "background_verbose");
+  // sprintf(fc->value[num++], "%i", 1);
 
 /* Extra available parameters if using the neutrino cosmology module */
 #ifdef NEUTRINO_BACKGROUND
@@ -575,21 +595,13 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
   sprintf(fc->value[num++], "%e", cosmo->T_CMB);
   strcpy(fc->name[num], "N_ncdm");
   sprintf(fc->value[num++], "%zu", cosmo->N_nu);
-  // strcpy(fc->name[num], "N_eff");
-  // sprintf(fc->value[num++], "%e", cosmo->N_eff);
 
-  /* Count the number of massless neutrinos present */
-  // int N_nu_massless = 0;
-  // for (size_t i=0; i<cosmo->N_nu; i++) {
-  //     if (cosmo->M_nu[i] == 0) {
-  //         N_nu_massless++;
-  //     }
-  // }
+  float N_ur = 0.00707;  // effectively extra ultra-relativistic species
 
   /* This is debatable */
-  message("We assume N_ur = %i", 0);
+  message("We assumed that N_ur = %.5f to get N_eff = 3.046.", N_ur);
   strcpy(fc->name[num], "N_ur");
-  sprintf(fc->value[num++], "%e", 1.0 * 0);
+  sprintf(fc->value[num++], "%e", N_ur);
 
   /* Insert the neutrino masses for each species*/
   strcpy(fc->name[num], "m_ncdm");
@@ -635,31 +647,33 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
        infer CLASS parameters.");
   } else {
     float m_ncdm = neutrino_mass_min;
-    float N_ur = 2.0;  // effectively 2 massless neutrinos
+    float N_ur = 0.00707;  // effectively extra ultra-relativistic species
 
     message("WARNING: no CLASS parameter file or neutrino background.");
     message("We inferred that M_nu = %.4f eV from the particles.", m_ncdm);
+    message("We assumed that there are three degenerate neutrinos.");
 
-    if (omega_r != 0) {
-      message("We inferred that omega_g = %.3e (photon density).", omega_r);
-      strcpy(fc->name[num], "omega_g");
-      sprintf(fc->value[num++], "%e", omega_r);
+    if (Omega_r != 0) {
+      message("We inferred that Omega_g = %.3e (photon density).", Omega_r);
+      strcpy(fc->name[num], "Omega_g");
+      sprintf(fc->value[num++], "%e", Omega_r);
     }
 
     /* This is debatable */
-    message("We assumed that N_ur = %.2f, i.e. 2 massless species.", N_ur);
+    message("We assumed that N_ur = %.5f to get N_eff = 3.046.", N_ur);
     strcpy(fc->name[num], "N_ur");
     sprintf(fc->value[num++], "%e", N_ur);
 
-    /* This is correct */
+    /* This is reasonable */
     strcpy(fc->name[num], "N_ncdm");
-    sprintf(fc->value[num++], "%i", 1);
+    sprintf(fc->value[num++], "%i", 3);
     strcpy(fc->name[num], "m_ncdm");
-    sprintf(fc->value[num++], "%e", m_ncdm);
+    sprintf(fc->value[num++], "%e,%e,%e", m_ncdm, m_ncdm, m_ncdm);
     strcpy(fc->name[num], "Number of momentum bins");
-    sprintf(fc->value[num++], "%i", nbins);
+    sprintf(fc->value[num++], "%i,%i,%i", nbins, nbins, nbins);
     strcpy(fc->name[num], "Quadrature strategy");
-    sprintf(fc->value[num++], "%i", quadrature_strategy);
+    sprintf(fc->value[num++], "%i,%i,%i", quadrature_strategy,
+            quadrature_strategy, quadrature_strategy);
   }
 #endif
 #else
