@@ -90,5 +90,6 @@
 #include "units.h"
 #include "velociraptor_interface.h"
 #include "version.h"
+#include "neutrino/renderer.h"
 
 #endif /* SWIFT_SWIFT_H */

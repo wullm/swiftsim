@@ -35,7 +35,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef WITH_CLASS_INTERFACE
 #include "class.h"
 #endif
 
