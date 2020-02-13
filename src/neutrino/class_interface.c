@@ -48,11 +48,11 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
 
   message("Converting CLASS Units:");
   message("(CLASS) Unit system: U_L = \t %.6e cm", Mpc_to_cm);
-  message("(CLASS) Unit system: U_T = \t %.6e cm",
+  message("(CLASS) Unit system: U_T = \t %.6e s",
           unit_time_factor * us->UnitTime_in_cgs);
   message("to:");
   message("(internal) Unit system: U_L = \t %.6e cm", us->UnitLength_in_cgs);
-  message("(internal) Unit system: U_T = \t %.6e cm", us->UnitTime_in_cgs);
+  message("(internal) Unit system: U_T = \t %.6e s", us->UnitTime_in_cgs);
 
   /* Define the CLASS structures */
   struct precision pr;  /* for precision parameters */

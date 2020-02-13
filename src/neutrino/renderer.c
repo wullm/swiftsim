@@ -320,7 +320,7 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
                        char *fname) {
   /* The memory for the transfer functions is located here */
   struct transfer *tr = &rend->transfer;
-  // const struct unit_system *us = e->internal_units;
+  const struct unit_system *us = e->internal_units;
 
   hid_t h_file, h_grp, h_data, h_err;
 
@@ -339,6 +339,18 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
 
   io_read_attribute(h_grp, "k_size", INT, &tr->k_size);
   io_read_attribute(h_grp, "tau_size", INT, &tr->tau_size);
+
+  /* Read the relevant units (length and time) */
+  double file_length_us, file_time_us;
+  io_read_attribute(h_grp, "Unit length in cgs (U_L)", DOUBLE, &file_length_us);
+  io_read_attribute(h_grp, "Unit time in cgs (U_t)", DOUBLE, &file_time_us);
+
+  message("Converting perturbation file units:");
+  message("(perturb) Unit system: U_L = \t %.6e cm", file_length_us);
+  message("(perturb) Unit system: U_T = \t %.6e s", file_time_us);
+  message("to:");
+  message("(internal) Unit system: U_L = \t %.6e cm", us->UnitLength_in_cgs);
+  message("(internal) Unit system: U_T = \t %.6e s", us->UnitTime_in_cgs);
 
   /* Close header */
   H5Gclose(h_grp);
@@ -390,6 +402,16 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
                   tr->delta);
   if (h_err < 0)
     error("Error while reading data array '%s'.", "Transfer functions");
+
+  /* Convert the units of the wavenumbers (inverse length) */
+  for (size_t i=0; i<tr->k_size; i++) {
+      tr->k[i] *= us->UnitLength_in_cgs/file_length_us;
+  }
+
+  /* Convert the units of the conformal time. This is log(tau) ! */
+  for (size_t i=0; i<tr->tau_size; i++) {
+      tr->log_tau[i] += log(file_time_us) - log(us->UnitTime_in_cgs);
+  }
 
   /* Close the dataset */
   H5Dclose(h_data);
