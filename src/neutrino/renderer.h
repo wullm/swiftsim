@@ -54,6 +54,9 @@ struct renderer {
   double *primordial_dims;
   size_t primordial_grid_N;
 
+  /*! Array containing the neutrino density field on a grid */
+  double *density_grid;
+
   /* File name of the perturbation data */
   char *in_perturb_fname;
   char *out_perturb_fname;

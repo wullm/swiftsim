@@ -41,6 +41,131 @@
 /* For convert_gpart_vel() */
 #include "gravity_io.h"
 
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+/**
+ * @brief Returns 1D index of a 3D NxNxN array using row-major style.
+ *
+ * Wraps around in the corresponding dimension if any of the 3 indices is >= N
+ * or < 0.
+ *
+ * @param i Index along x.
+ * @param j Index along y.
+ * @param k Index along z.
+ * @param N Size of the array along one axis.
+ */
+__attribute__((always_inline)) INLINE static int row_major_id_periodic(int i,
+                                                                       int j,
+                                                                       int k,
+                                                                       int N) {
+  return (((i + N) % N) * N * N + ((j + N) % N) * N + ((k + N) % N));
+}
+
+
+/**
+ * @brief Interpolate values from a the mesh using CIC.
+ *
+ * @param mesh The mesh to read from.
+ * @param i The index of the cell along x
+ * @param j The index of the cell along y
+ * @param k The index of the cell along z
+ * @param tx First CIC coefficient along x
+ * @param ty First CIC coefficient along y
+ * @param tz First CIC coefficient along z
+ * @param dx Second CIC coefficient along x
+ * @param dy Second CIC coefficient along y
+ * @param dz Second CIC coefficient along z
+ */
+__attribute__((always_inline)) INLINE static double CIC_get(
+    double mesh[6][6][6], int i, int j, int k, double tx, double ty, double tz,
+    double dx, double dy, double dz) {
+
+  double temp;
+  temp = mesh[i + 0][j + 0][k + 0] * tx * ty * tz;
+  temp += mesh[i + 0][j + 0][k + 1] * tx * ty * dz;
+  temp += mesh[i + 0][j + 1][k + 0] * tx * dy * tz;
+  temp += mesh[i + 0][j + 1][k + 1] * tx * dy * dz;
+  temp += mesh[i + 1][j + 0][k + 0] * dx * ty * tz;
+  temp += mesh[i + 1][j + 0][k + 1] * dx * ty * dz;
+  temp += mesh[i + 1][j + 1][k + 0] * dx * dy * tz;
+  temp += mesh[i + 1][j + 1][k + 1] * dx * dy * dz;
+
+  return temp;
+}
+
+/**
+ * @brief Retrieve value for a gpart from a given mesh using the CIC
+ * method.
+ *
+ * Debugging routine.
+ *
+ * @param gp The #gpart.
+ * @param pot The potential mesh.
+ * @param N the size of the mesh along one axis.
+ * @param fac width of a mesh cell.
+ * @param dim The dimensions of the simulation box.
+ */
+double grid_to_gparts_CIC(struct gpart* gp, const double* pot, int N, double fac,
+                        const double dim[3]) {
+
+  /* Box wrap the gpart's position */
+  const double pos_x = box_wrap(gp->x[0], 0., dim[0]);
+  const double pos_y = box_wrap(gp->x[1], 0., dim[1]);
+  const double pos_z = box_wrap(gp->x[2], 0., dim[2]);
+
+  int i = (int)(fac * pos_x);
+  if (i >= N) i = N - 1;
+  const double dx = fac * pos_x - i;
+  const double tx = 1. - dx;
+
+  int j = (int)(fac * pos_y);
+  if (j >= N) j = N - 1;
+  const double dy = fac * pos_y - j;
+  const double ty = 1. - dy;
+
+  int k = (int)(fac * pos_z);
+  if (k >= N) k = N - 1;
+  const double dz = fac * pos_z - k;
+  const double tz = 1. - dz;
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (i < 0 || i >= N) error("Invalid gpart position in x");
+  if (j < 0 || j >= N) error("Invalid gpart position in y");
+  if (k < 0 || k >= N) error("Invalid gpart position in z");
+#endif
+
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+  if (gp->a_grav_PM[0] != 0. || gp->potential_PM != 0.)
+    error("Particle with non-initalised stuff");
+#endif
+
+  /* First, copy the necessary part of the mesh for stencil operations */
+  /* This includes box-wrapping in all 3 dimensions. */
+  double phi[6][6][6];
+  for (int iii = -2; iii <= 3; ++iii) {
+    for (int jjj = -2; jjj <= 3; ++jjj) {
+      for (int kkk = -2; kkk <= 3; ++kkk) {
+        phi[iii + 2][jjj + 2][kkk + 2] =
+            pot[row_major_id_periodic(i + iii, j + jjj, k + kkk, N)];
+      }
+    }
+  }
+
+  /* Some local accumulators */
+  double p = 0.;
+
+  /* Indices of (i,j,k) in the local copy of the mesh */
+  const int ii = 2, jj = 2, kk = 2;
+
+  /* Simple CIC for the potential itself */
+  p += CIC_get(phi, ii, jj, kk, tx, ty, tz, dx, dy, dz);
+
+  /* ---- */
+  return p;
+}
+#endif
+
+
+
 /**
  * @brief Weight the active neutrino particles in a cell to satisfy Liouville's
  * equation.
@@ -63,6 +188,14 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   if (!with_cosmology)
     error("Phase space weighting without cosmology not implemented.");
 
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+    /* Locate the linear theory density grid */
+    const int N = e->rend->primordial_grid_N;
+    const double cell_fac = e->mesh->cell_fac;
+    const double* grid = e->rend->density_grid;
+    const double dim[3] = {e->s->dim[0], e->s->dim[1], e->s->dim[2]};
+#endif
+
   // const struct phys_const *physical_constants = e->physical_constants;
   // const struct cosmology *cosmo = e->cosmology;
   // const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
@@ -83,7 +216,6 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
     for (int k = 0; k < 8; k++)
       if (c->progeny[k] != NULL) runner_do_weighting(r, c->progeny[k], 0);
   } else {
-
     /* Loop over the gparts in this cell. */
     for (int k = 0; k < gcount; k++) {
       /* Get a handle on the part. */
@@ -92,23 +224,33 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
       /* If the g-particle is a neutrino and needs to be weighted */
       if (gp->type == swift_type_neutrino && true) {
         if (gpart_is_active(gp, e)) {
+
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+          double linear_overdensity = grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
+          double temperature_factor = (1.0 + linear_overdensity / 3.0);
+#else
+          double temperature_factor = 1.0;
+#endif
+
           /* Set up the initial phase space density if necessary */
           if (e->step == 0) {
             gp->mass_i = gp->mass;
-            gp->f_phase_i = fermi_dirac_density(e, gp->v_full, gp->mass * mult);
+            gp->f_phase_i = fermi_dirac_density(e, gp->v_full, gp->mass * mult, temperature_factor);
             gp->f_phase = gp->f_phase_i;
             gp->mass = 1e-12;  // dither in the first time step
           } else {
-            gp->f_phase = fermi_dirac_density(e, gp->v_full, gp->mass_i * mult);
+            gp->f_phase = fermi_dirac_density(e, gp->v_full, gp->mass_i * mult, temperature_factor);
             gp->mass = gp->mass_i * (1.0 - gp->f_phase / gp->f_phase_i);
 
-            // if (gp->id_or_neg_offset >= 262144 &&
-            //     gp->id_or_neg_offset < 262144 + 5) {
+            // if (gp->id_or_neg_offset >= 16*16*16 &&
+            //     gp->id_or_neg_offset < 16*16*16 + 5) {
+            // // if (gp->id_or_neg_offset >= 262144 &&
+            // //     gp->id_or_neg_offset < 262144 + 5) {
             //   // double m = neutrino_mass_factor(e) * gp->mass_i;
             //   // double m2 = neutrino_mass_factor(e) * particle_mass;
             //   double p = fermi_dirac_momentum(e, gp->v_full, gp->mass_i *
-            //   mult); message("%.10e %.10e %.10e %.10e %f", p, gp->mass_i *
-            //   mult, gp->f_phase, gp->f_phase_i, gp->mass);
+            //   mult); message("%.10e %.10e %.10e %.10e %f %f", p, gp->mass_i *
+            //   mult, gp->f_phase, gp->f_phase_i, gp->mass, linear_density);
             // }
           }
         }

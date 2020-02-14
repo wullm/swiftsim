@@ -32,7 +32,7 @@
 /* Some standard headers */
 #include <math.h>
 
-double fermi_dirac_density(const struct engine *e, float *v, double m_eV) {
+double fermi_dirac_density(const struct engine *e, float *v, double m_eV, double T_factor) {
   const struct phys_const *physical_constants = e->physical_constants;
 
 /* Retrieve the neutrino temperature today */
@@ -54,7 +54,7 @@ double fermi_dirac_density(const struct engine *e, float *v, double m_eV) {
   /* Calculate the momentum in eV */
   double p_eV = fermi_dirac_momentum(e, v, m_eV);
 
-  return 1.0 / (exp(p_eV / T_eV) + 1.0);
+  return 1.0 / (exp(p_eV / (T_eV * T_factor)) + 1.0);
 }
 
 /* Calculate the momentum in energy units, using E = a*sqrt(p^2 + m^2) ~ ap.

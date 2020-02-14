@@ -25,7 +25,7 @@
 /* Engine header */
 #include "../engine.h"
 
-double fermi_dirac_density(const struct engine*, float*, double);
+double fermi_dirac_density(const struct engine*, float*, double, double);
 double fermi_dirac_momentum(const struct engine*, float*, double);
 double neutrino_mass_factor(const struct engine*);
 

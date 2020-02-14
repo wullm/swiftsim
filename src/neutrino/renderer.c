@@ -34,12 +34,17 @@ gsl_interp_accel *tau_acc;
 gsl_spline2d *spline;
 #endif
 
-// Array index (this is the row major format)
+/* Array index (this is the row major format) */
 inline int box_idx(int N, int x, int y, int z) { return z + N * (y + N * x); }
 
-// Row major index for a half-complex array with N*N*(N/2+1) complex entries
+/* Row major index for a half-complex array with N*N*(N/2+1) complex entries */
 inline int half_box_idx(int N, int x, int y, int z) {
   return z + (N / 2 + 1) * (y + N * x);
+}
+
+/* Sinc function */
+inline double sinc(double x) {
+  return x == 0 ? 0. : sin(x)/x;
 }
 
 /* Quick and dirty write binary boxes */
@@ -105,6 +110,10 @@ void rend_init(struct renderer *rend, struct swift_params *params,
         "Primordial grid is not the same size as the gravity mesh %zu != %zu.",
         rend->primordial_grid_N, (size_t)e->mesh->N);
   }
+
+  /* Allocate memory for the rendered density grid */
+  int N = e->mesh->N;
+  rend->density_grid =  (double *)fftw_malloc(sizeof(double) * N * N * N);
 }
 
 void rend_load_primordial_field(struct renderer *rend, const char *fname) {
@@ -244,28 +253,35 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   const double delta_k = 2 * M_PI / box_len;  // U_L^-1
 
   /* Current conformal time */
-  double tau = e->cosmology->conformal_time;
+  const struct cosmology *cosmo = e->cosmology;
+  double tau = cosmo->conformal_time;
 
   // cosmology_get_grav_kick_factor
 
   /* Boxes in configuration and momentum space */
-  double *restrict prime;
+  double *restrict prime = rend->density_grid;
+  double *restrict potential;
   fftw_complex *restrict fp;
 
   /* Allocate memory for the rendered field */
-  prime = (double *)fftw_malloc(sizeof(double) * N * N * N);
+  // prime = (double *)fftw_malloc(sizeof(double) * N * N * N);
+  prime = rend->density_grid; // use memory already allocated
+  potential = (double *)fftw_malloc(sizeof(double) * N * N * N);
   fp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 + 1));
 
-  if (prime == NULL || fp == NULL) {
+  if (prime == NULL || potential == NULL || fp == NULL) {
     error("Error allocating memory for density mesh or its Fourier transform.");
   }
 
-  memuse_log_allocation("prime", prime, 1, sizeof(fftw_complex) * N * N * N);
+  memuse_log_allocation("prime", prime, 1, sizeof(double) * N * N * N);
+  memuse_log_allocation("potential", potential, 1, sizeof(double) * N * N * N);
   memuse_log_allocation("f", fp, 1, sizeof(fftw_complex) * N * N * (N / 2 + 1));
 
   /* Prepare the FFTW plans */
   fftw_plan r2c = fftw_plan_dft_r2c_3d(N, N, N, prime, fp, FFTW_ESTIMATE);
   fftw_plan c2r = fftw_plan_dft_c2r_3d(N, N, N, fp, prime, FFTW_ESTIMATE);
+  fftw_plan pr2c = fftw_plan_dft_r2c_3d(N, N, N, potential, fp, FFTW_ESTIMATE);
+  fftw_plan pc2r = fftw_plan_dft_c2r_3d(N, N, N, fp, potential, FFTW_ESTIMATE);
 
   // Transfer the data to prime
   for (int i = 0; i < N * N * N; i++) {
@@ -315,14 +331,79 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
     prime[i] /= box_volume;
   }
 
+  /* Calculate the background neutrino density at the present time */
+  const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
+  const double rho_crit = cosmo->critical_density;
+  const double neutrino_density = Omega_nu*rho_crit;
+
+  // message("The neutrino density is %e", neutrino_density);
+
   write_doubles_as_floats("haha.box", prime, N * N * N);
+
+  /* Compute the potential due to neutrinos (modulo a factor G_newt) */
+
+  /* Copy the density over into potential */
+  for (int i = 0; i < N * N * N; i++) {
+    potential[i] = (1.0 + prime[i]) * neutrino_density;
+  }
+
+  /* Transform to momentum space */
+  fftw_execute(pr2c);
+
+  /* Normalization */
+  for (int i = 0; i < N * N * (N / 2 + 1); i++) {
+    fp[i][0] *= box_volume / (N * N * N);
+    fp[i][1] *= box_volume / (N * N * N);
+  }
+
+
+  /* Multiply by the inverse Poisson kernel */
+  for (int x = 0; x < N; x++) {
+    for (int y = 0; y < N; y++) {
+      for (int z = 0; z <= N / 2; z++) {
+        double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
+        double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
+        double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+
+        double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
+
+        //The CIC Window function in Fourier space
+        double W_x = (k_x == 0) ? 1 : pow(sinc(0.5*k_x*box_len/N),2);
+        double W_y = (k_y == 0) ? 1 : pow(sinc(0.5*k_y*box_len/N),2);
+        double W_z = (k_z == 0) ? 1 : pow(sinc(0.5*k_z*box_len/N),2);
+        double W = W_x*W_y*W_z;
+
+        double kernel = -4*M_PI/k/k;
+        double correction = kernel/W/W;
+
+        /* Ignore the DC mode */
+        if (k > 0) {
+          fp[half_box_idx(N, x, y, z)][0] *= correction;
+          fp[half_box_idx(N, x, y, z)][1] *= correction;
+        }
+      }
+    }
+  }
+
+  /* Transform back */
+  fftw_execute(pc2r);
+
+  /* Normalization */
+  for (int i = 0; i < N * N * N; i++) {
+    potential[i] /= box_volume;
+  }
+
+  write_doubles_as_floats("o_potential.box", e->mesh->potential, N * N * N);
+  write_doubles_as_floats("potential.box", potential, N * N * N);
+
 
   // Add the contribution to the gravity mesh
   for (int i = 0; i < N * N * N; i++) {
-    e->mesh->potential[i] += prime[i];
+    e->mesh->potential[i] += potential[i];
   }
 
-  message("Adding contributions to mesh.");
+//   message("Adding contributions to mesh.");
+
 
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");
