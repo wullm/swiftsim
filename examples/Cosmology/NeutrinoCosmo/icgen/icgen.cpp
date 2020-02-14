@@ -429,9 +429,63 @@ int main() {
     std::cout << "  " << std::endl;
 
 
+    std::cout << "PHASE 2D - Undo cdm transfer function & export pure Gaussian field" << std::endl;
+
+    //Undo the CDM density transfer function and obtain a pure Gaussian field (no transfer function)
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                if (k > 0) {
+                    k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_pure(k)/sigma_func_cdm(k);
+                    k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_pure(k)/sigma_func_cdm(k);
+                }
+            }
+        }
+    }
+
+    //FTT back
+    fftw_execute(c2r_plan);
+
+    //Normalization (from Fourier conventions alone)
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<N; z++) {
+                primordial_box[box_idx(N, x, y, z)] /= box_volume;
+            }
+        }
+    }
+
+    //Write GRF to binary file
+    write_array_to_disk(std::string(OUTPUT_DIR) + "gaussian_pure.box", primordial_box, N);
+    //Write GRF to H5 format
+    writeGRF_H5(primordial_box, N, box_len, std::string(OUTPUT_DIR) + "gaussian_pure.hdf5");
+
+    std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_pure.box" << std::endl;
+    std::cout << "2) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_pure.hdf5" << std::endl;
+    std::cout << "  " << std::endl;
+
+    //FFT the primordial box for later
+    fftw_execute(r2c_plan);
+
+    //Normalization
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<=N/2; z++) {
+                k_box[half_box_idx(N, x, y, z)][0] *= box_volume/(N*N*N);
+                k_box[half_box_idx(N, x, y, z)][1] *= box_volume/(N*N*N);
+            }
+        }
+    }
+
     double dVdX;
     if (VELOCITY_METHOD == VEL_ZELDOVICH) {
-        std::cout << "PHASE 2D - Compute the velocity proportionality constant for the Zel'dovich method" << std::endl;
+        std::cout << "PHASE 2E - Compute the velocity proportionality constant for the Zel'dovich method" << std::endl;
 
         //Compute the constant of proportionality
         double a = a_scale_factor_of_z(z_start);
@@ -453,7 +507,7 @@ int main() {
         std::cout << "5) Proportionality constant dVdX = a^2Hf = " << dVdX << " Gyr^-1." << std::endl;
         std::cout << "  " << std::endl;
 
-        std::cout << "PHASE 2E - Assign initial velocities to the cold particles using the Zel'dovich method" << std::endl;
+        std::cout << "PHASE 2F - Assign initial velocities to the cold particles using the Zel'dovich method" << std::endl;
 
         for (auto body : bodies) {
             double X = body.X*N/box_len;
@@ -529,8 +583,8 @@ int main() {
                     double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
 
                     if (k > 0) {
-                        k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_vel_cdm(k)/sigma_func_cdm(k);
-                        k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_vel_cdm(k)/sigma_func_cdm(k);
+                        k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_vel_cdm(k)/sigma_func_pure(k);
+                        k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_vel_cdm(k)/sigma_func_pure(k);
                     }
                 }
             }
@@ -743,7 +797,7 @@ int main() {
     }
 
     std::cout << "  " << std::endl;
-    std::cout << "PHASE 2F - Summary" << std::endl;
+    std::cout << "PHASE 2G - Summary" << std::endl;
     std::cout << "1) Average speed " << avg_cb_speed << " comoving Mpc/Gyr." << std::endl;
     std::cout << "2) Maximum speed " << max_cb_speed << " comoving Mpc/Gyr." << std::endl;
     std::cout << "  " << std::endl;
@@ -791,8 +845,8 @@ int main() {
 
                 if (k > 0) {
                     if (VELOCITY_METHOD == VEL_ZELDOVICH) {
-                        k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
-                        k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_cdm(k);
+                        k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_pure(k);
+                        k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_pure(k);
                     } else if (VELOCITY_METHOD == VEL_TRANSFER) {
                         k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_vel_cdm(k);
                         k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_vel_cdm(k);
