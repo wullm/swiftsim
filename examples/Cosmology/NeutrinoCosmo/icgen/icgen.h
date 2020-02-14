@@ -14,9 +14,9 @@
 
 struct corpuscle {
   long int id;
-  double X, Y, Z; //position
-  double v_X, v_Y, v_Z; //velocity
-  double delta_X, delta_Y, delta_Z; //displacement from grid/glass position
+  double X, Y, Z;                    // position
+  double v_X, v_Y, v_Z;              // velocity
+  double delta_X, delta_Y, delta_Z;  // displacement from grid/glass position
   double mass;
   double smoothing_length;
   double internal_energy;
@@ -43,13 +43,13 @@ std::vector<double> TF_ks;
 std::vector<double> TF_T_rho_cdm;
 std::vector<double> TF_T_rho_nu;
 std::vector<double> TF_T_rho_b;
-std::vector<double> TF_T_rho_cb; //cdm and baryon weighted mean
+std::vector<double> TF_T_rho_cb;  // cdm and baryon weighted mean
 
-//Velocity transfer functions
+// Velocity transfer functions
 std::vector<double> TF_T_theta_cdm;
 std::vector<double> TF_T_theta_nu;
 std::vector<double> TF_T_theta_b;
-std::vector<double> TF_T_theta_cb; //cdm and baryon weighted mean
+std::vector<double> TF_T_theta_cb;  // cdm and baryon weighted mean
 
 // Indexed search table for the transfer function interpolation
 const int TF_I_max = 100;
@@ -93,8 +93,13 @@ inline double Transfer_interpol(double k, std::vector<double> *Transfer) {
   }
 }
 
-//Density sigma functions
-inline double sigma_func_cdm(double k) { //this gives cdm+baryons
+// Pure power spectrum (no transfer function)
+inline double sigma_func_pure(double k) {  // this gives a pure power spectrum
+  return sqrt(pow(k, N_S));
+}
+
+// Density sigma functions
+inline double sigma_func_cdm(double k) {  // this gives cdm+baryons
   return sqrt(pow(k, N_S)) * Transfer_interpol(k, &TF_T_rho_cb);
 }
 
@@ -102,8 +107,8 @@ inline double sigma_func_neutrino(double k) {
   return sqrt(pow(k, N_S)) * Transfer_interpol(k, &TF_T_rho_nu);
 }
 
-//Velocity sigma functions
-inline double sigma_func_vel_cdm(double k) { //this gives cdm+baryons
+// Velocity sigma functions
+inline double sigma_func_vel_cdm(double k) {  // this gives cdm+baryons
   return sqrt(pow(k, N_S)) * Transfer_interpol(k, &TF_T_theta_cb);
 }
 
