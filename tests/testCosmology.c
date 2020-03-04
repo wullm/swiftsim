@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     double a = 0.1 + 0.9 * i / (N_CHECK - 1.);
     /* Compute a(t(a)) and check if same results */
     double tmp = cosmology_get_time_since_big_bang(&cosmo, a);
-    tmp = cosmology_get_scale_factor(&cosmo, tmp);
+    tmp = cosmology_get_scale_factor_from_time(&cosmo, tmp);
 
     /* check accuracy */
     tmp = (tmp - a) / a;

@@ -960,6 +960,13 @@ void cosmology_init_no_cosmo(struct cosmology *c) {
   c->time_end = 0.;
 }
 
+/**
+ * @brief Compute scale factor from time since big bang (in integer steps).
+ *
+ * @param c The current #cosmology.
+ * @param ti Integer time step
+ * @return The scale factor.
+ */
 double cosmology_get_scale_factor(const struct cosmology *c,
                                   const integertime_t ti) {
 

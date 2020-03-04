@@ -94,6 +94,7 @@ endif
 if WITH_CLASS_INTERFACE
 DELTA_F_SOURCES += neutrino/class_interface.c
 AM_CFLAGS += $(CLASS_INCS)		# interface with CLASS
+endif
 
 # source files for GRACKLE cooling
 GRACKLE_COOLING_SOURCES =
