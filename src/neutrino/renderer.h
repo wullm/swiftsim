@@ -69,6 +69,7 @@ struct renderer {
   struct transfer {
     size_t k_size;
     size_t tau_size;
+    size_t n_functions;
     double *delta;
     double *k;
     double *log_tau;

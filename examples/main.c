@@ -1214,12 +1214,13 @@ int main(int argc, char *argv[]) {
     struct transfer *tr = &rend.transfer;
 
     /* First broadcast the size of the perturbation to the other ranks */
-    MPI_Bcast(&tr->k_size, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&tr->tau_size, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&tr->k_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&tr->tau_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&tr->n_functions, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     /* Allocate memory on the other ranks */
     if (myrank != 0) {
-      tr->delta = (double *)malloc(tr->k_size * tr->tau_size * sizeof(double));
+      tr->delta = (double *)malloc(tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
       tr->k = (double *)malloc(tr->k_size * sizeof(double));
       tr->log_tau = (double *)malloc(tr->tau_size * sizeof(double));
     }

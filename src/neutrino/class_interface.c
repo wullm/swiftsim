@@ -109,8 +109,11 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   int index_tp = pt.index_tp_delta_ncdm1;  // type of source function
 
   /* Size of the perturbations */
-  int k_size = pt.k_size[index_md];
-  int tau_size = pt.tau_size;
+  size_t k_size = pt.k_size[index_md];
+  size_t tau_size = pt.tau_size;
+
+  /* The number of transfer functions to be read */
+  size_t n_functions = 1;
 
   /* Little h, which CLASS uses but Swift doesn't */
   const double h = ba.h;
@@ -123,12 +126,15 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   rend->transfer.tau_size = tau_size;
   rend->transfer.log_tau = (double *)calloc(tau_size, sizeof(double));
 
+  /* The number of transfer functions to be read */
+  rend->transfer.n_functions = n_functions;
+
   /* Vector with the transfer functions T(tau, k) */
-  rend->transfer.delta = (double *)calloc(k_size * tau_size, sizeof(double));
+  rend->transfer.delta = (double *)calloc(n_functions * k_size * tau_size, sizeof(double));
 
   /* Read out the perturbation */
-  for (int index_tau = 0; index_tau < tau_size; index_tau++) {
-    for (int index_k = 0; index_k < k_size; index_k++) {
+  for (size_t index_tau = 0; index_tau < tau_size; index_tau++) {
+    for (size_t index_k = 0; index_k < k_size; index_k++) {
       /* Convert k from h/Mpc to 1/U_L */
       double k = pt.k[index_md][index_k] * h / unit_length_factor;
       double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] +
@@ -147,7 +153,7 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
     rend->transfer.log_tau[index_tau] = log(tau);
   }
 
-  message("The neutrino density is sampled at %i * %i points.", k_size,
+  message("The neutrino density is sampled at %zu * %zu points.", k_size,
           tau_size);
 
   /* Pre-empt segfault in CLASS if there is no interacting dark radiation */

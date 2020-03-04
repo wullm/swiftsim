@@ -256,7 +256,11 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   const struct cosmology *cosmo = e->cosmology;
   double tau = cosmo->conformal_time;
 
-  // cosmology_get_grav_kick_factor
+
+  // message("The conformal time is %f", tau);
+  // /* What is the smoothing factor? */
+  // const double r_s = e->mesh->r_s;
+  // const double a_smooth2 = 4. * M_PI * M_PI * r_s * r_s / (box_len * box_len);
 
   /* Boxes in configuration and momentum space */
   double *restrict prime = rend->density_grid;
@@ -297,11 +301,6 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
     fp[i][1] *= box_volume / (N * N * N);
   }
 
-  // for (size_t i=0; i<rend->transfer.k_size; i++) {
-  //     double k = rend->transfer.k[i];
-  //     printf("%e %e\n", k, -gsl_spline2d_eval(spline, k, log(tau), k_acc, tau_acc)/k/k);
-  // }
-
   // Apply the transfer function
   for (int x = 0; x < N; x++) {
     for (int y = 0; y < N; y++) {
@@ -333,12 +332,8 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Calculate the background neutrino density at the present time */
   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
-  const double rho_crit = cosmo->critical_density;
-  const double neutrino_density = Omega_nu*rho_crit;
-
-  // message("The neutrino density is %e", neutrino_density);
-
-  write_doubles_as_floats("haha.box", prime, N * N * N);
+  const double rho_crit0 = cosmo->critical_density_0;
+  const double neutrino_density = Omega_nu*rho_crit0;
 
   /* Compute the potential due to neutrinos (modulo a factor G_newt) */
 
@@ -346,6 +341,9 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   for (int i = 0; i < N * N * N; i++) {
     potential[i] = (1.0 + prime[i]) * neutrino_density;
   }
+
+  /* Export the neutrino density */
+  write_doubles_as_floats("nudens.box", potential, N * N * N);
 
   /* Transform to momentum space */
   fftw_execute(pr2c);
@@ -374,7 +372,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
         double W = W_x*W_y*W_z;
 
         double kernel = -4*M_PI/k/k;
-        double correction = kernel/W/W;
+        double correction = kernel/W/W; // * exp(-a_smooth2*(k*k/delta_k/delta_k))
 
         /* Ignore the DC mode */
         if (k > 0) {
@@ -393,8 +391,9 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
     potential[i] /= box_volume;
   }
 
-  write_doubles_as_floats("o_potential.box", e->mesh->potential, N * N * N);
-  write_doubles_as_floats("potential.box", potential, N * N * N);
+  /* Export the potentials */
+  write_doubles_as_floats("m_potential.box", e->mesh->potential, N * N * N);
+  write_doubles_as_floats("nu_potential.box", potential, N * N * N);
 
 
   // Add the contribution to the gravity mesh
@@ -435,9 +434,12 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
 
   tr->k_size = 0;
   tr->tau_size = 0;
+  tr->n_functions = 1;
 
   io_read_attribute(h_grp, "k_size", INT, &tr->k_size);
   io_read_attribute(h_grp, "tau_size", INT, &tr->tau_size);
+  io_read_attribute(h_grp, "n_functions", INT, &tr->n_functions);
+
 
   /* Read the relevant units (length and time) */
   double file_length_us, file_time_us;
@@ -460,9 +462,9 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
 
   tr->k = (double *)calloc(tr->k_size, sizeof(double));
   tr->log_tau = (double *)malloc(tr->tau_size * sizeof(double));
-  tr->delta = (double *)malloc(tr->k_size * tr->tau_size * sizeof(double));
+  tr->delta = (double *)malloc(tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
 
-  message("We read the perturbation size %zu * %zu", tr->k_size, tr->tau_size);
+  message("We read the perturbation size %zu * %zu * %zu", tr->n_functions, tr->k_size, tr->tau_size);
 
   /* Open the perturbation data group */
   h_grp = H5Gopen(h_file, "/Perturb", H5P_DEFAULT);
@@ -556,6 +558,7 @@ void rend_write_perturb(struct renderer *rend, const struct engine *e,
   /* Print the relevant information and print status */
   io_write_attribute(h_grp, "k_size", INT, &tr->k_size, 1);
   io_write_attribute(h_grp, "tau_size", INT, &tr->tau_size, 1);
+  io_write_attribute(h_grp, "n_functions", INT, &tr->n_functions, 1);
 
   /* Write unit system for this data set */
   io_write_attribute_d(h_grp, "Unit mass in cgs (U_M)",
@@ -623,8 +626,8 @@ void rend_write_perturb(struct renderer *rend, const struct engine *e,
   H5Dclose(h_data);
 
   /* Set the extent of the transfer function data */
-  rank = 2;
-  hsize_t shape_delta[2] = {tr->k_size, tr->tau_size};
+  rank = 3;
+  hsize_t shape_delta[3] = {tr->n_functions, tr->k_size, tr->tau_size};
   h_err = H5Sset_extent_simple(h_space, rank, shape_delta, shape_delta);
   if (h_err < 0) error("Error while changing data space shape.");
 
