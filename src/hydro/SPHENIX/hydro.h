@@ -17,14 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ******************************************************************************/
-#ifndef SWIFT_ANARCHY_DU_HYDRO_H
-#define SWIFT_ANARCHY_DU_HYDRO_H
+#ifndef SWIFT_SPHENIX_HYDRO_H
+#define SWIFT_SPHENIX_HYDRO_H
 
 /**
- * @file AnarchyDU/hydro.h
+ * @file SPHENIX/hydro.h
  * @brief Density-Energy conservative implementation of SPH,
- *        with added ANARCHY physics (Cullen & Denhen 2011 AV,
- *        Price 2008 thermal diffusion  (Non-neighbour loop
+ *        with added SPHENIX physics (Borrow 2020)  (Non-neighbour loop
  *        equations)
  */
 
@@ -38,6 +37,7 @@
 #include "hydro_space.h"
 #include "kernel_hydro.h"
 #include "minmax.h"
+#include "pressure_floor.h"
 
 #include "./hydro_parameters.h"
 
@@ -408,11 +408,14 @@ hydro_set_drifted_physical_internal_energy(struct part *p,
 
   /* Compute the sound speed */
   const float pressure = gas_pressure_from_internal_energy(p->rho, p->u);
-  const float soundspeed = gas_soundspeed_from_pressure(p->rho, pressure);
+  const float pressure_including_floor =
+      pressure_floor_get_comoving_pressure(p, pressure, cosmo);
+  const float soundspeed =
+      gas_soundspeed_from_pressure(p->rho, pressure_including_floor);
 
   /* Update variables. */
   p->force.soundspeed = soundspeed;
-  p->force.pressure = pressure;
+  p->force.pressure = pressure_including_floor;
 
   p->viscosity.v_sig = max(p->viscosity.v_sig, 2.f * soundspeed);
 }
@@ -590,9 +593,12 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_gradient(
   /* Compute the norm of div v */
   const float abs_div_v = fabsf(p->viscosity.div_v);
 
-  /* Compute the sound speed -- see theory section for justification */
-  const float soundspeed = hydro_get_comoving_soundspeed(p);
+  /* Compute the sound speed  */
   const float pressure = hydro_get_comoving_pressure(p);
+  const float pressure_including_floor =
+      pressure_floor_get_comoving_pressure(p, pressure, cosmo);
+  const float soundspeed =
+      gas_soundspeed_from_pressure(p->rho, pressure_including_floor);
 
   /* Compute the Balsara switch */
   const float balsara =
@@ -611,7 +617,7 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_gradient(
 
   /* Update variables. */
   p->force.f = grad_h_term;
-  p->force.pressure = pressure;
+  p->force.pressure = pressure_including_floor;
   p->force.soundspeed = soundspeed;
   p->force.balsara = balsara;
 }
@@ -720,7 +726,12 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_force(
   const float kernel_support_physical = p->h * cosmo->a * kernel_gamma;
   const float kernel_support_physical_inv = 1.f / kernel_support_physical;
   const float v_sig_physical = p->viscosity.v_sig * cosmo->a_factor_sound_speed;
-  const float soundspeed_physical = hydro_get_physical_soundspeed(p, cosmo);
+  const float pressure = hydro_get_comoving_pressure(p);
+  const float pressure_including_floor =
+      pressure_floor_get_comoving_pressure(p, pressure, cosmo);
+  const float soundspeed_physical =
+      gas_soundspeed_from_pressure(p->rho, pressure_including_floor) *
+      cosmo->a_factor_sound_speed;
 
   const float sound_crossing_time_inverse =
       soundspeed_physical * kernel_support_physical_inv;
@@ -851,9 +862,12 @@ __attribute__((always_inline)) INLINE static void hydro_reset_predicted_values(
 
   /* Compute the sound speed */
   const float pressure = gas_pressure_from_internal_energy(p->rho, p->u);
-  const float soundspeed = hydro_get_comoving_soundspeed(p);
+  const float pressure_including_floor =
+      pressure_floor_get_comoving_pressure(p, pressure, cosmo);
+  const float soundspeed =
+      gas_soundspeed_from_pressure(p->rho, pressure_including_floor);
 
-  p->force.pressure = pressure;
+  p->force.pressure = pressure_including_floor;
   p->force.soundspeed = soundspeed;
 
   /* Update the signal velocity, if we need to. */
@@ -919,9 +933,12 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
 
   /* Compute the new sound speed */
   const float pressure = gas_pressure_from_internal_energy(p->rho, p->u);
-  const float soundspeed = gas_soundspeed_from_pressure(p->rho, pressure);
+  const float pressure_including_floor =
+      pressure_floor_get_comoving_pressure(p, pressure, cosmo);
+  const float soundspeed =
+      gas_soundspeed_from_pressure(p->rho, pressure_including_floor);
 
-  p->force.pressure = pressure;
+  p->force.pressure = pressure_including_floor;
   p->force.soundspeed = soundspeed;
 
   /* Update signal velocity if we need to */
@@ -1034,9 +1051,12 @@ __attribute__((always_inline)) INLINE static void hydro_convert_quantities(
   p->diffusion.alpha = hydro_props->diffusion.alpha;
 
   const float pressure = gas_pressure_from_internal_energy(p->rho, p->u);
-  const float soundspeed = gas_soundspeed_from_internal_energy(p->rho, p->u);
+  const float pressure_including_floor =
+      pressure_floor_get_comoving_pressure(p, pressure, cosmo);
+  const float soundspeed =
+      gas_soundspeed_from_pressure(p->rho, pressure_including_floor);
 
-  p->force.pressure = pressure;
+  p->force.pressure = pressure_including_floor;
   p->force.soundspeed = soundspeed;
 }
 
@@ -1083,4 +1103,4 @@ hydro_set_init_internal_energy(struct part *p, float u_init) {
   p->u = u_init;
 }
 
-#endif /* SWIFT_ANARCHY_DU_HYDRO_H */
+#endif /* SWIFT_SPHENIX_HYDRO_H */

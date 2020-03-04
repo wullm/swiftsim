@@ -198,10 +198,10 @@ struct task {
   float weight;
 
   /*! Number of tasks unlocked by this one */
-  short int nr_unlock_tasks;
+  int nr_unlock_tasks;
 
   /*! Number of unsatisfied dependencies */
-  short int wait;
+  int wait;
 
   /*! Type of the task */
   enum task_types type;
@@ -242,6 +242,7 @@ void task_print(const struct task *t);
 void task_dump_all(struct engine *e, int step);
 void task_dump_stats(const char *dumpfile, struct engine *e, int header,
                      int allranks);
+void task_dump_active(struct engine *e);
 void task_get_full_name(int type, int subtype, char *name);
 void task_get_group_name(int type, int subtype, char *cluster);
 

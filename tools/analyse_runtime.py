@@ -54,8 +54,9 @@ threshold = 0.008
 num_files = len(sys.argv) - 1
 
 labels = [
+    ["engine_split_gas_particles:", 1],
     ["Gpart assignment", 1],
-    ["Mesh comunication", 1],
+    ["Mesh communication", 1],
     ["Forward Fourier transform", 1],
     ["Green function", 1],
     ["Backwards Fourier transform", 1],
@@ -82,8 +83,10 @@ labels = [
     ["space_rebuild:", 1],
     ["engine_drift_all:", 0],
     ["engine_unskip:", 0],
+    ["engine_unskip_timestep_communications:", 0],
     ["engine_collect_end_of_step:", 0],
     ["engine_launch: \(tasks\)", 0],
+    ["engine_launch: \(timesteps\)", 0],
     ["writing particle properties", 0],
     ["engine_repartition:", 0],
     ["engine_exchange_cells:", 1],
@@ -100,13 +103,14 @@ labels = [
     ["engine_repartition_trigger:", 0],
     ["VR Collecting top-level cell info", 3],
     ["VR Collecting particle info", 3],
-    ["VR Invokation of velociraptor", 3],
+    ["VR Invocation of velociraptor", 3],
     ["VR Copying group information back", 3],
     ["fof_allocate:", 2],
     ["engine_make_fof_tasks:", 2],
     ["engine_activate_fof_tasks:", 2],
     ["fof_search_tree:", 2],
     ["engine_launch: \(fof\)", 2],
+    ["engine_launch: \(fof comms\)", 2],
 ]
 times = np.zeros(len(labels))
 counts = np.zeros(len(labels))

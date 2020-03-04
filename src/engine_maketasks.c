@@ -133,12 +133,16 @@ void engine_addtasks_send_gravity(struct engine *e, struct cell *ci,
  * @param t_xv The send_xv #task, if it has already been created.
  * @param t_rho The send_rho #task, if it has already been created.
  * @param t_gradient The send_gradient #task, if already created.
- * @param t_ti The recv_ti_end #task, if it has already been created.
+ * @param t_ti The send_ti_end #task, if it has already been created.
+ * @param t_limiter The send_limiter #task, if it has already been created.
+ * @param with_limiter Are we running with the time-step limiter?
+ * @param with_sync Are we running with time-step synchronization?
  */
 void engine_addtasks_send_hydro(struct engine *e, struct cell *ci,
                                 struct cell *cj, struct task *t_xv,
                                 struct task *t_rho, struct task *t_gradient,
-                                struct task *t_ti) {
+                                struct task *t_ti, struct task *t_limiter,
+                                const int with_limiter, const int with_sync) {
 
 #ifdef WITH_MPI
   struct link *l = NULL;
@@ -176,6 +180,11 @@ void engine_addtasks_send_hydro(struct engine *e, struct cell *ci,
       t_ti = scheduler_addtask(s, task_type_send, task_subtype_tend_part,
                                ci->mpi.tag, 0, ci, cj);
 
+      if (with_limiter) {
+        t_limiter = scheduler_addtask(s, task_type_send, task_subtype_limiter,
+                                      ci->mpi.tag, 0, ci, cj);
+      }
+
 #ifdef EXTRA_HYDRO_LOOP
 
       scheduler_addunlock(s, t_gradient, ci->hydro.super->hydro.end_force);
@@ -210,6 +219,7 @@ void engine_addtasks_send_hydro(struct engine *e, struct cell *ci,
       scheduler_addunlock(s, ci->hydro.super->hydro.drift, t_xv);
 
       scheduler_addunlock(s, ci->super->timestep, t_ti);
+      if (with_limiter) scheduler_addunlock(s, ci->super->timestep, t_limiter);
     }
 
     /* Add them to the local cell. */
@@ -219,6 +229,7 @@ void engine_addtasks_send_hydro(struct engine *e, struct cell *ci,
     engine_addlink(e, &ci->mpi.send, t_gradient);
 #endif
     engine_addlink(e, &ci->mpi.send, t_ti);
+    if (with_limiter) engine_addlink(e, &ci->mpi.send, t_limiter);
   }
 
   /* Recurse? */
@@ -226,7 +237,8 @@ void engine_addtasks_send_hydro(struct engine *e, struct cell *ci,
     for (int k = 0; k < 8; k++)
       if (ci->progeny[k] != NULL)
         engine_addtasks_send_hydro(e, ci->progeny[k], cj, t_xv, t_rho,
-                                   t_gradient, t_ti);
+                                   t_gradient, t_ti, t_limiter, with_limiter,
+                                   with_sync);
 
 #else
   error("SWIFT was not compiled with MPI support.");
@@ -441,10 +453,15 @@ void engine_addtasks_send_black_holes(struct engine *e, struct cell *ci,
  * @param t_rho The recv_rho #task, if it has already been created.
  * @param t_gradient The recv_gradient #task, if it has already been created.
  * @param t_ti The recv_ti_end #task, if it has already been created.
+ * @param t_limiter The recv_limiter #task, if it has already been created.
+ * @param with_limiter Are we running with the time-step limiter?
+ * @param with_sync Are we running with time-step synchronization?
  */
 void engine_addtasks_recv_hydro(struct engine *e, struct cell *c,
                                 struct task *t_xv, struct task *t_rho,
-                                struct task *t_gradient, struct task *t_ti) {
+                                struct task *t_gradient, struct task *t_ti,
+                                struct task *t_limiter, const int with_limiter,
+                                const int with_sync) {
 
 #ifdef WITH_MPI
   struct scheduler *s = &e->sched;
@@ -458,7 +475,7 @@ void engine_addtasks_recv_hydro(struct engine *e, struct cell *c,
 #ifdef SWIFT_DEBUG_CHECKS
     /* Make sure this cell has a valid tag. */
     if (c->mpi.tag < 0) error("Trying to receive from untagged cell.");
-#endif  // SWIFT_DEBUG_CHECKS
+#endif /* SWIFT_DEBUG_CHECKS */
 
     /* Create the tasks. */
     t_xv = scheduler_addtask(s, task_type_recv, task_subtype_xv, c->mpi.tag, 0,
@@ -472,6 +489,11 @@ void engine_addtasks_recv_hydro(struct engine *e, struct cell *c,
 
     t_ti = scheduler_addtask(s, task_type_recv, task_subtype_tend_part,
                              c->mpi.tag, 0, c, NULL);
+
+    if (with_limiter) {
+      t_limiter = scheduler_addtask(s, task_type_recv, task_subtype_limiter,
+                                    c->mpi.tag, 0, c, NULL);
+    }
   }
 
   if (t_xv != NULL) {
@@ -481,6 +503,7 @@ void engine_addtasks_recv_hydro(struct engine *e, struct cell *c,
     engine_addlink(e, &c->mpi.recv, t_gradient);
 #endif
     engine_addlink(e, &c->mpi.recv, t_ti);
+    if (with_limiter) engine_addlink(e, &c->mpi.recv, t_limiter);
 
     /* Add dependencies. */
     if (c->hydro.sorts != NULL) {
@@ -508,8 +531,15 @@ void engine_addtasks_recv_hydro(struct engine *e, struct cell *c,
     }
 #endif
 
-    /* Make sure the density has been computed before the stars compute theirs.
-     */
+    if (with_limiter) {
+      for (struct link *l = c->hydro.limiter; l != NULL; l = l->next) {
+        scheduler_addunlock(s, t_ti, l->t);
+        scheduler_addunlock(s, t_limiter, l->t);
+      }
+    }
+
+    /* Make sure the gas density has been computed before the
+     * stars compute theirs. */
     for (struct link *l = c->stars.density; l != NULL; l = l->next) {
       scheduler_addunlock(s, t_rho, l->t);
     }
@@ -526,7 +556,7 @@ void engine_addtasks_recv_hydro(struct engine *e, struct cell *c,
     for (int k = 0; k < 8; k++)
       if (c->progeny[k] != NULL)
         engine_addtasks_recv_hydro(e, c->progeny[k], t_xv, t_rho, t_gradient,
-                                   t_ti);
+                                   t_ti, t_limiter, with_limiter, with_sync);
 
 #else
   error("SWIFT was not compiled with MPI support.");
@@ -801,6 +831,9 @@ void engine_make_hierarchical_tasks_common(struct engine *e, struct cell *c) {
   const int with_timestep_limiter =
       (e->policy & engine_policy_timestep_limiter);
   const int with_timestep_sync = (e->policy & engine_policy_timestep_sync);
+#ifdef WITH_LOGGER
+  const int with_logger = e->policy & engine_policy_logger;
+#endif
 
   /* Are we at the top-level? */
   if (c->top == c && c->nodeID == e->nodeID) {
@@ -825,15 +858,20 @@ void engine_make_hierarchical_tasks_common(struct engine *e, struct cell *c) {
                                    c, NULL);
 
 #if defined(WITH_LOGGER)
-      /* Add the hydro logger task. */
-      c->logger = scheduler_addtask(s, task_type_logger, task_subtype_none, 0,
-                                    0, c, NULL);
+      struct task *kick2_or_logger;
+      if (with_logger) {
+        /* Add the hydro logger task. */
+        c->logger = scheduler_addtask(s, task_type_logger, task_subtype_none, 0,
+                                      0, c, NULL);
 
-      /* Add the kick2 dependency */
-      scheduler_addunlock(s, c->kick2, c->logger);
+        /* Add the kick2 dependency */
+        scheduler_addunlock(s, c->kick2, c->logger);
 
-      /* Create a variable in order to avoid to many ifdef */
-      struct task *kick2_or_logger = c->logger;
+        /* Create a variable in order to avoid to many ifdef */
+        kick2_or_logger = c->logger;
+      } else {
+        kick2_or_logger = c->kick2;
+      }
 #else
       struct task *kick2_or_logger = c->kick2;
 #endif
@@ -1048,6 +1086,9 @@ void engine_make_hierarchical_tasks_hydro(struct engine *e, struct cell *c,
   const int with_cooling = (e->policy & engine_policy_cooling);
   const int with_star_formation = (e->policy & engine_policy_star_formation);
   const int with_black_holes = (e->policy & engine_policy_black_holes);
+#ifdef WITH_LOGGER
+  const int with_logger = (e->policy & engine_policy_logger);
+#endif
 
   /* Are we are the level where we create the stars' resort tasks?
    * If the tree is shallow, we need to do this at the super-level if the
@@ -1154,7 +1195,11 @@ void engine_make_hierarchical_tasks_hydro(struct engine *e, struct cell *c,
                                            task_subtype_none, 0, 0, c, NULL);
 
 #ifdef WITH_LOGGER
-        scheduler_addunlock(s, c->super->logger, c->stars.stars_in);
+        if (with_logger) {
+          scheduler_addunlock(s, c->super->logger, c->stars.stars_in);
+        } else {
+          scheduler_addunlock(s, c->super->kick2, c->stars.stars_in);
+        }
 #else
         scheduler_addunlock(s, c->super->kick2, c->stars.stars_in);
 #endif
@@ -1187,7 +1232,13 @@ void engine_make_hierarchical_tasks_hydro(struct engine *e, struct cell *c,
             s, task_type_bh_swallow_ghost3, task_subtype_none, 0, 0, c, NULL);
 
 #ifdef WITH_LOGGER
-        scheduler_addunlock(s, c->super->logger, c->black_holes.black_holes_in);
+        if (with_logger) {
+          scheduler_addunlock(s, c->super->logger,
+                              c->black_holes.black_holes_in);
+        } else {
+          scheduler_addunlock(s, c->super->kick2,
+                              c->black_holes.black_holes_in);
+        }
 #else
         scheduler_addunlock(s, c->super->kick2, c->black_holes.black_holes_in);
 #endif
@@ -2922,6 +2973,8 @@ void engine_addtasks_send_mapper(void *map_data, int num_elements,
 
   struct engine *e = (struct engine *)extra_data;
   const int with_star_formation = (e->policy & engine_policy_star_formation);
+  const int with_limiter = (e->policy & engine_policy_timestep_limiter);
+  const int with_sync = (e->policy & engine_policy_timestep_sync);
   struct cell_type_pair *cell_type_pairs = (struct cell_type_pair *)map_data;
 
   for (int k = 0; k < num_elements; k++) {
@@ -2934,7 +2987,8 @@ void engine_addtasks_send_mapper(void *map_data, int num_elements,
     if ((e->policy & engine_policy_hydro) && (type & proxy_cell_type_hydro))
       engine_addtasks_send_hydro(e, ci, cj, /*t_xv=*/NULL,
                                  /*t_rho=*/NULL, /*t_gradient=*/NULL,
-                                 /*t_ti=*/NULL);
+                                 /*t_ti=*/NULL, /*t_limiter=*/NULL,
+                                 with_limiter, with_sync);
 
     /* Add the send tasks for the cells in the proxy that have a stars
      * connection. */
@@ -2966,6 +3020,8 @@ void engine_addtasks_recv_mapper(void *map_data, int num_elements,
 
   struct engine *e = (struct engine *)extra_data;
   const int with_star_formation = (e->policy & engine_policy_star_formation);
+  const int with_limiter = (e->policy & engine_policy_timestep_limiter);
+  const int with_sync = (e->policy & engine_policy_timestep_sync);
   struct cell_type_pair *cell_type_pairs = (struct cell_type_pair *)map_data;
 
   for (int k = 0; k < num_elements; k++) {
@@ -2976,7 +3032,8 @@ void engine_addtasks_recv_mapper(void *map_data, int num_elements,
      * connection. */
     if ((e->policy & engine_policy_hydro) && (type & proxy_cell_type_hydro))
       engine_addtasks_recv_hydro(e, ci, /*t_xv=*/NULL, /*t_rho=*/NULL,
-                                 /*t_gradient=*/NULL, /*t_ti=*/NULL);
+                                 /*t_gradient=*/NULL, /*t_ti=*/NULL,
+                                 /*t_limiter=*/NULL, with_limiter, with_sync);
 
     /* Add the recv tasks for the cells in the proxy that have a stars
      * connection. */
@@ -3095,7 +3152,7 @@ void engine_make_fof_tasks(struct engine *e) {
   /* Construct a FOF loop over neighbours */
   if (e->policy & engine_policy_fof)
     threadpool_map(&e->threadpool, engine_make_fofloop_tasks_mapper, NULL,
-                   s->nr_cells, 1, 0, e);
+                   s->nr_cells, 1, threadpool_auto_chunk_size, e);
 
   if (e->verbose)
     message("Making FOF tasks took %.3f %s.",
@@ -3152,7 +3209,7 @@ void engine_maketasks(struct engine *e) {
   /* Construct the first hydro loop over neighbours */
   if (e->policy & engine_policy_hydro)
     threadpool_map(&e->threadpool, engine_make_hydroloop_tasks_mapper, NULL,
-                   s->nr_cells, 1, 0, e);
+                   s->nr_cells, 1, threadpool_auto_chunk_size, e);
 
   if (e->verbose)
     message("Making hydro tasks took %.3f %s.",
@@ -3163,7 +3220,7 @@ void engine_maketasks(struct engine *e) {
   /* Add the self gravity tasks. */
   if (e->policy & engine_policy_self_gravity) {
     threadpool_map(&e->threadpool, engine_make_self_gravity_tasks_mapper, NULL,
-                   s->nr_cells, 1, 0, e);
+                   s->nr_cells, 1, threadpool_auto_chunk_size, e);
   }
 
   if (e->verbose)
@@ -3214,7 +3271,8 @@ void engine_maketasks(struct engine *e) {
      store the density tasks in each cell, and make each sort
      depend on the sorts of its progeny. */
   threadpool_map(&e->threadpool, engine_count_and_link_tasks_mapper,
-                 sched->tasks, sched->nr_tasks, sizeof(struct task), 0, e);
+                 sched->tasks, sched->nr_tasks, sizeof(struct task),
+                 threadpool_auto_chunk_size, e);
 
   if (e->verbose)
     message("Counting and linking tasks took %.3f %s.",
@@ -3231,7 +3289,7 @@ void engine_maketasks(struct engine *e) {
   /* Now that the self/pair tasks are at the right level, set the super
    * pointers. */
   threadpool_map(&e->threadpool, cell_set_super_mapper, cells, nr_cells,
-                 sizeof(struct cell), 0, e);
+                 sizeof(struct cell), threadpool_auto_chunk_size, e);
 
   if (e->verbose)
     message("Setting super-pointers took %.3f %s.",
@@ -3239,7 +3297,7 @@ void engine_maketasks(struct engine *e) {
 
   /* Append hierarchical tasks to each cell. */
   threadpool_map(&e->threadpool, engine_make_hierarchical_tasks_mapper, cells,
-                 nr_cells, sizeof(struct cell), 0, e);
+                 nr_cells, sizeof(struct cell), threadpool_auto_chunk_size, e);
 
   tic2 = getticks();
 
@@ -3248,7 +3306,8 @@ void engine_maketasks(struct engine *e) {
      of its super-cell. */
   if (e->policy & engine_policy_hydro)
     threadpool_map(&e->threadpool, engine_make_extra_hydroloop_tasks_mapper,
-                   sched->tasks, sched->nr_tasks, sizeof(struct task), 0, e);
+                   sched->tasks, sched->nr_tasks, sizeof(struct task),
+                   threadpool_auto_chunk_size, e);
 
   if (e->verbose)
     message("Making extra hydroloop tasks took %.3f %s.",
@@ -3297,8 +3356,8 @@ void engine_maketasks(struct engine *e) {
 
     threadpool_map(&e->threadpool, engine_addtasks_send_mapper,
                    send_cell_type_pairs, num_send_cells,
-                   sizeof(struct cell_type_pair),
-                   /*chunk=*/0, e);
+                   sizeof(struct cell_type_pair), threadpool_auto_chunk_size,
+                   e);
 
     free(send_cell_type_pairs);
 
@@ -3338,8 +3397,8 @@ void engine_maketasks(struct engine *e) {
     }
     threadpool_map(&e->threadpool, engine_addtasks_recv_mapper,
                    recv_cell_type_pairs, num_recv_cells,
-                   sizeof(struct cell_type_pair),
-                   /*chunk=*/0, e);
+                   sizeof(struct cell_type_pair), threadpool_auto_chunk_size,
+                   e);
     free(recv_cell_type_pairs);
 
     if (e->verbose)
@@ -3366,6 +3425,12 @@ void engine_maketasks(struct engine *e) {
         "Nr. of links: %zd allocated links: %zd ratio: %f memory use: %zd MB.",
         e->nr_links, e->size_links, (float)e->nr_links / (float)e->size_links,
         e->size_links * sizeof(struct link) / (1024 * 1024));
+
+  /* Report the values that could have been used */
+  if (e->verbose)
+    message("Actual usage: tasks/cell: %f links/task: %f",
+            (float)e->sched.nr_tasks / s->tot_cells,
+            (float)e->nr_links / e->sched.nr_tasks);
 
   tic2 = getticks();
 

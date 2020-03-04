@@ -174,6 +174,7 @@ int main(int argc, char *argv[]) {
   int with_drift_all = 0;
   int with_mpole_reconstruction = 0;
   int with_structure_finding = 0;
+  int with_logger = 0;
   int with_eagle = 0;
   int verbose = 0;
   int nr_threads = 1;
@@ -231,6 +232,8 @@ int main(int argc, char *argv[]) {
       OPT_BOOLEAN(0, "sync", &with_timestep_sync,
                   "Run with time-step synchronization of particles hit by "
                   "feedback events.",
+                  NULL, 0, 0),
+      OPT_BOOLEAN(0, "logger", &with_logger, "Run with the particle logger.",
                   NULL, 0, 0),
 
       OPT_GROUP("  Simulation meta-options:\n"),
@@ -331,6 +334,15 @@ int main(int argc, char *argv[]) {
 #if !defined(HAVE_SETAFFINITY) || !defined(HAVE_LIBNUMA)
   if (with_aff) {
     printf("Error: no NUMA support for thread affinity\n");
+    return 1;
+  }
+#endif
+
+#if !defined(WITH_LOGGER)
+  if (with_logger) {
+    printf(
+        "Error: the particle logger is not available, please compile with "
+        "--enable-logger.");
     return 1;
   }
 #endif
@@ -588,16 +600,9 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_MPI
   if (with_mpole_reconstruction && nr_nodes > 1)
     error("Cannot reconstruct m-poles every step over MPI (yet).");
-  if (with_timestep_limiter)
-    error("Can't run with time-step limiter over MPI (yet)");
-  if (with_timestep_sync)
-    error("Can't run with time-step synchronization over MPI (yet)");
-#ifdef WITH_LOGGER
-  error("Can't run with the particle logger over MPI (yet)");
-#endif
 #endif
 
-  /* Temporary early aborts for modes not supported with hand-vec. */
+    /* Temporary early aborts for modes not supported with hand-vec. */
 #if defined(WITH_VECTORIZATION) && defined(GADGET2_SPH) && \
     !defined(CHEMISTRY_NONE)
   error(
@@ -863,9 +868,9 @@ int main(int argc, char *argv[]) {
 
       /* Initialise the cooling function properties */
 #ifdef COOLING_NONE
-    if (with_cooling || with_temperature) {
+    if (with_cooling) {
       error(
-          "ERROR: Running with cooling / temperature calculation"
+          "ERROR: Running with cooling calculation"
           " but compiled without it.");
     }
 #else
@@ -1161,6 +1166,7 @@ int main(int argc, char *argv[]) {
     if (with_structure_finding)
       engine_policies |= engine_policy_structure_finding;
     if (with_fof) engine_policies |= engine_policy_fof;
+    if (with_logger) engine_policies |= engine_policy_logger;
 
     /* Initialize the engine with the space and policies. */
     if (myrank == 0) clocks_gettime(&tic);
@@ -1287,7 +1293,12 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_MPI
     /* Split the space. */
     engine_split(&e, &initial_partition);
+    /* Turn off the logger to avoid writing the communications */
+    if (with_logger) e.policy &= ~engine_policy_logger;
+
     engine_redistribute(&e);
+    /* Turn it back on */
+    if (with_logger) e.policy |= engine_policy_logger;
 #endif
 
     /* Initialise the particles */
@@ -1295,8 +1306,10 @@ int main(int argc, char *argv[]) {
 
     /* Write the state of the system before starting time integration. */
 #ifdef WITH_LOGGER
-    logger_log_all(e.logger, &e);
-    engine_dump_index(&e);
+    if (e.policy & engine_policy_logger) {
+      logger_log_all(e.logger, &e);
+      engine_dump_index(&e);
+    }
 #endif
     /* Dump initial state snapshot, if not working with an output list */
     if (!e.output_list_snapshots) engine_dump_snapshot(&e);
@@ -1326,13 +1339,15 @@ int main(int argc, char *argv[]) {
     error("Failed to generate restart filename");
 
   /* dump the parameters as used. */
+  if (!restart && myrank == 0) {
 
-  /* used parameters */
-  parser_write_params_to_file(params, "used_parameters.yml", 1);
-  /* unused parameters */
-  parser_write_params_to_file(params, "unused_parameters.yml", 0);
+    /* used parameters */
+    parser_write_params_to_file(params, "used_parameters.yml", /*used=*/1);
+    /* unused parameters */
+    parser_write_params_to_file(params, "unused_parameters.yml", /*used=*/0);
+  }
 
-  /* Dump memory use report if collected for the 0 step. */
+    /* Dump memory use report if collected for the 0 step. */
 #ifdef SWIFT_MEMUSE_REPORTS
   {
     char dumpfile[40];
@@ -1380,7 +1395,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* Did we exceed the maximal runtime? */
-    if (clocks_get_hours_since_start() > restart_max_hours_runtime) {
+    if (e.runtime > restart_max_hours_runtime) {
       force_stop = 1;
       message("Runtime limit reached, dumping restart files...");
       if (resubmit_after_max_hours) resubmit = 1;
@@ -1399,7 +1414,7 @@ int main(int argc, char *argv[]) {
 
       /* Generate the task statistics. */
       char dumpfile[40];
-      snprintf(dumpfile, 40, "thread_stats-step%d.dat", j + 1);
+      snprintf(dumpfile, 40, "thread_stats-step%d.dat", e.step + 1);
       task_dump_stats(dumpfile, &e, /* header = */ 0, /* allranks = */ 1);
     }
 
@@ -1418,7 +1433,7 @@ int main(int argc, char *argv[]) {
       snprintf(dumpfile, 40, "memuse_report-rank%d-step%d.dat", engine_rank,
                j + 1);
 #else
-      snprintf(dumpfile, 40, "memuse_report-step%d.dat", j + 1);
+      snprintf(dumpfile, 40, "memuse_report-step%d.dat", e.step + 1);
 #endif  // WITH_MPI
       memuse_log_dump(dumpfile);
     }
@@ -1498,11 +1513,16 @@ int main(int argc, char *argv[]) {
       engine_print_stats(&e);
     }
 #ifdef WITH_LOGGER
-    logger_log_all(e.logger, &e);
+    if (e.policy & engine_policy_logger) {
+      logger_log_all(e.logger, &e);
 
-    /* Write a sentinel timestamp */
-    logger_log_timestamp(e.logger, e.ti_current, e.time,
-                         &e.logger->timestamp_offset);
+      /* Write a final index file */
+      engine_dump_index(&e);
+
+      /* Write a sentinel timestamp */
+      logger_log_timestamp(e.logger, e.ti_current, e.time,
+                           &e.logger->timestamp_offset);
+    }
 #endif
 
     /* Write final snapshot? */
@@ -1547,8 +1567,8 @@ int main(int argc, char *argv[]) {
   if (with_verbose_timers) timers_close_file();
   if (with_cosmology) cosmology_clean(e.cosmology);
   if (with_self_gravity) pm_mesh_clean(e.mesh);
-  if (with_cooling || with_temperature) cooling_clean(&cooling_func);
-  if (with_feedback) feedback_clean(&feedback_properties);
+  if (with_cooling || with_temperature) cooling_clean(e.cooling_func);
+  if (with_feedback) feedback_clean(e.feedback_props);
   engine_clean(&e, /*fof=*/0);
   free(params);
 

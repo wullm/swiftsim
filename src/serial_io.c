@@ -45,6 +45,7 @@
 #include "engine.h"
 #include "entropy_floor.h"
 #include "error.h"
+#include "feedback.h"
 #include "fof_io.h"
 #include "gravity_io.h"
 #include "gravity_properties.h"
@@ -651,7 +652,7 @@ void read_ic_serial(char* fileName, const struct unit_system* internal_units,
 
   /* Now need to broadcast that information to all ranks. */
   MPI_Bcast(flag_entropy, 1, MPI_INT, 0, comm);
-  MPI_Bcast(&N_total, swift_type_count, MPI_LONG_LONG_INT, 0, comm);
+  MPI_Bcast(N_total, swift_type_count, MPI_LONG_LONG_INT, 0, comm);
   MPI_Bcast(dim, 3, MPI_DOUBLE, 0, comm);
   MPI_Bcast(ic_units, sizeof(struct unit_system), MPI_BYTE, 0, comm);
 
@@ -953,12 +954,12 @@ void write_output_serial(struct engine* e, const char* baseName,
       Nstars_written, Nblackholes_written, Ndm_neutrino};
   long long N_total[swift_type_count] = {0};
   long long offset[swift_type_count] = {0};
-  MPI_Exscan(&N, &offset, swift_type_count, MPI_LONG_LONG_INT, MPI_SUM, comm);
+  MPI_Exscan(N, offset, swift_type_count, MPI_LONG_LONG_INT, MPI_SUM, comm);
   for (int ptype = 0; ptype < swift_type_count; ++ptype)
     N_total[ptype] = offset[ptype] + N[ptype];
 
   /* The last rank now has the correct N_total. Let's broadcast from there */
-  MPI_Bcast(&N_total, 6, MPI_LONG_LONG_INT, mpi_size - 1, comm);
+  MPI_Bcast(N_total, 6, MPI_LONG_LONG_INT, mpi_size - 1, comm);
 
   /* Now everybody konws its offset and the total number of particles of each
    * type */
@@ -1056,6 +1057,7 @@ void write_output_serial(struct engine* e, const char* baseName,
     cooling_write_flavour(h_grp, e->cooling_func);
     chemistry_write_flavour(h_grp);
     tracers_write_flavour(h_grp);
+    feedback_write_flavour(e->feedback_props, h_grp);
     H5Gclose(h_grp);
 
     /* Print the gravity parameters */

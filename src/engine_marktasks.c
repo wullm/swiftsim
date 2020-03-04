@@ -491,6 +491,11 @@ void engine_marktasks_mapper(void *map_data, int num_elements,
             }
           }
 
+          /* If the foreign cell is active, we want its particles for the
+           * limiter */
+          if (ci_active_hydro && with_timestep_limiter)
+            scheduler_activate_recv(s, ci->mpi.recv, task_subtype_limiter);
+
           /* If the foreign cell is active, we want its ti_end values. */
           if (ci_active_hydro)
             scheduler_activate_recv(s, ci->mpi.recv, task_subtype_tend_part);
@@ -516,6 +521,12 @@ void engine_marktasks_mapper(void *map_data, int num_elements,
 #endif
             }
           }
+
+          /* If the local cell is active, send its particles for the limiting.
+           */
+          if (cj_active_hydro && with_timestep_limiter)
+            scheduler_activate_send(s, cj->mpi.send, task_subtype_limiter,
+                                    ci_nodeID);
 
           /* If the local cell is active, send its ti_end values. */
           if (cj_active_hydro)
@@ -555,6 +566,11 @@ void engine_marktasks_mapper(void *map_data, int num_elements,
             }
           }
 
+          /* If the foreign cell is active, we want its particles for the
+           * limiter */
+          if (cj_active_hydro && with_timestep_limiter)
+            scheduler_activate_recv(s, cj->mpi.recv, task_subtype_limiter);
+
           /* If the foreign cell is active, we want its ti_end values. */
           if (cj_active_hydro)
             scheduler_activate_recv(s, cj->mpi.recv, task_subtype_tend_part);
@@ -582,6 +598,12 @@ void engine_marktasks_mapper(void *map_data, int num_elements,
 #endif
             }
           }
+
+          /* If the local cell is active, send its particles for the limiting.
+           */
+          if (ci_active_hydro && with_timestep_limiter)
+            scheduler_activate_send(s, ci->mpi.send, task_subtype_limiter,
+                                    cj_nodeID);
 
           /* If the local cell is active, send its ti_end values. */
           if (ci_active_hydro)
@@ -991,7 +1013,7 @@ int engine_marktasks(struct engine *e) {
   /* Run through the tasks and mark as skip or not. */
   size_t extra_data[3] = {(size_t)e, (size_t)rebuild_space, (size_t)&e->sched};
   threadpool_map(&e->threadpool, engine_marktasks_mapper, s->tasks, s->nr_tasks,
-                 sizeof(struct task), 0, extra_data);
+                 sizeof(struct task), threadpool_auto_chunk_size, extra_data);
   rebuild_space = extra_data[1];
 
   if (e->verbose)
