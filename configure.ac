@@ -2190,10 +2190,10 @@ if test $class_path != "none"; then
 fi
 
 # Check if the LINEAR-THEORY option was used, but no CLASS path was specified
-if test $class_path == "none" && test $with_neutrino_df = "LINEAR-THEORY"; then
-    $as_echo "$as_me: error: linear theory without CLASS library " >&2
-              { (exit 1); exit 1; };
-fi
+#if test $class_path == "none" && test $with_neutrino_df = "LINEAR-THEORY"; then
+#    $as_echo "$as_me: error: linear theory without CLASS library " >&2
+#              { (exit 1); exit 1; };
+#fi
 
 
 #  Relativistic kick & drift - equation of motion

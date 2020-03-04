@@ -1190,6 +1190,7 @@ int main(int argc, char *argv[]) {
       if (rend.in_perturb_fname[0] != '\0' && rend.class_ini_fname[0] != '\0') {
         error("Specified both perturbation file & CLASS .ini file.");
       } else if (rend.in_perturb_fname[0] == '\0') {
+#ifdef WITH_CLASS_INTERFACE
         /* Initialize perturbations to the cosmology with CLASS */
         message("We will run CLASS to calculate perturbations to the cosmology.");
         rend_perturb_from_class(&rend, params, &e);
@@ -1199,6 +1200,9 @@ int main(int argc, char *argv[]) {
         if (rend.out_perturb_fname[0] != '\0') {
           rend_write_perturb(&rend, &e, rend.out_perturb_fname);
         }
+#else
+        error("No CLASS library found. Cannot compute transfer functions.");
+#endif
       } else if (rend.in_perturb_fname[0] != '\0') {
         /* Read from disk */
         rend_read_perturb(&rend, &e, rend.in_perturb_fname);

@@ -88,9 +88,12 @@ endif
 
 # do we need a renderer for higher-order delta f methods
 if NEUTRINO_DELTA_F_LINEAR_THEORY
-DELTA_F_SOURCES += neutrino/renderer.c neutrino/class_interface.c
+DELTA_F_SOURCES += neutrino/renderer.c
+endif
+
+if WITH_CLASS_INTERFACE
+DELTA_F_SOURCES += neutrino/class_interface.c
 AM_CFLAGS += $(CLASS_INCS)		# interface with CLASS
-#EXTRA_LIBS += $(CLASS_LIBS)		# interface with CLASS
 endif
 
 # Common source files
