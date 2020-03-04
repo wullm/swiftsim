@@ -616,7 +616,7 @@ AC_ARG_WITH([gsl],
 )
 if test "x$with_gsl" != "xno"; then
    if test "x$with_gsl" != "xyes" -a "x$with_gsl" != "xtest" -a "x$with_gsl" != "x"; then
-      GSL_LIBS="-L$with_gsl/lib -lgsl -lgslcblas"
+      GSL_LIBS="-L$with_gsl/lib $with_gsl/lib/libgsl.so $with_gsl/lib/libgslcblas.so" # -lgsl -lgslcblas
       GSL_INCS="-I$with_gsl/include"
    else
       GSL_LIBS="-lgsl -lgslcblas"
