@@ -86,8 +86,20 @@ double fermi_dirac_momentum(const struct engine *e, float *v, double m_eV) {
   return p0_eV;
 }
 
-/* Compute the conversion factor from macro particle mass to
- * the mass of one neutrino in eV.
+/* Compute the energy E=sqrt(p^2+m^2) of a micrscopic neutrino in eV */
+double fermi_dirac_energy(const struct engine *e, float *v, double m_eV) {
+  /* Compute the present-day 3-momentum in eV */
+  double p0_eV = fermi_dirac_momentum(e, v, m_eV);
+
+  /* Compute the momentum and energy at scale-factor a in eV */
+  double p_eV = p0_eV / e->cosmology->a;
+  double energy_eV = hypot(m_eV, p_eV);
+
+  return energy_eV;
+}
+
+/* Compute the ratio of macro particle mass in internal mass units to
+ * the mass of one microscopic neutrino in eV.
  */
 double neutrino_mass_factor(const struct engine *e) {
   const struct phys_const *physical_constants = e->physical_constants;

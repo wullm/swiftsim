@@ -231,27 +231,35 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 #else
           double temperature_factor = 1.0;
 #endif
-
-          /* Set up the initial phase space density if necessary */
+          /* Is it the first time step? */
           if (e->step == 0) {
-            gp->mass_i = gp->mass;
-            gp->f_phase_i = fermi_dirac_density(e, gp->v_full, gp->mass * mult, temperature_factor);
-            gp->f_phase = gp->f_phase_i;
-            gp->mass = 1e-12;  // dither in the first time step
-          } else {
-            gp->f_phase = fermi_dirac_density(e, gp->v_full, gp->mass_i * mult, temperature_factor);
-            gp->mass = gp->mass_i * (1.0 - gp->f_phase / gp->f_phase_i);
+            /* The mass of a microscopic neutrino in eV */
+            double m_eV = gp->mass * mult;
 
-            // if (gp->id_or_neg_offset >= 16*16*16 &&
-            //     gp->id_or_neg_offset < 16*16*16 + 5) {
-            // // if (gp->id_or_neg_offset >= 262144 &&
-            // //     gp->id_or_neg_offset < 262144 + 5) {
-            //   // double m = neutrino_mass_factor(e) * gp->mass_i;
-            //   // double m2 = neutrino_mass_factor(e) * particle_mass;
-            //   double p = fermi_dirac_momentum(e, gp->v_full, gp->mass_i *
-            //   mult); message("%.10e %.10e %.10e %.10e %f %f", p, gp->mass_i *
-            //   mult, gp->f_phase, gp->f_phase_i, gp->mass, linear_density);
-            // }
+            /* Store the initial mass & phase space density */
+            gp->mass_i = gp->mass;
+            gp->f_phase = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            gp->f_phase_i = gp->f_phase;
+            gp->mass = FLT_MIN;  // dither in the first time step
+          } else {
+            /* The mass of a microscopic neutrino in eV */
+            double m_eV = gp->mass_i * mult;
+
+            /* Compute the phase space density */
+            gp->f_phase = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+
+            /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
+            double energy_eV = fermi_dirac_energy(e, gp->v_full, m_eV);
+            double energy =  energy_eV / mult; //energy in internal mass units
+
+            /* Use the weighted energy instead of the mass */
+            gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
+
+            // if (gp->id_or_neg_offset >= 114688-4096 &&
+            //     gp->id_or_neg_offset < 114688-4096 + 5) {
+            //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) / e->cosmology->a;
+            //         message("%.10e %.10e %.10e %f", p, m_eV, energy_eV, energy / gp->mass_i);
+            //     }
           }
         }
       }
