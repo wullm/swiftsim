@@ -60,7 +60,7 @@ double cosmology_get_delta_time_from_scale_factors(const struct cosmology *c,
                                                    const double a_end);
 
 double cosmology_get_scale_factor(const struct cosmology *cosmo,
-                                 integertime_t ti);
+                                  integertime_t ti);
 double cosmology_get_scale_factor_from_time(const struct cosmology *cosmo,
                                             double t);
 

@@ -1198,7 +1198,7 @@ int main(int argc, char *argv[]) {
       } else if (rend.in_perturb_fname[0] == '\0') {
 #ifdef WITH_CLASS_INTERFACE
         /* Initialize perturbations to the cosmology with CLASS */
-        message("We will run CLASS to calculate perturbations to the cosmology.");
+        message("We run CLASS to calculate perturbations to the cosmology.");
         rend_perturb_from_class(&rend, params, &e);
         message("Done with CLASS. The perturbations are now available.");
 
@@ -1218,7 +1218,7 @@ int main(int argc, char *argv[]) {
       rend_interp_init(&rend);
     }
 
-    /* Broadcast the cosmological perturbations to the other ranks */
+      /* Broadcast the cosmological perturbations to the other ranks */
 #ifdef WITH_MPI
     /* The memory for the transfer functions is located here */
     struct transfer *tr = &rend.transfer;
@@ -1230,7 +1230,8 @@ int main(int argc, char *argv[]) {
 
     /* Allocate memory on the other ranks */
     if (myrank != 0) {
-      tr->delta = (double *)malloc(tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
+      tr->delta = (double *)malloc(tr->n_functions * tr->k_size * tr->tau_size *
+                                   sizeof(double));
       tr->k = (double *)malloc(tr->k_size * sizeof(double));
       tr->log_tau = (double *)malloc(tr->tau_size * sizeof(double));
     }

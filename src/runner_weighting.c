@@ -60,7 +60,6 @@ __attribute__((always_inline)) INLINE static int row_major_id_periodic(int i,
   return (((i + N) % N) * N * N + ((j + N) % N) * N + ((k + N) % N));
 }
 
-
 /**
  * @brief Interpolate values from a the mesh using CIC.
  *
@@ -104,8 +103,8 @@ __attribute__((always_inline)) INLINE static double CIC_get(
  * @param fac width of a mesh cell.
  * @param dim The dimensions of the simulation box.
  */
-double grid_to_gparts_CIC(struct gpart* gp, const double* pot, int N, double fac,
-                        const double dim[3]) {
+double grid_to_gparts_CIC(struct gpart *gp, const double *pot, int N,
+                          double fac, const double dim[3]) {
 
   /* Box wrap the gpart's position */
   const double pos_x = box_wrap(gp->x[0], 0., dim[0]);
@@ -164,8 +163,6 @@ double grid_to_gparts_CIC(struct gpart* gp, const double* pot, int N, double fac
 }
 #endif
 
-
-
 /**
  * @brief Weight the active neutrino particles in a cell to satisfy Liouville's
  * equation.
@@ -189,11 +186,11 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
     error("Phase space weighting without cosmology not implemented.");
 
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
-    /* Locate the linear theory density grid */
-    const int N = e->rend->primordial_grid_N;
-    const double cell_fac = e->mesh->cell_fac;
-    const double* grid = e->rend->density_grid;
-    const double dim[3] = {e->s->dim[0], e->s->dim[1], e->s->dim[2]};
+  /* Locate the linear theory density grid */
+  const int N = e->rend->primordial_grid_N;
+  const double cell_fac = e->mesh->cell_fac;
+  const double *grid = e->rend->density_grid;
+  const double dim[3] = {e->s->dim[0], e->s->dim[1], e->s->dim[2]};
 #endif
 
   // const struct phys_const *physical_constants = e->physical_constants;
@@ -226,7 +223,8 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
         if (gpart_is_active(gp, e)) {
 
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
-          double linear_overdensity = grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
+          double linear_overdensity =
+              grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
           double temperature_factor = (1.0 + linear_overdensity / 3.0);
 #else
           double temperature_factor = 1.0;
@@ -238,7 +236,8 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 
             /* Store the initial mass & phase space density */
             gp->mass_i = gp->mass;
-            gp->f_phase = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            gp->f_phase =
+                fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
             gp->f_phase_i = gp->f_phase;
             gp->mass = FLT_MIN;  // dither in the first time step
           } else {
@@ -246,19 +245,21 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             double m_eV = gp->mass_i * mult;
 
             /* Compute the phase space density */
-            gp->f_phase = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            gp->f_phase =
+                fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
             double energy_eV = fermi_dirac_energy(e, gp->v_full, m_eV);
-            double energy =  energy_eV / mult; //energy in internal mass units
+            double energy = energy_eV / mult;  // energy in internal mass units
 
             /* Use the weighted energy instead of the mass */
             gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
 
             // if (gp->id_or_neg_offset >= 114688-4096 &&
             //     gp->id_or_neg_offset < 114688-4096 + 5) {
-            //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) / e->cosmology->a;
-            //         message("%.10e %.10e %.10e %f", p, m_eV, energy_eV, energy / gp->mass_i);
+            //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) /
+            //         e->cosmology->a; message("%.10e %.10e %.10e %f", p, m_eV,
+            //         energy_eV, energy / gp->mass_i);
             //     }
           }
         }

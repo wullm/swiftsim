@@ -77,7 +77,8 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
     char *class_argv[] = {"", rend->class_ini_fname, rend->class_pre_fname};
 
     message("Reading CLASS parameters from '%s'.", rend->class_ini_fname);
-    message("Reading CLASS precision parameters from '%s'.", rend->class_pre_fname);
+    message("Reading CLASS precision parameters from '%s'.",
+            rend->class_pre_fname);
 
     if (input_init_from_arguments(class_argc, class_argv, &pr, &ba, &th, &pt,
                                   &tr, &pm, &sp, &nl, &le, &op,
@@ -130,7 +131,8 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   rend->transfer.n_functions = n_functions;
 
   /* Vector with the transfer functions T(tau, k) */
-  rend->transfer.delta = (double *)calloc(n_functions * k_size * tau_size, sizeof(double));
+  rend->transfer.delta =
+      (double *)calloc(n_functions * k_size * tau_size, sizeof(double));
 
   /* Read out the perturbation */
   for (size_t index_tau = 0; index_tau < tau_size; index_tau++) {
@@ -141,9 +143,9 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
                                       index_tp][index_tau * k_size + index_k];
 
       /* Convert transfer functions from CLASS format to CAMB/HeWon/icgen/
-      *  Eisenstein-Hu format by multiplying by -1/k^2.
-      */
-      double T = -p/k/k;
+       *  Eisenstein-Hu format by multiplying by -1/k^2.
+       */
+      double T = -p / k / k;
 
       rend->transfer.k[index_k] = k;
       rend->transfer.delta[index_tau * k_size + index_k] = T;

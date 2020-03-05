@@ -59,6 +59,7 @@
 #include "minmax.h"
 #include "mpiuse.h"
 #include "multipole.h"
+#include "neutrino/renderer.h"
 #include "outputlist.h"
 #include "parallel_io.h"
 #include "parser.h"
@@ -91,6 +92,5 @@
 #include "units.h"
 #include "velociraptor_interface.h"
 #include "version.h"
-#include "neutrino/renderer.h"
 
 #endif /* SWIFT_SWIFT_H */

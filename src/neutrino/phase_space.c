@@ -32,7 +32,8 @@
 /* Some standard headers */
 #include <math.h>
 
-double fermi_dirac_density(const struct engine *e, float *v, double m_eV, double T_factor) {
+double fermi_dirac_density(const struct engine *e, float *v, double m_eV,
+                           double T_factor) {
   const struct phys_const *physical_constants = e->physical_constants;
 
 /* Retrieve the neutrino temperature today */

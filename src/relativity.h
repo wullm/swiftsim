@@ -41,7 +41,6 @@ __attribute__((always_inline)) INLINE static double relat_corr_drift(
   return a / hypot(v, a);
 }
 
-
 /**
  * @brief Calculate the relativistic correction to the 'kick' timestep
  *

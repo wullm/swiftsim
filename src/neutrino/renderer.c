@@ -43,9 +43,7 @@ inline int half_box_idx(int N, int x, int y, int z) {
 }
 
 /* Sinc function */
-inline double sinc(double x) {
-  return x == 0 ? 0. : sin(x)/x;
-}
+inline double sinc(double x) { return x == 0 ? 0. : sin(x) / x; }
 
 /* Quick and dirty write binary boxes */
 inline void write_floats(char *fname, float *floats, int nfloats) {
@@ -79,17 +77,20 @@ void rend_init(struct renderer *rend, struct swift_params *params,
   parser_get_param_string(params, "Boltzmann:field_file_name", fieldFName);
 
   /* The file names of the perturbation data (either for reading or writing) */
-  rend->in_perturb_fname = (char *) malloc(200 * sizeof(char));
-  rend->out_perturb_fname = (char *) malloc(200 * sizeof(char));
-  parser_get_opt_param_string(params, "Boltzmann:in_perturb_file_name", rend->in_perturb_fname, "");
-  parser_get_opt_param_string(params, "Boltzmann:out_perturb_file_name", rend->out_perturb_fname, "perturb.hdf5");
+  rend->in_perturb_fname = (char *)malloc(200 * sizeof(char));
+  rend->out_perturb_fname = (char *)malloc(200 * sizeof(char));
+  parser_get_opt_param_string(params, "Boltzmann:in_perturb_file_name",
+                              rend->in_perturb_fname, "");
+  parser_get_opt_param_string(params, "Boltzmann:out_perturb_file_name",
+                              rend->out_perturb_fname, "perturb.hdf5");
 
   /* The file names of the CLASS parameter files */
-  rend->class_ini_fname = (char *) malloc(200 * sizeof(char));
-  rend->class_pre_fname = (char *) malloc(200 * sizeof(char));
-  parser_get_opt_param_string(params, "Boltzmann:class_ini_file", rend->class_ini_fname, "");
-  parser_get_opt_param_string(params, "Boltzmann:class_pre_file", rend->class_pre_fname, "");
-
+  rend->class_ini_fname = (char *)malloc(200 * sizeof(char));
+  rend->class_pre_fname = (char *)malloc(200 * sizeof(char));
+  parser_get_opt_param_string(params, "Boltzmann:class_ini_file",
+                              rend->class_ini_fname, "");
+  parser_get_opt_param_string(params, "Boltzmann:class_pre_file",
+                              rend->class_pre_fname, "");
 
   // Open and load the file with the primordial Gaussian field
   rend_load_primordial_field(rend, fieldFName);
@@ -113,7 +114,7 @@ void rend_init(struct renderer *rend, struct swift_params *params,
 
   /* Allocate memory for the rendered density grid */
   int N = e->mesh->N;
-  rend->density_grid =  (double *)fftw_malloc(sizeof(double) * N * N * N);
+  rend->density_grid = (double *)fftw_malloc(sizeof(double) * N * N * N);
 }
 
 void rend_load_primordial_field(struct renderer *rend, const char *fname) {
@@ -256,11 +257,11 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   const struct cosmology *cosmo = e->cosmology;
   double tau = cosmo->conformal_time;
 
-
   // message("The conformal time is %f", tau);
   // /* What is the smoothing factor? */
   // const double r_s = e->mesh->r_s;
-  // const double a_smooth2 = 4. * M_PI * M_PI * r_s * r_s / (box_len * box_len);
+  // const double a_smooth2 = 4. * M_PI * M_PI * r_s * r_s / (box_len *
+  // box_len);
 
   /* Boxes in configuration and momentum space */
   double *restrict prime = rend->density_grid;
@@ -269,7 +270,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Allocate memory for the rendered field */
   // prime = (double *)fftw_malloc(sizeof(double) * N * N * N);
-  prime = rend->density_grid; // use memory already allocated
+  prime = rend->density_grid;  // use memory already allocated
   potential = (double *)fftw_malloc(sizeof(double) * N * N * N);
   fp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 + 1));
 
@@ -333,7 +334,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   /* Calculate the background neutrino density at the present time */
   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
   const double rho_crit0 = cosmo->critical_density_0;
-  const double neutrino_density = Omega_nu*rho_crit0;
+  const double neutrino_density = Omega_nu * rho_crit0;
 
   /* Compute the potential due to neutrinos (modulo a factor G_newt) */
 
@@ -354,7 +355,6 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
     fp[i][1] *= box_volume / (N * N * N);
   }
 
-
   /* Multiply by the inverse Poisson kernel */
   for (int x = 0; x < N; x++) {
     for (int y = 0; y < N; y++) {
@@ -365,15 +365,15 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
         double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
 
-        //The CIC Window function in Fourier space
-        double W_x = (k_x == 0) ? 1 : pow(sinc(0.5*k_x*box_len/N),2);
-        double W_y = (k_y == 0) ? 1 : pow(sinc(0.5*k_y*box_len/N),2);
-        double W_z = (k_z == 0) ? 1 : pow(sinc(0.5*k_z*box_len/N),2);
-        double W = W_x*W_y*W_z;
+        // The CIC Window function in Fourier space
+        double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
+        double W_y = (k_y == 0) ? 1 : pow(sinc(0.5 * k_y * box_len / N), 2);
+        double W_z = (k_z == 0) ? 1 : pow(sinc(0.5 * k_z * box_len / N), 2);
+        double W = W_x * W_y * W_z;
 
-        double kernel = -4*M_PI/k/k;
-        double correction = kernel/W/W; // * exp(-a_smooth2*(k*k/delta_k/delta_k))
-
+        double kernel = -4 * M_PI / k / k;
+        double correction = kernel / W / W;
+        
         /* Ignore the DC mode */
         if (k > 0) {
           fp[half_box_idx(N, x, y, z)][0] *= correction;
@@ -395,14 +395,12 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   write_doubles_as_floats("m_potential.box", e->mesh->potential, N * N * N);
   write_doubles_as_floats("nu_potential.box", potential, N * N * N);
 
-
   // Add the contribution to the gravity mesh
   for (int i = 0; i < N * N * N; i++) {
     e->mesh->potential[i] += potential[i];
   }
 
-//   message("Adding contributions to mesh.");
-
+    //   message("Adding contributions to mesh.");
 
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");
@@ -440,7 +438,6 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   io_read_attribute(h_grp, "tau_size", INT, &tr->tau_size);
   io_read_attribute(h_grp, "n_functions", INT, &tr->n_functions);
 
-
   /* Read the relevant units (length and time) */
   double file_length_us, file_time_us;
   io_read_attribute(h_grp, "Unit length in cgs (U_L)", DOUBLE, &file_length_us);
@@ -462,9 +459,11 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
 
   tr->k = (double *)calloc(tr->k_size, sizeof(double));
   tr->log_tau = (double *)malloc(tr->tau_size * sizeof(double));
-  tr->delta = (double *)malloc(tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
+  tr->delta = (double *)malloc(tr->n_functions * tr->k_size * tr->tau_size *
+                               sizeof(double));
 
-  message("We read the perturbation size %zu * %zu * %zu", tr->n_functions, tr->k_size, tr->tau_size);
+  message("We read the perturbation size %zu * %zu * %zu", tr->n_functions,
+          tr->k_size, tr->tau_size);
 
   /* Open the perturbation data group */
   h_grp = H5Gopen(h_file, "/Perturb", H5P_DEFAULT);
@@ -505,13 +504,13 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
     error("Error while reading data array '%s'.", "Transfer functions");
 
   /* Convert the units of the wavenumbers (inverse length) */
-  for (size_t i=0; i<tr->k_size; i++) {
-      tr->k[i] *= us->UnitLength_in_cgs/file_length_us;
+  for (size_t i = 0; i < tr->k_size; i++) {
+    tr->k[i] *= us->UnitLength_in_cgs / file_length_us;
   }
 
   /* Convert the units of the conformal time. This is log(tau) ! */
-  for (size_t i=0; i<tr->tau_size; i++) {
-      tr->log_tau[i] += log(file_time_us) - log(us->UnitTime_in_cgs);
+  for (size_t i = 0; i < tr->tau_size; i++) {
+    tr->log_tau[i] += log(file_time_us) - log(us->UnitTime_in_cgs);
   }
 
   // for (size_t i=0; i<tr->k_size; i++) {
