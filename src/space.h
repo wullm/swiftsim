@@ -246,6 +246,9 @@ struct space {
   /*! Minimal mass of all the #bpart */
   float min_bpart_mass;
 
+  /*! Minimal mass of all the neutrino #nupart */
+  float min_nupart_mass;
+
   /*! Sum of the norm of the velocity of all the #part */
   float sum_part_vel_norm;
 
@@ -257,6 +260,9 @@ struct space {
 
   /*! Sum of the norm of the velocity of all the #bpart */
   float sum_bpart_vel_norm;
+
+  /*! Sum of the norm of the velocity of all the neutrino #nupart */
+  float sum_nupart_vel_norm;
 
   /*! Initial value of the smoothing length read from the parameter file */
   float initial_spart_h;

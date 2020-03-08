@@ -5032,7 +5032,7 @@ void engine_recompute_displacement_constraint(struct engine *e) {
   /* Start by reducing the minimal mass of each particle type */
   float min_mass[swift_type_count] = {
       e->s->min_part_mass,  e->s->min_gpart_mass, FLT_MAX, FLT_MAX,
-      e->s->min_spart_mass, e->s->min_bpart_mass};
+      e->s->min_spart_mass, e->s->min_bpart_mass, e->s->min_nupart_mass};
 #ifdef SWIFT_DEBUG_CHECKS
   /* Check that the minimal mass collection worked */
   float min_part_mass_check = FLT_MAX;
@@ -5053,7 +5053,7 @@ void engine_recompute_displacement_constraint(struct engine *e) {
   /* Do the same for the velocity norm sum */
   float vel_norm[swift_type_count] = {
       e->s->sum_part_vel_norm,  e->s->sum_gpart_vel_norm, 0.f, 0.f,
-      e->s->sum_spart_vel_norm, e->s->sum_spart_vel_norm};
+      e->s->sum_spart_vel_norm, e->s->sum_spart_vel_norm, e->s->sum_nupart_vel_norm};
 #ifdef WITH_MPI
   MPI_Allreduce(MPI_IN_PLACE, vel_norm, swift_type_count, MPI_FLOAT, MPI_SUM,
                 MPI_COMM_WORLD);
@@ -5074,13 +5074,15 @@ void engine_recompute_displacement_constraint(struct engine *e) {
       (float)e->total_nr_bparts,
       (float)e->total_nr_nuparts};
 
-  /* Count of particles for the two species */
+  /* Count of particles for the three species */
   const float N_dm = count_parts[1];
   const float N_b = count_parts[0] + count_parts[4] + count_parts[5];
+  const float N_nu = count_parts[6];
 
-  /* Peculiar motion norm for the two species */
+  /* Peculiar motion norm for the three species */
   const float vel_norm_dm = vel_norm[1];
   const float vel_norm_b = vel_norm[0] + vel_norm[4] + vel_norm[5];
+  const float vel_norm_nu = vel_norm[6];
 
   /* Mesh forces smoothing scale */
   float r_s;
@@ -5089,7 +5091,7 @@ void engine_recompute_displacement_constraint(struct engine *e) {
   else
     r_s = FLT_MAX;
 
-  float dt_dm = FLT_MAX, dt_b = FLT_MAX;
+  float dt_dm = FLT_MAX, dt_b = FLT_MAX, dt_nu = FLT_MAX;
 
   /* DM case */
   if (N_dm > 0.f) {
@@ -5123,8 +5125,30 @@ void engine_recompute_displacement_constraint(struct engine *e) {
     dt_b = a * a * min(r_s, d_b) / sqrtf(rms_vel_b);
   }
 
+  /* Neutrino case */
+  if (N_nu > 0.f) {
+
+#ifdef NEUTRINO_DELTA_F
+    /* Find the actual (unweighted) minimal neutrino macroparticle mass */
+    const float min_mass_nu = e->neutrino_mass_min / e->neutrino_mass_conversion_factor;
+#else
+    /* Simple minimal mass for the neutrinos */
+    const float min_mass_nu = min_mass[6];
+#endif
+
+    /* Inter-particle sepration for the neutrinos */
+    const float d_nu = cbrtf(min_mass_nu / (Onu * rho_crit0));
+
+    /* RMS peculiar motion for the neutrinos */
+    const float rms_vel_nu = vel_norm_nu / N_nu;
+
+    /* Time-step based on maximum displacement */
+    dt_nu = a * a * min(r_s, d_nu) / sqrtf(rms_vel_nu);
+  }
+
   /* Use the minimum */
-  const float dt = min(dt_dm, dt_b);
+  const float dt_dm_b = min(dt_dm, dt_b);
+  const float dt = min(dt_dm_b, dt_nu);
 
   /* Apply the dimensionless factor */
   e->dt_max_RMS_displacement = dt * e->max_RMS_displacement_factor;

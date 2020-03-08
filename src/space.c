@@ -2300,6 +2300,8 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   /* Init the local collectors */
   float min_mass = FLT_MAX;
   float sum_vel_norm = 0.f;
+  float min_mass_nu = FLT_MAX; //neutrinos
+  float sum_vel_norm_nu = 0.f; //neutrinos
   size_t count_inhibited_gpart = 0;
   size_t count_extra_gpart = 0;
 
@@ -2373,6 +2375,15 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
         sum_vel_norm += gp->v_full[0] * gp->v_full[0] +
                         gp->v_full[1] * gp->v_full[1] +
                         gp->v_full[2] * gp->v_full[2];
+      } else if (gp->type == swift_type_neutrino) {
+
+          /* Compute minimal mass */
+          min_mass_nu = min(min_mass_nu, gp->mass);
+
+          /* Compute sum of velocity norm */
+          sum_vel_norm_nu += gp->v_full[0] * gp->v_full[0] +
+                             gp->v_full[1] * gp->v_full[1] +
+                             gp->v_full[2] * gp->v_full[2];
       }
 
       /* Update the position */
@@ -2396,6 +2407,10 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   /* Write back the minimal part mass and velocity sum */
   atomic_min_f(&s->min_gpart_mass, min_mass);
   atomic_add_f(&s->sum_gpart_vel_norm, sum_vel_norm);
+
+  /* Do the same for the neutrinos */
+  atomic_min_f(&s->min_nupart_mass, min_mass_nu);
+  atomic_add_f(&s->sum_nupart_vel_norm, sum_vel_norm_nu);
 }
 
 /**
