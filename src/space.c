@@ -2755,6 +2755,10 @@ void space_gparts_get_cell_index(struct space *s, int *gind, int *cell_counts,
   s->min_gpart_mass = FLT_MAX;
   s->sum_gpart_vel_norm = 0.f;
 
+  /* Reset the neutrino counters */
+  s->min_nupart_mass = FLT_MAX;
+  s->sum_nupart_vel_norm = 0.f;
+
   /* Pack the extra information */
   struct index_data data;
   data.s = s;
@@ -4845,10 +4849,12 @@ void space_init(struct space *s, struct swift_params *params,
   s->min_gpart_mass = FLT_MAX;
   s->min_spart_mass = FLT_MAX;
   s->min_bpart_mass = FLT_MAX;
+  s->min_nupart_mass = FLT_MAX;
   s->sum_part_vel_norm = 0.f;
   s->sum_gpart_vel_norm = 0.f;
   s->sum_spart_vel_norm = 0.f;
   s->sum_bpart_vel_norm = 0.f;
+  s->sum_nupart_vel_norm = 0.f;
   s->nr_queues = 1; /* Temporary value until engine construction */
 
   /* Initiate some basic randomness */
