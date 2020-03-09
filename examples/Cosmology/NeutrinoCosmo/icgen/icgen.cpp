@@ -1424,7 +1424,6 @@ int main() {
 
     //Prepare the interpolation intevals of the quantile function
     prepare_intervals(&s, k_b*T, mu);
-    prepare_intervals(&s, k_b*T*1.01, mu);
 
     double testdraw = sampler_draw(&s);
 
@@ -1440,6 +1439,13 @@ int main() {
     double avg_bulk_speed = 0;
 
     for (auto body : bodies_nu) {
+        //Generate a random speed V
+        double draw = sampler_draw(&s); // E=pc in eV
+        double p0 = draw * eV / c_vel * pow(Gyr/Mpc,2); // momentum in kg*Mpc/Gyr
+        double p = p0/a_start; // redshifted momentum in kg*Mpc/Gyr
+        double gamma = sqrt(1 + pow(p / (M_nu_kg*c_vel), 2)); // Lorentz factor
+        double V = p/(gamma*M_nu_kg); // physical speed in Mpc/Gyr
+
         //Should we perform a temperature density correction?
         if (NU_TEMPERATURE_MODE == NU_TEMPERATURE_LINEAR) {
             double X = body.X*N/box_len;
@@ -1480,19 +1486,9 @@ int main() {
                 }
             }
 
-            //Reload the sampler with the adjusted temperature
-            prepare_intervals(&s, k_b*T*(1.0 + overdensity / 3.0), mu);
-            // V *= 1+overdensity;
+            //Apply the correction
+            V *= 1.0 + overdensity/3.0;
         }
-
-        //Generate a random speed V
-        double draw = sampler_draw(&s); // E=pc in eV
-        double p0 = draw * eV / c_vel * pow(Gyr/Mpc,2); // momentum in kg*Mpc/Gyr
-        double p = p0/a_start; // redshifted momentum in kg*Mpc/Gyr
-        double gamma = sqrt(1 + pow(p / (M_nu_kg*c_vel), 2)); // Lorentz factor
-        double V = p/(gamma*M_nu_kg); // physical speed in Mpc/Gyr
-
-
 
 
         //Recall that our internal velocity variable is V = a^2(dx/dt),
