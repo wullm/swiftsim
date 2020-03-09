@@ -2269,6 +2269,27 @@ case "$with_relativistic_eom" in
 esac
 
 
+#  With neutrino delta-f diagnostics?
+AC_ARG_WITH([df-diagnost],
+    [AS_HELP_STRING([--with-df-diagnost=<mode>],
+       [use relativistic kick/drift @<:@no, yes, default: no@:>@]
+    )],
+    [with_df_diagnost="$withval"],
+    [with_df_diagnost="no"]
+)
+
+case "$with_df_diagnost" in
+   no)
+
+   ;;
+   yes)
+      AC_DEFINE([WITH_DF_DIAGNOSTICS], [1], [With delta-f diagnostics])
+   ;;
+   *)
+      AC_MSG_ERROR([Unknown option for delta-f diagnostics])
+   ;;
+esac
+
 
 # Check for git, needed for revision stamps.
 AC_PATH_PROG([GIT_CMD], [git])
@@ -2376,6 +2397,7 @@ AC_MSG_RESULT([
    Neutrino delta-f     : $with_neutrino_df
    Relativistic kick    : $with_relativistic_eom
    Relativistic drift   : $with_relativistic_eom
+   Delta-f diagnostics  : $with_df_diagnost
 
    Individual timers           : $enable_timers
    Task debugging              : $enable_task_debugging

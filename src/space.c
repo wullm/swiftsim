@@ -2305,6 +2305,17 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   size_t count_inhibited_gpart = 0;
   size_t count_extra_gpart = 0;
 
+#ifdef WITH_DF_DIAGNOSTICS
+  /* Local collectors for delta-f statistics */
+  float f0_sum = 0.f;
+  float f0f0_sum = 0.f;
+  float f_sum = 0.f;
+  float ff_sum = 0.f;
+  float ff0_sum = 0.f;
+  float ww_sum = 0.f;
+#endif
+
+
   for (int k = 0; k < nr_gparts; k++) {
 
     /* Get the particle */
@@ -2380,6 +2391,18 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
           /* Compute minimal mass */
           min_mass_nu = min(min_mass_nu, gp->mass);
 
+#ifdef WITH_DF_DIAGNOSTICS
+          /* Compute delta-f statistics */
+          f0_sum += gp->f_phase;
+          f0f0_sum += gp->f_phase * gp->f_phase;
+          f_sum += gp->f_phase_i;
+          ff_sum += gp->f_phase_i * gp->f_phase_i;
+          ff0_sum += gp->f_phase_i * gp->f_phase;
+          if (gp->mass_i > 0) {
+            ww_sum += (gp->mass * gp->mass) / (gp->mass_i * gp->mass_i);
+          }
+#endif
+
           /* Compute sum of velocity norm */
           sum_vel_norm_nu += gp->v_full[0] * gp->v_full[0] +
                              gp->v_full[1] * gp->v_full[1] +
@@ -2407,6 +2430,15 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   /* Write back the minimal part mass and velocity sum */
   atomic_min_f(&s->min_gpart_mass, min_mass);
   atomic_add_f(&s->sum_gpart_vel_norm, sum_vel_norm);
+
+#ifdef WITH_DF_DIAGNOSTICS
+  atomic_add_f(&s->sum_nupart_f0, f0_sum);
+  atomic_add_f(&s->sum_nupart_f0f0, f0f0_sum);
+  atomic_add_f(&s->sum_nupart_f, f_sum);
+  atomic_add_f(&s->sum_nupart_ff, ff_sum);
+  atomic_add_f(&s->sum_nupart_ff0, ff0_sum);
+  atomic_add_f(&s->sum_nupart_ww, ww_sum);
+#endif
 
   /* Do the same for the neutrinos */
   atomic_min_f(&s->min_nupart_mass, min_mass_nu);
@@ -2758,6 +2790,16 @@ void space_gparts_get_cell_index(struct space *s, int *gind, int *cell_counts,
   /* Reset the neutrino counters */
   s->min_nupart_mass = FLT_MAX;
   s->sum_nupart_vel_norm = 0.f;
+
+#ifdef WITH_DF_DIAGNOSTICS
+  /* Reset the delta-f diagnostic counters */
+  s->sum_nupart_f0 = 0.f;
+  s->sum_nupart_f0f0 = 0.f;
+  s->sum_nupart_f = 0.f;
+  s->sum_nupart_ff = 0.f;
+  s->sum_nupart_ff0 = 0.f;
+  s->sum_nupart_ww = 0.f;
+#endif
 
   /* Pack the extra information */
   struct index_data data;
@@ -4855,6 +4897,14 @@ void space_init(struct space *s, struct swift_params *params,
   s->sum_spart_vel_norm = 0.f;
   s->sum_bpart_vel_norm = 0.f;
   s->sum_nupart_vel_norm = 0.f;
+#ifdef WITH_DF_DIAGNOSTICS
+  s->sum_nupart_f0 = 0.f;
+  s->sum_nupart_f0f0 = 0.f;
+  s->sum_nupart_f = 0.f;
+  s->sum_nupart_ff = 0.f;
+  s->sum_nupart_ff0 = 0.f;
+  s->sum_nupart_ww = 0.f;
+#endif
   s->nr_queues = 1; /* Temporary value until engine construction */
 
   /* Initiate some basic randomness */

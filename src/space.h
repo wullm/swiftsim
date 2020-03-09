@@ -264,6 +264,26 @@ struct space {
   /*! Sum of the norm of the velocity of all the neutrino #nupart */
   float sum_nupart_vel_norm;
 
+#ifdef WITH_DF_DIAGNOSTICS
+  /*! Sum of background model phase space densities of #nupart */
+  float sum_nupart_f0;
+
+  /*! Sum of squares of background model phase space densities of #nupart */
+  float sum_nupart_f0f0;
+
+  /*! Sum of actual phase space densities of #nupart */
+  float sum_nupart_f;
+
+  /*! Sum of squares of actual phase space densities of #nupart */
+  float sum_nupart_ff;
+
+  /*! Sum of product of background model & actual phase space densities */
+  float sum_nupart_ff0;
+
+  /*! Sum of squared weights or mass ratios (m/m_initial) of #nuparts */
+  float sum_nupart_ww;
+ #endif
+
   /*! Initial value of the smoothing length read from the parameter file */
   float initial_spart_h;
 

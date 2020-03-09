@@ -2416,15 +2416,58 @@ void engine_step(struct engine *e) {
 #endif
   e->tic_step = getticks();
 
+#ifdef WITH_DF_DIAGNOSTICS
+  /* Get the number of neutrino particles */
+  const float N_nu = (float) e->total_nr_nuparts;
+
+  /* Reduce neutrino delta-f diagnostics */
+  float diagnostics[6] = {
+      e->s->sum_nupart_f0,  e->s->sum_nupart_f0f0, e->s->sum_nupart_f,
+      e->s->sum_nupart_ff, e->s->sum_nupart_ff0, e->s->sum_nupart_ww};
+#ifdef WITH_MPI
+  MPI_Allreduce(MPI_IN_PLACE, diagnostics, 6, MPI_FLOAT, MPI_SUM,
+                MPI_COMM_WORLD);
+#endif
+
+  const float f0_sum = diagnostics[0];
+  const float f0f0_sum = diagnostics[1];
+  const float f_sum = diagnostics[2];
+  const float ff_sum = diagnostics[3];
+  const float ff0_sum = diagnostics[4];
+  const float ww_sum = diagnostics[5];
+
+  /* The global weight of the perturbation */
+  float I_df = 0.5*ww_sum/N_nu;
+  /* The correlation coefficient between the background model and the data */
+  float beta;
+
+  if (f0f0_sum == 0 && ff_sum == 0) {
+    /* No data => perfect correlation */
+    beta = 1.0;
+  } else {
+    /* Calculate Pearson's correlation coefficient */
+    const float sf = N_nu*ff_sum - f_sum*f_sum;
+    const float sf0 = N_nu*f0f0_sum - f0_sum*f0_sum;
+    beta = (N_nu*ff0_sum - f_sum*f0_sum)/sqrt(sf*sf0);
+  }
+#endif
+
+
   if (e->nodeID == 0) {
 
     /* Print some information to the screen */
     printf(
         "  %6d %14e %12.7f %12.7f %14e %4d %4d %12lld %12lld %12lld "
-        "%12lld %21.3f %6d\n",
+        "%12lld %21.3f %6d",
         e->step, e->time, e->cosmology->a, e->cosmology->z, e->time_step,
         e->min_active_bin, e->max_active_bin, e->updates, e->g_updates,
         e->s_updates, e->b_updates, e->wallclock_time, e->step_props);
+#ifdef WITH_DF_DIAGNOSTICS
+    printf(" %12.6f %12.6f\n", beta, I_df);
+#else
+    printf("\n");
+#endif
+
 #ifdef SWIFT_DEBUG_CHECKS
     fflush(stdout);
 #endif
