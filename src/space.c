@@ -2300,8 +2300,8 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   /* Init the local collectors */
   float min_mass = FLT_MAX;
   float sum_vel_norm = 0.f;
-  float min_mass_nu = FLT_MAX; //neutrinos
-  float sum_vel_norm_nu = 0.f; //neutrinos
+  float min_mass_nu = FLT_MAX;  // neutrinos
+  float sum_vel_norm_nu = 0.f;  // neutrinos
   size_t count_inhibited_gpart = 0;
   size_t count_extra_gpart = 0;
 
@@ -2314,7 +2314,6 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   float ff0_sum = 0.f;
   float ww_sum = 0.f;
 #endif
-
 
   for (int k = 0; k < nr_gparts; k++) {
 
@@ -2388,25 +2387,25 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
                         gp->v_full[2] * gp->v_full[2];
       } else if (gp->type == swift_type_neutrino) {
 
-          /* Compute minimal mass */
-          min_mass_nu = min(min_mass_nu, gp->mass);
+        /* Compute minimal mass */
+        min_mass_nu = min(min_mass_nu, gp->mass);
 
 #ifdef WITH_DF_DIAGNOSTICS
-          /* Compute delta-f statistics */
-          f0_sum += gp->f_phase;
-          f0f0_sum += gp->f_phase * gp->f_phase;
-          f_sum += gp->f_phase_i;
-          ff_sum += gp->f_phase_i * gp->f_phase_i;
-          ff0_sum += gp->f_phase_i * gp->f_phase;
-          if (gp->mass_i > 0) {
-            ww_sum += (gp->mass * gp->mass) / (gp->mass_i * gp->mass_i);
-          }
+        /* Compute delta-f statistics */
+        f0_sum += gp->f_phase;
+        f0f0_sum += gp->f_phase * gp->f_phase;
+        f_sum += gp->f_phase_i;
+        ff_sum += gp->f_phase_i * gp->f_phase_i;
+        ff0_sum += gp->f_phase_i * gp->f_phase;
+        if (gp->mass_i > 0) {
+          ww_sum += (gp->mass * gp->mass) / (gp->mass_i * gp->mass_i);
+        }
 #endif
 
-          /* Compute sum of velocity norm */
-          sum_vel_norm_nu += gp->v_full[0] * gp->v_full[0] +
-                             gp->v_full[1] * gp->v_full[1] +
-                             gp->v_full[2] * gp->v_full[2];
+        /* Compute sum of velocity norm */
+        sum_vel_norm_nu += gp->v_full[0] * gp->v_full[0] +
+                           gp->v_full[1] * gp->v_full[1] +
+                           gp->v_full[2] * gp->v_full[2];
       }
 
       /* Update the position */

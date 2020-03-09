@@ -1328,12 +1328,10 @@ int main(int argc, char *argv[]) {
            "Step", "Time", "Scale-factor", "Redshift", "Time-step", "Time-bins",
            "Updates", "g-Updates", "s-Updates", "b-Updates", "Wall-clock time",
            clocks_getunit(), "Props");
-
 #ifdef WITH_DF_DIAGNOSTICS
-    printf(" %12s %12s\n", "df: beta", "df: I");
-#else
-    printf("\n");
+    printf(" %12s %12s", "df: beta", "df: I"); /* two extra columns */
 #endif
+    printf("\n");
 
     fflush(stdout);
   }

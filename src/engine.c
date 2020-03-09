@@ -2418,12 +2418,12 @@ void engine_step(struct engine *e) {
 
 #ifdef WITH_DF_DIAGNOSTICS
   /* Get the number of neutrino particles */
-  const float N_nu = (float) e->total_nr_nuparts;
+  const float N_nu = (float)e->total_nr_nuparts;
 
   /* Reduce neutrino delta-f diagnostics */
-  float diagnostics[6] = {
-      e->s->sum_nupart_f0,  e->s->sum_nupart_f0f0, e->s->sum_nupart_f,
-      e->s->sum_nupart_ff, e->s->sum_nupart_ff0, e->s->sum_nupart_ww};
+  float diagnostics[6] = {e->s->sum_nupart_f0,  e->s->sum_nupart_f0f0,
+                          e->s->sum_nupart_f,   e->s->sum_nupart_ff,
+                          e->s->sum_nupart_ff0, e->s->sum_nupart_ww};
 #ifdef WITH_MPI
   MPI_Allreduce(MPI_IN_PLACE, diagnostics, 6, MPI_FLOAT, MPI_SUM,
                 MPI_COMM_WORLD);
@@ -2437,7 +2437,7 @@ void engine_step(struct engine *e) {
   const float ww_sum = diagnostics[5];
 
   /* The global weight of the perturbation */
-  float I_df = 0.5*ww_sum/N_nu;
+  float I_df = 0.5 * ww_sum / N_nu;
   /* The correlation coefficient between the background model and the data */
   float beta;
 
@@ -2446,12 +2446,11 @@ void engine_step(struct engine *e) {
     beta = 1.0;
   } else {
     /* Calculate Pearson's correlation coefficient */
-    const float sf = N_nu*ff_sum - f_sum*f_sum;
-    const float sf0 = N_nu*f0f0_sum - f0_sum*f0_sum;
-    beta = (N_nu*ff0_sum - f_sum*f0_sum)/sqrt(sf*sf0);
+    const float sf = N_nu * ff_sum - f_sum * f_sum;
+    const float sf0 = N_nu * f0f0_sum - f0_sum * f0_sum;
+    beta = (N_nu * ff0_sum - f_sum * f0_sum) / sqrt(sf * sf0);
   }
 #endif
-
 
   if (e->nodeID == 0) {
 
@@ -2463,10 +2462,9 @@ void engine_step(struct engine *e) {
         e->min_active_bin, e->max_active_bin, e->updates, e->g_updates,
         e->s_updates, e->b_updates, e->wallclock_time, e->step_props);
 #ifdef WITH_DF_DIAGNOSTICS
-    printf(" %12.6f %12.6f\n", beta, I_df);
-#else
-    printf("\n");
+    printf(" %12.6f %12.6f", beta, I_df); /* two extra columns */
 #endif
+    printf("\n");
 
 #ifdef SWIFT_DEBUG_CHECKS
     fflush(stdout);
@@ -5073,9 +5071,13 @@ void engine_recompute_displacement_constraint(struct engine *e) {
   const float rho_crit0 = 3.f * H0 * H0 / (8.f * M_PI * G_newton);
 
   /* Start by reducing the minimal mass of each particle type */
-  float min_mass[swift_type_count] = {
-      e->s->min_part_mass,  e->s->min_gpart_mass, FLT_MAX, FLT_MAX,
-      e->s->min_spart_mass, e->s->min_bpart_mass, e->s->min_nupart_mass};
+  float min_mass[swift_type_count] = {e->s->min_part_mass,
+                                      e->s->min_gpart_mass,
+                                      FLT_MAX,
+                                      FLT_MAX,
+                                      e->s->min_spart_mass,
+                                      e->s->min_bpart_mass,
+                                      e->s->min_nupart_mass};
 #ifdef SWIFT_DEBUG_CHECKS
   /* Check that the minimal mass collection worked */
   float min_part_mass_check = FLT_MAX;
@@ -5094,9 +5096,13 @@ void engine_recompute_displacement_constraint(struct engine *e) {
 #endif
 
   /* Do the same for the velocity norm sum */
-  float vel_norm[swift_type_count] = {
-      e->s->sum_part_vel_norm,  e->s->sum_gpart_vel_norm, 0.f, 0.f,
-      e->s->sum_spart_vel_norm, e->s->sum_spart_vel_norm, e->s->sum_nupart_vel_norm};
+  float vel_norm[swift_type_count] = {e->s->sum_part_vel_norm,
+                                      e->s->sum_gpart_vel_norm,
+                                      0.f,
+                                      0.f,
+                                      e->s->sum_spart_vel_norm,
+                                      e->s->sum_spart_vel_norm,
+                                      e->s->sum_nupart_vel_norm};
 #ifdef WITH_MPI
   MPI_Allreduce(MPI_IN_PLACE, vel_norm, swift_type_count, MPI_FLOAT, MPI_SUM,
                 MPI_COMM_WORLD);
@@ -5173,7 +5179,8 @@ void engine_recompute_displacement_constraint(struct engine *e) {
 
 #ifdef NEUTRINO_DELTA_F
     /* Find the actual (unweighted) minimal neutrino macroparticle mass */
-    const float min_mass_nu = e->neutrino_mass_min / e->neutrino_mass_conversion_factor;
+    const float min_mass_nu =
+        e->neutrino_mass_min / e->neutrino_mass_conversion_factor;
 #else
     /* Simple minimal mass for the neutrinos */
     const float min_mass_nu = min_mass[6];

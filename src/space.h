@@ -282,7 +282,7 @@ struct space {
 
   /*! Sum of squared weights or mass ratios (m/m_initial) of #nuparts */
   float sum_nupart_ww;
- #endif
+#endif
 
   /*! Initial value of the smoothing length read from the parameter file */
   float initial_spart_h;
