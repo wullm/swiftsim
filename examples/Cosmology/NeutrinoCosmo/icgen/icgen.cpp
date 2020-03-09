@@ -1371,7 +1371,49 @@ int main() {
     }
 
 
-    std::cout << "PHASE 4A - Add thermal motion to the neutrinos" << std::endl;
+    //If necessary, undo the neutrino theta density transfer function and apply
+    //the neutrino density transfer function
+    if (VELOCITY_METHOD == VEL_TRANSFER && NU_TEMPERATURE_MODE == NU_TEMPERATURE_LINEAR) {
+        std::cout << "PHASE 4A - Apply the neutrino density transfer function" << std::endl;
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<=N/2; z++) { //note that we stop at the (N/2+1)th entry
+                    double k_x = (x > N/2) ? (x - N)*delta_k : x*delta_k; //Mpc^-1
+                    double k_y = (y > N/2) ? (y - N)*delta_k : y*delta_k; //Mpc^-1
+                    double k_z = (z > N/2) ? (z - N)*delta_k : z*delta_k; //Mpc^-1
+
+                    double k = sqrt(k_x*k_x + k_y*k_y + k_z*k_z);
+
+                    if (k > 0) {
+                        k_box[half_box_idx(N, x, y, z)][0] *= sigma_func_neutrino(k)/sigma_func_vel_neutrino(k);
+                        k_box[half_box_idx(N, x, y, z)][1] *= sigma_func_neutrino(k)/sigma_func_vel_neutrino(k);
+                    }
+                }
+            }
+        }
+
+        //FTT back
+        fftw_execute(c2r_plan);
+
+        //Normalization (from Fourier conventions alone)
+        for (int x=0; x<N; x++) {
+            for (int y=0; y<N; y++) {
+                for (int z=0; z<N; z++) {
+                    primordial_box[box_idx(N, x, y, z)] /= box_volume;
+                }
+            }
+        }
+
+        //Write GRF to binary file
+        write_array_to_disk(std::string(OUTPUT_DIR) + "gaussian_nu_check.box", primordial_box, N);
+
+        std::cout << "1) The result has been written to " << std::string(OUTPUT_DIR) << "gaussian_nu_check.box" << std::endl;
+        std::cout << "  " << std::endl;
+    } else {
+        std::cout << "PHASE 4A - Nothing to do" << std::endl;
+    }
+
+    std::cout << "PHASE 4B - Add thermal motion to the neutrinos" << std::endl;
 
     double T = T_nu;
     double mu = mu_nu;
@@ -1403,6 +1445,51 @@ int main() {
         double p = p0/a_start; // redshifted momentum in kg*Mpc/Gyr
         double gamma = sqrt(1 + pow(p / (M_nu_kg*c_vel), 2)); // Lorentz factor
         double V = p/(gamma*M_nu_kg); // physical speed in Mpc/Gyr
+
+        //Should we perform a temperature density correction?
+        if (NU_TEMPERATURE_MODE == NU_TEMPERATURE_LINEAR) {
+            double X = body.X*N/box_len;
+            double Y = body.Y*N/box_len;
+            double Z = body.Z*N/box_len;
+
+            //Grid positions
+            int iX = (int) floor(X);
+            int iY = (int) floor(Y);
+            int iZ = (int) floor(Z);
+
+            //Intepolate the necessary fields with TSC
+            float lookLength = 1.0;
+            int lookLftX = (int) floor((X-iX) - lookLength);
+            int lookRgtX = (int) floor((X-iX) + lookLength);
+            int lookLftY = (int) floor((Y-iY) - lookLength);
+            int lookRgtY = (int) floor((Y-iY) + lookLength);
+            int lookLftZ = (int) floor((Z-iZ) - lookLength);
+            int lookRgtZ = (int) floor((Z-iZ) + lookLength);
+
+            /* Accumulate the local neutrino density */
+            double overdensity = 0;
+
+            for (int i=lookLftX; i<=lookRgtX; i++) {
+                for (int j=lookLftY; j<=lookRgtY; j++) {
+                    for (int k=lookLftZ; k<=lookRgtZ; k++) {
+                        //Pull the interpolated long-range force from the mesh
+                        double xx = abs(X - (iX+i));
+                        double yy = abs(Y - (iY+j));
+                        double zz = abs(Z - (iZ+k));
+
+                        double part_x = xx <= 1 ? 1-xx : 0;
+                        double part_y = yy <= 1 ? 1-yy : 0;
+                        double part_z = zz <= 1 ? 1-zz : 0;
+
+                        overdensity += primordial_box[box_wrap_idx(N, iX+i, iY+j, iZ+k)] * (part_x*part_y*part_z);
+                    }
+                }
+            }
+
+            //Apply the correction
+            V *= 1+overdensity;
+        }
+
 
         //Recall that our internal velocity variable is V = a^2(dx/dt),
         //where x=r/a is comoving. We therefore multiply by a.
@@ -1449,7 +1536,7 @@ int main() {
 
     std::cout << "4) Added thermal motion to " << neutrino_num << " particles." << std::endl;
     std::cout << "  " << std::endl;
-    std::cout << "PHASE 4B - Summary" << std::endl;
+    std::cout << "PHASE 4C - Summary" << std::endl;
     std::cout << "1) Average total speed " << avg_speed << " (internal) Mpc/Gyr or " << avg_speed/a_start/c_vel << " c physical." << std::endl;
     std::cout << "2) Maximum total speed " << max_speed << " (internal) Mpc/Gyr or " << max_speed/a_start/c_vel << " c physical." << std::endl;
     std::cout << "3) Average thermal speed " << avg_thermal_speed << " (internal) Mpc/Gyr or " << avg_thermal_speed/a_start/c_vel << " c physical." << std::endl;
