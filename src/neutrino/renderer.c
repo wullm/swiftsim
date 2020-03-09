@@ -255,9 +255,14 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Current conformal time */
   const struct cosmology *cosmo = e->cosmology;
-  double tau = cosmo->conformal_time;
+  const double tau = cosmo->conformal_time;
 
-  // message("The conformal time is %f", tau);
+  /* Prevent out of interpolation range error */
+  const int tau_size = rend->transfer.tau_size;
+  const double final_log_tau = rend->transfer.log_tau[tau_size-1];
+  const double log_tau = min(log(tau), final_log_tau);
+
+  // message("The conformal time is %f >= %f", tau, exp(log_tau));
   // /* What is the smoothing factor? */
   // const double r_s = e->mesh->r_s;
   // const double a_smooth2 = 4. * M_PI * M_PI * r_s * r_s / (box_len *
@@ -314,7 +319,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          double Tr = gsl_spline2d_eval(spline, k, log(tau), k_acc, tau_acc);
+          double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
 
           fp[half_box_idx(N, x, y, z)][0] *= Tr;
           fp[half_box_idx(N, x, y, z)][1] *= Tr;
@@ -373,7 +378,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
         double kernel = -4 * M_PI / k / k;
         double correction = kernel / W / W;
-        
+
         /* Ignore the DC mode */
         if (k > 0) {
           fp[half_box_idx(N, x, y, z)][0] *= correction;
@@ -430,9 +435,9 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   h_grp = H5Gopen(h_file, "/Header", H5P_DEFAULT);
   if (h_grp < 0) error("Error while opening file header\n");
 
-  tr->k_size = 0;
-  tr->tau_size = 0;
-  tr->n_functions = 1;
+  // tr->k_size;
+  // tr->tau_size;
+  // tr->n_functions;
 
   io_read_attribute(h_grp, "k_size", INT, &tr->k_size);
   io_read_attribute(h_grp, "tau_size", INT, &tr->tau_size);
