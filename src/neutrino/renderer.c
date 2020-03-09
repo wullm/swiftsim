@@ -68,11 +68,12 @@ inline void write_doubles_as_floats(char *fname, double *doubles, int nfloats) {
 
 void rend_init(struct renderer *rend, struct swift_params *params,
                const struct engine *e) {
-  // The user-specified number of k-bins used in the power spectrum calculation
-  rend->num_of_k_bins =
-      parser_get_opt_param_int(params, "Boltzmann:k_bins", BOLTZ_DEFAULT_BINS);
+  /* The user-specified number of bins used in the power spectrum calculation */
+  // rend->num_of_k_bins =
+  //     parser_get_opt_param_int(params, "Boltzmann:k_bins",
+  //     BOLTZ_DEFAULT_BINS);
 
-  // Read the file name of the hdf5 gaussian random field file
+  /* Read the file name of the hdf5 gaussian random field file */
   char fieldFName[200] = "";
   parser_get_param_string(params, "Boltzmann:field_file_name", fieldFName);
 
@@ -92,24 +93,30 @@ void rend_init(struct renderer *rend, struct swift_params *params,
   parser_get_opt_param_string(params, "Boltzmann:class_pre_file",
                               rend->class_pre_fname, "");
 
-  // Open and load the file with the primordial Gaussian field
+  /* Open and load the file with the primordial Gaussian field */
   rend_load_primordial_field(rend, fieldFName);
 
-  // Verify that the physical dimensions of the primordial field match the
-  // cosmology
+  /* Print the loaded field dimensions */
+  if (e->nodeID == 0) {
+    message("The primordial field has dimensions %fx%fx%f U_L^3",
+            rend->primordial_dims[0], rend->primordial_dims[1],
+            rend->primordial_dims[2]);
+    message("The primordial grid has dimensions (%zu)^3",
+            (size_t)rend->primordial_grid_N);
+  }
+
+  /* Verify that the physical dimensions of the primordial field match the
+     cosmology */
   for (int i = 0; i < 3; i++) {
     if (fabs(rend->primordial_dims[i] - e->s->dim[i]) / e->s->dim[i] > 1e-3) {
-      error(
-          "Dimensions[%i] of primordial field do not agree with engine->space.",
-          i);
+      error("Dimensions[%i] of primordial field do not agree with space.", i);
     }
   }
 
-  // Verify that the primordial grid has the same grid size as the gravity mesh
+  /* Verify that the primordial grid has the same size as the gravity mesh */
   if (rend->primordial_grid_N != (size_t)e->mesh->N) {
-    error(
-        "Primordial grid is not the same size as the gravity mesh %zu != %zu.",
-        rend->primordial_grid_N, (size_t)e->mesh->N);
+    error("Primordial grid is not the same size as the gravity mesh %zu!=%zu.",
+          rend->primordial_grid_N, (size_t)e->mesh->N);
   }
 
   /* Allocate memory for the rendered density grid */
@@ -187,11 +194,6 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
     }
   }
 
-  message("The primordial field has dimensions %fx%fx%f U_L^3", field_dims[0],
-          field_dims[1], field_dims[2]);
-  message("The primordial grid has dimensions %zu x %zu x %zu",
-          (size_t)grid_dims[0], (size_t)grid_dims[1], (size_t)grid_dims[2]);
-
   // Close the file
   H5Fclose(field_file);
 }
@@ -259,7 +261,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Prevent out of interpolation range error */
   const int tau_size = rend->transfer.tau_size;
-  const double final_log_tau = rend->transfer.log_tau[tau_size-1];
+  const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
   const double log_tau = min(log(tau), final_log_tau);
 
   // message("The conformal time is %f >= %f", tau, exp(log_tau));
