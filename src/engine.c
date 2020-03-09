@@ -3961,15 +3961,6 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
   /* Initialize the renderer */
   rend_init(rend, params, e);
-
-  /* Print the loaded field dimensions */
-  if (e->nodeID == 0) {
-    message("The primordial field has dimensions %fx%fx%f U_L^3",
-            rend->primordial_dims[0], rend->primordial_dims[1],
-            rend->primordial_dims[2]);
-    message("The primordial grid has dimensions (%zu)^3",
-            (size_t)rend->primordial_grid_N);
-  }
 #endif
 
   engine_init_output_lists(e, params);
