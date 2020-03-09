@@ -97,11 +97,11 @@ void rend_init(struct renderer *rend, struct swift_params *params,
   rend_load_primordial_field(rend, fieldFName);
 
   /* Print the loaded field dimensions */
-  // message("The primordial field has dimensions %fx%fx%f U_L^3",
-  //         rend->primordial_dims[0], rend->primordial_dims[1],
-  //         rend->primordial_dims[2]);
-  message("Load primordial grid with dimensions (%zu)^3 on this node.",
-          (size_t)rend->primordial_grid_N);
+  message(
+      "Loaded %zu^3 primordial grid with dimensions: (%.1f, %.1f, %.1f) U_L "
+      "on this node.",
+      (size_t)rend->primordial_grid_N, rend->primordial_dims[0],
+      rend->primordial_dims[1], rend->primordial_dims[2]);
 
   /* Verify that the physical dimensions of the primordial field match the
      cosmology */
