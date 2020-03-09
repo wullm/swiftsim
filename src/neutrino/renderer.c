@@ -96,15 +96,6 @@ void rend_init(struct renderer *rend, struct swift_params *params,
   /* Open and load the file with the primordial Gaussian field */
   rend_load_primordial_field(rend, fieldFName);
 
-  /* Print the loaded field dimensions */
-  if (e->nodeID == 0) {
-    message("The primordial field has dimensions %fx%fx%f U_L^3",
-            rend->primordial_dims[0], rend->primordial_dims[1],
-            rend->primordial_dims[2]);
-    message("The primordial grid has dimensions (%zu)^3",
-            (size_t)rend->primordial_grid_N);
-  }
-
   /* Verify that the physical dimensions of the primordial field match the
      cosmology */
   for (int i = 0; i < 3; i++) {
