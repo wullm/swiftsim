@@ -19,10 +19,12 @@ Cosmology:
   M_nu: 0.2, 0.2, 0.2
 
 # Boltzmann solver parameters
-#Boltzmann:
+Boltzmann:
+  field_file_name: ./gaussian_pure.hdf5 # file containing the primordial fluctuations
+  in_perturb_file_name: ./perturb_big.hdf5
 #  k_bins: 25
 #  file_name: ./multipoles_0.h5
-#  field_file_name: ./gaussian.hdf5 # file containing the primordial fluctuations
+
 #The time unit used in the Boltzmann initial conditions, in internal units
 #  boltz_time_unit: 0.003264 # 1 Mpc/c in Gyr
 
