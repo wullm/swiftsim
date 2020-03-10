@@ -205,14 +205,35 @@ void rend_interp_init(struct renderer *rend) {
   /* We will use bilinear interpolation in (tau, k) space */
   interp_type = gsl_interp2d_bilinear;
 
-  /* Initialize the spline */
+  /* Allocate memory for the spline */
   spline = gsl_spline2d_alloc(interp_type, tr->k_size, tr->tau_size);
+  /* Note: this only copies the first transfer function from tr->delta */
   gsl_spline2d_init(spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
                     tr->tau_size);
 
-  /* Initialize accelerator objects */
+  /* Allocate memory for the accelerator objects */
   k_acc = gsl_interp_accel_alloc();
   tau_acc = gsl_interp_accel_alloc();
+#else
+  error("No GSL library found. Cannot perform cosmological interpolation.");
+#endif
+}
+
+/* index_src is the index of the transfer function type */
+void rend_interp_switch_source(struct renderer *rend, int index_src) {
+#ifdef HAVE_LIBGSL
+
+  /* The memory for the transfer functions is located here */
+  struct transfer *tr = &rend->transfer;
+
+  /* The array tr->delta contains a sequence of all transfer functions T(k,tau),
+   * each of size tr->k_size * tr->tau_size doubles */
+  int chunk_size = tr->k_size * tr->tau_size;
+
+  /* Copy the desired transfer function to the spline */
+  double *destination = spline->zarr;
+  double *source_address = tr->delta + index_src * chunk_size;
+  memcpy(destination, source_address, chunk_size * sizeof(double));
 
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");

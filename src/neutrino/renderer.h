@@ -92,6 +92,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
 
 /* The GSL interpolation structures */
 void rend_interp_init(struct renderer *rend);
+void rend_interp_switch_source(struct renderer *rend, int index_src);
 void rend_interp_free(struct renderer *rend);
 
 /* Input and output for the perturbation data */
