@@ -2397,8 +2397,9 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
         f_sum += gp->f_phase_i;
         ff_sum += gp->f_phase_i * gp->f_phase_i;
         ff0_sum += gp->f_phase_i * gp->f_phase;
-        if (gp->mass_i > 0) {
-          ww_sum += (gp->mass * gp->mass) / (gp->mass_i * gp->mass_i);
+        if (gp->f_phase_i > 0) {
+          const double w = 1 - gp->f_phase / gp->f_phase_i;
+          ww_sum += w*w;
         }
 #endif
 
