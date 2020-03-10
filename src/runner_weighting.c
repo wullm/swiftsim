@@ -98,12 +98,12 @@ __attribute__((always_inline)) INLINE static double CIC_get(
  * Debugging routine.
  *
  * @param gp The #gpart.
- * @param pot The potential mesh.
+ * @param grid The grid.
  * @param N the size of the mesh along one axis.
  * @param fac width of a mesh cell.
  * @param dim The dimensions of the simulation box.
  */
-double grid_to_gparts_CIC(struct gpart *gp, const double *pot, int N,
+double grid_to_gparts_CIC(struct gpart *gp, const double *grid, int N,
                           double fac, const double dim[3]) {
 
   /* Box wrap the gpart's position */
@@ -139,12 +139,12 @@ double grid_to_gparts_CIC(struct gpart *gp, const double *pot, int N,
 
   /* First, copy the necessary part of the mesh for stencil operations */
   /* This includes box-wrapping in all 3 dimensions. */
-  double phi[6][6][6];
+  double subgrid[6][6][6];
   for (int iii = -2; iii <= 3; ++iii) {
     for (int jjj = -2; jjj <= 3; ++jjj) {
       for (int kkk = -2; kkk <= 3; ++kkk) {
-        phi[iii + 2][jjj + 2][kkk + 2] =
-            pot[row_major_id_periodic(i + iii, j + jjj, k + kkk, N)];
+        subgrid[iii + 2][jjj + 2][kkk + 2] =
+            grid[row_major_id_periodic(i + iii, j + jjj, k + kkk, N)];
       }
     }
   }
@@ -155,8 +155,8 @@ double grid_to_gparts_CIC(struct gpart *gp, const double *pot, int N,
   /* Indices of (i,j,k) in the local copy of the mesh */
   const int ii = 2, jj = 2, kk = 2;
 
-  /* Simple CIC for the potential itself */
-  p += CIC_get(phi, ii, jj, kk, tx, ty, tz, dx, dy, dz);
+  /* Simple CIC for the local grid itself */
+  p += CIC_get(subgrid, ii, jj, kk, tx, ty, tz, dx, dy, dz);
 
   /* ---- */
   return p;
@@ -225,7 +225,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
           double linear_overdensity =
               grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
-          double temperature_factor = (1.0 + linear_overdensity / 3.0);
+          double temperature_factor = cbrt(1.0 + linear_overdensity);
 #else
           double temperature_factor = 1.0;
 #endif
@@ -233,20 +233,22 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           if (e->step == 0) {
             /* The mass of a microscopic neutrino in eV */
             double m_eV = gp->mass * mult;
+            double f;
 
             /* Store the initial mass & phase space density */
+            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
             gp->mass_i = gp->mass;
-            gp->f_phase =
-                fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
-            gp->f_phase_i = gp->f_phase;
+            gp->f_phase = f;
+            gp->f_phase_i = f;
             gp->mass = FLT_MIN;  // dither in the first time step
           } else {
             /* The mass of a microscopic neutrino in eV */
             double m_eV = gp->mass_i * mult;
+            double f;
 
             /* Compute the phase space density */
-            gp->f_phase =
-                fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            gp->f_phase = f;
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
             double energy_eV = fermi_dirac_energy(e, gp->v_full, m_eV);
@@ -257,9 +259,10 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 
             // if (gp->id_or_neg_offset >= 114688-4096 &&
             //     gp->id_or_neg_offset < 114688-4096 + 5) {
-            //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) /
-            //         e->cosmology->a; message("%.10e %.10e %.10e %f", p, m_eV,
-            //         energy_eV, energy / gp->mass_i);
+            //         message("%f %f %f %f", linear_overdensity, temperature_factor, f, energy);
+            // //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) /
+            // //         e->cosmology->a; message("%.10e %.10e %.10e %f", p, m_eV,
+            // //         energy_eV, energy / gp->mass_i);
             //     }
           }
         }
