@@ -319,7 +319,7 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
 
   message("Precision required at z = %.1f, %.1f, %.1f, %.1f, %.1f, %.1f", z_0,
           z_1, z_2, z_3, z_4, z_5);
-  message("Box size means we need wavenumbers in range [%f,%f] 1/Mpc", k_min,
+  message("Box size means we need wavenumbers in range [%f, %f] 1/Mpc", k_min,
           k_max);
 
   /* Counter for the parameters */
