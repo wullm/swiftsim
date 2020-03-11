@@ -269,6 +269,11 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
                                  struct file_content *fc) {
 #ifdef WITH_CLASS_INTERFACE
   const struct cosmology *cosmo = e->cosmology;
+  const struct unit_system *us = e->internal_units;
+
+  /* CLASS to internal units conversion factor */
+  const double Mpc_to_cm = _Mpc_over_m_ * 100;  // CLASS uses hard-coded Mpc's
+  const double unit_length_factor = Mpc_to_cm / us->UnitLength_in_cgs;
 
   /* For CLASS-specific error messages */
   ErrorMsg errmsg;
@@ -296,16 +301,25 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
   double z_4 = z_start + 0.95 * (z_end - z_start);
   double z_5 = z_end;
 
+  /* The maximum and minimum wavenumbers necessary, given the box size */
+  double box_len = e->s->dim[0]; // U_L
+  double box_len_Mpc = box_len / unit_length_factor;
+  double k_max = sqrt(3.) * M_PI * e->mesh->N / box_len_Mpc;
+  double k_min = 2 * M_PI / box_len; //not used currently
+
+  /* To account for the unequal CLASS k steps, we multiply by two */
+  double requested_k_max = k_max * 2.0;
+
   /* Default precision values */
   int fluid_approx = 3;         // method 3
   int quadrature_strategy = 3;  // strategy 3
   int nbins = 5;                // number of momentum bins
   int lmax_ncdm = 20;           // highest multipole for ncdm
-  double k_max = 10.0;          // h/Mpc
   int k_per_decade = 50;
 
   message("Precision required at z = %.1f, %.1f, %.1f, %.1f, %.1f, %.1f", z_0,
           z_1, z_2, z_3, z_4, z_5);
+  message("Box size means we need wavenumbers in range [%f,%f] 1/Mpc", k_min, k_max);
 
   /* Counter for the parameters */
   int num = 0;
@@ -321,8 +335,8 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
           z_5);
   strcpy(fc->name[num], "h");
   sprintf(fc->value[num++], "%e", h);
-  strcpy(fc->name[num], "P_k_max_h/Mpc");
-  sprintf(fc->value[num++], "%e", k_max);
+  strcpy(fc->name[num], "P_k_max_1/Mpc");
+  sprintf(fc->value[num++], "%e", requested_k_max);
   strcpy(fc->name[num], "k_per_decade_for_pk");
   sprintf(fc->value[num++], "%i", k_per_decade);
   strcpy(fc->name[num], "extra metric transfer functions");
