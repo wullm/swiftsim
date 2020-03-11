@@ -52,7 +52,11 @@ struct renderer {
   double *primordial_dims;
   size_t primordial_grid_N;
 
-  /*! Array containing the neutrino density field on a grid */
+  /*! Array containing sequency of perturbation theory grids */
+  double *the_grids;
+
+  /*! Pointer to the neutrino over-density field, corresponding to the first
+      N * N * N doubles in the_grids */
   double *density_grid;
 
   /* File name of the perturbation data */
@@ -92,6 +96,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
 void rend_interp_init(struct renderer *rend);
 void rend_interp_switch_source(struct renderer *rend, int index_src);
 void rend_interp_free(struct renderer *rend);
+void rend_grids_alloc(struct renderer *rend);
 
 /* Input and output for the perturbation data */
 void rend_read_perturb(struct renderer *rend, const struct engine *e,

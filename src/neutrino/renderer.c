@@ -113,9 +113,30 @@ void rend_init(struct renderer *rend, struct swift_params *params,
           rend->primordial_grid_N, (size_t)e->mesh->N);
   }
 
-  /* Allocate memory for the rendered density grid */
-  int N = e->mesh->N;
-  rend->density_grid = (double *)fftw_malloc(sizeof(double) * N * N * N);
+  // /* Allocate memory for the rendered density grid */
+  // const int N = e->mesh->N;
+  // const int bytes = sizeof(double) * N * N * N;
+  // rend->density_grid = (double *)swift_malloc("density_grid", bytes);
+  //
+  // if (rend->density_grid == NULL) {
+  //   error("Error allocating memory for density grid.");
+  // }
+}
+
+void rend_grids_alloc(struct renderer *rend) {
+  /* Allocate memory for the perturbation theory grids */
+  const int N = rend->primordial_grid_N;
+  const size_t Nf = rend->transfer.n_functions;
+  const size_t bytes = N * N * N * Nf * sizeof(double);
+  rend->the_grids = (double *)swift_malloc("the_grids", bytes);
+
+  if (rend->the_grids == NULL) {
+    error("Error allocating memory for perturbation theory grids.");
+  }
+
+  /* Create pointer to the density grid, which is the first field in
+     the array */
+   rend->density_grid = rend->the_grids;
 }
 
 void rend_load_primordial_field(struct renderer *rend, const char *fname) {
@@ -177,7 +198,8 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
   H5Dclose(h_data);
 
   // Allocate memory in the main program
-  rend->primordial_grid = malloc(N * N * N * sizeof(double));
+  const int bytes = N * N * N * sizeof(double);
+  rend->primordial_grid = (double *)swift_malloc("primordial_grid", bytes);
 
   // Transfer the data to rend->primordial_grid
   for (size_t i = 0; i < N; i++) {
@@ -257,6 +279,9 @@ void rend_clean(struct renderer *rend) {
   free(rend->transfer.k);
   free(rend->transfer.log_tau);
 
+  /* Free density & perturbation theory grids */
+  free(rend->the_grids);
+
   /* Clean up the interpolation spline */
   rend_interp_free(rend);
 }
@@ -286,87 +311,103 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   // box_len);
 
   /* Boxes in configuration and momentum space */
-  double *restrict prime = rend->density_grid;
   double *restrict potential;
   fftw_complex *restrict fp;
 
   /* Allocate memory for the rendered field */
-  // prime = (double *)fftw_malloc(sizeof(double) * N * N * N);
-  prime = rend->density_grid;  // use memory already allocated
   potential = (double *)fftw_malloc(sizeof(double) * N * N * N);
   fp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 + 1));
 
-  if (prime == NULL || potential == NULL || fp == NULL) {
-    error("Error allocating memory for density mesh or its Fourier transform.");
+  if (potential == NULL || fp == NULL) {
+    error("Error allocating memory for rendering.");
   }
 
-  memuse_log_allocation("prime", prime, 1, sizeof(double) * N * N * N);
   memuse_log_allocation("potential", potential, 1, sizeof(double) * N * N * N);
   memuse_log_allocation("f", fp, 1, sizeof(fftw_complex) * N * N * (N / 2 + 1));
 
   /* Prepare the FFTW plans */
-  fftw_plan r2c = fftw_plan_dft_r2c_3d(N, N, N, prime, fp, FFTW_ESTIMATE);
-  fftw_plan c2r = fftw_plan_dft_c2r_3d(N, N, N, fp, prime, FFTW_ESTIMATE);
   fftw_plan pr2c = fftw_plan_dft_r2c_3d(N, N, N, potential, fp, FFTW_ESTIMATE);
   fftw_plan pc2r = fftw_plan_dft_c2r_3d(N, N, N, fp, potential, FFTW_ESTIMATE);
 
-  // Transfer the data to prime
-  for (int i = 0; i < N * N * N; i++) {
-    prime[i] = rend->primordial_grid[i];
-  }
+  /* Realize all the perturbation theory grids */
+  for (size_t index_f = 0; index_f < rend->transfer.n_functions; index_f++) {
+    /* Switch the interpolation spline to the desired transfer function */
+    rend_interp_switch_source(rend, index_f);
 
-  // Transform to momentum space
-  fftw_execute(r2c);
+    /* Use memory that has already been allocated */
+    double *grid = rend->the_grids + index_f * N * N * N;
 
-  // Normalization
-  for (int i = 0; i < N * N * (N / 2 + 1); i++) {
-    fp[i][0] *= box_volume / (N * N * N);
-    fp[i][1] *= box_volume / (N * N * N);
-  }
+    /* First, copy the primordial field into the array */
+    double *source_address = rend->primordial_grid;
+    double *destination = grid;
+    memcpy(destination, source_address, N * N * N * sizeof(double));
 
-  // Apply the transfer function
-  for (int x = 0; x < N; x++) {
-    for (int y = 0; y < N; y++) {
-      for (int z = 0; z <= N / 2; z++) {
-        double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
-        double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
-        double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+    /* Create plans */
+    fftw_plan r2c_grid = fftw_plan_dft_r2c_3d(N, N, N, grid, fp, FFTW_ESTIMATE);
+    fftw_plan c2r_grid = fftw_plan_dft_c2r_3d(N, N, N, fp, grid, FFTW_ESTIMATE);
 
-        double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
+    /* Transform to momentum space */
+    fftw_execute(r2c_grid);
 
-        /* Ignore the DC mode */
-        if (k > 0) {
-          double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
+    /* Normalization */
+    for (int i = 0; i < N * N * (N / 2 + 1); i++) {
+      fp[i][0] *= box_volume / (N * N * N);
+      fp[i][1] *= box_volume / (N * N * N);
+    }
 
-          fp[half_box_idx(N, x, y, z)][0] *= Tr;
-          fp[half_box_idx(N, x, y, z)][1] *= Tr;
+    /* Apply the transfer function */
+    for (int x = 0; x < N; x++) {
+      for (int y = 0; y < N; y++) {
+        for (int z = 0; z <= N / 2; z++) {
+          double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
+          double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
+          double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+
+          double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
+
+          /* Ignore the DC mode */
+          if (k > 0) {
+            double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
+
+            fp[half_box_idx(N, x, y, z)][0] *= Tr;
+            fp[half_box_idx(N, x, y, z)][1] *= Tr;
+          }
         }
       }
     }
+
+    /* Transform back */
+    fftw_execute(c2r_grid);
+
+    /* Normalization */
+    for (int i = 0; i < N * N * N; i++) {
+      grid[i] /= box_volume;
+    }
+
+    /* Export the data block (only on master node) */
+    if (e->nodeID == 0) {
+      char boxname[40];
+      sprintf(boxname, "grid_%zu.box", index_f);
+      write_doubles_as_floats(boxname, grid, N * N * N);
+    }
   }
 
-  // Transform back
-  fftw_execute(c2r);
+  /* Next, compute the potential due to neutrinos (modulo a factor G_newt) */
 
-  // Normalization
-  for (int i = 0; i < N * N * N; i++) {
-    prime[i] /= box_volume;
-  }
+   /* Calculate the background neutrino density at the present time */
+   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
+   const double rho_crit0 = cosmo->critical_density_0;
+   const double neutrino_density = Omega_nu * rho_crit0;
 
-  /* Calculate the background neutrino density at the present time */
-  const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
-  const double rho_crit0 = cosmo->critical_density_0;
-  const double neutrino_density = Omega_nu * rho_crit0;
+   /* Convert overdensity to actual density */
+   for (int i = 0; i < N * N * N; i++) {
+     potential[i] = (1.0 + rend->density_grid[i]) * neutrino_density;
+   }
 
-  /* Compute the potential due to neutrinos (modulo a factor G_newt) */
-
-  /* Copy the density over into potential */
-  for (int i = 0; i < N * N * N; i++) {
-    potential[i] = (1.0 + prime[i]) * neutrino_density;
-  }
-
-  /* Export the neutrino density */
-  write_doubles_as_floats("nudens.box", potential, N * N * N);
+   /* Export the neutrino density */
+   if (e->nodeID == 0) {
+     write_doubles_as_floats("nudens.box", potential, N * N * N);
+   }
 
   /* Transform to momentum space */
   fftw_execute(pr2c);
@@ -414,15 +455,18 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   /* Export the potentials */
-  write_doubles_as_floats("m_potential.box", e->mesh->potential, N * N * N);
-  write_doubles_as_floats("nu_potential.box", potential, N * N * N);
+  if (e->nodeID == 0) {
+    write_doubles_as_floats("m_potential.box", e->mesh->potential, N * N * N);
+    write_doubles_as_floats("nu_potential.box", potential, N * N * N);
+  }
 
-  // Add the contribution to the gravity mesh
+  /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
     e->mesh->potential[i] += potential[i];
   }
 
-    //   message("Adding contributions to mesh.");
+  fftw_free(potential);
+  fftw_free(fp);
 
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");
@@ -479,10 +523,11 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   // free(tr->log_tau);
   // free(tr->delta);
 
-  tr->k = (double *)calloc(tr->k_size, sizeof(double));
-  tr->log_tau = (double *)malloc(tr->tau_size * sizeof(double));
-  tr->delta = (double *)malloc(tr->n_functions * tr->k_size * tr->tau_size *
-                               sizeof(double));
+  tr->k = (double *)swift_calloc("k", tr->k_size, sizeof(double));
+  tr->log_tau =
+      (double *)swift_malloc("log_tau", tr->tau_size * sizeof(double));
+  tr->delta = (double *)swift_malloc(
+      "delta", tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
 
   message("We read the perturbation size %zu * %zu * %zu", tr->n_functions,
           tr->k_size, tr->tau_size);

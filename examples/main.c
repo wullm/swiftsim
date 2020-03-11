@@ -1216,6 +1216,7 @@ int main(int argc, char *argv[]) {
 
       /* Initialize our own interpolation spline */
       rend_interp_init(&rend);
+      rend_grids_alloc(&rend);
     }
 
       /* Broadcast the cosmological perturbations to the other ranks */
@@ -1230,10 +1231,12 @@ int main(int argc, char *argv[]) {
 
     /* Allocate memory on the other ranks */
     if (myrank != 0) {
-      tr->delta = (double *)malloc(tr->n_functions * tr->k_size * tr->tau_size *
-                                   sizeof(double));
-      tr->k = (double *)malloc(tr->k_size * sizeof(double));
-      tr->log_tau = (double *)malloc(tr->tau_size * sizeof(double));
+      tr->delta =
+          (double *)swift_malloc("delta", tr->n_functions * tr->k_size *
+                                              tr->tau_size * sizeof(double));
+      tr->k = (double *)swift_malloc("k", tr->k_size * sizeof(double));
+      tr->log_tau =
+          (double *)swift_malloc("log_tau", tr->tau_size * sizeof(double));
     }
 
     /* Broadcast the perturbation to the other ranks */
@@ -1245,6 +1248,7 @@ int main(int argc, char *argv[]) {
     /* Initialize the interpolation spline on the other ranks */
     if (myrank != 0) {
       rend_interp_init(&rend);
+      rend_grids_alloc(&rend);
     }
 #endif
 
