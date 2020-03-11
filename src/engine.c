@@ -2437,9 +2437,15 @@ void engine_step(struct engine *e) {
   const float ww_sum = diagnostics[5];
 
   /* The global weight of the perturbation */
-  float I_df = 0.5 * ww_sum / N_nu;
+  float I_df;
   /* The correlation coefficient between the background model and the data */
   float beta;
+
+  if (N_nu > 0) {
+    I_df = 0.5 * ww_sum / N_nu;
+  } else {
+    I_df = 0.;
+  }
 
   if (f0f0_sum == 0 && ff_sum == 0) {
     /* No data => perfect correlation */
