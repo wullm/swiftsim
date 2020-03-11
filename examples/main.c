@@ -1030,7 +1030,7 @@ int main(int argc, char *argv[]) {
         N_total[swift_type_dark_matter_background] > 0;
 
     /* Do we have neutrino particles? */
-    // const int with_neutrino_particles = N_total[swift_type_neutrino] > 0;
+    const int with_neutrino_particles = N_total[swift_type_neutrino] > 0;
 
     /* Verify that the fields to dump actually exist */
     if (myrank == 0) io_check_output_fields(params, N_total);
@@ -1052,10 +1052,10 @@ int main(int argc, char *argv[]) {
     /* Initialise the gravity properties */
     bzero(&gravity_properties, sizeof(struct gravity_props));
     if (with_self_gravity)
-      gravity_props_init(&gravity_properties, params, &prog_const, &cosmo,
-                         with_cosmology, with_external_gravity,
-                         with_baryon_particles, with_DM_particles,
-                         with_DM_background_particles, periodic);
+      gravity_props_init(
+          &gravity_properties, params, &prog_const, &cosmo, with_cosmology,
+          with_external_gravity, with_baryon_particles, with_DM_particles,
+          with_neutrino_particles, with_DM_background_particles, periodic);
 
     /* Initialise the external potential properties */
     bzero(&potential, sizeof(struct external_potential));
