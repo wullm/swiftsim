@@ -2232,7 +2232,7 @@ AC_ARG_WITH([class],
 AM_CONDITIONAL([WITH_CLASS_INTERFACE], [test $class_path != "none"])
 
 if test $class_path != "none"; then
-    CLASS_LIBS="-L$class_path -lclass"
+    CLASS_LIBS="-L$class_path -lclass -Wl,-rpath=$class_path"
     CLASS_INCS="-I$class_path/include"
     AC_SUBST([CLASS_LIBS])
     AC_SUBST([CLASS_INCS])
