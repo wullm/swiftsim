@@ -4029,45 +4029,52 @@ void engine_config(int restart, int fof, struct engine *e,
   if (e->nodeID == 0) message("Running simulation '%s'.", e->run_name);
 
 #ifdef NEUTRINO_DELTA_F
-  /* For diagnostics, collect the range of neutrino masses in eV */
-  float neutrino_mass_min = FLT_MAX;
-  float neutrino_mass_max = -FLT_MAX;
-  float neutrino_mass_mult = e->neutrino_mass_conversion_factor;
-
-  if (e->s->nr_gparts > 0) {
-    for (size_t k = 0; k < e->s->nr_gparts; k++) {
-      if (e->s->gparts[k].type == swift_type_neutrino) {
-        float neutrino_mass = e->s->gparts[k].mass * neutrino_mass_mult;
-        if (neutrino_mass > neutrino_mass_max)
-          neutrino_mass_max = neutrino_mass;
-        if (neutrino_mass < neutrino_mass_min)
-          neutrino_mass_min = neutrino_mass;
-      }
-    }
-
-    float min_max_mass[2] = {neutrino_mass_min, neutrino_mass_max};
-
-#ifdef WITH_MPI
-    min_max_mass[1] = -min_max_mass[1];
-
-    MPI_Allreduce(MPI_IN_PLACE, min_max_mass, 2, MPI_FLOAT, MPI_MIN,
-                  MPI_COMM_WORLD);
-
-    min_max_mass[1] = -min_max_mass[1];
-#endif
+  if (e->total_nr_nuparts == 0) {
+    message("WARNING: Running with delta-f, but without neutrino particles.");
 
     /* Store the global (over all ranks) min & max */
-    e->neutrino_mass_min = min_max_mass[0];
-    e->neutrino_mass_max = min_max_mass[1];
+    e->neutrino_mass_min = 0.;
+    e->neutrino_mass_max = 0.;
+  } else {
+    /* For diagnostics, collect the range of neutrino masses in eV */
+    float neutrino_mass_min = FLT_MAX;
+    float neutrino_mass_max = -FLT_MAX;
+    float neutrino_mass_mult = e->neutrino_mass_conversion_factor;
 
-    if (e->nodeID == 0) {
-      message("The neutrino mass multiplier is %.5e eV / U_M",
-              neutrino_mass_mult);
-      message(
-          "The simulation particles correspond to a neutrino mass range [%.4f, "
-          "%.4f] "
-          "eV",
-          min_max_mass[0], min_max_mass[1]);
+    if (e->s->nr_gparts > 0) {
+      for (size_t k = 0; k < e->s->nr_gparts; k++) {
+        if (e->s->gparts[k].type == swift_type_neutrino) {
+          float neutrino_mass = e->s->gparts[k].mass * neutrino_mass_mult;
+          if (neutrino_mass > neutrino_mass_max)
+            neutrino_mass_max = neutrino_mass;
+          if (neutrino_mass < neutrino_mass_min)
+            neutrino_mass_min = neutrino_mass;
+        }
+      }
+
+      float min_max_mass[2] = {neutrino_mass_min, neutrino_mass_max};
+
+#ifdef WITH_MPI
+      min_max_mass[1] = -min_max_mass[1];
+
+      MPI_Allreduce(MPI_IN_PLACE, min_max_mass, 2, MPI_FLOAT, MPI_MIN,
+                    MPI_COMM_WORLD);
+
+      min_max_mass[1] = -min_max_mass[1];
+#endif
+
+      /* Store the global (over all ranks) min & max */
+      e->neutrino_mass_min = min_max_mass[0];
+      e->neutrino_mass_max = min_max_mass[1];
+
+      if (e->nodeID == 0) {
+        message("The neutrino mass multiplier is %.5e eV / U_M",
+                neutrino_mass_mult);
+        message(
+            "The simulation particles correspond to a neutrino mass range "
+            "[%.4f, %.4f] eV",
+            min_max_mass[0], min_max_mass[1]);
+      }
     }
   }
 #endif
