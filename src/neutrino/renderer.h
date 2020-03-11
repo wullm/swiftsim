@@ -24,8 +24,6 @@
 #ifndef SWIFT_RENDERER_H
 #define SWIFT_RENDERER_H
 
-#define BOLTZ_DEFAULT_BINS 20
-
 #include "../common_io.h"
 #include "../engine.h"
 

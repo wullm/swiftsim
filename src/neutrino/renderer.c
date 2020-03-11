@@ -68,10 +68,6 @@ inline void write_doubles_as_floats(char *fname, double *doubles, int nfloats) {
 
 void rend_init(struct renderer *rend, struct swift_params *params,
                const struct engine *e) {
-  /* The user-specified number of bins used in the power spectrum calculation */
-  // rend->num_of_k_bins =
-  //     parser_get_opt_param_int(params, "Boltzmann:k_bins",
-  //     BOLTZ_DEFAULT_BINS);
 
   /* Read the file name of the hdf5 gaussian random field file */
   char fieldFName[200] = "";
