@@ -107,14 +107,14 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   /* Try getting a source */
   int index_md = pt.index_md_scalars;      // scalar mode
   int index_ic = 0;                        // index of the initial condition
-  int index_tp = pt.index_tp_delta_ncdm1;  // type of source function
+  int index_tp;  // type of source function
 
   /* Size of the perturbations */
   size_t k_size = pt.k_size[index_md];
   size_t tau_size = pt.tau_size;
 
   /* The number of transfer functions to be read */
-  size_t n_functions = 1;
+  const size_t n_functions = 2;
 
   /* Little h, which CLASS uses but Swift doesn't */
   const double h = ba.h;
@@ -130,29 +130,46 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   /* The number of transfer functions to be read */
   rend->transfer.n_functions = n_functions;
 
+  /* What functions should be read */
+  int *functions = malloc(n_functions * sizeof(double));
+  functions[0] = pt.index_tp_delta_ncdm1;
+  functions[1] = pt.index_tp_delta_cdm;
+
   /* Vector with the transfer functions T(tau, k) */
   rend->transfer.delta =
       (double *)calloc(n_functions * k_size * tau_size, sizeof(double));
 
-  /* Read out the perturbation */
+  /* Read out the log conformal times */
   for (size_t index_tau = 0; index_tau < tau_size; index_tau++) {
-    for (size_t index_k = 0; index_k < k_size; index_k++) {
-      /* Convert k from h/Mpc to 1/U_L */
-      double k = pt.k[index_md][index_k] * h / unit_length_factor;
-      double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] +
-                                      index_tp][index_tau * k_size + index_k];
-
-      /* Convert transfer functions from CLASS format to CAMB/HeWon/icgen/
-       *  Eisenstein-Hu format by multiplying by -1/k^2.
-       */
-      double T = -p / k / k;
-
-      rend->transfer.k[index_k] = k;
-      rend->transfer.delta[index_tau * k_size + index_k] = T;
-    }
     /* Convert tau from Mpc to U_T */
     double tau = pt.tau_sampling[index_tau] * unit_time_factor;
     rend->transfer.log_tau[index_tau] = log(tau);
+  }
+
+  /* Read out the wavenumbers */
+  for (size_t index_k = 0; index_k < k_size; index_k++) {
+    /* Convert k from h/Mpc to 1/U_L */
+    double k = pt.k[index_md][index_k] * h / unit_length_factor;
+    rend->transfer.k[index_k] = k;
+  }
+
+  /* Convert and store the transfer functions */
+  for (size_t index_tau = 0; index_tau < tau_size; index_tau++) {
+    for (size_t index_k = 0; index_k < k_size; index_k++) {
+      for (size_t index_func = 0; index_func < n_functions; index_func++) {
+        index_tp = functions[index_func]; // type of source function
+        double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] +
+                                        index_tp][index_tau * k_size + index_k];
+
+        /* Convert transfer functions from CLASS format to CAMB/HeWon/icgen/
+         *  Eisenstein-Hu format by multiplying by -1/k^2.
+         */
+        double k = pt.k[index_md][index_k] * h / unit_length_factor;
+        double T = -p / k / k;
+        rend->transfer.delta[tau_size * k_size * index_func +
+                             k_size * index_tau + index_k] = T;
+      }
+    }
   }
 
   message("The neutrino density is sampled at %zu * %zu points.", k_size,
