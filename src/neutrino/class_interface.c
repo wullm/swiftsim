@@ -105,9 +105,9 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   }
 
   /* Try getting a source */
-  int index_md = pt.index_md_scalars;      // scalar mode
-  int index_ic = 0;                        // index of the initial condition
-  int index_tp;  // type of source function
+  int index_md = pt.index_md_scalars;  // scalar mode
+  int index_ic = 0;                    // index of the initial condition
+  int index_tp;                        // type of source function
 
   /* Size of the perturbations */
   size_t k_size = pt.k_size[index_md];
@@ -157,7 +157,7 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   for (size_t index_tau = 0; index_tau < tau_size; index_tau++) {
     for (size_t index_k = 0; index_k < k_size; index_k++) {
       for (size_t index_func = 0; index_func < n_functions; index_func++) {
-        index_tp = functions[index_func]; // type of source function
+        index_tp = functions[index_func];  // type of source function
         double p = pt.sources[index_md][index_ic * pt.tp_size[index_md] +
                                         index_tp][index_tau * k_size + index_k];
 
@@ -302,10 +302,10 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
   double z_5 = z_end;
 
   /* The maximum and minimum wavenumbers necessary, given the box size */
-  double box_len = e->s->dim[0]; // U_L
+  double box_len = e->s->dim[0];  // U_L
   double box_len_Mpc = box_len / unit_length_factor;
   double k_max = sqrt(3.) * M_PI * e->mesh->N / box_len_Mpc;
-  double k_min = 2 * M_PI / box_len; //not used currently
+  double k_min = 2 * M_PI / box_len;  // not used currently
 
   /* To account for the unequal CLASS k steps, we multiply by two */
   double requested_k_max = k_max * 2.0;
@@ -319,7 +319,8 @@ void rend_infer_class_parameters(struct renderer *rend, const struct engine *e,
 
   message("Precision required at z = %.1f, %.1f, %.1f, %.1f, %.1f, %.1f", z_0,
           z_1, z_2, z_3, z_4, z_5);
-  message("Box size means we need wavenumbers in range [%f,%f] 1/Mpc", k_min, k_max);
+  message("Box size means we need wavenumbers in range [%f,%f] 1/Mpc", k_min,
+          k_max);
 
   /* Counter for the parameters */
   int num = 0;

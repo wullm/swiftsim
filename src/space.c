@@ -2399,7 +2399,7 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
         ff0_sum += gp->f_phase_i * gp->f_phase;
         if (gp->f_phase_i > 0) {
           const double w = 1 - gp->f_phase / gp->f_phase_i;
-          ww_sum += w*w;
+          ww_sum += w * w;
         }
 #endif
 
