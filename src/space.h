@@ -280,7 +280,7 @@ struct space {
   /*! Sum of product of background model & actual phase space densities */
   float sum_nupart_ff0;
 
-  /*! Sum of squared weights or mass ratios (m/m_initial) of #nuparts */
+  /*! Sum of squared weights or mass ratios (m/m_initial) of #nupart */
   float sum_nupart_ww;
 #endif
 
