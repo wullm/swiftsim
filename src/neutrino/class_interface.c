@@ -114,7 +114,7 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   size_t tau_size = pt.tau_size;
 
   /* The number of transfer functions to be read */
-  const size_t n_functions = 2;
+  const size_t n_functions = 12;
 
   /* Little h, which CLASS uses but Swift doesn't */
   const double h = ba.h;
@@ -133,7 +133,17 @@ void rend_perturb_from_class(struct renderer *rend, struct swift_params *params,
   /* What functions should be read */
   int *functions = malloc(n_functions * sizeof(double));
   functions[0] = pt.index_tp_delta_ncdm1;
-  functions[1] = pt.index_tp_delta_cdm;
+  functions[1] = pt.index_tp_theta_ncdm1;
+  functions[2] = pt.index_tp_delta_cdm;
+  functions[3] = pt.index_tp_chebyshev_ncdm1_n0_l0;
+  functions[4] = pt.index_tp_chebyshev_ncdm1_n1_l0;
+  functions[5] = pt.index_tp_chebyshev_ncdm1_n2_l0;
+  functions[6] = pt.index_tp_chebyshev_ncdm1_n0_l1;
+  functions[7] = pt.index_tp_chebyshev_ncdm1_n1_l1;
+  functions[8] = pt.index_tp_chebyshev_ncdm1_n2_l1;
+  functions[9] = pt.index_tp_chebyshev_ncdm1_n0_l2;
+  functions[10] = pt.index_tp_chebyshev_ncdm1_n1_l2;
+  functions[11] = pt.index_tp_chebyshev_ncdm1_n2_l2;
 
   /* Vector with the transfer functions T(tau, k) */
   rend->transfer.delta =

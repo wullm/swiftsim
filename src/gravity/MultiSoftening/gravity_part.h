@@ -95,6 +95,10 @@ struct gpart {
   /* Phase space density at the present time */
   double f_phase;
 
+  double g_phase_i;
+
+  double h_phase_i;
+
   /* The initial mass (as given by the initial conditions) */
   float mass_i;
 

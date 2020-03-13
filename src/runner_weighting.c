@@ -91,6 +91,87 @@ __attribute__((always_inline)) INLINE static double CIC_get(
   return temp;
 }
 
+/* Calculate first order derivatives */
+__attribute__((always_inline)) INLINE static void five_point_derivative_1(
+    double mesh[6][6][6], double d[3], double tx, double ty, double tz,
+    double dx, double dy, double dz, double fac) {
+
+  const int ii = 2, jj = 2, kk = 2;
+
+  /* 5-point stencil along each axis */
+  d[0] = (1. / 12.) * CIC_get(mesh, ii + 2, jj, kk, tx, ty, tz, dx, dy, dz);
+  d[0] -= (2. / 3.) * CIC_get(mesh, ii + 1, jj, kk, tx, ty, tz, dx, dy, dz);
+  d[0] += (2. / 3.) * CIC_get(mesh, ii - 1, jj, kk, tx, ty, tz, dx, dy, dz);
+  d[0] -= (1. / 12.) * CIC_get(mesh, ii - 2, jj, kk, tx, ty, tz, dx, dy, dz);
+
+  d[1] = (1. / 12.) * CIC_get(mesh, ii, jj + 2, kk, tx, ty, tz, dx, dy, dz);
+  d[1] -= (2. / 3.) * CIC_get(mesh, ii, jj + 1, kk, tx, ty, tz, dx, dy, dz);
+  d[1] += (2. / 3.) * CIC_get(mesh, ii, jj - 1, kk, tx, ty, tz, dx, dy, dz);
+  d[1] -= (1. / 12.) * CIC_get(mesh, ii, jj - 2, kk, tx, ty, tz, dx, dy, dz);
+
+  d[2] = (1. / 12.) * CIC_get(mesh, ii, jj, kk + 2, tx, ty, tz, dx, dy, dz);
+  d[2] -= (2. / 3.) * CIC_get(mesh, ii, jj, kk + 1, tx, ty, tz, dx, dy, dz);
+  d[2] += (2. / 3.) * CIC_get(mesh, ii, jj, kk - 1, tx, ty, tz, dx, dy, dz);
+  d[2] -= (1. / 12.) * CIC_get(mesh, ii, jj, kk - 2, tx, ty, tz, dx, dy, dz);
+
+  /* Divide by the step size */
+  d[0] *= fac;
+  d[1] *= fac;
+  d[2] *= fac;
+}
+
+/* Calculates second order derivatives, including mixed derivatives.
+ * The order is 00,11,22,01,02,12 */
+__attribute__((always_inline)) INLINE static void five_point_derivative_2(
+    double mesh[6][6][6], double d[6], double tx, double ty, double tz,
+    double dx, double dy, double dz, double fac) {
+
+  const int ii = 2, jj = 2, kk = 2;
+
+  /* 5-point stencil along each axis for the second derivatives */
+  d[0] = -(1. / 12.) * CIC_get(mesh, ii + 2, jj, kk, tx, ty, tz, dx, dy, dz);
+  d[0] += (4. / 3.) * CIC_get(mesh, ii + 1, jj, kk, tx, ty, tz, dx, dy, dz);
+  d[0] -= (5. / 2.) * CIC_get(mesh, ii, jj, kk, tx, ty, tz, dx, dy, dz);
+  d[0] += (4. / 3.) * CIC_get(mesh, ii - 1, jj, kk, tx, ty, tz, dx, dy, dz);
+  d[0] -= (1. / 12.) * CIC_get(mesh, ii - 2, jj, kk, tx, ty, tz, dx, dy, dz);
+
+  d[1] = -(1. / 12.) * CIC_get(mesh, ii, jj + 2, kk, tx, ty, tz, dx, dy, dz);
+  d[1] += (4. / 3.) * CIC_get(mesh, ii, jj + 1, kk, tx, ty, tz, dx, dy, dz);
+  d[1] -= (5. / 2.) * CIC_get(mesh, ii, jj, kk, tx, ty, tz, dx, dy, dz);
+  d[1] += (4. / 3.) * CIC_get(mesh, ii, jj - 1, kk, tx, ty, tz, dx, dy, dz);
+  d[1] -= (1. / 12.) * CIC_get(mesh, ii, jj - 2, kk, tx, ty, tz, dx, dy, dz);
+
+  d[2] = -(1. / 12.) * CIC_get(mesh, ii, jj, kk + 2, tx, ty, tz, dx, dy, dz);
+  d[2] += (4. / 3.) * CIC_get(mesh, ii, jj, kk + 1, tx, ty, tz, dx, dy, dz);
+  d[2] -= (5. / 2.) * CIC_get(mesh, ii, jj, kk, tx, ty, tz, dx, dy, dz);
+  d[2] += (4. / 3.) * CIC_get(mesh, ii, jj, kk - 1, tx, ty, tz, dx, dy, dz);
+  d[2] -= (1. / 12.) * CIC_get(mesh, ii, jj, kk - 2, tx, ty, tz, dx, dy, dz);
+
+  /* 3-point stencil along mixed axes for the mixed second derivatives */
+  d[3] = (1. / 4.) * CIC_get(mesh, ii - 1, jj - 1, kk, tx, ty, tz, dx, dy, dz);
+  d[3] += (1. / 4.) * CIC_get(mesh, ii + 1, jj + 1, kk, tx, ty, tz, dx, dy, dz);
+  d[3] -= (1. / 4.) * CIC_get(mesh, ii + 1, jj - 1, kk, tx, ty, tz, dx, dy, dz);
+  d[3] -= (1. / 4.) * CIC_get(mesh, ii - 1, jj + 1, kk, tx, ty, tz, dx, dy, dz);
+
+  d[4] = (1. / 4.) * CIC_get(mesh, ii - 1, jj, kk - 1, tx, ty, tz, dx, dy, dz);
+  d[4] += (1. / 4.) * CIC_get(mesh, ii + 1, jj, kk + 1, tx, ty, tz, dx, dy, dz);
+  d[4] -= (1. / 4.) * CIC_get(mesh, ii + 1, jj, kk - 1, tx, ty, tz, dx, dy, dz);
+  d[4] -= (1. / 4.) * CIC_get(mesh, ii - 1, jj, kk + 1, tx, ty, tz, dx, dy, dz);
+
+  d[5] = (1. / 4.) * CIC_get(mesh, ii, jj - 1, kk - 1, tx, ty, tz, dx, dy, dz);
+  d[5] += (1. / 4.) * CIC_get(mesh, ii, jj + 1, kk + 1, tx, ty, tz, dx, dy, dz);
+  d[5] -= (1. / 4.) * CIC_get(mesh, ii, jj + 1, kk - 1, tx, ty, tz, dx, dy, dz);
+  d[5] -= (1. / 4.) * CIC_get(mesh, ii, jj - 1, kk + 1, tx, ty, tz, dx, dy, dz);
+
+  /* Divide by the step size (second derivative!) */
+  d[0] *= fac * fac;
+  d[1] *= fac * fac;
+  d[2] *= fac * fac;
+  d[3] *= fac * fac;
+  d[4] *= fac * fac;
+  d[5] *= fac * fac;
+}
+
 /**
  * @brief Retrieve value for a gpart from a given mesh using the CIC
  * method.
@@ -102,9 +183,12 @@ __attribute__((always_inline)) INLINE static double CIC_get(
  * @param N the size of the mesh along one axis.
  * @param fac width of a mesh cell.
  * @param dim The dimensions of the simulation box.
+ * @param order The Legendre polynomial order .
+ * @param direction The direction in which the derivatives should be taken.
  */
-double grid_to_gparts_CIC(struct gpart *gp, const double *grid, int N,
-                          double fac, const double dim[3]) {
+double grid_get(struct gpart *gp, const double *grid, int N,
+                          double fac, const double dim[3], char order,
+                          const double direction[3]) {
 
   /* Box wrap the gpart's position */
   const double pos_x = box_wrap(gp->x[0], 0., dim[0]);
@@ -149,14 +233,47 @@ double grid_to_gparts_CIC(struct gpart *gp, const double *grid, int N,
     }
   }
 
-  /* Some local accumulators */
-  double p = 0.;
+  /* The result */
+  double p = 0;
 
   /* Indices of (i,j,k) in the local copy of the mesh */
   const int ii = 2, jj = 2, kk = 2;
 
   /* Simple CIC for the local grid itself */
-  p += CIC_get(subgrid, ii, jj, kk, tx, ty, tz, dx, dy, dz);
+  if (order == 0) {
+    p += CIC_get(subgrid, ii, jj, kk, tx, ty, tz, dx, dy, dz);
+  } else if (order == 1) {
+    double derivative[3];
+    five_point_derivative_1(subgrid, derivative, tx, ty, tz, dx, dy, dz, fac);
+
+    p += direction[0]*derivative[0];
+    p += direction[1]*derivative[1];
+    p += direction[2]*derivative[2];
+  } else if (order == 2) {
+    double derivative[6]; //second derivatives {00,11,22,01,02,12}
+    five_point_derivative_2(subgrid, derivative, tx, ty, tz, dx, dy, dz, fac);
+
+    /* We want the Legendre polynomial P_2(x) = (3x^2 - 1)/2 */
+
+    /* First the zeroth order contribution */
+    // p -= 0.5 * CIC_get(subgrid, ii, jj, kk, tx, ty, tz, dx, dy, dz);
+
+    // /* Determine the normalization */
+    // double norm = derivative[0] + derivative[1] + derivative[2];
+    //
+    // norm = 1.0;
+
+    /* Now the second order contributions */
+    p += 1.5 * direction[0] * direction[0] * derivative[0];
+    p += 1.5 * direction[1] * direction[1] * derivative[1];
+    p += 1.5 * direction[2] * direction[2] * derivative[2];
+    p += 3.0 * direction[0] * direction[1] * derivative[3];
+    p += 3.0 * direction[0] * direction[2] * derivative[4];
+    p += 3.0 * direction[1] * direction[2] * derivative[5];
+  } else {
+    error("Higher order derivatives not implemented.");
+  }
+
 
   /* ---- */
   return p;
@@ -193,20 +310,23 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   const double dim[3] = {e->s->dim[0], e->s->dim[1], e->s->dim[2]};
 #endif
 
-  // const struct phys_const *physical_constants = e->physical_constants;
-  // const struct cosmology *cosmo = e->cosmology;
+  const struct phys_const *physical_constants = e->physical_constants;
+  const struct cosmology *cosmo = e->cosmology;
   // const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
   // const double H_ratio = cosmo->H0 / cosmo->H;
   // const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
   // const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
   // const double particle_mass = neutrino_mass / e->total_nr_nuparts;
-  // const double T_nu = cosmo->T_nu;
-  // const double k_b = physical_constants->const_boltzmann_k;
-  // const double eV = physical_constants->const_electron_volt;
-  // const double T_eV = k_b * T_nu / eV; // temperature in eV
+  const double T_nu = cosmo->T_nu;
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double eV = physical_constants->const_electron_volt;
+  const double T_eV = k_b * T_nu / eV; // temperature in eV
 
   /* Conversion factor from macro particle mass to neutrino mass in eV */
   const double mult = e->neutrino_mass_conversion_factor;
+
+  double sum1=0,sum2=0,sum3=0;
+  int count=0;
 
   /* Recurse? */
   if (c->split) {
@@ -223,9 +343,58 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
         if (gpart_is_active(gp, e)) {
 
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+          /* Determine the normalized direction of the momentum */
+          double v[3];
+          v[0] = gp->v_full[0];
+          v[1] = gp->v_full[1];
+          v[2] = gp->v_full[2];
+          double vlen = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+          v[0] /= vlen;
+          v[1] /= vlen;
+          v[2] /= vlen;
+
+          /* Correction to the distribution function from linear theory */
+          double Psi = 0;
+
+          /* The perturbation theory grids */
+          double *pt = e->rend->the_grids;
+          int size = N * N * N; //size of the grids
+
+          /* Calculate the momentum in units of T_nu_0 */
+          double momentum = fermi_dirac_momentum(e, gp->v_full, gp->mass * mult);
+          double q = momentum / T_eV;
+
+          /* Map to the Chebyshev interval [-1,1] assuming q_max = 15 */
+          const double q_max = 15.0;
+          double x = 2 * q / q_max - 1.0;
+
+          if (x < -1 || x > 1) {
+              message("WARNING: momentum exceeds allowed interval: q=%f",q);
+          }
+
+          /* Calculate the Chebyshev polynomials */
+          double Cheb0 = 1.0;
+          double Cheb1 = x;
+          double Cheb2 = 2.0 * x * x - 1.0;
+
+          /* 0th order contributions (Chebyshev 0,1,2) */
+          Psi += grid_get(gp, pt + 3 * size, N, cell_fac, dim, 0, v) * Cheb0;
+          Psi += grid_get(gp, pt + 4 * size, N, cell_fac, dim, 0, v) * Cheb1;
+          Psi += grid_get(gp, pt + 5 * size, N, cell_fac, dim, 0, v) * Cheb2;
+          /* 1st order contributions (Chebyshev 0,1,2) */
+          Psi += grid_get(gp, pt + 6 * size, N, cell_fac, dim, 1, v) * Cheb0;
+          Psi += grid_get(gp, pt + 7 * size, N, cell_fac, dim, 1, v) * Cheb1;
+          Psi += grid_get(gp, pt + 8 * size, N, cell_fac, dim, 1, v) * Cheb2;
+          /* 2nd order contributions (Chebyshev 0,1,2) */
+          // Psi += grid_get(gp, pt + 9 * size, N, cell_fac, dim, 2, v) * Cheb0;
+          // Psi += grid_get(gp, pt + 10 * size, N, cell_fac, dim, 2, v) * Cheb1;
+          // Psi += grid_get(gp, pt + 11 * size, N, cell_fac, dim, 2, v) * Cheb2;
+
           double linear_overdensity =
-              grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
+              grid_get(gp, grid, N, cell_fac, dim, 0, v);
           double temperature_factor = cbrt(1.0 + linear_overdensity);
+          double temperature_factor2 = cbrt(1.0 + linear_overdensity);
+          temperature_factor = 1.0;
 #else
           double temperature_factor = 1.0;
 #endif
@@ -233,37 +402,59 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           if (e->step == 0) {
             /* The mass of a microscopic neutrino in eV */
             double m_eV = gp->mass * mult;
-            double f;
+            double f,g,h;
 
             /* Store the initial mass & phase space density */
             f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            f *= (1.0 + Psi);
+            g = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor2);
+            h = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
             gp->mass_i = gp->mass;
             gp->f_phase = f;
             gp->f_phase_i = f;
-            gp->mass = FLT_MIN;  // dither in the first time step
+            gp->g_phase_i = g;
+            gp->h_phase_i = h;
+            // gp->mass = FLT_MIN;  // dither in the first time step
           } else {
             /* The mass of a microscopic neutrino in eV */
             double m_eV = gp->mass_i * mult;
-            double f;
+            double f,g,h;
 
             /* Compute the phase space density */
             f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
-            gp->f_phase = f;
+            gp->f_phase = f * (1.0 + Psi);
+
+            g = fermi_dirac_density(e, gp->v_full, m_eV, cbrt(1.0 + linear_overdensity));
+
+            h = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
             double energy_eV = fermi_dirac_energy(e, gp->v_full, m_eV);
             double energy = energy_eV / mult;  // energy in internal mass units
 
             /* Use the weighted energy instead of the mass */
-            gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
+            gp->mass = energy * (gp->f_phase_i - gp->f_phase) / gp->g_phase_i;
+            gp->mass = gp->mass_i;
 
-            // if (gp->id_or_neg_offset >= 114688-4096 &&
-            //     gp->id_or_neg_offset < 114688-4096 + 5) {
-            //         message("%f %f %f %f", linear_overdensity, temperature_factor, f, energy);
-            // //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) /
-            // //         e->cosmology->a; message("%.10e %.10e %.10e %f", p, m_eV,
-            // //         energy_eV, energy / gp->mass_i);
-            //     }
+            double w = (gp->f_phase_i - gp->f_phase) / gp->f_phase_i;
+            double w2 = (gp->g_phase_i - g) / gp->g_phase_i;
+            double w3 = (gp->h_phase_i - h) / gp->h_phase_i;
+
+            sum1+=w*w;
+            sum2+=w2*w2;
+            sum3+=w3*w3;
+            count++;
+
+            // if (gp->id_or_neg_offset >= 110592+10000 &&
+            //     gp->id_or_neg_offset < 110592+10000 + 5) {
+            //         message("%f %f %f %f", Psi, w, w2, w3);
+            //         // message("%f %f %f %f %f %f", linear_overdensity, (f2-f)/f, Psi, (f - gp->f_phase_i)/gp->f_phase_i, (f - gp->f_phase_i)/gp->f_phase_i/Psi, x);
+            //         // double v_len = sqrt(gp->v_full[0]*gp->v_full[0] +
+            //         // gp->v_full[1]*gp->v_full[1] +
+            //         // gp->v_full[2]*gp->v_full[2]); message("%f %f %f %f %f %f
+            //         // %f", linear_overdensity, temperature_factor, f, energy,
+            //         // gp->mass_i, energy/gp->mass_i, v_len);
+            // }
           }
         }
       }
@@ -271,4 +462,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 
     if (timer) TIMER_TOC(timer_weight);
   }
+
+  if (count>26)
+  message("%f %f %f", 0.5*sum1/count, 0.5*sum2/count, 0.5*sum3/count);
 }

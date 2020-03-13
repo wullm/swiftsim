@@ -136,7 +136,7 @@ void rend_grids_alloc(struct renderer *rend) {
 
   /* Create pointer to the density grid, which is the first field in
      the array */
-   rend->density_grid = rend->the_grids;
+  rend->density_grid = rend->the_grids;
 }
 
 void rend_load_primordial_field(struct renderer *rend, const char *fname) {
@@ -369,8 +369,31 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
           if (k > 0) {
             double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
 
+            /* Normalize the derivatives */
+            if (index_f == 6 || index_f == 7 || index_f == 8) {
+                Tr /= k;
+            } else if (index_f == 9 || index_f == 10 || index_f == 11) {
+                Tr /= k * k;
+            }
+
             fp[half_box_idx(N, x, y, z)][0] *= Tr;
             fp[half_box_idx(N, x, y, z)][1] *= Tr;
+
+            /* Multiply by (2l+1) * (-i)^l */
+            if (index_f == 6 || index_f == 7 || index_f == 8) {
+                fp[half_box_idx(N, x, y, z)][0] *= 3;
+                fp[half_box_idx(N, x, y, z)][1] *= 3;
+
+                double tmp = fp[half_box_idx(N, x, y, z)][0];
+                fp[half_box_idx(N, x, y, z)][0] = fp[half_box_idx(N, x, y, z)][1];
+                fp[half_box_idx(N, x, y, z)][1] = -tmp;
+            } else if (index_f == 9 || index_f == 10 || index_f == 11) {
+                fp[half_box_idx(N, x, y, z)][0] *= 5;
+                fp[half_box_idx(N, x, y, z)][1] *= 5;
+
+                fp[half_box_idx(N, x, y, z)][0] *= -1.0;
+                fp[half_box_idx(N, x, y, z)][1] *= -1.0;
+            }
           }
         }
       }
@@ -394,20 +417,20 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Next, compute the potential due to neutrinos (modulo a factor G_newt) */
 
-   /* Calculate the background neutrino density at the present time */
-   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
-   const double rho_crit0 = cosmo->critical_density_0;
-   const double neutrino_density = Omega_nu * rho_crit0;
+  /* Calculate the background neutrino density at the present time */
+  const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
+  const double rho_crit0 = cosmo->critical_density_0;
+  const double neutrino_density = Omega_nu * rho_crit0;
 
-   /* Convert overdensity to actual density */
-   for (int i = 0; i < N * N * N; i++) {
-     potential[i] = (1.0 + rend->density_grid[i]) * neutrino_density;
-   }
+  /* Convert overdensity to actual density */
+  for (int i = 0; i < N * N * N; i++) {
+    potential[i] = (1.0 + rend->density_grid[i]) * neutrino_density;
+  }
 
-   /* Export the neutrino density */
-   if (e->nodeID == 0) {
-     write_doubles_as_floats("nudens.box", potential, N * N * N);
-   }
+  /* Export the neutrino density */
+  if (e->nodeID == 0) {
+    write_doubles_as_floats("nudens.box", potential, N * N * N);
+  }
 
   /* Transform to momentum space */
   fftw_execute(pr2c);
