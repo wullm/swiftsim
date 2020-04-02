@@ -720,3 +720,66 @@ void rend_write_perturb(struct renderer *rend, const struct engine *e,
   /* Close file */
   H5Fclose(h_file);
 }
+
+void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
+                           const struct engine *e, int myrank) {
+
+    if (myrank == 0) {
+
+      /* If a perturbation file & a CLASS ini file are both specified */
+      if (strlen(rend->in_perturb_fname) > 1 && strlen(rend->class_ini_fname) > 1) {
+        error("Specified both perturbation file & CLASS .ini file. '%s' '%s' (%ld)", rend->in_perturb_fname, rend->class_ini_fname,  strlen(rend->class_ini_fname));
+      } else if (strlen(rend->in_perturb_fname) == '\0') {
+#ifdef WITH_CLASS_INTERFACE
+        /* Initialize perturbations to the cosmology with CLASS */
+        message("We run CLASS to calculate perturbations to the cosmology.");
+        rend_perturb_from_class(rend, params, e);
+        message("Done with CLASS. The perturbations are now available.");
+
+        /* Save to disk */
+        if (strlen(rend->out_perturb_fname) > 1) {
+          rend_write_perturb(rend, e, rend->out_perturb_fname);
+        }
+#else
+        error("No CLASS library found. Cannot compute transfer functions.");
+#endif
+      } else if (strlen(rend->in_perturb_fname) > 1) {
+        /* Read from disk */
+        rend_read_perturb(rend, e, rend->in_perturb_fname);
+      }
+
+      /* Initialize our own interpolation spline */
+      rend_interp_init(rend);
+      rend_grids_alloc(rend);
+    }
+
+      /* Broadcast the cosmological perturbations to the other ranks */
+#ifdef WITH_MPI
+    /* The memory for the transfer functions is located here */
+    struct transfer *tr = &rend->transfer;
+
+    /* First broadcast the size of the perturbation to the other ranks */
+    MPI_Bcast(&tr->k_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&tr->tau_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&tr->n_functions, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    /* Allocate memory on the other ranks */
+    if (myrank != 0) {
+      tr->delta =  (double *)swift_malloc("delta", tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
+      tr->k = (double *)swift_malloc("k", tr->k_size * sizeof(double));
+      tr->log_tau = (double *)swift_malloc("log_tau", tr->tau_size * sizeof(double));
+    }
+
+    /* Broadcast the perturbation to the other ranks */
+    MPI_Bcast(tr->k, tr->k_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(tr->log_tau, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(tr->delta, tr->k_size * tr->tau_size * tr->n_functions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    /* Initialize the interpolation spline on the other ranks */
+    if (myrank != 0) {
+      rend_interp_init(rend);
+      rend_grids_alloc(rend);
+    }
+#endif
+
+}

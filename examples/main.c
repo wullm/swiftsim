@@ -760,6 +760,13 @@ int main(int argc, char *argv[]) {
     /* Now read it. */
     restart_read(&e, restart_file);
 
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+    /* Initialize the renderer. */
+    e.rend = &rend;
+    rend_init(e.rend, e.parameter_file, &e);
+    rend_init_perturb_vec(e.rend, e.parameter_file, &e, myrank);
+#endif
+
     /* And initialize the engine with the space and policies. */
     if (myrank == 0) clocks_gettime(&tic);
     engine_config(/*restart=*/1, /*fof=*/0, &e, params, nr_nodes, myrank,
@@ -1190,68 +1197,7 @@ int main(int argc, char *argv[]) {
     }
 
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
-    if (myrank == 0) {
-
-      /* If a perturbation file & a CLASS ini file are both specified */
-      if (rend.in_perturb_fname[0] != '\0' && rend.class_ini_fname[0] != '\0') {
-        error("Specified both perturbation file & CLASS .ini file.");
-      } else if (rend.in_perturb_fname[0] == '\0') {
-#ifdef WITH_CLASS_INTERFACE
-        /* Initialize perturbations to the cosmology with CLASS */
-        message("We run CLASS to calculate perturbations to the cosmology.");
-        rend_perturb_from_class(&rend, params, &e);
-        message("Done with CLASS. The perturbations are now available.");
-
-        /* Save to disk */
-        if (rend.out_perturb_fname[0] != '\0') {
-          rend_write_perturb(&rend, &e, rend.out_perturb_fname);
-        }
-#else
-        error("No CLASS library found. Cannot compute transfer functions.");
-#endif
-      } else if (rend.in_perturb_fname[0] != '\0') {
-        /* Read from disk */
-        rend_read_perturb(&rend, &e, rend.in_perturb_fname);
-      }
-
-      /* Initialize our own interpolation spline */
-      rend_interp_init(&rend);
-      rend_grids_alloc(&rend);
-    }
-
-      /* Broadcast the cosmological perturbations to the other ranks */
-#ifdef WITH_MPI
-    /* The memory for the transfer functions is located here */
-    struct transfer *tr = &rend.transfer;
-
-    /* First broadcast the size of the perturbation to the other ranks */
-    MPI_Bcast(&tr->k_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&tr->tau_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&tr->n_functions, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    /* Allocate memory on the other ranks */
-    if (myrank != 0) {
-      tr->delta =
-          (double *)swift_malloc("delta", tr->n_functions * tr->k_size *
-                                              tr->tau_size * sizeof(double));
-      tr->k = (double *)swift_malloc("k", tr->k_size * sizeof(double));
-      tr->log_tau =
-          (double *)swift_malloc("log_tau", tr->tau_size * sizeof(double));
-    }
-
-    /* Broadcast the perturbation to the other ranks */
-    MPI_Bcast(tr->k, tr->k_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(tr->log_tau, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(tr->delta, tr->k_size * tr->tau_size, MPI_DOUBLE, 0,
-              MPI_COMM_WORLD);
-
-    /* Initialize the interpolation spline on the other ranks */
-    if (myrank != 0) {
-      rend_interp_init(&rend);
-      rend_grids_alloc(&rend);
-    }
-#endif
-
+    rend_init_perturb_vec(e.rend, e.parameter_file, &e, myrank);
 #endif
 
     /* Get some info to the user. */
