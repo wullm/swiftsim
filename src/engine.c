@@ -4050,7 +4050,10 @@ void engine_config(int restart, int fof, struct engine *e,
     if (e->s->nr_gparts > 0) {
       for (size_t k = 0; k < e->s->nr_gparts; k++) {
         if (e->s->gparts[k].type == swift_type_neutrino) {
-          float neutrino_mass = e->s->gparts[k].mass * neutrino_mass_mult;
+          struct gpart *gp = &e->s->gparts[k];
+          /* Use initial mass if this is a restart. Otherwise use mass */
+          float particle_mass = (restart) ? gp->mass_i : gp->mass;
+          float neutrino_mass = particle_mass * neutrino_mass_mult;
           if (neutrino_mass > neutrino_mass_max)
             neutrino_mass_max = neutrino_mass;
           if (neutrino_mass < neutrino_mass_min)
@@ -5312,6 +5315,7 @@ void engine_struct_dump(struct engine *e, FILE *stream) {
   space_struct_dump(e->s, stream);
   units_struct_dump(e->internal_units, stream);
   units_struct_dump(e->snapshot_units, stream);
+  phys_const_struct_dump(e->physical_constants, stream);
   cosmology_struct_dump(e->cosmology, stream);
 
 #ifdef WITH_MPI
@@ -5320,7 +5324,6 @@ void engine_struct_dump(struct engine *e, FILE *stream) {
   partition_struct_dump(e->reparttype, stream);
 #endif
 
-  phys_const_struct_dump(e->physical_constants, stream);
   hydro_props_struct_dump(e->hydro_properties, stream);
   entropy_floor_struct_dump(e->entropy_floor, stream);
   gravity_props_struct_dump(e->gravity_properties, stream);

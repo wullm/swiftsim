@@ -729,7 +729,7 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* If there are neutrinos, load the optional mass array */
   if (c->N_nu > 0) {
-    c->M_nu = calloc(c->N_nu, sizeof(double *));
+    c->M_nu = calloc(c->N_nu, sizeof(double));
     parser_get_opt_param_double_array(params, "Cosmology:M_nu", c->N_nu,
                                       c->M_nu);
   }
@@ -1383,6 +1383,13 @@ void cosmology_write_model(hid_t h_grp, const struct cosmology *c) {
 void cosmology_struct_dump(const struct cosmology *cosmology, FILE *stream) {
   restart_write_blocks((void *)cosmology, sizeof(struct cosmology), 1, stream,
                        "cosmology", "cosmology function");
+
+  /* Also store the neutrino mass array if necessary */
+  if (cosmology->N_nu > 0) {
+    restart_write_blocks((double *)cosmology->M_nu, sizeof(double),
+                         cosmology->N_nu, stream, "cosmology->M_nu",
+                         "neutrino masses");
+  }
 }
 
 /**
@@ -1398,6 +1405,13 @@ void cosmology_struct_restore(int enabled, struct cosmology *cosmology,
                               FILE *stream) {
   restart_read_blocks((void *)cosmology, sizeof(struct cosmology), 1, stream,
                       NULL, "cosmology function");
+
+  /* Restore the neutrino mass array if necessary */
+  if (cosmology->N_nu > 0) {
+    cosmology->M_nu = calloc(cosmology->N_nu, sizeof(double));
+    restart_read_blocks((double *)cosmology->M_nu, sizeof(double),
+                        cosmology->N_nu, stream, NULL, "neutrino masses");
+  }
 
   /* Re-initialise the tables if using a cosmology. */
   if (enabled) {
