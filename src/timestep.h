@@ -104,17 +104,14 @@ __attribute__((always_inline)) INLINE static integertime_t get_gpart_timestep(
     new_dt_self = gravity_compute_timestep_self(
         gp, a_hydro, e->gravity_properties, e->cosmology);
 
-#ifdef WITH_RELATIVISTIC_KICK
-    /* Perform a relativistic correction. The timesteps depend on 1/sqrt(a),
-     * where a is the acceleration that receives some correction. */
-    double a_correction = relat_corr_kick(e, gp->v_full);
-    double dt_correction = 1./sqrt(a_correction);
-    new_dt_ext *= dt_correction;
-    new_dt_self *= dt_correction;
-#endif
-
   /* Take the minimum of all */
   float new_dt = min(new_dt_self, new_dt_ext);
+
+#ifdef WITH_RELATIVISTIC_KICK
+  /* Perform a relativistic correction, using dt ~ 1/sqrt(accel) */
+  double accel_correction = relat_corr_kick(e, gp->v_full);
+  new_dt /= sqrtf(accel_correction);
+#endif
 
   /* Apply the maximal displacement constraint (FLT_MAX  if non-cosmological)*/
   new_dt = min(new_dt, e->dt_max_RMS_displacement);
@@ -170,16 +167,14 @@ __attribute__((always_inline)) INLINE static integertime_t get_part_timestep(
       new_dt_self_grav = gravity_compute_timestep_self(
           p->gpart, p->a_hydro, e->gravity_properties, e->cosmology);
 
+    new_dt_grav = min(new_dt_self_grav, new_dt_ext_grav);
+
 #ifdef WITH_RELATIVISTIC_KICK
-    /* Perform a relativistic correction. The timesteps depend on 1/sqrt(a),
-    * where a is the acceleration that receives some correction. */
-    double a_correction = relat_corr_kick(e, p->gpart->v_full);
-    double dt_correction = 1./sqrt(a_correction);
-    new_dt_ext_grav *= dt_correction;
-    new_dt_self_grav *= dt_correction;
+    /* Perform a relativistic correction, using dt ~ 1/sqrt(accel) */
+    double accel_correction = relat_corr_kick(e, p->v);
+    new_dt_grav /= sqrtf(accel_correction);
 #endif
 
-    new_dt_grav = min(new_dt_self_grav, new_dt_ext_grav);
   }
 
   /* Compute the next timestep (chemistry condition, e.g. diffusion) */
@@ -245,12 +240,10 @@ __attribute__((always_inline)) INLINE static integertime_t get_spart_timestep(
         sp->gpart, a_hydro, e->gravity_properties, e->cosmology);
 
 #ifdef WITH_RELATIVISTIC_KICK
-  /* Perform a relativistic correction. The timesteps depend on 1/sqrt(a),
-  * where a is the acceleration that receives some correction. */
-  double a_correction = relat_corr_kick(e, sp->v);
-  double dt_correction = 1./sqrt(a_correction);
-  new_dt_ext *= dt_correction;
-  new_dt_self *= dt_correction;
+  /* Perform a relativistic correction, using dt ~ 1/sqrt(accel) */
+  double accel_correction = relat_corr_kick(e, sp->v);
+  new_dt_ext /= sqrtf(accel_correction);
+  new_dt_self /= sqrtf(accel_correction);
 #endif
 
   /* Take the minimum of all */
@@ -301,14 +294,12 @@ __attribute__((always_inline)) INLINE static integertime_t get_bpart_timestep(
         bp->gpart, a_hydro, e->gravity_properties, e->cosmology);
 
 #ifdef WITH_RELATIVISTIC_KICK
-  /* Perform a relativistic correction. The timesteps depend on 1/sqrt(a),
-  * where a is the acceleration that receives some correction. */
-  double a_correction = relat_corr_kick(e, bp->v);
-  double dt_correction = 1./sqrt(a_correction);
-  new_dt_ext *= dt_correction;
-  new_dt_self *= dt_correction;
+  /* Perform a relativistic correction, using dt ~ 1/sqrt(accel) */
+  double accel_correction = relat_corr_kick(e, bp->v);
+  new_dt_ext /= sqrtf(accel_correction);
+  new_dt_self /= sqrtf(accel_correction);
 #endif
-        
+
   /* Take the minimum of all */
   float new_dt = min3(new_dt_black_holes, new_dt_self, new_dt_ext);
 
