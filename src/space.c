@@ -67,6 +67,10 @@
 #include "tools.h"
 #include "tracers.h"
 
+#ifdef WITH_RELATIVISTIC_DRIFT
+#include "relativity.h"
+#endif
+
 /* Split size. */
 int space_splitsize = space_splitsize_default;
 int space_subsize_pair_hydro = space_subsize_pair_hydro_default;
@@ -2234,8 +2238,18 @@ void space_parts_get_cell_index_mapper(void *map_data, int nr_parts,
       /* Compute minimal mass */
       min_mass = min(min_mass, hydro_get_mass(p));
 
+      double v2 = p->v[0] * p->v[0] +
+                  p->v[1] * p->v[1] +
+                  p->v[2] * p->v[2];
+
+#ifdef WITH_RELATIVISTIC_DRIFT
+      /* Perform a relativistic correction */
+      double correction = relat_corr_drift(s->e, p->v);
+      v2 *= correction * correction;
+#endif
+
       /* Compute sum of velocity norm */
-      sum_vel_norm += p->v[0] * p->v[0] + p->v[1] * p->v[1] + p->v[2] * p->v[2];
+      sum_vel_norm += v2;
 
       /* Update the position */
       p->x[0] = pos_x;
@@ -2381,10 +2395,19 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
         /* Compute minimal mass */
         min_mass = min(min_mass, gp->mass);
 
+        /* Compute the squared velocity */
+        double v2 = gp->v_full[0] * gp->v_full[0] +
+                    gp->v_full[1] * gp->v_full[1] +
+                    gp->v_full[2] * gp->v_full[2];
+
+#ifdef WITH_RELATIVISTIC_DRIFT
+        /* Perform a relativistic correction */
+        double correction = relat_corr_drift(s->e, gp->v_full);
+        v2 *= correction * correction;
+#endif
+
         /* Compute sum of velocity norm */
-        sum_vel_norm += gp->v_full[0] * gp->v_full[0] +
-                        gp->v_full[1] * gp->v_full[1] +
-                        gp->v_full[2] * gp->v_full[2];
+        sum_vel_norm += v2;
       } else if (gp->type == swift_type_neutrino) {
 
         /* Compute minimal mass */
@@ -2403,10 +2426,19 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
         }
 #endif
 
+        /* Compute the squared velocity */
+        double v2 = gp->v_full[0] * gp->v_full[0] +
+                    gp->v_full[1] * gp->v_full[1] +
+                    gp->v_full[2] * gp->v_full[2];
+
+#ifdef WITH_RELATIVISTIC_DRIFT
+        /* Perform a relativistic correction */
+        double correction = relat_corr_drift(s->e, gp->v_full);
+        v2 *= correction * correction;
+#endif
+
         /* Compute sum of velocity norm */
-        sum_vel_norm_nu += gp->v_full[0] * gp->v_full[0] +
-                           gp->v_full[1] * gp->v_full[1] +
-                           gp->v_full[2] * gp->v_full[2];
+        sum_vel_norm_nu += v2;
       }
 
       /* Update the position */
@@ -2553,9 +2585,19 @@ void space_sparts_get_cell_index_mapper(void *map_data, int nr_sparts,
       /* Compute minimal mass */
       min_mass = min(min_mass, sp->mass);
 
+      /* Compute the squared velocity */
+      double v2 = sp->v[0] * sp->v[0] +
+                  sp->v[1] * sp->v[1] +
+                  sp->v[2] * sp->v[2];
+
+#ifdef WITH_RELATIVISTIC_DRIFT
+      /* Perform a relativistic correction */
+      double correction = relat_corr_drift(s->e, sp->v);
+      v2 *= correction * correction;
+#endif
+
       /* Compute sum of velocity norm */
-      sum_vel_norm +=
-          sp->v[0] * sp->v[0] + sp->v[1] * sp->v[1] + sp->v[2] * sp->v[2];
+      sum_vel_norm += v2;
 
       /* Update the position */
       sp->x[0] = pos_x;
@@ -2688,9 +2730,18 @@ void space_bparts_get_cell_index_mapper(void *map_data, int nr_bparts,
       /* Compute minimal mass */
       min_mass = min(min_mass, bp->mass);
 
+      double v2 = bp->v[0] * bp->v[0] +
+                  bp->v[1] * bp->v[1] +
+                  bp->v[2] * bp->v[2];
+
+#ifdef WITH_RELATIVISTIC_DRIFT
+      /* Perform a relativistic correction */
+      double correction = relat_corr_drift(s->e, bp->v);
+      v2 *= correction * correction;
+#endif
+
       /* Compute sum of velocity norm */
-      sum_vel_norm +=
-          bp->v[0] * bp->v[0] + bp->v[1] * bp->v[1] + bp->v[2] * bp->v[2];
+      sum_vel_norm += v2;
 
       /* Update the position */
       bp->x[0] = pos_x;

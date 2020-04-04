@@ -27,6 +27,10 @@
 #include "debug.h"
 #include "timeline.h"
 
+#ifdef WITH_RELATIVISTIC_KICK
+#include "relativity.h"
+#endif
+
 /**
  * @brief Compute a valid integer time-step form a given time-step
  *
@@ -100,6 +104,15 @@ __attribute__((always_inline)) INLINE static integertime_t get_gpart_timestep(
     new_dt_self = gravity_compute_timestep_self(
         gp, a_hydro, e->gravity_properties, e->cosmology);
 
+#ifdef WITH_RELATIVISTIC_KICK
+    /* Perform a relativistic correction. The timesteps depend on 1/sqrt(a),
+     * where a is the acceleration that receives some correction. */
+    double a_correction = relat_corr_kick(e, gp->v_full);
+    double dt_correction = 1./sqrt(a_correction);
+    new_dt_ext *= dt_correction;
+    new_dt_self *= dt_correction;
+#endif
+
   /* Take the minimum of all */
   float new_dt = min(new_dt_self, new_dt_ext);
 
@@ -156,6 +169,15 @@ __attribute__((always_inline)) INLINE static integertime_t get_part_timestep(
     if (e->policy & engine_policy_self_gravity)
       new_dt_self_grav = gravity_compute_timestep_self(
           p->gpart, p->a_hydro, e->gravity_properties, e->cosmology);
+
+#ifdef WITH_RELATIVISTIC_KICK
+    /* Perform a relativistic correction. The timesteps depend on 1/sqrt(a),
+    * where a is the acceleration that receives some correction. */
+    double a_correction = relat_corr_kick(e, p->gpart->v_full);
+    double dt_correction = 1./sqrt(a_correction);
+    new_dt_ext_grav *= dt_correction;
+    new_dt_self_grav *= dt_correction;
+#endif
 
     new_dt_grav = min(new_dt_self_grav, new_dt_ext_grav);
   }
@@ -222,6 +244,15 @@ __attribute__((always_inline)) INLINE static integertime_t get_spart_timestep(
     new_dt_self = gravity_compute_timestep_self(
         sp->gpart, a_hydro, e->gravity_properties, e->cosmology);
 
+#ifdef WITH_RELATIVISTIC_KICK
+  /* Perform a relativistic correction. The timesteps depend on 1/sqrt(a),
+  * where a is the acceleration that receives some correction. */
+  double a_correction = relat_corr_kick(e, sp->v);
+  double dt_correction = 1./sqrt(a_correction);
+  new_dt_ext *= dt_correction;
+  new_dt_self *= dt_correction;
+#endif
+
   /* Take the minimum of all */
   float new_dt = min3(new_dt_stars, new_dt_self, new_dt_ext);
 
@@ -269,6 +300,15 @@ __attribute__((always_inline)) INLINE static integertime_t get_bpart_timestep(
     new_dt_self = gravity_compute_timestep_self(
         bp->gpart, a_hydro, e->gravity_properties, e->cosmology);
 
+#ifdef WITH_RELATIVISTIC_KICK
+  /* Perform a relativistic correction. The timesteps depend on 1/sqrt(a),
+  * where a is the acceleration that receives some correction. */
+  double a_correction = relat_corr_kick(e, bp->v);
+  double dt_correction = 1./sqrt(a_correction);
+  new_dt_ext *= dt_correction;
+  new_dt_self *= dt_correction;
+#endif
+        
   /* Take the minimum of all */
   float new_dt = min3(new_dt_black_holes, new_dt_self, new_dt_ext);
 
