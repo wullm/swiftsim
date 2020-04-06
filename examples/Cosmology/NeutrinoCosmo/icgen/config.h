@@ -40,6 +40,13 @@
 #define PECULIAR_VELOCITY 1
 #define OUTPUT_VELOCITY_FORMAT PECULIAR_VELOCITY
 
+// Whether to output the velocity with a relativistic correction. If yes,
+// (dx/dt) is replaced with (dx/ds), i.e. the spatial part of the 4-velocity.
+// This differs from the normal output by a factor gamma = 1/sqrt(1-v^2), with
+// v=a*(dx/dt) the peculiar velocity in units of c.
+// Depending on OUTPUT_VELOCITY_FORMAT, you either get a^2*(dx/ds) or a*(dx/ds)
+#define OUTPUT_RELATIVISTIC_VELOCITY TRUE
+
 // Whether to sample the neutrino momenta from a homogenous background model
 // or from a linearly perturbed temperature field
 #define NU_TEMPERATURE_HOMOGENEOUS 0
@@ -50,7 +57,7 @@
 #define H_0 67.556  // km/s/Mpc
 
 // If particles are generated from a grid, the grid should be size NP^3
-#define NP 48
+#define NP 32
 #define PARTICLE_NUM NP* NP* NP
 
 // If neutrino particles are generated from a grid, the grid should be size

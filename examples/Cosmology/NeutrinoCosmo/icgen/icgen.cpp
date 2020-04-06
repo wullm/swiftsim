@@ -1574,6 +1574,41 @@ int main() {
 
     std::cout << "Converted masses from kg to U_M = " << swift_unitmass << " g." << std::endl;
 
+    //Relativistic correction to velocities. Convert (dx/dt) to (dx/ds),
+    //i.e. the spatial part of the 4-velocity, with (dx/ds)=(dx/dt)*(dt/ds),
+    //and (dt/ds) = 1/sqrt(1-a^2 * (dx/dt)^2) = gamma, the Lorentz factor.
+    //Note: at this point in the code, all velocities are generalized velocities,
+    // V = a^2 * (dx/dt)^2.
+    if (OUTPUT_RELATIVISTIC_VELOCITY == TRUE) {
+        double a = 1.0/(1.0 + z_start);
+        for (int i=0; i<particle_num; i++) {
+            corpuscle b = bodies[i];
+            double V_general = sqrt(b.v_X*b.v_X + b.v_Y*b.v_Y + b.v_Z*b.v_Z);
+            double V_peculiar = V_general / a;
+            double beta = V_peculiar / c_vel;
+            double gamma = 1./sqrt(1. - beta*beta);
+
+            bodies[i].v_X *= gamma;
+            bodies[i].v_Y *= gamma;
+            bodies[i].v_Z *= gamma;
+        }
+
+        for (int i=0; i<neutrino_num; i++) {
+            corpuscle b = bodies_nu[i];
+            double V_general = sqrt(b.v_X*b.v_X + b.v_Y*b.v_Y + b.v_Z*b.v_Z);
+            double V_peculiar = V_general / a;
+            double beta = V_peculiar / c_vel;
+            double gamma = 1./sqrt(1. - beta*beta);
+
+            bodies_nu[i].v_X *= gamma;
+            bodies_nu[i].v_Y *= gamma;
+            bodies_nu[i].v_Z *= gamma;
+        }
+
+        std::cout << "Converted physical velocities ~(dx/dt) to relativistic velocities ~(dx/ds)" << std::endl;
+        std::cout << " by multiplying by (ds/dt)=1/sqrt(1-a^2*(dx/dt)^2/c^2)." << std::endl;
+    }
+
     //Convert generalized velocities a^2(dx/dt) to peculiar velocities a(dx/dt)
     if (OUTPUT_VELOCITY_FORMAT == PECULIAR_VELOCITY) {
         double a = 1.0/(1.0 + z_start);
