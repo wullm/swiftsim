@@ -807,6 +807,8 @@ int main() {
 
     /* NEXT, the neutrinos */
 
+#if (NEUTRINO_NUM>0)
+
     //Next, we either load particle positions (e.g. from a glass) or
     // generate them from a grid
     bool gridgen_nu = true;
@@ -1544,6 +1546,7 @@ int main() {
     std::cout << "5) Average bulk flow speed " << avg_bulk_speed << " (internal) Mpc/Gyr." << std::endl;
     std::cout << "6) Internal speed means v = a^2 |dx/dt|, where x=r/a is comoving." << std::endl;
     std::cout << "  " << std::endl;
+#endif
 
     /* NEXT, exporting the data in HDF5 format */
 
@@ -1568,9 +1571,11 @@ int main() {
     }
 
     //Convert the neutrino masses (lengths and times are unchanged)
+#if (NEUTRINO_NUM>0)
     for (int i=0; i<neutrino_num; i++) {
         bodies_nu[i].mass /= (swift_unitmass/kg); //from kg to swift unit
     }
+#endif
 
     std::cout << "Converted masses from kg to U_M = " << swift_unitmass << " g." << std::endl;
 
@@ -1593,6 +1598,7 @@ int main() {
             bodies[i].v_Z *= gamma;
         }
 
+#if (NEUTRINO_NUM>0)
         for (int i=0; i<neutrino_num; i++) {
             corpuscle b = bodies_nu[i];
             double V_general = sqrt(b.v_X*b.v_X + b.v_Y*b.v_Y + b.v_Z*b.v_Z);
@@ -1604,6 +1610,7 @@ int main() {
             bodies_nu[i].v_Y *= gamma;
             bodies_nu[i].v_Z *= gamma;
         }
+#endif
 
         std::cout << "Converted physical velocities ~(dx/dt) to relativistic velocities ~(dx/ds)" << std::endl;
         std::cout << " by multiplying by (ds/dt)=1/sqrt(1-a^2*(dx/dt)^2/c^2)." << std::endl;
@@ -1618,11 +1625,13 @@ int main() {
             bodies[i].v_Z /= a;
         }
 
+#if (NEUTRINO_NUM>0)
         for (int i=0; i<neutrino_num; i++) {
             bodies_nu[i].v_X /= a;
             bodies_nu[i].v_Y /= a;
             bodies_nu[i].v_Z /= a;
         }
+#endif
 
         std::cout << "Converted generalized velocities a^2(dx/dt) to peculiar velocities a*(dx/dt)." << std::endl;
         std::cout << "  " << std::endl;
@@ -1631,10 +1640,14 @@ int main() {
     double swift_rho_crit = rho_crit * pow(Mpc,3) / (swift_unitmass/kg);
     std::cout << "SUMMARY" << std::endl;
     std::cout << "Inferred Omega_m = " << particle_num * bodies[0].mass / (swift_rho_crit*box_volume) << std::endl;
+#if (NEUTRINO_NUM>0)
     std::cout << "Inferred Omega_nu = " << neutrino_num * bodies_nu[0].mass / (swift_rho_crit*box_volume) << std::endl;
+#endif
     std::cout << "Total cold mass (cdm+b) " << particle_num * bodies[0].mass << std::endl;
+#if (NEUTRINO_NUM>0)
     std::cout << "Total neutrino mass " << neutrino_num * bodies_nu[0].mass << std::endl;
     std::cout << "Total mass " << (particle_num * bodies[0].mass + neutrino_num * bodies_nu[0].mass) << std::endl;
+#endif
     std::cout << "Volume " << box_volume << std::endl;
     std::cout << "Rho crit " << swift_rho_crit << std::endl;
 
@@ -1758,7 +1771,7 @@ int main() {
 
 
     /* Next, export the neutrinos */
-
+#if (NEUTRINO_NUM>0)
     //Choose particle group (neutrinos is particle type 6)
     H5::Group group_nu(file.createGroup("/PartType6"));
 
@@ -1807,6 +1820,7 @@ int main() {
     //Write the velocity array to disk
     H5::DataSet dataset_v_nu = group_nu.createDataSet("Velocities", H5::PredType::NATIVE_FLOAT, dataspace_nu);
     dataset_v_nu.write(velocities_nu, H5::PredType::NATIVE_FLOAT);
+#endif
 
     //Write more attributes
 
