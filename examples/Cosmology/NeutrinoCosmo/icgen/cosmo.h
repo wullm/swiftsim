@@ -39,11 +39,11 @@ const double h = H_0 / 100;
 const double Theta_2p7 = 1;  // CMB T = 2.7 K * Theta_2p7
 
 // Omega paramters
-const double Omega_b = 0.048275;
-const double Omega_m = 0.31205;
-const double Omega_nu = 0.014137;
+const double Omega_b = 0.0482386599;
+const double Omega_m = 0.30092768322;
+const double Omega_nu = 0.01397210689;
 const double Omega_c = Omega_m - Omega_b;
-const double Omega_r = 5.4184744739e-05;  // this is Omega_g
+const double Omega_r = 5.370988e-05;  // this is Omega_g
 const double Omega_total = 1.0;
 const double Omega_L = Omega_total - Omega_m - Omega_r - Omega_nu;
 

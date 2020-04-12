@@ -4,15 +4,15 @@
 // User defined parameters
 #define OUTPUT_DIR "output/"
 #define GRID_WIDTH 48            // cells
-#define BOX_WIDTH 378.944875363  // Mpc
+#define BOX_WIDTH 256  // Mpc
 
 // Spectral index and power spectrum normalization
-#define N_S 0.9619
-#define A_S 2.215e-9
+#define N_S 0.954
+#define A_S 2.09052e-9
 #define PIVOT_SCALE 0.05  // in 1/Mpc
 
 // Present-day fluctuation scale
-#define SIGMA_8 0.8282
+#define SIGMA_8 0.0 //not used
 
 // Whether to normalize using sigma_8 (NORM_SIGMA) or A_S (NORM_CMB)
 #define NORM_SIGMA 0
@@ -54,7 +54,7 @@
 #define NU_TEMPERATURE_MODE NU_TEMPERATURE_LINEAR
 
 // Hubble constant
-#define H_0 67.556  // km/s/Mpc
+#define H_0 67.9  // km/s/Mpc
 
 // If particles are generated from a grid, the grid should be size NP^3
 #define NP 32
@@ -62,7 +62,7 @@
 
 // If neutrino particles are generated from a grid, the grid should be size
 // NNUP^3
-#define NNUP 12
+#define NNUP 1
 #define NEUTRINO_NUM NNUP* NNUP* NNUP
 
 // Starting redshift of the simulation
