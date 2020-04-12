@@ -514,7 +514,7 @@ struct engine {
 
 #ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
     /* Weight I_df above which neutrinos affect RMS_displacement time steps */
-    double neutrino_dt_threshold;
+    double neutrino_dt_switch_threshold;
 #endif
 };
 
