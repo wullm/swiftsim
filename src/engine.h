@@ -506,6 +506,16 @@ struct engine {
   /* Maximum and minimum neutrino masses present in the simulation */
   float neutrino_mass_min, neutrino_mass_max;
 #endif
+
+#ifdef WITH_DF_DIAGNOSTICS
+    /* Mean squared weights I = 0.5<w^2> of perturbation particles */
+    double neutrino_I_df;
+#endif
+
+#ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
+    /* Weight I_df above which neutrinos affect RMS_displacement time steps */
+    double neutrino_dt_threshold;
+#endif
 };
 
 /* Function prototypes, engine.c. */

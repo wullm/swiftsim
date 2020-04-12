@@ -2447,6 +2447,9 @@ void engine_step(struct engine *e) {
     I_df = 0.;
   }
 
+  /* Store the result */
+  e->neutrino_I_df = I_df;
+
   if (f0f0_sum == 0 && ff_sum == 0) {
     /* No data => perfect correlation */
     beta = 1.0;
@@ -3883,6 +3886,14 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->total_nr_tasks = 0;
   e->rend = rend;
 
+#ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
+  e->neutrino_dt_switch_threshold = parser_get_opt_param_double(params,
+                                    "TimeIntegration:neutrino_dt_switch_threshold",
+                                    0.001);
+  message("The neutrino dt switch threshold is I > %e.",
+          e->neutrino_dt_switch_threshold);
+#endif
+
 #if defined(WITH_LOGGER)
   if (e->policy & engine_policy_logger) {
     e->logger = (struct logger_writer *)malloc(sizeof(struct logger_writer));
@@ -5210,6 +5221,20 @@ void engine_recompute_displacement_constraint(struct engine *e) {
 
     /* Time-step based on maximum displacement */
     dt_nu = a * a * min(r_s, d_nu) / sqrtf(rms_vel_nu);
+
+#ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
+#ifndef WITH_DF_DIAGNOSTICS
+    error("Running with neutrino dt-switch but without df-diagnostics.");
+#else
+
+  /* Disable the neutrino displacement limited timestep if weights are low */
+  if (e->neutrino_I_df < e->neutrino_dt_switch_threshold) {
+      dt_nu = FLT_MAX;
+  }
+
+#endif
+#endif
+
   }
 
   /* Use the minimum */

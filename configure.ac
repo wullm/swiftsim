@@ -2291,6 +2291,30 @@ case "$with_df_diagnost" in
 esac
 
 
+#  Time stepping scheme for neutrinos
+AC_ARG_WITH([neutrino-dt-scheme],
+    [AS_HELP_STRING([--with-neutrino-dt-scheme=<mode>],
+       [special neutrino time stepping scheme @<:@none, switch,
+        default: none@:>@]
+    )],
+    [with_neutrino_dt_scheme="$withval"],
+    [with_neutrino_dt_scheme="none"]
+)
+
+case "$with_neutrino_dt_scheme" in
+   none)
+
+   ;;
+   switch)
+      AC_DEFINE([WITH_NEUTRINO_TIMESTEP_SWITCH], [1],
+                [Switch on small time steps when needed])
+   ;;
+   *)
+      AC_MSG_ERROR([Unknown option for neutrino timestep schemen])
+   ;;
+esac
+
+
 # Check for git, needed for revision stamps.
 AC_PATH_PROG([GIT_CMD], [git])
 AC_SUBST([GIT_CMD])
@@ -2398,6 +2422,7 @@ AC_MSG_RESULT([
    Relativistic kick    : $with_relativistic_eom
    Relativistic drift   : $with_relativistic_eom
    Delta-f diagnostics  : $with_df_diagnost
+   Neutrino dt scheme   : $with_neutrino_dt_scheme
 
    Individual timers           : $enable_timers
    Task debugging              : $enable_task_debugging
