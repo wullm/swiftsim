@@ -104,6 +104,9 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
 void rend_write_perturb(struct renderer *rend, const struct engine *e,
                         char *fname);
 
+void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
+                           const struct engine *e, int myrank);                        
+
 /* Additional functions related to CLASS */
 #ifdef WITH_CLASS_INTERFACE
 #include "class_interface.h"
