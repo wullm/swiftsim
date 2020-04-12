@@ -2310,7 +2310,7 @@ case "$with_neutrino_dt_scheme" in
                 [Switch on small time steps when needed])
    ;;
    *)
-      AC_MSG_ERROR([Unknown option for neutrino timestep schemen])
+      AC_MSG_ERROR([Unknown option for neutrino timestep scheme])
    ;;
 esac
 
