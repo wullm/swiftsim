@@ -15,7 +15,7 @@
 
 void read_transfer(std::vector<double>& ks, std::vector<double>& T_rho_cdm, std::vector<double>& T_rho_nu, std::vector<double>& T_rho_b, std::vector<double>& T_rho_cb, double weight_cdm, double weight_b,
   std::vector<double>& T_theta_cdm, std::vector<double>& T_theta_nu, std::vector<double>& T_theta_b, std::vector<double>& T_theta_cb) {
-    std::ifstream f("transfer/600mev_z40.dat");
+    std::ifstream f("transfer/210mev_z40.dat");
 
     //Ignore lines starting with # until we find a line that doesn't
     std::string dummyLine;
