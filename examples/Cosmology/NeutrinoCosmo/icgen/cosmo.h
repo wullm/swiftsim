@@ -40,8 +40,8 @@ const double Theta_2p7 = 1;  // CMB T = 2.7 K * Theta_2p7
 
 // Omega paramters
 const double Omega_b = 0.0482386599;
-const double Omega_m = 0.30997156435;
-const double Omega_nu = 0.00489039755;
+const double Omega_m = 0.31346452918;
+const double Omega_nu = 0.0013978431;
 const double Omega_c = Omega_m - Omega_b;
 const double Omega_r = 5.373809e-05;  // this is Omega_g
 const double Omega_total = 1.0;
@@ -59,7 +59,7 @@ const double eV_mass = 1.782662e-36;  // kg (this is eV/c^2)
 // Boltzmann's constant in units of eV/K
 const double k_b = 8.617333262145e-5;
 // The mass of the neutrino
-const double M_nu = 0.07;               // eV_mass (per species)
+const double M_nu = 0.02;               // eV_mass (per species)
 const double M_nu_kg = M_nu * eV_mass;  // kg
 
 // Warm Dark Matter power spectrum, via  Bode, Turok and Ostriker (2001)
