@@ -967,6 +967,48 @@ double cosmology_get_scale_factor_from_time(const struct cosmology *c,
 }
 
 /**
+ * @brief Compute scale factor from time since big bang (in internal units).
+ *
+ * This function is inefficient as it needs to search the cosmology table
+ * and then interpolate. A relative accuracy of <10^-6 is achieved for all
+ * reasonable cosmologies.
+ *
+ * @param c The current #cosmology.
+ * @param t time since the big bang
+ * @return The scale factor.
+ */
+double cosmology_get_scale_factor_from_conformal_time(const struct cosmology *c,
+                                            const double t) {
+
+  /* Use a bisection search on the whole table to find the
+     interval where the time lies */
+  int i_min = 0;
+  int i_max = cosmology_table_length - 1;
+  int i = -1;
+  while (i_max - i_min > 1) {
+
+    i = (i_max + i_min) / 2;
+    if (c->conformal_time_interp_table[i] > t) {
+      i_max = i;
+    } else {
+      i_min = i;
+    }
+  }
+
+  /* Now that we have bounds, interpolate linearly
+     in the log-a table */
+  const double delta = (t - c->conformal_time_interp_table[i]) /
+                       (c->conformal_time_interp_table[i + 1] - c->conformal_time_interp_table[i]);
+
+  const double log_a =
+      c->log_a_interp_table[i] +
+      delta * (c->log_a_interp_table[i + 1] - c->log_a_interp_table[i]);
+
+  /* Undo the log */
+  return exp(log_a);
+}
+
+/**
  * @brief Prints the #cosmology model to stdout.
  */
 void cosmology_print(const struct cosmology *c) {
