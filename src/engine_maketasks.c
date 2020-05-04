@@ -105,6 +105,11 @@ void engine_addtasks_send_gravity(struct engine *e, struct cell *ci,
       /* Drift before you send */
       scheduler_addunlock(s, ci->grav.super->grav.drift, t_grav);
 
+#ifdef NEUTRINO_DELTA_F
+      /* Weight before you send */
+      scheduler_addunlock(s, ci->grav.super->grav.weight, t_grav);
+#endif
+
       scheduler_addunlock(s, ci->super->timestep, t_ti);
     }
 
