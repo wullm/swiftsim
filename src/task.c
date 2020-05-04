@@ -116,7 +116,7 @@ const char *subtaskID_names[task_subtype_count] = {
 const char *task_category_names[task_category_count] = {
     "drift",       "sort",    "hydro",          "gravity", "feedback",
     "black holes", "cooling", "star formation", "limiter", "time integration",
-    "mpi",         "fof",     "others"};
+    "mpi",         "fof",     "others",         "weight"};
 
 #ifdef WITH_MPI
 /* MPI communicators for the subtypes. */
@@ -845,7 +845,7 @@ void task_print(const struct task *t) {
  *
  * @param type The #task type.
  * @param subtype The #task subtype.
- * @param cluster (return) The group name (should be allocated)
+ * @param cluster (return) The group name (should be allod)
  */
 void task_get_group_name(int type, int subtype, char *cluster) {
 
@@ -1325,6 +1325,9 @@ enum task_categories task_get_category(const struct task *t) {
     case task_type_drift_bpart:
     case task_type_drift_gpart:
       return task_category_drift;
+
+    case task_type_weight:
+      return task_category_weight;  
 
     case task_type_sort:
     case task_type_stars_sort:

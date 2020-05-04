@@ -2509,7 +2509,7 @@ void engine_step(struct engine *e) {
         e->min_active_bin, e->max_active_bin, e->updates, e->g_updates,
         e->s_updates, e->b_updates, e->wallclock_time, e->step_props);
 #ifdef WITH_DF_DIAGNOSTICS
-    printf(" %12.6f %12.6f", beta, I_df); /* two extra columns */
+    printf(" %12.6f  %12.6e", beta, I_df); /* two extra columns */
 #endif
     printf("\n");
 
@@ -2539,6 +2539,10 @@ void engine_step(struct engine *e) {
           e->step, e->time, e->cosmology->a, e->cosmology->z, e->time_step,
           e->min_active_bin, e->max_active_bin, e->updates, e->g_updates,
           e->s_updates, e->b_updates, e->wallclock_time, e->step_props);
+#ifdef WITH_DF_DIAGNOSTICS
+    fprintf(e->file_timesteps, " %12.6f  %12.6e", beta, I_df);
+#endif
+    fprintf(e->file_timesteps, "\n");
 #ifdef SWIFT_DEBUG_CHECKS
     fflush(e->file_timesteps);
 #endif
@@ -4401,10 +4405,14 @@ void engine_config(int restart, int fof, struct engine *e,
 
       fprintf(
           e->file_timesteps,
-          "# %6s %14s %12s %12s %14s %9s %12s %12s %12s %12s %16s [%s] %6s\n",
+          "# %6s %14s %12s %12s %14s %9s %12s %12s %12s %12s %16s [%s] %6s",
           "Step", "Time", "Scale-factor", "Redshift", "Time-step", "Time-bins",
           "Updates", "g-Updates", "s-Updates", "b-Updates", "Wall-clock time",
           clocks_getunit(), "Props");
+#ifdef WITH_DF_DIAGNOSTICS
+      fprintf(e->file_timesteps, " %12s %12s", "df: beta", "df: I");
+#endif
+      fprintf(e->file_timesteps, "\n");
       fflush(e->file_timesteps);
     }
 
