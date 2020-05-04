@@ -1174,7 +1174,8 @@ void engine_make_hierarchical_tasks_hydro(struct engine *e, struct cell *c,
         c->hydro.cooling = scheduler_addtask(s, task_type_cooling,
                                              task_subtype_none, 0, 0, c, NULL);
 
-        task_order_addunlock_cooling(s, c);
+        scheduler_addunlock(s, c->hydro.end_force, c->hydro.cooling);
+        scheduler_addunlock(s, c->hydro.cooling, c->super->kick2);
 
       } else {
         scheduler_addunlock(s, c->hydro.end_force, c->super->kick2);
@@ -1244,6 +1245,13 @@ void engine_make_hierarchical_tasks_hydro(struct engine *e, struct cell *c,
 #endif
         scheduler_addunlock(s, c->black_holes.black_holes_out,
                             c->super->timestep);
+      }
+
+      if (with_black_holes && with_feedback) {
+
+        /* Make sure we don't start swallowing gas particles before the stars
+           have converged on their smoothing lengths. */
+        scheduler_addunlock(s, c->stars.ghost, c->black_holes.swallow_ghost[0]);
       }
     }
   } else { /* We are above the super-cell so need to go deeper */
@@ -1494,22 +1502,21 @@ void engine_count_and_link_tasks_mapper(void *map_data, int num_elements,
     /* Link sort tasks to all the higher sort task. */
     if (t_type == task_type_sort) {
       for (struct cell *finger = t->ci->parent; finger != NULL;
-           finger = finger->parent)
+           finger = finger->parent) {
         if (finger->hydro.sorts != NULL)
           scheduler_addunlock(sched, t, finger->hydro.sorts);
-    }
+      }
 
-    /* Link stars sort tasks to all the higher sort task. */
-    if (t_type == task_type_stars_sort) {
+      /* Link stars sort tasks to all the higher sort task. */
+    } else if (t_type == task_type_stars_sort) {
       for (struct cell *finger = t->ci->parent; finger != NULL;
            finger = finger->parent) {
         if (finger->stars.sorts != NULL)
           scheduler_addunlock(sched, t, finger->stars.sorts);
       }
-    }
 
-    /* Link self tasks to cells. */
-    else if (t_type == task_type_self) {
+      /* Link self tasks to cells. */
+    } else if (t_type == task_type_self) {
       atomic_inc(&ci->nr_tasks);
 
       if (t_subtype == task_subtype_density) {

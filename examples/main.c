@@ -175,7 +175,9 @@ int main(int argc, char *argv[]) {
   int with_mpole_reconstruction = 0;
   int with_structure_finding = 0;
   int with_logger = 0;
+  int with_qla = 0;
   int with_eagle = 0;
+  int with_gear = 0;
   int verbose = 0;
   int nr_threads = 1;
   int with_verbose_timers = 0;
@@ -237,11 +239,22 @@ int main(int argc, char *argv[]) {
                   NULL, 0, 0),
 
       OPT_GROUP("  Simulation meta-options:\n"),
+      OPT_BOOLEAN(0, "quick-lyman-alpha", &with_qla,
+                  "Run with all the options needed for the quick Lyman-alpha "
+                  "model. This is equivalent to --hydro --self-gravity --stars "
+                  "--star-formation --cooling.",
+                  NULL, 0, 0),
       OPT_BOOLEAN(
           0, "eagle", &with_eagle,
           "Run with all the options needed for the EAGLE model. This is "
           "equivalent to --hydro --limiter --sync --self-gravity --stars "
           "--star-formation --cooling --feedback --black-holes --fof.",
+          NULL, 0, 0),
+      OPT_BOOLEAN(
+          0, "gear", &with_gear,
+          "Run with all the options needed for the GEAR model. This is "
+          "equivalent to --hydro --limiter --sync --self-gravity --stars "
+          "--star-formation --cooling --feedback.",
           NULL, 0, 0),
 
       OPT_GROUP("  Control options:\n"),
@@ -302,6 +315,13 @@ int main(int argc, char *argv[]) {
   int nargs = argparse_parse(&argparse, argc, (const char **)argv);
 
   /* Deal with meta options */
+  if (with_qla) {
+    with_hydro = 1;
+    with_self_gravity = 1;
+    with_stars = 1;
+    with_star_formation = 1;
+    with_cooling = 1;
+  }
   if (with_eagle) {
     with_hydro = 1;
     with_timestep_limiter = 1;
@@ -313,6 +333,16 @@ int main(int argc, char *argv[]) {
     with_feedback = 1;
     with_black_holes = 1;
     with_fof = 1;
+  }
+  if (with_gear) {
+    with_hydro = 1;
+    with_timestep_limiter = 1;
+    with_timestep_sync = 1;
+    with_self_gravity = 1;
+    with_stars = 1;
+    with_star_formation = 1;
+    with_cooling = 1;
+    with_feedback = 1;
   }
 
   /* Write output parameter file */
@@ -755,6 +785,9 @@ int main(int argc, char *argv[]) {
 
     /* Just one restart file. */
     strcpy(restart_file, restart_files[0]);
+
+    /* Finished with the list. */
+    restart_locate_free(1, restart_files);
 #endif
 
     /* Now read it. */
@@ -1047,7 +1080,7 @@ int main(int argc, char *argv[]) {
     space_init(&s, params, &cosmo, dim, parts, gparts, sparts, bparts, Ngas,
                Ngpart, Nspart, Nbpart, periodic, replicate, generate_gas_in_ics,
                with_hydro, with_self_gravity, with_star_formation,
-               with_DM_background_particles, talking, dry_run);
+               with_DM_background_particles, talking, dry_run, nr_nodes);
 
     if (myrank == 0) {
       clocks_gettime(&toc);
@@ -1200,6 +1233,11 @@ int main(int argc, char *argv[]) {
     rend_init_perturb_vec(e.rend, e.parameter_file, &e, myrank);
 #endif
 
+    /* Compute some stats for the star formation */
+    if (with_star_formation) {
+      star_formation_first_init_stats(&starform, &e);
+    }
+
     /* Get some info to the user. */
     if (myrank == 0) {
       const long long N_DM = N_total[swift_type_dark_matter] +
@@ -1229,7 +1267,7 @@ int main(int argc, char *argv[]) {
 #endif
     if (myrank == 0)
       message("Time integration ready to start. End of dry-run.");
-    engine_clean(&e, /*fof=*/0);
+    engine_clean(&e, /*fof=*/0, /*restart=*/0);
     free(params);
     return 0;
   }
@@ -1525,7 +1563,7 @@ int main(int argc, char *argv[]) {
   if (with_self_gravity) pm_mesh_clean(e.mesh);
   if (with_cooling || with_temperature) cooling_clean(e.cooling_func);
   if (with_feedback) feedback_clean(e.feedback_props);
-  engine_clean(&e, /*fof=*/0);
+  engine_clean(&e, /*fof=*/0, restart);
   free(params);
 
 #ifdef WITH_MPI

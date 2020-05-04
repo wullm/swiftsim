@@ -299,6 +299,7 @@ struct engine {
 
   char snapshot_base_name[PARSER_MAX_LINE_SIZE];
   char snapshot_subdir[PARSER_MAX_LINE_SIZE];
+  int snapshot_distributed;
   int snapshot_compression;
   int snapshot_int_time_label_on;
   int snapshot_invoke_stf;
@@ -496,6 +497,20 @@ struct engine {
   /* Has there been an stf this timestep? */
   char stf_this_timestep;
 
+#ifdef SWIFT_GRAVITY_FORCE_CHECKS
+  /* Run brute force checks only on steps when all gparts active? */
+  int force_checks_only_all_active;
+
+  /* Run brute force checks only during snapshot timesteps? */
+  int force_checks_only_at_snapshots;
+
+  /* Are all gparts active this timestep? */
+  int all_gparts_active;
+
+  /* Flag to tell brute force checks a snapshot was recently written. */
+  int force_checks_snapshot_flag;
+#endif
+
   /* The structure that renders linear theory solutions onto a mesh */
   struct renderer *rend;
 
@@ -582,7 +597,7 @@ void engine_print_policy(struct engine *e);
 int engine_is_done(struct engine *e);
 void engine_pin(void);
 void engine_unpin(void);
-void engine_clean(struct engine *e, const int fof);
+void engine_clean(struct engine *e, const int fof, const int restart);
 int engine_estimate_nr_tasks(const struct engine *e);
 void engine_print_task_counts(const struct engine *e);
 void engine_fof(struct engine *e, const int dump_results,
