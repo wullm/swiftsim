@@ -5335,7 +5335,8 @@ void engine_recompute_displacement_constraint(struct engine *e) {
 
 #ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
 #ifndef WITH_DF_DIAGNOSTICS
-    error("Running with neutrino dt-switch but without df-diagnostics.");
+    dt_nu = FLT_MAX;
+    // error("Running with neutrino dt-switch but without df-diagnostics.");
 #else
 
   /* Disable the neutrino displacement limited timestep if weights are low */
