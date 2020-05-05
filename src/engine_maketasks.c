@@ -1702,6 +1702,9 @@ void engine_link_gravity_tasks(struct engine *e) {
       /* drift -----> gravity --> end_gravity_force */
       scheduler_addunlock(sched, ci->grav.super->grav.drift, t);
       scheduler_addunlock(sched, t, ci->grav.super->grav.end_force);
+#ifdef NEUTRINO_DELTA_F
+      scheduler_addunlock(sched, ci->grav.super->grav.weight, t);
+#endif
     }
 
     /* Otherwise, pair interaction? */
@@ -1751,6 +1754,9 @@ void engine_link_gravity_tasks(struct engine *e) {
       /* drift -----> gravity --> end_force */
       scheduler_addunlock(sched, ci->grav.super->grav.drift, t);
       scheduler_addunlock(sched, t, ci->grav.super->grav.end_force);
+#ifdef NEUTRINO_DELTA_F
+      scheduler_addunlock(sched, ci->grav.super->grav.weight, t);
+#endif
     }
 
     /* Otherwise, sub-pair interaction? */
