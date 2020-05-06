@@ -257,6 +257,11 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             /* Use the weighted energy instead of the mass */
             gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
 
+            /* Avoid poles */
+            if (gp->mass == 0) {
+                gp->mass = FLT_MIN;
+            }
+
             // if (gp->id_or_neg_offset >= 114688-4096 &&
             //     gp->id_or_neg_offset < 114688-4096 + 5) {
             //         message("%f %f %f %f", linear_overdensity, temperature_factor, f, energy);
