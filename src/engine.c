@@ -3981,8 +3981,11 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->neutrino_dt_switch_threshold = parser_get_opt_param_double(params,
                                     "TimeIntegration:neutrino_dt_switch_threshold",
                                     0.001);
-  message("The neutrino dt switch threshold is I > %e.",
-          e->neutrino_dt_switch_threshold);
+
+  if (e->nodeID == 0) {
+    message("The neutrino dt switch threshold is I > %e.",
+            e->neutrino_dt_switch_threshold);
+  }
 #endif
 
 #if defined(WITH_LOGGER)
