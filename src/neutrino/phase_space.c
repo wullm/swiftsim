@@ -32,6 +32,14 @@
 /* Some standard headers */
 #include <math.h>
 
+
+/* Calculation of sqrt(x^2 + y^2 + z^2), without undue overflow or underflow. */
+__attribute__((always_inline, const)) INLINE static double hypot3(
+    double x, double y, double z) {
+
+  return hypot(x, hypot(y, z));
+}
+
 double fermi_dirac_density(const struct engine *e, float *v, double m_eV,
                            double T_factor) {
   const struct phys_const *physical_constants = e->physical_constants;
@@ -69,7 +77,7 @@ double fermi_dirac_momentum(const struct engine *e, float *v, double m_eV) {
   const double a = cosmo->a;
 
   // The internal velocity V = a^2*(dx/dt), where x=r/a is comoving
-  double V = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  double V = hypot3(v[0], v[1], v[2]);
 
   // Calculate the length of the physical 3-velocity u=a*|dx/dt|
   double u = V / a;
