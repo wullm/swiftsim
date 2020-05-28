@@ -147,11 +147,17 @@ struct cosmology {
   /*! Photon density parameter */
   double Omega_g;
 
+  /*! Ultra-relativistic fluid density parameter */
+  double Omega_ur;
+
   /*! Curvature density parameter */
   double Omega_k;
 
-  /*! Number of neutrino species */
+  /*! Number of (massive or massless) neutrino species */
   size_t N_nu;
+
+  /*! Number of ultra-relativistic non-neutrino species */
+  double N_ur;
 
   /*! Neutrino masses in eV */
   double *M_nu;

@@ -227,9 +227,9 @@ void cosmology_update(struct cosmology *c, const struct phys_const *phys_const,
   c->w = cosmology_dark_energy_EoS(a, c->w_0, c->w_a);
 
   /* E(z) */
-  const double Omega_g = c->Omega_g;
+  const double Omega_g_ur = c->Omega_g + c->Omega_ur;
   const double Omega_nu = cosmology_get_neutrino_density_param(c, a);
-  const double Omega_r = (Omega_g != 0) ? Omega_g + Omega_nu : c->Omega_r;
+  const double Omega_r = (Omega_g_ur != 0) ? Omega_g_ur + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
   const double Omega_l = c->Omega_lambda;
@@ -271,9 +271,9 @@ void cosmology_update(struct cosmology *c, const struct phys_const *phys_const,
 double drift_integrand(double a, void *param) {
 
   const struct cosmology *c = (const struct cosmology *)param;
-  const double Omega_g = c->Omega_g;
+  const double Omega_g_ur = c->Omega_g + c->Omega_ur;
   const double Omega_nu = cosmology_get_neutrino_density_param(c, a);
-  const double Omega_r = (Omega_g != 0) ? Omega_g + Omega_nu : c->Omega_r;
+  const double Omega_r = (Omega_g_ur != 0) ? Omega_g_ur + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
   const double Omega_l = c->Omega_lambda;
@@ -297,9 +297,9 @@ double drift_integrand(double a, void *param) {
 double gravity_kick_integrand(double a, void *param) {
 
   const struct cosmology *c = (const struct cosmology *)param;
-  const double Omega_g = c->Omega_g;
+  const double Omega_g_ur = c->Omega_g + c->Omega_ur;
   const double Omega_nu = cosmology_get_neutrino_density_param(c, a);
-  const double Omega_r = (Omega_g != 0) ? Omega_g + Omega_nu : c->Omega_r;
+  const double Omega_r = (Omega_g_ur != 0) ? Omega_g_ur + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
   const double Omega_l = c->Omega_lambda;
@@ -323,9 +323,9 @@ double gravity_kick_integrand(double a, void *param) {
 double hydro_kick_integrand(double a, void *param) {
 
   const struct cosmology *c = (const struct cosmology *)param;
-  const double Omega_g = c->Omega_g;
+  const double Omega_g_ur = c->Omega_g + c->Omega_ur;
   const double Omega_nu = cosmology_get_neutrino_density_param(c, a);
-  const double Omega_r = (Omega_g != 0) ? Omega_g + Omega_nu : c->Omega_r;
+  const double Omega_r = (Omega_g_ur != 0) ? Omega_g_ur + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
   const double Omega_l = c->Omega_lambda;
@@ -351,9 +351,9 @@ double hydro_kick_integrand(double a, void *param) {
 double hydro_kick_corr_integrand(double a, void *param) {
 
   const struct cosmology *c = (const struct cosmology *)param;
-  const double Omega_g = c->Omega_g;
+  const double Omega_g_ur = c->Omega_g + c->Omega_ur;
   const double Omega_nu = cosmology_get_neutrino_density_param(c, a);
-  const double Omega_r = (Omega_g != 0) ? Omega_g + Omega_nu : c->Omega_r;
+  const double Omega_r = (Omega_g_ur != 0) ? Omega_g_ur + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
   const double Omega_l = c->Omega_lambda;
@@ -376,9 +376,9 @@ double hydro_kick_corr_integrand(double a, void *param) {
 double time_integrand(double a, void *param) {
 
   const struct cosmology *c = (const struct cosmology *)param;
-  const double Omega_g = c->Omega_g;
+  const double Omega_g_ur = c->Omega_g + c->Omega_ur;
   const double Omega_nu = cosmology_get_neutrino_density_param(c, a);
-  const double Omega_r = (Omega_g != 0) ? Omega_g + Omega_nu : c->Omega_r;
+  const double Omega_r = (Omega_g_ur != 0) ? Omega_g_ur + Omega_nu : c->Omega_r;
   const double Omega_m = c->Omega_m;
   const double Omega_k = c->Omega_k;
   const double Omega_l = c->Omega_lambda;
@@ -485,6 +485,7 @@ void cosmology_init_neutrino_tables(struct cosmology *c,
 
   /* Iteratively find a time when the neutrinos are still relativistic */
   double a_start = c->a_begin;
+  double N_eff_from_nu = c->N_eff - c->N_ur;
   double N_eff, N_eff_prev = 0, err = 1;
   int iters = 0, max_iter = 1000;
   while (err > 1e-7 && iters < max_iter) {
@@ -492,7 +493,7 @@ void cosmology_init_neutrino_tables(struct cosmology *c,
     for (size_t j = 0; j < N_nu; j++) {
       /* Massless neutrino case */
       if (M_nu[j] == 0) {
-        N_eff += c->N_eff / c->N_nu;
+        N_eff += N_eff_from_nu / c->N_nu;
       } else {
         /* Integrate the FD distribtuion */
         double y = a_start * M_nu[j] * eV / (kb * c->T_nu);
@@ -506,7 +507,7 @@ void cosmology_init_neutrino_tables(struct cosmology *c,
     iters++;
   }
 
-  double abs_err = fabs(N_eff - c->N_eff) / c->N_eff;
+  double abs_err = fabs(N_eff - N_eff_from_nu) / N_eff_from_nu;
 
   if (iters == max_iter) {
     error("Could not find time when neutrinos were relativistic (max iter).");
@@ -727,6 +728,10 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   c->N_nu = parser_get_opt_param_int(params, "Cosmology:N_nu", 0.);
   c->T_nu = parser_get_opt_param_double(params, "Cosmology:T_nu", 0.);
 
+  /* Read in ultra-relativistic fluid quantities */
+  c->Omega_ur = parser_get_opt_param_double(params, "Cosmology:Omega_ur", 0.);
+  c->N_ur = parser_get_opt_param_double(params, "Cosmology:N_ur", 0.);
+
   /* If there are neutrinos, load the optional mass array */
   if (c->N_nu > 0) {
     c->M_nu = calloc(c->N_nu, sizeof(double));
@@ -780,7 +785,7 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* Curvature density (for closure) */
   if (c->Omega_g != 0) {
-    c->Omega_k = 1. - (c->Omega_m + c->Omega_nu + c->Omega_g + c->Omega_lambda);
+    c->Omega_k = 1. - (c->Omega_m + c->Omega_nu + c->Omega_g + c->Omega_ur + c->Omega_lambda);
   } else {
     c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
   }
@@ -875,6 +880,34 @@ void cosmology_neutrino_init(struct swift_params *params,
       error("Specify T_nu or N_eff to include neutrinos.");
     }
   }
+
+  /* Ensure that we have don't have ultra-relativistic fluids without photons */
+  if ((c->N_ur != 0 || c->Omega_ur != 0) && c->Omega_g == 0) {
+    error("Specify Omega_g or T_CMB to include relativistic species.");
+  }
+
+  /* Ensure that we have don't have fixed values for N_ur & N_eff */
+  if ((c->N_ur != 0 || c->Omega_ur != 0) && c->N_eff != 0) {
+    error("N_ur and N_eff should not both be specified.");
+  }
+
+  /* Ensure that we have don't have fixed values for N_ur & Omega_ur */
+  if (c->N_ur != 0 && c->Omega_ur != 0) {
+    error("N_ur and Omega_ur should not both be specified.");
+  }
+
+  /* Infer ultra-relativistic density from N_ur */
+  if (c->N_ur != 0 && c->Omega_ur == 0) {
+    c->Omega_ur = c->N_ur * 7. / 8. * pow(4. / 11., 4. / 3.) * c->Omega_g;
+  }
+
+  /* Infer number of ultra-relativistic species from Omega_ur */
+  if (c->N_ur == 0 && c->Omega_ur != 0) {
+    c->N_ur = c->Omega_ur / 7. * 8. / pow(4. / 11., 4. / 3.) / c->Omega_g;
+  }
+
+  /* Add N_ur to N_eff */
+  c->N_eff += c->N_ur;
 }
 
 /**
@@ -1346,13 +1379,15 @@ double cosmology_get_neutrino_density_param(const struct cosmology *c,
 void cosmology_print(const struct cosmology *c) {
 
   message(
-      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r, O_g] = [%f, %f, %f, "
+      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r, O_g, O_ur] = [%f, %f, %f, "
       "%f, "
-      "%f, %f %f]",
+      "%f, %f %f %f]",
       c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k,
-      c->Omega_r, c->Omega_g);
+      c->Omega_r, c->Omega_g, c->Omega_ur);
   message("CMB and neutrino temperatures %f %f Omega_g: %.10e", c->T_CMB,
           c->T_nu, c->Omega_g);
+  message("Relatistic species: [N_nu, N_eff_from_nu, N_ur, N_eff] = [%zu, %f, %f, %f]", c->N_nu,
+          (c->N_eff - c->N_ur), c->N_ur, c->N_eff);
   message("Dark energy equation of state: w_0=%f w_a=%f", c->w_0, c->w_a);
   message("Hubble constant: h = %f, H_0 = %e U_t^(-1)", c->h, c->H0);
   message("Hubble time: 1/H0 = %e U_t", c->Hubble_time);
@@ -1405,6 +1440,8 @@ void cosmology_write_model(hid_t h_grp, const struct cosmology *c) {
   if (c->N_nu > 0) {
     io_write_attribute(h_grp, "M_nu", DOUBLE, c->M_nu, c->N_nu);
   }
+  io_write_attribute_d(h_grp, "Omega_ur", c->Omega_ur);
+  io_write_attribute_d(h_grp, "N_ur", c->N_ur);
 
   io_write_attribute_d(h_grp, "w_0", c->w_0);
   io_write_attribute_d(h_grp, "w_a", c->w_a);
