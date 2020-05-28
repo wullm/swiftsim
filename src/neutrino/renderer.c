@@ -279,6 +279,12 @@ void rend_clean(struct renderer *rend) {
   free(rend->transfer.k);
   free(rend->transfer.log_tau);
 
+  /* Free function title strings */
+  for (size_t i=0; i<rend->transfer.n_functions; i++) {
+    free(rend->transfer.titles[i]);
+  }
+  free(rend->transfer.titles);
+
   /* Free density & perturbation theory grids */
   free(rend->the_grids);
 
@@ -298,17 +304,14 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   /* Current conformal time */
   const struct cosmology *cosmo = e->cosmology;
   const double tau = cosmo->conformal_time;
+  const double H_conformal = cosmo->H * cosmo->a;
+
+  message("H-conformal = %f", H_conformal);
 
   /* Prevent out of interpolation range error */
   const int tau_size = rend->transfer.tau_size;
   const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
   const double log_tau = min(log(tau), final_log_tau);
-
-  // message("The conformal time is %f >= %f", tau, exp(log_tau));
-  // /* What is the smoothing factor? */
-  // const double r_s = e->mesh->r_s;
-  // const double a_smooth2 = 4. * M_PI * M_PI * r_s * r_s / (box_len *
-  // box_len);
 
   /* Boxes in configuration and momentum space */
   double *restrict potential;
@@ -369,8 +372,19 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
           if (k > 0) {
             double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
 
+            /* The CIC Window function in Fourier space */
+            double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
+            double W_y = (k_y == 0) ? 1 : pow(sinc(0.5 * k_y * box_len / N), 2);
+            double W_z = (k_z == 0) ? 1 : pow(sinc(0.5 * k_z * box_len / N), 2);
+            double W = W_x * W_y * W_z;
+
+            Tr /= W * W;
+
             fp[half_box_idx(N, x, y, z)][0] *= Tr;
             fp[half_box_idx(N, x, y, z)][1] *= Tr;
+          } else {
+            fp[half_box_idx(N, x, y, z)][0] = 0;
+            fp[half_box_idx(N, x, y, z)][1] = 0;
           }
         }
       }
@@ -398,16 +412,61 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
    const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
    const double rho_crit0 = cosmo->critical_density_0;
    const double neutrino_density = Omega_nu * rho_crit0;
+   const double photon_density = cosmo->Omega_g * rho_crit0;
+   const double ultra_relativistic_density = cosmo->Omega_ur * rho_crit0;
 
-   /* Convert overdensity to actual density */
-   for (int i = 0; i < N * N * N; i++) {
-     potential[i] = (1.0 + rend->density_grid[i]) * neutrino_density;
-   }
+  /* The starting indices of the respective grids */
+  double *ncdm_grid = rend->density_grid + rend->index_transfer_delta_ncdm * N * N * N;
+  double *g_grid = rend->density_grid + rend->index_transfer_delta_g * N * N * N;
+  double *ur_grid = rend->density_grid + rend->index_transfer_delta_ur * N * N * N;
+  double *HT_prime_grid = rend->density_grid + rend->index_transfer_H_T_Nb_prime * N * N * N;
+  double *HT_prime_prime_grid = rend->density_grid + rend->index_transfer_H_T_Nb_pprime * N * N * N;
+  double *phi_grid = rend->density_grid + rend->index_transfer_phi * N * N * N;
+  double *psi_grid = rend->density_grid + rend->index_transfer_psi * N * N * N;
 
-   /* Export the neutrino density */
-   if (e->nodeID == 0) {
-     write_doubles_as_floats("nudens.box", potential, N * N * N);
-   }
+  /* The potential is multiplied by G_newton later, so for phi, psi & H_T_Nb,
+   * which should not be multiplied by G_newton, we need to divide now.
+   * Also, we multiply by the scale factor a to get peculiar potentials.
+   */
+  const float G_newton = e->physical_constants->const_newton_G;
+  const double potential_factor = cosmo->a / G_newton;
+
+  /* Apply this factor to phi, psi, and the H_T_Nb derivatives */
+  for (int i = 0; i < N * N * N; i++) {
+    phi_grid[i] *= potential_factor;
+    psi_grid[i] *= potential_factor;
+    HT_prime_grid[i] *= potential_factor;
+    HT_prime_prime_grid[i] *= potential_factor;
+  }
+
+  /* Compute RHS of Poisson's equation (modulo G_newton) */
+  for (int i = 0; i < N * N * N; i++) {
+    /* Neutrino contribution */
+    double rho_ncdm = (1.0 + ncdm_grid[i]) * neutrino_density;
+    /* Ultra-relativistic fluid contribution */
+    double rho_ur = (1.0 + ur_grid[i]) * ultra_relativistic_density;
+    /* Photon contribution (gamma) */
+    double rho_g = (1.0 + g_grid[i]) * photon_density;
+    /* H_T_Nb term = (H*a + d/dtau) * (d/dtau) * H_T_Nb */
+    double H_T_term = HT_prime_grid[i] * H_conformal + HT_prime_prime_grid[i];
+
+    /* We will apply the 1/k^2 kernel to the Fourier transform of this */
+    potential[i] = -4 * M_PI * (rho_ncdm + rho_g + rho_ur) + H_T_term;
+
+    /* Note: the phi & psi contribution is added later. */
+  }
+
+  /* Export the grids for troubleshooting */
+  if (e->nodeID == 0) {
+    write_doubles_as_floats("grid_ncdm.box", ncdm_grid, N * N * N);
+    write_doubles_as_floats("grid_g.box", g_grid, N * N * N);
+    write_doubles_as_floats("grid_ur.box", ur_grid, N * N * N);
+    write_doubles_as_floats("grid_HT_prime.box", HT_prime_grid, N * N * N);
+    write_doubles_as_floats("grid_HT_prime_prime.box", HT_prime_prime_grid, N * N * N);
+    write_doubles_as_floats("gr_dens.box", potential, N * N * N);
+    write_doubles_as_floats("grid_phi.box", phi_grid, N * N * N);
+    write_doubles_as_floats("grid_psi.box", psi_grid, N * N * N);
+  }
 
   /* Transform to momentum space */
   fftw_execute(pr2c);
@@ -418,7 +477,7 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
     fp[i][1] *= box_volume / (N * N * N);
   }
 
-  /* Multiply by the inverse Poisson kernel */
+  /* Multiply by the 1/k^2 kernel */
   for (int x = 0; x < N; x++) {
     for (int y = 0; y < N; y++) {
       for (int z = 0; z <= N / 2; z++) {
@@ -428,19 +487,15 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
         double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
 
-        // The CIC Window function in Fourier space
-        double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
-        double W_y = (k_y == 0) ? 1 : pow(sinc(0.5 * k_y * box_len / N), 2);
-        double W_z = (k_z == 0) ? 1 : pow(sinc(0.5 * k_z * box_len / N), 2);
-        double W = W_x * W_y * W_z;
-
-        double kernel = -4 * M_PI / k / k;
-        double correction = kernel / W / W;
+        double kernel = 1.0 / k / k;
 
         /* Ignore the DC mode */
         if (k > 0) {
-          fp[half_box_idx(N, x, y, z)][0] *= correction;
-          fp[half_box_idx(N, x, y, z)][1] *= correction;
+          fp[half_box_idx(N, x, y, z)][0] *= kernel;
+          fp[half_box_idx(N, x, y, z)][1] *= kernel;
+        } else {
+          fp[half_box_idx(N, x, y, z)][0] = 0;
+          fp[half_box_idx(N, x, y, z)][1] = 0;
         }
       }
     }
@@ -457,13 +512,22 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   /* Export the potentials */
   if (e->nodeID == 0) {
     write_doubles_as_floats("m_potential.box", e->mesh->potential, N * N * N);
-    write_doubles_as_floats("nu_potential.box", potential, N * N * N);
+    write_doubles_as_floats("gr_potential_without_stress.box", potential, N * N * N);
   }
+
+  /* Add the contribution from anisotropic stress = (phi - psi) */
+  for (int i = 0; i < N * N * N; i++) {
+    potential[i] -= phi_grid[i] - psi_grid[i];
+  }
+
+  write_doubles_as_floats("gr_potential.box", potential, N * N * N);
 
   /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
     e->mesh->potential[i] += potential[i];
   }
+
+  write_doubles_as_floats("full_potential.box", e->mesh->potential, N * N * N);
 
   fftw_free(potential);
   fftw_free(fp);
@@ -484,7 +548,7 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   struct transfer *tr = &rend->transfer;
   const struct unit_system *us = e->internal_units;
 
-  hid_t h_file, h_grp, h_data, h_err;
+  hid_t h_file, h_grp, h_data, h_err, h_attr, h_tp;
 
   /* Open file */
   h_file = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -515,6 +579,47 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   message("to:");
   message("(internal) Unit system: U_L = \t %.6e cm", us->UnitLength_in_cgs);
   message("(internal) Unit system: U_T = \t %.6e s", us->UnitTime_in_cgs);
+
+  /* Allocate memory for the transfer function titles */
+  tr->titles = (char **)swift_calloc("titles", tr->n_functions, sizeof(char*));
+
+  /* Read the titles of the transfer functions */
+  h_attr = H5Aopen(h_grp, "FunctionTitles", H5P_DEFAULT);
+  h_tp = H5Aget_type(h_attr);
+  h_err = H5Aread(h_attr, h_tp, tr->titles);
+  H5Aclose(h_attr);
+  H5Tclose(h_tp);
+
+  /* Print the titles */
+  for (size_t i=0; i<tr->n_functions; i++) {
+    message("Loaded perturbation vector '%s'.", tr->titles[i]);
+  }
+
+  /* Identify commonly used indices by their titles */
+  for (size_t i=0; i<tr->n_functions; i++) {
+    if (strcmp(tr->titles[i], "d_ncdm[0]") == 0) {
+      rend->index_transfer_delta_ncdm = i;
+      message("Identified ncdm density vector '%s'.", tr->titles[i]);
+    } else if (strcmp(tr->titles[i], "d_g") == 0) {
+      rend->index_transfer_delta_g = i;
+      message("Identified photon density vector '%s'.", tr->titles[i]);
+    } else if (strcmp(tr->titles[i], "d_ur") == 0) {
+      rend->index_transfer_delta_ur = i;
+      message("Identified ultra-relatistic fluid density vector '%s'.", tr->titles[i]);
+    } else if (strcmp(tr->titles[i], "phi") == 0) {
+      rend->index_transfer_phi = i;
+      message("Identified scalar potential phi vector '%s'.", tr->titles[i]);
+    } else if (strcmp(tr->titles[i], "psi") == 0) {
+      rend->index_transfer_psi = i;
+      message("Identified scalar potential psi vector '%s'.", tr->titles[i]);
+    } else if (strcmp(tr->titles[i], "H_T_Nb_prime") == 0) {
+      rend->index_transfer_H_T_Nb_prime = i;
+      message("Identified N-body gauge H_T_prime vector '%s'.", tr->titles[i]);
+    } else if (strcmp(tr->titles[i], "H_T_Nb_prime_prime") == 0) {
+      rend->index_transfer_H_T_Nb_pprime = i;
+      message("Identified N-body gauge H_T_prime_prime vector '%s'.", tr->titles[i]);
+    }
+  }
 
   /* Close header */
   H5Gclose(h_grp);

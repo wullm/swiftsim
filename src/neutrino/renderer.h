@@ -67,6 +67,15 @@ struct renderer {
   char *class_ini_fname;
   char *class_pre_fname;
 
+  /* Commonly used indices of transfer functions */
+  size_t index_transfer_delta_ncdm;
+  size_t index_transfer_delta_g;
+  size_t index_transfer_delta_ur;
+  size_t index_transfer_phi;
+  size_t index_transfer_psi;
+  size_t index_transfer_H_T_Nb_prime;
+  size_t index_transfer_H_T_Nb_pprime;
+
   /*! Neutrino transfer functions */
   struct transfer {
     size_t k_size;
@@ -75,6 +84,7 @@ struct renderer {
     double *delta;
     double *k;
     double *log_tau;
+    char **titles;
   } transfer;
 
   /*! Desired length of the neutrino perturbation along the k dimension */
@@ -105,7 +115,7 @@ void rend_write_perturb(struct renderer *rend, const struct engine *e,
                         char *fname);
 
 void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
-                           const struct engine *e, int myrank);                        
+                           const struct engine *e, int myrank);
 
 /* Additional functions related to CLASS */
 #ifdef WITH_CLASS_INTERFACE
