@@ -154,6 +154,7 @@ tasks = [
     "mpi",
     "fof",
     "others",
+    "weight",
     "total",
 ]
 
