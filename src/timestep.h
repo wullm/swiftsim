@@ -174,7 +174,6 @@ __attribute__((always_inline)) INLINE static integertime_t get_part_timestep(
     double accel_correction = relat_corr_kick(e, p->v);
     new_dt_grav /= sqrtf(accel_correction);
 #endif
-
   }
 
   /* Compute the next timestep (chemistry condition, e.g. diffusion) */

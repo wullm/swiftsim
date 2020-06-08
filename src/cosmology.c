@@ -978,7 +978,7 @@ double cosmology_get_scale_factor_from_time(const struct cosmology *c,
  * @return The scale factor.
  */
 double cosmology_get_scale_factor_from_conformal_time(const struct cosmology *c,
-                                            const double t) {
+                                                      const double t) {
 
   /* Use a bisection search on the whole table to find the
      interval where the time lies */
@@ -998,7 +998,8 @@ double cosmology_get_scale_factor_from_conformal_time(const struct cosmology *c,
   /* Now that we have bounds, interpolate linearly
      in the log-a table */
   const double delta = (t - c->conformal_time_interp_table[i]) /
-                       (c->conformal_time_interp_table[i + 1] - c->conformal_time_interp_table[i]);
+                       (c->conformal_time_interp_table[i + 1] -
+                        c->conformal_time_interp_table[i]);
 
   const double log_a =
       c->log_a_interp_table[i] +

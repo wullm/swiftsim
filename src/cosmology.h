@@ -67,7 +67,7 @@ double cosmology_get_scale_factor_from_time(const struct cosmology *cosmo,
 double cosmology_get_time_since_big_bang(const struct cosmology *c, double a);
 double cosmology_get_conformal_time(const struct cosmology *c, double a);
 double cosmology_get_scale_factor_from_conformal_time(const struct cosmology *c,
-                                            double t);
+                                                      double t);
 void cosmology_init(struct swift_params *params, const struct unit_system *us,
                     const struct phys_const *phys_const, struct cosmology *c);
 

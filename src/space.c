@@ -2257,9 +2257,7 @@ void space_parts_get_cell_index_mapper(void *map_data, int nr_parts,
       /* Compute minimal mass */
       min_mass = min(min_mass, hydro_get_mass(p));
 
-      double v2 = p->v[0] * p->v[0] +
-                  p->v[1] * p->v[1] +
-                  p->v[2] * p->v[2];
+      double v2 = p->v[0] * p->v[0] + p->v[1] * p->v[1] + p->v[2] * p->v[2];
 
 #ifdef WITH_RELATIVISTIC_DRIFT
       /* Perform a relativistic correction */
@@ -2619,9 +2617,8 @@ void space_sparts_get_cell_index_mapper(void *map_data, int nr_sparts,
       min_mass = min(min_mass, sp->mass);
 
       /* Compute the squared velocity */
-      double v2 = sp->v[0] * sp->v[0] +
-                  sp->v[1] * sp->v[1] +
-                  sp->v[2] * sp->v[2];
+      double v2 =
+          sp->v[0] * sp->v[0] + sp->v[1] * sp->v[1] + sp->v[2] * sp->v[2];
 
 #ifdef WITH_RELATIVISTIC_DRIFT
       /* Perform a relativistic correction */
@@ -2770,9 +2767,8 @@ void space_bparts_get_cell_index_mapper(void *map_data, int nr_bparts,
       /* Compute minimal mass */
       min_mass = min(min_mass, bp->mass);
 
-      double v2 = bp->v[0] * bp->v[0] +
-                  bp->v[1] * bp->v[1] +
-                  bp->v[2] * bp->v[2];
+      double v2 =
+          bp->v[0] * bp->v[0] + bp->v[1] * bp->v[1] + bp->v[2] * bp->v[2];
 
 #ifdef WITH_RELATIVISTIC_DRIFT
       /* Perform a relativistic correction */

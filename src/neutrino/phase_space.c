@@ -32,10 +32,10 @@
 /* Some standard headers */
 #include <math.h>
 
-
 /* Calculation of sqrt(x^2 + y^2 + z^2), without undue overflow or underflow. */
-__attribute__((always_inline, const)) INLINE static double hypot3(
-    double x, double y, double z) {
+__attribute__((always_inline, const)) INLINE static double hypot3(double x,
+                                                                  double y,
+                                                                  double z) {
 
   return hypot(x, hypot(y, z));
 }

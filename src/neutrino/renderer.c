@@ -136,7 +136,7 @@ void rend_grids_alloc(struct renderer *rend) {
 
   /* Create pointer to the density grid, which is the first field in
      the array */
-   rend->density_grid = rend->the_grids;
+  rend->density_grid = rend->the_grids;
 }
 
 void rend_load_primordial_field(struct renderer *rend, const char *fname) {
@@ -280,7 +280,7 @@ void rend_clean(struct renderer *rend) {
   free(rend->transfer.log_tau);
 
   /* Free function title strings */
-  for (size_t i=0; i<rend->transfer.n_functions; i++) {
+  for (size_t i = 0; i < rend->transfer.n_functions; i++) {
     free(rend->transfer.titles[i]);
   }
   free(rend->transfer.titles);
@@ -408,19 +408,24 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Next, compute the potential due to neutrinos (modulo a factor G_newt) */
 
-   /* Calculate the background neutrino density at the present time */
-   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
-   const double rho_crit0 = cosmo->critical_density_0;
-   const double neutrino_density = Omega_nu * rho_crit0;
-   const double photon_density = cosmo->Omega_g * rho_crit0;
-   const double ultra_relativistic_density = cosmo->Omega_ur * rho_crit0;
+  /* Calculate the background neutrino density at the present time */
+  const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
+  const double rho_crit0 = cosmo->critical_density_0;
+  const double neutrino_density = Omega_nu * rho_crit0;
+  const double photon_density = cosmo->Omega_g * rho_crit0;
+  const double ultra_relativistic_density = cosmo->Omega_ur * rho_crit0;
 
   /* The starting indices of the respective grids */
-  double *ncdm_grid = rend->density_grid + rend->index_transfer_delta_ncdm * N * N * N;
-  double *g_grid = rend->density_grid + rend->index_transfer_delta_g * N * N * N;
-  double *ur_grid = rend->density_grid + rend->index_transfer_delta_ur * N * N * N;
-  double *HT_prime_grid = rend->density_grid + rend->index_transfer_H_T_Nb_prime * N * N * N;
-  double *HT_prime_prime_grid = rend->density_grid + rend->index_transfer_H_T_Nb_pprime * N * N * N;
+  double *ncdm_grid =
+      rend->density_grid + rend->index_transfer_delta_ncdm * N * N * N;
+  double *g_grid =
+      rend->density_grid + rend->index_transfer_delta_g * N * N * N;
+  double *ur_grid =
+      rend->density_grid + rend->index_transfer_delta_ur * N * N * N;
+  double *HT_prime_grid =
+      rend->density_grid + rend->index_transfer_H_T_Nb_prime * N * N * N;
+  double *HT_prime_prime_grid =
+      rend->density_grid + rend->index_transfer_H_T_Nb_pprime * N * N * N;
   double *phi_grid = rend->density_grid + rend->index_transfer_phi * N * N * N;
   double *psi_grid = rend->density_grid + rend->index_transfer_psi * N * N * N;
 
@@ -462,7 +467,8 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
     write_doubles_as_floats("grid_g.box", g_grid, N * N * N);
     write_doubles_as_floats("grid_ur.box", ur_grid, N * N * N);
     write_doubles_as_floats("grid_HT_prime.box", HT_prime_grid, N * N * N);
-    write_doubles_as_floats("grid_HT_prime_prime.box", HT_prime_prime_grid, N * N * N);
+    write_doubles_as_floats("grid_HT_prime_prime.box", HT_prime_prime_grid,
+                            N * N * N);
     write_doubles_as_floats("gr_dens.box", potential, N * N * N);
     write_doubles_as_floats("grid_phi.box", phi_grid, N * N * N);
     write_doubles_as_floats("grid_psi.box", psi_grid, N * N * N);
@@ -512,7 +518,8 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   /* Export the potentials */
   if (e->nodeID == 0) {
     write_doubles_as_floats("m_potential.box", e->mesh->potential, N * N * N);
-    write_doubles_as_floats("gr_potential_without_stress.box", potential, N * N * N);
+    write_doubles_as_floats("gr_potential_without_stress.box", potential,
+                            N * N * N);
   }
 
   /* Add the contribution from anisotropic stress = (phi - psi) */
@@ -581,7 +588,7 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   message("(internal) Unit system: U_T = \t %.6e s", us->UnitTime_in_cgs);
 
   /* Allocate memory for the transfer function titles */
-  tr->titles = (char **)swift_calloc("titles", tr->n_functions, sizeof(char*));
+  tr->titles = (char **)swift_calloc("titles", tr->n_functions, sizeof(char *));
 
   /* Read the titles of the transfer functions */
   h_attr = H5Aopen(h_grp, "FunctionTitles", H5P_DEFAULT);
@@ -591,12 +598,12 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   H5Tclose(h_tp);
 
   /* Print the titles */
-  for (size_t i=0; i<tr->n_functions; i++) {
+  for (size_t i = 0; i < tr->n_functions; i++) {
     message("Loaded perturbation vector '%s'.", tr->titles[i]);
   }
 
   /* Identify commonly used indices by their titles */
-  for (size_t i=0; i<tr->n_functions; i++) {
+  for (size_t i = 0; i < tr->n_functions; i++) {
     if (strcmp(tr->titles[i], "d_ncdm[0]") == 0) {
       rend->index_transfer_delta_ncdm = i;
       message("Identified ncdm density vector '%s'.", tr->titles[i]);
@@ -605,7 +612,8 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
       message("Identified photon density vector '%s'.", tr->titles[i]);
     } else if (strcmp(tr->titles[i], "d_ur") == 0) {
       rend->index_transfer_delta_ur = i;
-      message("Identified ultra-relatistic fluid density vector '%s'.", tr->titles[i]);
+      message("Identified ultra-relatistic fluid density vector '%s'.",
+              tr->titles[i]);
     } else if (strcmp(tr->titles[i], "phi") == 0) {
       rend->index_transfer_phi = i;
       message("Identified scalar potential phi vector '%s'.", tr->titles[i]);
@@ -617,7 +625,8 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
       message("Identified N-body gauge H_T_prime vector '%s'.", tr->titles[i]);
     } else if (strcmp(tr->titles[i], "H_T_Nb_prime_prime") == 0) {
       rend->index_transfer_H_T_Nb_pprime = i;
-      message("Identified N-body gauge H_T_prime_prime vector '%s'.", tr->titles[i]);
+      message("Identified N-body gauge H_T_prime_prime vector '%s'.",
+              tr->titles[i]);
     }
   }
 
@@ -829,62 +838,68 @@ void rend_write_perturb(struct renderer *rend, const struct engine *e,
 void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
                            const struct engine *e, int myrank) {
 
-    if (myrank == 0) {
+  if (myrank == 0) {
 
-      /* If a perturbation file & a CLASS ini file are both specified */
-      if (strlen(rend->in_perturb_fname) > 1 && strlen(rend->class_ini_fname) > 1) {
-        error("Specified both perturbation file & CLASS .ini file. '%s' '%s' (%ld)", rend->in_perturb_fname, rend->class_ini_fname,  strlen(rend->class_ini_fname));
-      } else if (strlen(rend->in_perturb_fname) == '\0') {
+    /* If a perturbation file & a CLASS ini file are both specified */
+    if (strlen(rend->in_perturb_fname) > 1 &&
+        strlen(rend->class_ini_fname) > 1) {
+      error(
+          "Specified both perturbation file & CLASS .ini file. '%s' '%s' (%ld)",
+          rend->in_perturb_fname, rend->class_ini_fname,
+          strlen(rend->class_ini_fname));
+    } else if (strlen(rend->in_perturb_fname) == '\0') {
 #ifdef WITH_CLASS_INTERFACE
-        /* Initialize perturbations to the cosmology with CLASS */
-        message("We run CLASS to calculate perturbations to the cosmology.");
-        rend_perturb_from_class(rend, params, e);
-        message("Done with CLASS. The perturbations are now available.");
+      /* Initialize perturbations to the cosmology with CLASS */
+      message("We run CLASS to calculate perturbations to the cosmology.");
+      rend_perturb_from_class(rend, params, e);
+      message("Done with CLASS. The perturbations are now available.");
 
-        /* Save to disk */
-        if (strlen(rend->out_perturb_fname) > 1) {
-          rend_write_perturb(rend, e, rend->out_perturb_fname);
-        }
-#else
-        error("No CLASS library found. Cannot compute transfer functions.");
-#endif
-      } else if (strlen(rend->in_perturb_fname) > 1) {
-        /* Read from disk */
-        rend_read_perturb(rend, e, rend->in_perturb_fname);
+      /* Save to disk */
+      if (strlen(rend->out_perturb_fname) > 1) {
+        rend_write_perturb(rend, e, rend->out_perturb_fname);
       }
-
-      /* Initialize our own interpolation spline */
-      rend_interp_init(rend);
-      rend_grids_alloc(rend);
-    }
-
-      /* Broadcast the cosmological perturbations to the other ranks */
-#ifdef WITH_MPI
-    /* The memory for the transfer functions is located here */
-    struct transfer *tr = &rend->transfer;
-
-    /* First broadcast the size of the perturbation to the other ranks */
-    MPI_Bcast(&tr->k_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&tr->tau_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&tr->n_functions, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    /* Allocate memory on the other ranks */
-    if (myrank != 0) {
-      tr->delta =  (double *)swift_malloc("delta", tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
-      tr->k = (double *)swift_malloc("k", tr->k_size * sizeof(double));
-      tr->log_tau = (double *)swift_malloc("log_tau", tr->tau_size * sizeof(double));
-    }
-
-    /* Broadcast the perturbation to the other ranks */
-    MPI_Bcast(tr->k, tr->k_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(tr->log_tau, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(tr->delta, tr->k_size * tr->tau_size * tr->n_functions, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    /* Initialize the interpolation spline on the other ranks */
-    if (myrank != 0) {
-      rend_interp_init(rend);
-      rend_grids_alloc(rend);
-    }
+#else
+      error("No CLASS library found. Cannot compute transfer functions.");
 #endif
+    } else if (strlen(rend->in_perturb_fname) > 1) {
+      /* Read from disk */
+      rend_read_perturb(rend, e, rend->in_perturb_fname);
+    }
 
+    /* Initialize our own interpolation spline */
+    rend_interp_init(rend);
+    rend_grids_alloc(rend);
+  }
+
+    /* Broadcast the cosmological perturbations to the other ranks */
+#ifdef WITH_MPI
+  /* The memory for the transfer functions is located here */
+  struct transfer *tr = &rend->transfer;
+
+  /* First broadcast the size of the perturbation to the other ranks */
+  MPI_Bcast(&tr->k_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&tr->tau_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&tr->n_functions, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  /* Allocate memory on the other ranks */
+  if (myrank != 0) {
+    tr->delta = (double *)swift_malloc(
+        "delta", tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
+    tr->k = (double *)swift_malloc("k", tr->k_size * sizeof(double));
+    tr->log_tau =
+        (double *)swift_malloc("log_tau", tr->tau_size * sizeof(double));
+  }
+
+  /* Broadcast the perturbation to the other ranks */
+  MPI_Bcast(tr->k, tr->k_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(tr->log_tau, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(tr->delta, tr->k_size * tr->tau_size * tr->n_functions, MPI_DOUBLE,
+            0, MPI_COMM_WORLD);
+
+  /* Initialize the interpolation spline on the other ranks */
+  if (myrank != 0) {
+    rend_interp_init(rend);
+    rend_grids_alloc(rend);
+  }
+#endif
 }

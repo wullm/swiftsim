@@ -785,7 +785,8 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
 
   /* Curvature density (for closure) */
   if (c->Omega_g != 0) {
-    c->Omega_k = 1. - (c->Omega_m + c->Omega_nu + c->Omega_g + c->Omega_ur + c->Omega_lambda);
+    c->Omega_k = 1. - (c->Omega_m + c->Omega_nu + c->Omega_g + c->Omega_ur +
+                       c->Omega_lambda);
   } else {
     c->Omega_k = 1. - (c->Omega_m + c->Omega_r + c->Omega_lambda);
   }
@@ -1322,7 +1323,7 @@ double cosmology_get_scale_factor_from_time(const struct cosmology *c,
  * @return The scale factor.
  */
 double cosmology_get_scale_factor_from_conformal_time(const struct cosmology *c,
-                                            const double t) {
+                                                      const double t) {
 
   /* Use a bisection search on the whole table to find the
      interval where the time lies */
@@ -1342,7 +1343,8 @@ double cosmology_get_scale_factor_from_conformal_time(const struct cosmology *c,
   /* Now that we have bounds, interpolate linearly
      in the log-a table */
   const double delta = (t - c->conformal_time_interp_table[i]) /
-                       (c->conformal_time_interp_table[i + 1] - c->conformal_time_interp_table[i]);
+                       (c->conformal_time_interp_table[i + 1] -
+                        c->conformal_time_interp_table[i]);
 
   const double log_a =
       c->log_a_interp_table[i] +
@@ -1379,15 +1381,18 @@ double cosmology_get_neutrino_density_param(const struct cosmology *c,
 void cosmology_print(const struct cosmology *c) {
 
   message(
-      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r, O_g, O_ur] = [%f, %f, %f, "
+      "Density parameters: [O_m, O_l, O_b, O_nu, O_k, O_r, O_g, O_ur] = [%f, "
+      "%f, %f, "
       "%f, "
       "%f, %f %f %f]",
       c->Omega_m, c->Omega_lambda, c->Omega_b, c->Omega_nu, c->Omega_k,
       c->Omega_r, c->Omega_g, c->Omega_ur);
   message("CMB and neutrino temperatures %f %f Omega_g: %.10e", c->T_CMB,
           c->T_nu, c->Omega_g);
-  message("Relatistic species: [N_nu, N_eff_from_nu, N_ur, N_eff] = [%zu, %f, %f, %f]", c->N_nu,
-          (c->N_eff - c->N_ur), c->N_ur, c->N_eff);
+  message(
+      "Relatistic species: [N_nu, N_eff_from_nu, N_ur, N_eff] = [%zu, %f, %f, "
+      "%f]",
+      c->N_nu, (c->N_eff - c->N_ur), c->N_ur, c->N_eff);
   message("Dark energy equation of state: w_0=%f w_a=%f", c->w_0, c->w_a);
   message("Hubble constant: h = %f, H_0 = %e U_t^(-1)", c->h, c->H0);
   message("Hubble time: 1/H0 = %e U_t", c->Hubble_time);

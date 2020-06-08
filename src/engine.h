@@ -539,13 +539,13 @@ struct engine {
 #endif
 
 #ifdef WITH_DF_DIAGNOSTICS
-    /* Mean squared weights I = 0.5<w^2> of perturbation particles */
-    double neutrino_I_df;
+  /* Mean squared weights I = 0.5<w^2> of perturbation particles */
+  double neutrino_I_df;
 #endif
 
 #ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
-    /* Weight I_df above which neutrinos affect RMS_displacement time steps */
-    double neutrino_dt_switch_threshold;
+  /* Weight I_df above which neutrinos affect RMS_displacement time steps */
+  double neutrino_dt_switch_threshold;
 #endif
 };
 
@@ -574,8 +574,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct output_options *output_options, long long Ngas,
                  long long Ngparts, long long Nstars, long long Nblackholes,
                  long long Nbackground_gparts, long long Nnuparts, int policy,
-                 int verbose,
-                 struct repartition *reparttype,
+                 int verbose, struct repartition *reparttype,
                  const struct unit_system *internal_units,
                  const struct phys_const *physical_constants,
                  struct cosmology *cosmo, struct hydro_props *hydro,
@@ -587,8 +586,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct cooling_function_data *cooling_func,
                  const struct star_formation *starform,
                  const struct chemistry_global_data *chemistry,
-                 struct fof_props *fof_properties,
-                 struct renderer *rend,
+                 struct fof_props *fof_properties, struct renderer *rend,
                  struct los_props *los_properties);
 void engine_config(int restart, int fof, struct engine *e,
                    struct swift_params *params, int nr_nodes, int nodeID,

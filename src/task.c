@@ -1327,7 +1327,7 @@ enum task_categories task_get_category(const struct task *t) {
       return task_category_drift;
 
     case task_type_weight:
-      return task_category_weight;  
+      return task_category_weight;
 
     case task_type_sort:
     case task_type_stars_sort:

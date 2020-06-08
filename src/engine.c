@@ -3909,8 +3909,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct output_options *output_options, long long Ngas,
                  long long Ngparts, long long Nstars, long long Nblackholes,
                  long long Nbackground_gparts, long long Nnuparts, int policy,
-                 int verbose,
-                 struct repartition *reparttype,
+                 int verbose, struct repartition *reparttype,
                  const struct unit_system *internal_units,
                  const struct phys_const *physical_constants,
                  struct cosmology *cosmo, struct hydro_props *hydro,
@@ -3922,8 +3921,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct cooling_function_data *cooling_func,
                  const struct star_formation *starform,
                  const struct chemistry_global_data *chemistry,
-                 struct fof_props *fof_properties,
-                 struct renderer *rend,
+                 struct fof_props *fof_properties, struct renderer *rend,
                  struct los_props *los_properties) {
 
   /* Clean-up everything */
@@ -4019,9 +4017,8 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->rend = rend;
 
 #ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
-  e->neutrino_dt_switch_threshold = parser_get_opt_param_double(params,
-                                    "TimeIntegration:neutrino_dt_switch_threshold",
-                                    0.001);
+  e->neutrino_dt_switch_threshold = parser_get_opt_param_double(
+      params, "TimeIntegration:neutrino_dt_switch_threshold", 0.001);
 
   if (e->nodeID == 0) {
     message("The neutrino dt switch threshold is I > %e.",
@@ -4457,12 +4454,11 @@ void engine_config(int restart, int fof, struct engine *e,
           engine_step_prop_stf, engine_step_prop_fof,
           engine_step_prop_logger_index);
 
-      fprintf(
-          e->file_timesteps,
-          "# %6s %14s %12s %12s %14s %9s %12s %12s %12s %12s %16s [%s] %6s",
-          "Step", "Time", "Scale-factor", "Redshift", "Time-step", "Time-bins",
-          "Updates", "g-Updates", "s-Updates", "b-Updates", "Wall-clock time",
-          clocks_getunit(), "Props");
+      fprintf(e->file_timesteps,
+              "# %6s %14s %12s %12s %14s %9s %12s %12s %12s %12s %16s [%s] %6s",
+              "Step", "Time", "Scale-factor", "Redshift", "Time-step",
+              "Time-bins", "Updates", "g-Updates", "s-Updates", "b-Updates",
+              "Wall-clock time", clocks_getunit(), "Props");
 #ifdef WITH_DF_DIAGNOSTICS
       fprintf(e->file_timesteps, " %12s %12s", "df: beta", "df: I");
 #endif
@@ -5482,14 +5478,13 @@ void engine_recompute_displacement_constraint(struct engine *e) {
     // error("Running with neutrino dt-switch but without df-diagnostics.");
 #else
 
-  /* Disable the neutrino displacement limited timestep if weights are low */
-  if (e->neutrino_I_df < e->neutrino_dt_switch_threshold) {
+    /* Disable the neutrino displacement limited timestep if weights are low */
+    if (e->neutrino_I_df < e->neutrino_dt_switch_threshold) {
       dt_nu = FLT_MAX;
-  }
+    }
 
 #endif
 #endif
-
   }
 
   /* Use the minimum */
