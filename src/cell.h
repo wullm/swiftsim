@@ -1221,7 +1221,7 @@ __attribute__((always_inline)) INLINE static int cell_can_split_self_fof_task(
  * @param ci The first #cell.
  * @param cj The second #cell.
  */
-__attribute__((always_inline)) INLINE static int
+__attribute__((always_inline, nonnull)) INLINE static int
 cell_need_rebuild_for_hydro_pair(const struct cell *ci, const struct cell *cj) {
 
   /* Is the cut-off radius plus the max distance the parts in both cells have */
@@ -1242,7 +1242,7 @@ cell_need_rebuild_for_hydro_pair(const struct cell *ci, const struct cell *cj) {
  * @param ci The first #cell.
  * @param cj The second #cell.
  */
-__attribute__((always_inline)) INLINE static int
+__attribute__((always_inline, nonnull)) INLINE static int
 cell_need_rebuild_for_stars_pair(const struct cell *ci, const struct cell *cj) {
 
   /* Is the cut-off radius plus the max distance the parts in both cells have */
@@ -1263,7 +1263,7 @@ cell_need_rebuild_for_stars_pair(const struct cell *ci, const struct cell *cj) {
  * @param ci The first #cell.
  * @param cj The second #cell.
  */
-__attribute__((always_inline)) INLINE static int
+__attribute__((always_inline, nonnull)) INLINE static int
 cell_need_rebuild_for_black_holes_pair(const struct cell *ci,
                                        const struct cell *cj) {
 
