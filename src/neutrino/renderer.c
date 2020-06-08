@@ -571,9 +571,15 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   // tr->tau_size;
   // tr->n_functions;
 
-  io_read_attribute(h_grp, "k_size", INT, &tr->k_size);
-  io_read_attribute(h_grp, "tau_size", INT, &tr->tau_size);
-  io_read_attribute(h_grp, "n_functions", INT, &tr->n_functions);
+  int k_size, tau_size, n_functions;
+
+  io_read_attribute(h_grp, "k_size", INT, &k_size);
+  io_read_attribute(h_grp, "tau_size", INT, &tau_size);
+  io_read_attribute(h_grp, "n_functions", INT, &n_functions);
+
+  tr->k_size = (size_t) k_size;
+  tr->tau_size = (size_t) tau_size;
+  tr->n_functions = (size_t) n_functions;
 
   /* Read the relevant units (length and time) */
   double file_length_us, file_time_us;
