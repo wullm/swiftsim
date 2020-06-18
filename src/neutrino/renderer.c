@@ -1258,7 +1258,10 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
   /* Initialize the interpolation spline on the other ranks */
   if (myrank != 0) {
     rend_interp_init(rend);
+    
+#ifdef RENDERER_FULL_GR
     rend_grids_alloc(rend);
+#endif
   }
 #endif
 }
