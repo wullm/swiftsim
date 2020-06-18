@@ -94,7 +94,7 @@ DELTA_F_SOURCES += runner_weighting.c neutrino/phase_space.c
 endif
 
 # do we need a renderer for higher-order delta f methods
-if NEUTRINO_DELTA_F_LINEAR_THEORY
+if RENDERER_USED
 DELTA_F_SOURCES += neutrino/renderer.c
 endif
 

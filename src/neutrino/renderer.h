@@ -68,6 +68,7 @@ struct renderer {
   char *class_pre_fname;
 
   /* Commonly used indices of transfer functions */
+  size_t index_transfer_delta_cdm;
   size_t index_transfer_delta_ncdm;
   size_t index_transfer_delta_g;
   size_t index_transfer_delta_ur;
@@ -101,6 +102,9 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname);
 
 /* Rendering the transfer functions onto the primordial field */
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
+void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e);
+void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e);
+void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e);
 
 /* The GSL interpolation structures */
 void rend_interp_init(struct renderer *rend);
