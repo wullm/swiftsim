@@ -1224,7 +1224,10 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
 
     /* Initialize our own interpolation spline */
     rend_interp_init(rend);
+
+#ifdef RENDERER_FULL_GR
     rend_grids_alloc(rend);
+#endif
   }
 
     /* Broadcast the cosmological perturbations to the other ranks */
