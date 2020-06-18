@@ -780,7 +780,7 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
     double H_T_term = HT_prime_grid[i] * H_conformal + HT_prime_prime_grid[i];
 
     /* We will apply the 1/k^2 kernel to the Fourier transform of this */
-    potential[i] = -4 * M_PI * (rho_ncdm + 0*rho_g + 0*rho_ur) + 0*H_T_term;
+    potential[i] = -4 * M_PI * (rho_ncdm + rho_g + rho_ur) + H_T_term;
 
     /* Note: the phi & psi contribution is added later. */
   }
@@ -848,7 +848,7 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Add the contribution from anisotropic stress = (phi - psi) */
   for (int i = 0; i < N * N * N; i++) {
-    potential[i] -= 0*(phi_grid[i] - psi_grid[i]);
+    potential[i] -= (phi_grid[i] - psi_grid[i]);
   }
 
   write_doubles_as_floats("gr_potential.box", potential, N * N * N);
