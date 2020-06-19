@@ -366,6 +366,11 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   /* Switch to the ncdm transfer function */
   // rend_interp_switch_source(rend, rend->index_transfer_delta_ncdm);
 
+  /* The transfer function */
+  double Tr = 0.f, invTr = 0.f;
+  int k_size = rend->transfer.k_size;
+  double k_max = rend->transfer.k[k_size - 1];
+
   /* Apply the transfer function */
   for (int x = 0; x < N; x++) {
     for (int y = 0; y < N; y++) {
@@ -385,8 +390,10 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
           rend_interp_locate_k(rend, k, &k_index, &u_k);
 
           /* Bilinear interpolation of the ncdm transfer function */
-          double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
-                                         rend->index_transfer_delta_ncdm);
+          if (k < k_max) {
+            Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                     rend->index_transfer_delta_ncdm);
+          }
 
           fp[half_box_idx(N, x, y, z)][0] *= Tr * bg_density_ratio;
           fp[half_box_idx(N, x, y, z)][1] *= Tr * bg_density_ratio;
@@ -421,15 +428,18 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
           rend_interp_locate_k(rend, k, &k_index, &u_k);
 
           /* Bilinear interpolation of the ncdm transfer function */
-          double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+          if (k < k_max) {
+            Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
                                          rend->index_transfer_delta_cdm);
+            invTr = 1. / Tr;
+          }
 
           /* The long-range kernel */
           double K = 1.;
           fourier_kernel_long_grav_eval(k * k * r_s * r_s, &K);
 
-          fp[half_box_idx(N, x, y, z)][0] /= Tr * K;
-          fp[half_box_idx(N, x, y, z)][1] /= Tr * K;
+          fp[half_box_idx(N, x, y, z)][0] *= invTr / K;
+          fp[half_box_idx(N, x, y, z)][1] *= invTr / K;
         } else {
           fp[half_box_idx(N, x, y, z)][0] = 0;
           fp[half_box_idx(N, x, y, z)][1] = 0;
@@ -539,6 +549,11 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   /* Switch to the ncdm transfer function */
   // rend_interp_switch_source(rend, rend->index_transfer_delta_ncdm);
 
+  /* The transfer function */
+  double Tr = 0.f;
+  int k_size = rend->transfer.k_size;
+  double k_max = rend->transfer.k[k_size - 1];
+
   /* Apply the neutrino transfer function */
   for (int x = 0; x < N; x++) {
     for (int y = 0; y < N; y++) {
@@ -558,8 +573,10 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
           rend_interp_locate_k(rend, k, &k_index, &u_k);
 
           /* Bilinear interpolation of the ncdm transfer function */
-          double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+          if (k < k_max) {
+            Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
                                          rend->index_transfer_delta_ncdm);
+          }
 
           /* The CIC Window function in Fourier space */
           double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
@@ -639,10 +656,15 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
     write_doubles_as_floats("linear_nu_potential.box", potential, N * N * N);
   }
 
+  double Q = 0.f;
+
   /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
     e->mesh->potential[i] += potential[i];
+    Q += potential[i] * potential[i];
   }
+
+  message("Q = %e", sqrt(Q/(N*N*N)));
 
   write_doubles_as_floats("full_potential.box", e->mesh->potential, N * N * N);
 
