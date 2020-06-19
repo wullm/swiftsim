@@ -288,6 +288,9 @@ void rend_clean(struct renderer *rend) {
   /* Free density & perturbation theory grids */
   free(rend->the_grids);
 
+  /* Free the index table */
+  free(rend->k_acc_table);
+
   /* Clean up the interpolation spline */
   // rend_interp_free(rend);
 }
@@ -1012,37 +1015,6 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
     message("Loaded perturbation vector '%s'.", tr->titles[i]);
   }
 
-  /* Identify commonly used indices by their titles */
-  for (int i = 0; i < tr->n_functions; i++) {
-    if (strcmp(tr->titles[i], "d_ncdm[0]") == 0) {
-      rend->index_transfer_delta_ncdm = i;
-      message("Identified ncdm density vector '%s'.", tr->titles[i]);
-    } else if (strcmp(tr->titles[i], "d_cdm") == 0) {
-      rend->index_transfer_delta_cdm = i;
-      message("Identified cdm density vector '%s'.", tr->titles[i]);
-    } else if (strcmp(tr->titles[i], "d_g") == 0) {
-      rend->index_transfer_delta_g = i;
-      message("Identified photon density vector '%s'.", tr->titles[i]);
-    } else if (strcmp(tr->titles[i], "d_ur") == 0) {
-      rend->index_transfer_delta_ur = i;
-      message("Identified ultra-relatistic fluid density vector '%s'.",
-              tr->titles[i]);
-    } else if (strcmp(tr->titles[i], "phi") == 0) {
-      rend->index_transfer_phi = i;
-      message("Identified scalar potential phi vector '%s'.", tr->titles[i]);
-    } else if (strcmp(tr->titles[i], "psi") == 0) {
-      rend->index_transfer_psi = i;
-      message("Identified scalar potential psi vector '%s'.", tr->titles[i]);
-    } else if (strcmp(tr->titles[i], "H_T_Nb_prime") == 0) {
-      rend->index_transfer_H_T_Nb_prime = i;
-      message("Identified N-body gauge H_T_prime vector '%s'.", tr->titles[i]);
-    } else if (strcmp(tr->titles[i], "H_T_Nb_prime_prime") == 0) {
-      rend->index_transfer_H_T_Nb_pprime = i;
-      message("Identified N-body gauge H_T_prime_prime vector '%s'.",
-              tr->titles[i]);
-    }
-  }
-
   /* Close header */
   H5Gclose(h_grp);
 
@@ -1288,10 +1260,11 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
 #endif
   }
 
-    /* Broadcast the cosmological perturbations to the other ranks */
-#ifdef WITH_MPI
   /* The memory for the transfer functions is located here */
   struct transfer *tr = &rend->transfer;
+
+  /* Broadcast the cosmological perturbations to the other ranks */
+#ifdef WITH_MPI
 
   /* First broadcast the size of the perturbation to the other ranks */
   MPI_Bcast(&tr->k_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -1312,6 +1285,52 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
   MPI_Bcast(tr->log_tau, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   MPI_Bcast(tr->delta, tr->k_size * tr->tau_size * tr->n_functions, MPI_DOUBLE,
             0, MPI_COMM_WORLD);
+
+#endif
+
+  /* Identify commonly used indices by their titles */
+  if (myrank == 0) {
+    for (int i = 0; i < tr->n_functions; i++) {
+      if (strcmp(tr->titles[i], "d_ncdm[0]") == 0) {
+        rend->index_transfer_delta_ncdm = i;
+        message("Identified ncdm density vector '%s'.", tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "d_cdm") == 0) {
+        rend->index_transfer_delta_cdm = i;
+        message("Identified cdm density vector '%s'.", tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "d_g") == 0) {
+        rend->index_transfer_delta_g = i;
+        message("Identified photon density vector '%s'.", tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "d_ur") == 0) {
+        rend->index_transfer_delta_ur = i;
+        message("Identified ultra-relatistic fluid density vector '%s'.",
+                tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "phi") == 0) {
+        rend->index_transfer_phi = i;
+        message("Identified scalar potential phi vector '%s'.", tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "psi") == 0) {
+        rend->index_transfer_psi = i;
+        message("Identified scalar potential psi vector '%s'.", tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "H_T_Nb_prime") == 0) {
+        rend->index_transfer_H_T_Nb_prime = i;
+        message("Identified N-body gauge H_T_prime vector '%s'.", tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "H_T_Nb_prime_prime") == 0) {
+        rend->index_transfer_H_T_Nb_pprime = i;
+        message("Identified N-body gauge H_T_prime_prime vector '%s'.",
+                tr->titles[i]);
+      }
+    }
+  }
+
+#ifdef WITH_MPI
+  /* Broadcast the indices to the other ranks */
+  MPI_Bcast(&rend->index_transfer_delta_ncdm, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_delta_cdm, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_delta_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_delta_ur, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_phi, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_psi, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_H_T_Nb_prime, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_H_T_Nb_pprime, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   /* Initialize the interpolation spline on the other ranks */
   if (myrank != 0) {
