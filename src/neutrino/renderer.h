@@ -32,6 +32,11 @@
 #include "class.h"
 #endif
 
+/* We use GSL for accelerated 2D interpolation */
+#ifdef HAVE_LIBGSL
+#include <gsl/gsl_spline2d.h>
+#endif
+
 /* We use FFTW for Fourier transforming the primordial Gaussian field */
 #ifdef HAVE_FFTW
 #include <fftw3.h>
@@ -90,6 +95,14 @@ struct renderer {
 
   /*! Desired length of the neutrino perturbation along the k dimension */
   size_t num_of_k_bins;  // user-defined
+
+#ifdef HAVE_LIBGSL
+  /* GSL interpolation objects */
+  const gsl_interp2d_type *interp_type;
+  gsl_interp_accel *k_acc;
+  gsl_interp_accel *tau_acc;
+  gsl_spline2d *spline;
+#endif
 };
 
 /* The renderer object renders transfer functions onto the grid */

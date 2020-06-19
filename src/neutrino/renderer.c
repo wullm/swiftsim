@@ -26,12 +26,6 @@
 /* We use GSL for accelerated 2D interpolation */
 #ifdef HAVE_LIBGSL
 #include <gsl/gsl_spline2d.h>
-
-/* GSL interpolation objects */
-const gsl_interp2d_type *interp_type;
-gsl_interp_accel *k_acc;
-gsl_interp_accel *tau_acc;
-gsl_spline2d *spline;
 #endif
 
 /* Array index (this is the row major format) */
@@ -221,17 +215,17 @@ void rend_interp_init(struct renderer *rend) {
   struct transfer *tr = &rend->transfer;
 
   /* We will use bilinear interpolation in (tau, k) space */
-  interp_type = gsl_interp2d_bilinear;
+  rend->interp_type = gsl_interp2d_bilinear;
 
   /* Allocate memory for the spline */
-  spline = gsl_spline2d_alloc(interp_type, tr->k_size, tr->tau_size);
+  rend->spline = gsl_spline2d_alloc(rend->interp_type, tr->k_size, tr->tau_size);
   /* Note: this only copies the first transfer function from tr->delta */
-  gsl_spline2d_init(spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
+  gsl_spline2d_init(rend->spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
                     tr->tau_size);
 
   /* Allocate memory for the accelerator objects */
-  k_acc = gsl_interp_accel_alloc();
-  tau_acc = gsl_interp_accel_alloc();
+  rend->k_acc = gsl_interp_accel_alloc();
+  rend->tau_acc = gsl_interp_accel_alloc();
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");
 #endif
@@ -249,7 +243,7 @@ void rend_interp_switch_source(struct renderer *rend, int index_src) {
   int chunk_size = tr->k_size * tr->tau_size;
 
   /* Copy the desired transfer function to the spline */
-  double *destination = spline->zarr;
+  double *destination = rend->spline->zarr;
   double *source_address = tr->delta + index_src * chunk_size;
   memcpy(destination, source_address, chunk_size * sizeof(double));
 
@@ -261,9 +255,9 @@ void rend_interp_switch_source(struct renderer *rend, int index_src) {
 void rend_interp_free(struct renderer *rend) {
 #ifdef HAVE_LIBGSL
   /* Done with the GSL interpolation */
-  gsl_spline2d_free(spline);
-  gsl_interp_accel_free(k_acc);
-  gsl_interp_accel_free(tau_acc);
+  gsl_spline2d_free(rend->spline);
+  gsl_interp_accel_free(rend->k_acc);
+  gsl_interp_accel_free(rend->tau_acc);
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");
 #endif
@@ -368,7 +362,7 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
+          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc, rend->tau_acc);
 
           fp[half_box_idx(N, x, y, z)][0] *= Tr * bg_density_ratio;
           fp[half_box_idx(N, x, y, z)][1] *= Tr * bg_density_ratio;
@@ -396,7 +390,7 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
         /* Ignore the DC mode */
         if (k > 0) {
           /* The cdm transfer function */
-          double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
+          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc, rend->tau_acc);
 
           /* The long-range kernel */
           double K = 1.;
@@ -517,7 +511,7 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
+          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc, rend->tau_acc);
 
           /* The CIC Window function in Fourier space */
           double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
@@ -694,7 +688,7 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
           /* Ignore the DC mode */
           if (k > 0) {
-            double Tr = gsl_spline2d_eval(spline, k, log_tau, k_acc, tau_acc);
+            double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc, rend->tau_acc);
 
             /* The CIC Window function in Fourier space */
             double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
@@ -1258,7 +1252,7 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
   /* Initialize the interpolation spline on the other ranks */
   if (myrank != 0) {
     rend_interp_init(rend);
-    
+
 #ifdef RENDERER_FULL_GR
     rend_grids_alloc(rend);
 #endif
