@@ -218,7 +218,8 @@ void rend_interp_init(struct renderer *rend) {
   rend->interp_type = gsl_interp2d_bilinear;
 
   /* Allocate memory for the spline */
-  rend->spline = gsl_spline2d_alloc(rend->interp_type, tr->k_size, tr->tau_size);
+  rend->spline =
+      gsl_spline2d_alloc(rend->interp_type, tr->k_size, tr->tau_size);
   /* Note: this only copies the first transfer function from tr->delta */
   gsl_spline2d_init(rend->spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
                     tr->tau_size);
@@ -286,7 +287,6 @@ void rend_clean(struct renderer *rend) {
   rend_interp_free(rend);
 }
 
-
 /* Add neutrinos using the Bird & Ali-Haïmoud method */
 void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 #ifdef HAVE_FFTW
@@ -308,7 +308,7 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Calculate the background neutrino density at the present time */
   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
-  const double Omega_m = cosmo->Omega_m; //does not include neutrinos
+  const double Omega_m = cosmo->Omega_m;  // does not include neutrinos
   /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
   const double bg_density_ratio = (Omega_nu / cosmo->a) / Omega_m;
 
@@ -363,7 +363,8 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc, rend->tau_acc);
+          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+                                        rend->tau_acc);
 
           fp[half_box_idx(N, x, y, z)][0] *= Tr * bg_density_ratio;
           fp[half_box_idx(N, x, y, z)][1] *= Tr * bg_density_ratio;
@@ -391,7 +392,8 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
         /* Ignore the DC mode */
         if (k > 0) {
           /* The cdm transfer function */
-          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc, rend->tau_acc);
+          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+                                        rend->tau_acc);
 
           /* The long-range kernel */
           double K = 1.;
@@ -513,7 +515,8 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc, rend->tau_acc);
+          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+                                        rend->tau_acc);
 
           /* The CIC Window function in Fourier space */
           double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
@@ -543,7 +546,7 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Convert from overdensity to density */
   for (int i = 0; i < N * N * N; i++) {
-    potential[i] =  (1.0 + potential[i]) * neutrino_density;
+    potential[i] = (1.0 + potential[i]) * neutrino_density;
   }
 
   /* Transform to momentum space */
@@ -690,7 +693,8 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
           /* Ignore the DC mode */
           if (k > 0) {
-            double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc, rend->tau_acc);
+            double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+                                          rend->tau_acc);
 
             /* The CIC Window function in Fourier space */
             double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
@@ -730,11 +734,13 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Calculate the background neutrino density at the present time */
   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
+  const double Omega_g = cosmo->Omega_g;
+  const double Omega_ur = cosmo->Omega_ur;
   const double rho_crit0 = cosmo->critical_density_0;
   /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
   const double neutrino_density = Omega_nu * rho_crit0 / cosmo->a;
-  const double photon_density = cosmo->Omega_g * rho_crit0 / cosmo->a;
-  const double ultra_relativistic_density = cosmo->Omega_ur * rho_crit0 / cosmo->a;
+  const double photon_density = Omega_g * rho_crit0 / cosmo->a;
+  const double ultra_relativistic_density = Omega_ur * rho_crit0 / cosmo->a;
 
   /* The starting indices of the respective grids */
   double *ncdm_grid =
@@ -873,23 +879,23 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
  * to the long-range potential mesh. */
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
-  #ifdef RENDERER_NEUTRINOS
+#ifdef RENDERER_NEUTRINOS
   /* Compute the neutrino contribution by applying the linear transfer function
    * to the primordial phases. */
   rend_add_linear_nu_mesh(rend, e);
-  #endif
+#endif
 
-  #ifdef RENDERER_RESCALED_NEUTRINOS
+#ifdef RENDERER_RESCALED_NEUTRINOS
   /* Compute the neutrino contribution by applying the ratio of linear transfer
    * functions (d_ncdm / d_cdm) to the non-linear cdm phases. */
   rend_add_rescaled_nu_mesh(rend, e);
-  #endif
+#endif
 
-  #ifdef RENDERER_FULL_GR
+#ifdef RENDERER_FULL_GR
   /* Compute all general relativistic potentials (neutrinos, radiation, etc.)
    * by applying the linear transfer function to the primordial phases. */
   rend_add_gr_potential_mesh(rend, e);
-  #endif
+#endif
 }
 
 /* Read the perturbation data from a file */
@@ -921,9 +927,9 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   io_read_attribute(h_grp, "tau_size", INT, &tau_size);
   io_read_attribute(h_grp, "n_functions", INT, &n_functions);
 
-  tr->k_size = (size_t) k_size;
-  tr->tau_size = (size_t) tau_size;
-  tr->n_functions = (size_t) n_functions;
+  tr->k_size = (size_t)k_size;
+  tr->tau_size = (size_t)tau_size;
+  tr->n_functions = (size_t)n_functions;
 
   /* Read the relevant units (length and time) */
   double file_length_us, file_time_us;
@@ -957,7 +963,7 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
     if (strcmp(tr->titles[i], "d_ncdm[0]") == 0) {
       rend->index_transfer_delta_ncdm = i;
       message("Identified ncdm density vector '%s'.", tr->titles[i]);
-  } else if (strcmp(tr->titles[i], "d_cdm") == 0) {
+    } else if (strcmp(tr->titles[i], "d_cdm") == 0) {
       rend->index_transfer_delta_cdm = i;
       message("Identified cdm density vector '%s'.", tr->titles[i]);
     } else if (strcmp(tr->titles[i], "d_g") == 0) {
