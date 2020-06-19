@@ -88,9 +88,9 @@ void rend_init(struct renderer *rend, struct swift_params *params,
 
   /* Print the loaded field dimensions */
   message(
-      "Loaded %zu^3 primordial grid with dimensions: (%.1f, %.1f, %.1f) U_L "
+      "Loaded %d^3 primordial grid with dimensions: (%.1f, %.1f, %.1f) U_L "
       "on this node.",
-      (size_t)rend->primordial_grid_N, rend->primordial_dims[0],
+      rend->primordial_grid_N, rend->primordial_dims[0],
       rend->primordial_dims[1], rend->primordial_dims[2]);
 
   /* Verify that the physical dimensions of the primordial field match the
@@ -102,9 +102,9 @@ void rend_init(struct renderer *rend, struct swift_params *params,
   }
 
   /* Verify that the primordial grid has the same size as the gravity mesh */
-  if (rend->primordial_grid_N != (size_t)e->mesh->N) {
-    error("Primordial grid is not the same size as the gravity mesh %zu!=%zu.",
-          rend->primordial_grid_N, (size_t)e->mesh->N);
+  if (rend->primordial_grid_N != e->mesh->N) {
+    error("Primordial grid is not the same size as the gravity mesh %d!=%d.",
+          rend->primordial_grid_N, e->mesh->N);
   }
 
   // /* Allocate memory for the rendered density grid */
@@ -120,8 +120,8 @@ void rend_init(struct renderer *rend, struct swift_params *params,
 void rend_grids_alloc(struct renderer *rend) {
   /* Allocate memory for the perturbation theory grids */
   const int N = rend->primordial_grid_N;
-  const size_t Nf = rend->transfer.n_functions;
-  const size_t bytes = N * N * N * Nf * sizeof(double);
+  const int Nf = rend->transfer.n_functions;
+  const int bytes = N * N * N * Nf * sizeof(double);
   rend->the_grids = (double *)swift_malloc("the_grids", bytes);
 
   if (rend->the_grids == NULL) {
@@ -183,7 +183,7 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
     error("Primordial grid is not cubic.");
   }
 
-  size_t N = grid_dims[0];
+  int N = grid_dims[0];
   rend->primordial_grid_N = N;
 
   // Create a temporary array to read the data
@@ -196,9 +196,9 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
   rend->primordial_grid = (double *)swift_malloc("primordial_grid", bytes);
 
   // Transfer the data to rend->primordial_grid
-  for (size_t i = 0; i < N; i++) {
-    for (size_t j = 0; j < N; j++) {
-      for (size_t k = 0; k < N; k++) {
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      for (int k = 0; k < N; k++) {
         rend->primordial_grid[k + j * N + i * N * N] = grf[i][j][k];
       }
     }
@@ -280,7 +280,7 @@ void rend_clean(struct renderer *rend) {
   free(rend->transfer.log_tau);
 
   /* Free function title strings */
-  for (size_t i = 0; i < rend->transfer.n_functions; i++) {
+  for (int i = 0; i < rend->transfer.n_functions; i++) {
     free(rend->transfer.titles[i]);
   }
   free(rend->transfer.titles);
@@ -289,7 +289,7 @@ void rend_clean(struct renderer *rend) {
   free(rend->the_grids);
 
   /* Clean up the interpolation spline */
-  rend_interp_free(rend);
+  // rend_interp_free(rend);
 }
 
 /* Add neutrinos using the Bird & Ali-Haïmoud method */
@@ -310,6 +310,13 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   const int tau_size = rend->transfer.tau_size;
   const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
   const double log_tau = min(log(tau), final_log_tau);
+
+  /* Bilinear interpolation indices in (log_tau, k) space */
+  int tau_index = 0, k_index = 0;
+  double u_tau = 0.f, u_k = 0.f;
+
+  /* Find the time index */
+  rend_interp_locate_tau(rend, log_tau, &tau_index, &u_tau);
 
   /* Calculate the background neutrino density at the present time */
   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
@@ -354,7 +361,7 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   /* Switch to the ncdm transfer function */
-  rend_interp_switch_source(rend, rend->index_transfer_delta_ncdm);
+  // rend_interp_switch_source(rend, rend->index_transfer_delta_ncdm);
 
   /* Apply the transfer function */
   for (int x = 0; x < N; x++) {
@@ -368,8 +375,15 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
-                                        rend->tau_acc);
+          // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+          //                               rend->tau_acc);
+
+          /* Find the k-space interpolation index */
+          rend_interp_locate_k(rend, k, &k_index, &u_k);
+
+          /* Bilinear interpolation of the ncdm transfer function */
+          double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                         rend->index_transfer_delta_ncdm);
 
           fp[half_box_idx(N, x, y, z)][0] *= Tr * bg_density_ratio;
           fp[half_box_idx(N, x, y, z)][1] *= Tr * bg_density_ratio;
@@ -382,7 +396,7 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   /* Switch to the cdm transfer function */
-  rend_interp_switch_source(rend, rend->index_transfer_delta_cdm);
+  // rend_interp_switch_source(rend, rend->index_transfer_delta_cdm);
 
   /* Undo the cdm transfer function and the long-range kernel */
   for (int x = 0; x < N; x++) {
@@ -397,8 +411,15 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
         /* Ignore the DC mode */
         if (k > 0) {
           /* The cdm transfer function */
-          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
-                                        rend->tau_acc);
+          // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+          //                               rend->tau_acc);
+
+          /* Find the k-space interpolation index */
+          rend_interp_locate_k(rend, k, &k_index, &u_k);
+
+          /* Bilinear interpolation of the ncdm transfer function */
+          double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                         rend->index_transfer_delta_cdm);
 
           /* The long-range kernel */
           double K = 1.;
@@ -466,6 +487,13 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
   const double log_tau = min(log(tau), final_log_tau);
 
+  /* Bilinear interpolation indices in (log_tau, k) space */
+  int tau_index = 0, k_index = 0;
+  double u_tau = 0.f, u_k = 0.f;
+
+  /* Find the time index */
+  rend_interp_locate_tau(rend, log_tau, &tau_index, &u_tau);
+
   /* Calculate the background neutrino density at the current time step */
   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
   const double rho_crit0 = cosmo->critical_density_0;
@@ -506,7 +534,7 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   /* Switch to the ncdm transfer function */
-  rend_interp_switch_source(rend, rend->index_transfer_delta_ncdm);
+  // rend_interp_switch_source(rend, rend->index_transfer_delta_ncdm);
 
   /* Apply the neutrino transfer function */
   for (int x = 0; x < N; x++) {
@@ -520,8 +548,15 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
-                                        rend->tau_acc);
+          // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+          //                               rend->tau_acc);
+
+          /* Find the k-space interpolation index */
+          rend_interp_locate_k(rend, k, &k_index, &u_k);
+
+          /* Bilinear interpolation of the ncdm transfer function */
+          double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                         rend->index_transfer_delta_ncdm);
 
           /* The CIC Window function in Fourier space */
           double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
@@ -641,6 +676,13 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
   const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
   const double log_tau = min(log(tau), final_log_tau);
 
+  /* Bilinear interpolation indices in (log_tau, k) space */
+  int tau_index = 0, k_index = 0;
+  double u_tau = 0.f, u_k = 0.f;
+
+  /* Find the time index */
+  rend_interp_locate_tau(rend, log_tau, &tau_index, &u_tau);
+
   /* Boxes in configuration and momentum space */
   double *restrict potential;
   fftw_complex *restrict fp;
@@ -661,9 +703,9 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
   fftw_plan pc2r = fftw_plan_dft_c2r_3d(N, N, N, fp, potential, FFTW_ESTIMATE);
 
   /* Realize all the perturbation theory grids */
-  for (size_t index_f = 0; index_f < rend->transfer.n_functions; index_f++) {
+  for (int index_f = 0; index_f < rend->transfer.n_functions; index_f++) {
     /* Switch the interpolation spline to the desired transfer function */
-    rend_interp_switch_source(rend, index_f);
+    // rend_interp_switch_source(rend, index_f);
 
     /* Use memory that has already been allocated */
     double *grid = rend->the_grids + index_f * N * N * N;
@@ -698,8 +740,15 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
           /* Ignore the DC mode */
           if (k > 0) {
-            double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
-                                          rend->tau_acc);
+            // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+            //                               rend->tau_acc);
+
+            /* Find the k-space interpolation index */
+            rend_interp_locate_k(rend, k, &k_index, &u_k);
+
+            /* Bilinear interpolation of the ncdm transfer function */
+            double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                         index_f);
 
             /* The CIC Window function in Fourier space */
             double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
@@ -730,7 +779,7 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
     /* Export the data block (only on master node) */
     if (e->nodeID == 0) {
       char boxname[40];
-      sprintf(boxname, "grid_%zu.box", index_f);
+      sprintf(boxname, "grid_%d.box", index_f);
       write_doubles_as_floats(boxname, grid, N * N * N);
     }
   }
@@ -932,9 +981,9 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   io_read_attribute(h_grp, "tau_size", INT, &tau_size);
   io_read_attribute(h_grp, "n_functions", INT, &n_functions);
 
-  tr->k_size = (size_t)k_size;
-  tr->tau_size = (size_t)tau_size;
-  tr->n_functions = (size_t)n_functions;
+  tr->k_size = k_size;
+  tr->tau_size = tau_size;
+  tr->n_functions = n_functions;
 
   /* Read the relevant units (length and time) */
   double file_length_us, file_time_us;
@@ -959,12 +1008,12 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   H5Tclose(h_tp);
 
   /* Print the titles */
-  for (size_t i = 0; i < tr->n_functions; i++) {
+  for (int i = 0; i < tr->n_functions; i++) {
     message("Loaded perturbation vector '%s'.", tr->titles[i]);
   }
 
   /* Identify commonly used indices by their titles */
-  for (size_t i = 0; i < tr->n_functions; i++) {
+  for (int i = 0; i < tr->n_functions; i++) {
     if (strcmp(tr->titles[i], "d_ncdm[0]") == 0) {
       rend->index_transfer_delta_ncdm = i;
       message("Identified ncdm density vector '%s'.", tr->titles[i]);
@@ -1007,7 +1056,7 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   tr->delta = (double *)swift_malloc(
       "delta", tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
 
-  message("We read the perturbation size %zu * %zu * %zu", tr->n_functions,
+  message("We read the perturbation size %d * %d * %d", tr->n_functions,
           tr->k_size, tr->tau_size);
 
   /* Open the perturbation data group */
@@ -1049,24 +1098,24 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
     error("Error while reading data array '%s'.", "Transfer functions");
 
   /* Convert the units of the wavenumbers (inverse length) */
-  for (size_t i = 0; i < tr->k_size; i++) {
+  for (int i = 0; i < tr->k_size; i++) {
     tr->k[i] *= us->UnitLength_in_cgs / file_length_us;
   }
 
   /* Convert the units of the conformal time. This is log(tau) ! */
-  for (size_t i = 0; i < tr->tau_size; i++) {
+  for (int i = 0; i < tr->tau_size; i++) {
     tr->log_tau[i] += log(file_time_us) - log(us->UnitTime_in_cgs);
   }
 
-  // for (size_t i=0; i<tr->k_size; i++) {
+  // for (int i=0; i<tr->k_size; i++) {
   //     printf("%e\n", tr->k[i]);
   // }
   //
-  // for (size_t i=0; i<tr->tau_size; i++) {
+  // for (int i=0; i<tr->tau_size; i++) {
   //     printf("%e\n", tr->log_tau[i]);
   // }
   //
-  // for (size_t i=0; i<tr->k_size * tr->tau_size; i++) {
+  // for (int i=0; i<tr->k_size * tr->tau_size; i++) {
   //     printf("%e\n", tr->delta[i]);
   // }
 
@@ -1231,7 +1280,8 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
     }
 
     /* Initialize our own interpolation spline */
-    rend_interp_init(rend);
+    // rend_interp_init(rend);
+    rend_custom_interp_init(rend, 100);
 
 #ifdef RENDERER_FULL_GR
     rend_grids_alloc(rend);
@@ -1265,11 +1315,130 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
 
   /* Initialize the interpolation spline on the other ranks */
   if (myrank != 0) {
-    rend_interp_init(rend);
+    // rend_interp_init(rend);
+    rend_custom_interp_init(rend, 20);
 
 #ifdef RENDERER_FULL_GR
     rend_grids_alloc(rend);
 #endif
   }
 #endif
+}
+
+/* Locate the greatest lower bounding index in the log_tau table */
+void rend_interp_locate_tau(struct renderer *rend, double log_tau,
+                            int *index, double *w) {
+  /* The memory for the transfer functions is located here */
+  struct transfer *tr = &rend->transfer;
+
+  /* Number of bins */
+  int tau_size = tr->tau_size;
+
+  /* Quickly return if we are in the first or last bin */
+  if (log_tau < tr->log_tau[0]) {
+    *index = 0;
+    *w = 0.f;
+  } else if (log_tau >= tr->log_tau[tau_size - 1]) {
+    *index = tau_size - 1;
+    *w = 1.f;
+  }
+
+  /* Run through the array in strides of 10 for initial scan */
+  for (int i=1; i<tau_size; i++) {
+    if (tr->log_tau[i] >= log_tau) {
+      *index = i-1;
+      break;
+    }
+  }
+
+  /* Find the bounding values */
+  double left = tr->log_tau[*index];
+  double right = tr->log_tau[*index + 1];
+
+  /* Calculate the ratio (X - X_left) / (X_right - X_left) */
+  *w = (log_tau - left) / (right - left);
+}
+
+
+void rend_custom_interp_init(struct renderer *rend, int table_size) {
+    /* Allocate the search table */
+    rend->k_acc_table = malloc(table_size * sizeof(double));
+    rend->k_acc_table_size = table_size;
+
+    /* Bounding values for the larger table */
+    struct transfer *tr = &rend->transfer;
+    int k_size = tr->k_size;
+    double k_min = tr->k[0];
+    double k_max = tr->k[k_size-1];
+
+    /* Make the index table */
+    for (int i=0; i<table_size; i++) {
+        double u = (double) i/table_size;
+        double v = k_min + u * (k_max - k_min);
+
+        /* Find the largest bin such that w > k */
+        double maxJ = 0;
+        for(int j=0; j<k_size; j++) {
+            if (tr->k[j] < v) {
+                maxJ = j;
+            }
+        }
+        rend->k_acc_table[i] = maxJ;
+    }
+}
+
+/* Locate the greatest lower bounding index in the log_tau table */
+void rend_interp_locate_k(struct renderer *rend, double k,
+                          int *index, double *w) {
+
+  /* Bounding values for the larger table */
+  struct transfer *tr = &rend->transfer;
+  int k_acc_table_size = rend->k_acc_table_size;
+  int k_size = tr->k_size;
+  double k_min = tr->k[0];
+  double k_max = tr->k[k_size-1];
+
+  /* Quickly find a starting index using the indexed seach */
+  double v = log(k);
+  double u = (v - k_min) / (k_max - k_min);
+  int I = floor(u * k_acc_table_size);
+  int idx = rend->k_acc_table[I < k_acc_table_size ? I : k_acc_table_size - 1];
+
+  /* Search in the k vector */
+  int i;
+  for (i = idx; i < k_size; i++) {
+    if (k >= tr->k[i] && k <= tr->k[i + 1]) break;
+  }
+
+  /* We found the index */
+  *index = i;
+
+  /* Find the bounding values */
+  double left = tr->k[*index];
+  double right = tr->k[*index + 1];
+
+  /* Calculate the ratio (X - X_left) / (X_right - X_left) */
+  *w = (k - left) / (right - left);
+}
+
+/* Bilinear interpolation */
+double rend_custom_interp(struct renderer *rend, int k_index, int tau_index,
+                          double u_tau, double u_k, int index_src) {
+
+  /* Bounding values for the larger table */
+  struct transfer *tr = &rend->transfer;
+  int k_size = tr->k_size;
+  int tau_size = tr->tau_size;
+
+  /* Select the desired transfer function */
+  double *arr = tr->delta + index_src * k_size * tau_size;
+
+  /* Retrieve the bounding values */
+  double T11 = arr[k_size * tau_index + k_index];
+  double T21 = arr[k_size * tau_index + k_index + 1];
+  double T12 = arr[k_size * (tau_index + 1) + k_index];
+  double T22 = arr[k_size * (tau_index + 1) + k_index + 1];
+
+  return (1 - u_tau) * ((1 - u_k) * T11 + u_k * T21)
+             + u_tau * ((1 - u_k) * T12 + u_k * T22);
 }

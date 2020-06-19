@@ -55,7 +55,7 @@ struct renderer {
   /*! Array containing the primordial fluctuations on a grid */
   double *primordial_grid;
   double *primordial_dims;
-  size_t primordial_grid_N;
+  int primordial_grid_N;
 
   /*! Array containing sequency of perturbation theory grids */
   double *the_grids;
@@ -73,20 +73,20 @@ struct renderer {
   char *class_pre_fname;
 
   /* Commonly used indices of transfer functions */
-  size_t index_transfer_delta_cdm;
-  size_t index_transfer_delta_ncdm;
-  size_t index_transfer_delta_g;
-  size_t index_transfer_delta_ur;
-  size_t index_transfer_phi;
-  size_t index_transfer_psi;
-  size_t index_transfer_H_T_Nb_prime;
-  size_t index_transfer_H_T_Nb_pprime;
+  int index_transfer_delta_cdm;
+  int index_transfer_delta_ncdm;
+  int index_transfer_delta_g;
+  int index_transfer_delta_ur;
+  int index_transfer_phi;
+  int index_transfer_psi;
+  int index_transfer_H_T_Nb_prime;
+  int index_transfer_H_T_Nb_pprime;
 
   /*! Neutrino transfer functions */
   struct transfer {
-    size_t k_size;
-    size_t tau_size;
-    size_t n_functions;
+    int k_size;
+    int tau_size;
+    int n_functions;
     double *delta;
     double *k;
     double *log_tau;
@@ -94,7 +94,11 @@ struct renderer {
   } transfer;
 
   /*! Desired length of the neutrino perturbation along the k dimension */
-  size_t num_of_k_bins;  // user-defined
+  int num_of_k_bins;  // user-defined
+
+  /* Search table for interpolation acceleration in the k direction */
+  int k_acc_table_size;
+  double *k_acc_table;
 
 #ifdef HAVE_LIBGSL
   /* GSL interpolation objects */
@@ -124,6 +128,15 @@ void rend_interp_init(struct renderer *rend);
 void rend_interp_switch_source(struct renderer *rend, int index_src);
 void rend_interp_free(struct renderer *rend);
 void rend_grids_alloc(struct renderer *rend);
+
+/* Custom interpolation functions */
+void rend_custom_interp_init(struct renderer *rend, int table_size);
+void rend_interp_locate_tau(struct renderer *rend, double log_tau,
+                            int *index, double *w);
+void rend_interp_locate_k(struct renderer *rend, double k, int *index,
+                          double *w);
+double rend_custom_interp(struct renderer *rend, int k_index, int tau_index,
+                          double u_tau, double u_k, int index_src);
 
 /* Input and output for the perturbation data */
 void rend_read_perturb(struct renderer *rend, const struct engine *e,
