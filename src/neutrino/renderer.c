@@ -214,19 +214,24 @@ void rend_interp_init(struct renderer *rend) {
   /* The memory for the transfer functions is located here */
   struct transfer *tr = &rend->transfer;
 
-  /* We will use bilinear interpolation in (tau, k) space */
-  rend->interp_type = gsl_interp2d_bilinear;
+  if (rend->spline == NULL) {
+    /* We will use bilinear interpolation in (tau, k) space */
+    rend->interp_type = gsl_interp2d_bilinear;
 
-  /* Allocate memory for the spline */
-  rend->spline =
-      gsl_spline2d_alloc(rend->interp_type, tr->k_size, tr->tau_size);
-  /* Note: this only copies the first transfer function from tr->delta */
-  gsl_spline2d_init(rend->spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
-                    tr->tau_size);
+    /* Allocate memory for the spline */
+    rend->spline =
+        gsl_spline2d_alloc(rend->interp_type, tr->k_size, tr->tau_size);
+    /* Note: this only copies the first transfer function from tr->delta */
+    gsl_spline2d_init(rend->spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
+                      tr->tau_size);
 
-  /* Allocate memory for the accelerator objects */
-  rend->k_acc = gsl_interp_accel_alloc();
-  rend->tau_acc = gsl_interp_accel_alloc();
+
+    /* Allocate memory for the accelerator objects */
+    rend->k_acc = gsl_interp_accel_alloc();
+    rend->tau_acc = gsl_interp_accel_alloc();
+  } else {
+   message("Warning, spline already allocated.");
+  }
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");
 #endif
