@@ -309,7 +309,8 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   /* Calculate the background neutrino density at the present time */
   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
   const double Omega_m = cosmo->Omega_m; //does not include neutrinos
-  const double bg_density_ratio = Omega_nu / Omega_m;
+  /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
+  const double bg_density_ratio = (Omega_nu / cosmo->a) / Omega_m;
 
   /* Long-range potential smoothing length */
   const double r_s = e->gravity_properties->a_smooth * box_len / N;
@@ -461,7 +462,8 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   /* Calculate the background neutrino density at the current time step */
   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
   const double rho_crit0 = cosmo->critical_density_0;
-  const double neutrino_density = Omega_nu * rho_crit0;
+  /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
+  const double neutrino_density = Omega_nu * rho_crit0 / cosmo->a;
 
   /* Boxes in configuration and momentum space */
   double *restrict potential;
@@ -729,9 +731,10 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
   /* Calculate the background neutrino density at the present time */
   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
   const double rho_crit0 = cosmo->critical_density_0;
-  const double neutrino_density = Omega_nu * rho_crit0;
-  const double photon_density = cosmo->Omega_g * rho_crit0;
-  const double ultra_relativistic_density = cosmo->Omega_ur * rho_crit0;
+  /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
+  const double neutrino_density = Omega_nu * rho_crit0 / cosmo->a;
+  const double photon_density = cosmo->Omega_g * rho_crit0 / cosmo->a;
+  const double ultra_relativistic_density = cosmo->Omega_ur * rho_crit0 / cosmo->a;
 
   /* The starting indices of the respective grids */
   double *ncdm_grid =
