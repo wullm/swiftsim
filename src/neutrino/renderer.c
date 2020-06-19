@@ -641,14 +641,16 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   double Q = 0.f;
+  double R = 0.f;
 
   /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
-    e->mesh->potential[i] += potential[i];
+    R += e->mesh->potential[i] * e->mesh->potential[i];
     Q += potential[i] * potential[i];
+    e->mesh->potential[i] += potential[i];
   }
 
-  message("Q = %e", sqrt(Q/(N*N*N)));
+  message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
 
   write_doubles_as_floats("full_potential.box", e->mesh->potential, N * N * N);
 
