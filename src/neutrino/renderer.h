@@ -33,9 +33,9 @@
 #endif
 
 /* We use GSL for accelerated 2D interpolation */
-#ifdef HAVE_LIBGSL
-#include <gsl/gsl_spline2d.h>
-#endif
+// #ifdef HAVE_LIBGSL
+// #include <gsl/gsl_spline2d.h>
+// #endif
 
 /* We use FFTW for Fourier transforming the primordial Gaussian field */
 #ifdef HAVE_FFTW
@@ -100,13 +100,13 @@ struct renderer {
   int k_acc_table_size;
   double *k_acc_table;
 
-#ifdef HAVE_LIBGSL
-  /* GSL interpolation objects */
-  const gsl_interp2d_type *interp_type;
-  gsl_interp_accel *k_acc;
-  gsl_interp_accel *tau_acc;
-  gsl_spline2d *spline;
-#endif
+// #ifdef HAVE_LIBGSL
+//   /* GSL interpolation objects */
+//   const gsl_interp2d_type *interp_type;
+//   gsl_interp_accel *k_acc;
+//   gsl_interp_accel *tau_acc;
+//   gsl_spline2d *spline;
+// #endif
 };
 
 /* The renderer object renders transfer functions onto the grid */
@@ -124,9 +124,9 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e);
 void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e);
 
 /* The GSL interpolation structures */
-void rend_interp_init(struct renderer *rend);
-void rend_interp_switch_source(struct renderer *rend, int index_src);
-void rend_interp_free(struct renderer *rend);
+// void rend_interp_init(struct renderer *rend);
+// void rend_interp_switch_source(struct renderer *rend, int index_src);
+// void rend_interp_free(struct renderer *rend);
 void rend_grids_alloc(struct renderer *rend);
 
 /* Custom interpolation functions */
