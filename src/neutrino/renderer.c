@@ -39,25 +39,52 @@ inline int half_box_idx(int N, int x, int y, int z) {
 /* Sinc function */
 inline double sinc(double x) { return x == 0 ? 0. : sin(x) / x; }
 
-/* Quick and dirty write binary boxes */
-inline void write_floats(char *fname, float *floats, int nfloats) {
-  FILE *f = fopen(fname, "wb");
-  fwrite(floats, sizeof(float), nfloats, f);
-  fclose(f);
-}
+/* Write binary boxes in HDF5 format */
+int writeGRF_H5(const double *box, int N, double boxlen, const char *fname) {
+    /* Create the hdf5 file */
+    hid_t h_file = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-/* Quick and dirty write binary boxes */
-inline void write_doubles_as_floats(char *fname, double *doubles, int nfloats) {
-  /* Convert to floats */
-  float *floats = (float *)malloc(sizeof(float) * nfloats);
-  for (int i = 0; i < nfloats; i++) {
-    floats[i] = (float)doubles[i];
-  }
+    /* Create the Header group */
+    hid_t h_grp = H5Gcreate(h_file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-  FILE *f = fopen(fname, "wb");
-  fwrite(floats, sizeof(float), nfloats, f);
-  fclose(f);
-  free(floats);
+    /* Create dataspace for BoxSize attribute */
+    const hsize_t arank = 1;
+    const hsize_t adims[1] = {3}; //3D space
+    hid_t h_aspace = H5Screate_simple(arank, adims, NULL);
+
+    /* Create the BoxSize attribute and write the data */
+    hid_t h_attr = H5Acreate1(h_grp, "BoxSize", H5T_NATIVE_DOUBLE, h_aspace, H5P_DEFAULT);
+    double boxsize[3] = {boxlen, boxlen, boxlen};
+    H5Awrite(h_attr, H5T_NATIVE_DOUBLE, boxsize);
+
+    /* Close the attribute, corresponding dataspace, and the Header group */
+    H5Aclose(h_attr);
+    H5Sclose(h_aspace);
+    H5Gclose(h_grp);
+
+    /* Create the Field group */
+    h_grp = H5Gcreate(h_file, "/Field", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    /* Create dataspace for the field */
+    const hsize_t frank = 3;
+    const hsize_t fdims[3] = {N, N, N}; //3D space
+    hid_t h_fspace = H5Screate_simple(frank, fdims, NULL);
+
+    /* Create the dataset for the field */
+    hid_t h_data = H5Dcreate(h_grp, "Field", H5T_NATIVE_DOUBLE, h_fspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    /* Write the data */
+    H5Dwrite(h_data, H5T_NATIVE_DOUBLE, h_fspace, h_fspace, H5P_DEFAULT, box);
+
+    /* Close the dataset, corresponding dataspace, and the Field group */
+    H5Dclose(h_data);
+    H5Sclose(h_fspace);
+    H5Gclose(h_grp);
+
+    /* Close the file */
+    H5Fclose(h_file);
+
+    return 0;
 }
 
 void rend_init(struct renderer *rend, struct swift_params *params,
@@ -448,8 +475,8 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Export the potentials */
   if (e->nodeID == 0) {
-    write_doubles_as_floats("m_potential.box", e->mesh->potential, N * N * N);
-    write_doubles_as_floats("scaled_nu_potential.box", potential, N * N * N);
+    writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
+    writeGRF_H5(potential, N, box_len, "scaled_nu_potential.hdf5");
   }
 
   double Q = 0.f;
@@ -464,7 +491,7 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
 
-  write_doubles_as_floats("full_potential.box", e->mesh->potential, N * N * N);
+  writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
 
   fftw_free(potential);
   fftw_free(fp);
@@ -642,9 +669,10 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   /* Export the potentials */
+
   if (e->nodeID == 0) {
-    write_doubles_as_floats("m_potential.box", e->mesh->potential, N * N * N);
-    write_doubles_as_floats("linear_nu_potential.box", potential, N * N * N);
+    writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
+    writeGRF_H5(potential, N, box_len, "linear_nu_potential.hdf5");
   }
 
   double Q = 0.f;
@@ -659,7 +687,7 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
 
-  write_doubles_as_floats("full_potential.box", e->mesh->potential, N * N * N);
+  writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
 
   fftw_free(potential);
   fftw_free(fp);
@@ -797,8 +825,8 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
     /* Export the data block (only on master node) */
     if (e->nodeID == 0) {
       char boxname[40];
-      sprintf(boxname, "grid_%d.box", index_f);
-      write_doubles_as_floats(boxname, grid, N * N * N);
+      sprintf(boxname, "grid_%d.hdf5", index_f);
+      writeGRF_H5(grid, N, box_len, boxname);
     }
   }
 
@@ -862,15 +890,14 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Export the grids for troubleshooting */
   if (e->nodeID == 0) {
-    write_doubles_as_floats("grid_ncdm.box", ncdm_grid, N * N * N);
-    write_doubles_as_floats("grid_g.box", g_grid, N * N * N);
-    write_doubles_as_floats("grid_ur.box", ur_grid, N * N * N);
-    write_doubles_as_floats("grid_HT_prime.box", HT_prime_grid, N * N * N);
-    write_doubles_as_floats("grid_HT_prime_prime.box", HT_prime_prime_grid,
-                            N * N * N);
-    write_doubles_as_floats("gr_dens.box", potential, N * N * N);
-    write_doubles_as_floats("grid_phi.box", phi_grid, N * N * N);
-    write_doubles_as_floats("grid_psi.box", psi_grid, N * N * N);
+    writeGRF_H5(ncdm_grid, N, box_len, "grid_ncdm.hdf5");
+    writeGRF_H5(g_grid, N, box_len, "grid_g.hdf5");
+    writeGRF_H5(ur_grid, N, box_len, "grid_ur.hdf5");
+    writeGRF_H5(HT_prime_grid, N, box_len, "grid_HT_prime.hdf5");
+    writeGRF_H5(HT_prime_prime_grid, N, box_len, "grid_HT_prime_prime.hdf5");
+    writeGRF_H5(potential, N, box_len, "gr_dens.hdf5");
+    writeGRF_H5(phi_grid, N, box_len, "grid_phi.hdf5");
+    writeGRF_H5(psi_grid, N, box_len, "grid_psi.hdf5");
   }
 
   /* Transform to momentum space */
@@ -916,9 +943,8 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Export the potentials */
   if (e->nodeID == 0) {
-    write_doubles_as_floats("m_potential.box", e->mesh->potential, N * N * N);
-    write_doubles_as_floats("gr_potential_without_stress.box", potential,
-                            N * N * N);
+    writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
+    writeGRF_H5(potential, N, box_len, "gr_potential_without_stress.hdf5");
   }
 
   /* Add the contribution from anisotropic stress = (phi - psi) */
@@ -926,14 +952,14 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
     potential[i] -= (phi_grid[i] - psi_grid[i]);
   }
 
-  write_doubles_as_floats("gr_potential.box", potential, N * N * N);
+  writeGRF_H5(potential, N, box_len, "gr_potential.hdf5");
 
   /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
     e->mesh->potential[i] += potential[i];
   }
 
-  write_doubles_as_floats("full_potential.box", e->mesh->potential, N * N * N);
+  writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
 
   fftw_free(potential);
   fftw_free(fp);
