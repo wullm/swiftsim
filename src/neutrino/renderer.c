@@ -682,8 +682,19 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   /* Export the potentials */
 
   if (e->nodeID == 0) {
-    writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
-    writeGRF_H5(potential, N, box_len, "linear_nu_potential.hdf5");
+    // writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
+    // writeGRF_H5(potential, N, box_len, "linear_nu_potential.hdf5");
+
+    /* Store the box as a separate box for the timestep */
+    if (e->step % 10 == 0) {
+      char one[40];
+      char two[40];
+      double z = e->cosmology->z;
+      sprintf(one, "m_potential_z_%.2f.hdf5", z);
+      sprintf(two, "linear_nu_potential_z_%.2f.hdf5", z);
+      writeGRF_H5(e->mesh->potential, N, box_len, one);
+      writeGRF_H5(potential, N, box_len, two);
+    }
   }
 
   double Q = 0.f;
@@ -830,7 +841,7 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
     /* Transform back */
     fftw_execute(c2r_grid);
-    
+
     /* Free memory */
     fftw_destroy_plan(c2r_grid);
     fftw_destroy_plan(r2c_grid);
