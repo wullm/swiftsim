@@ -24,9 +24,9 @@
 #include "renderer.h"
 
 /* We use GSL for accelerated 2D interpolation */
-#ifdef HAVE_LIBGSL
-#include <gsl/gsl_spline2d.h>
-#endif
+//#ifdef HAVE_LIBGSL
+//#include <gsl/gsl_spline2d.h>
+//#endif
 
 /* Array index (this is the row major format) */
 inline int box_idx(int N, int x, int y, int z) { return z + N * (y + N * x); }
@@ -235,71 +235,77 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
   H5Fclose(field_file);
 }
 
-void rend_interp_init(struct renderer *rend) {
-#ifdef HAVE_LIBGSL
-
-  /* The memory for the transfer functions is located here */
-  struct transfer *tr = &rend->transfer;
-
-  if (rend->spline == NULL) {
-    /* We will use bilinear interpolation in (tau, k) space */
-    rend->interp_type = gsl_interp2d_bilinear;
-
-    /* Allocate memory for the spline */
-    rend->spline =
-        gsl_spline2d_alloc(rend->interp_type, tr->k_size, tr->tau_size);
-    /* Note: this only copies the first transfer function from tr->delta */
-    gsl_spline2d_init(rend->spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
-                      tr->tau_size);
-
-
-    /* Allocate memory for the accelerator objects */
-    rend->k_acc = gsl_interp_accel_alloc();
-    rend->tau_acc = gsl_interp_accel_alloc();
-  } else {
-   message("Warning, spline already allocated.");
-  }
-#else
-  error("No GSL library found. Cannot perform cosmological interpolation.");
-#endif
-}
+// void rend_interp_init(struct renderer *rend) {
+// #ifdef HAVE_LIBGSL
+//
+//   /* The memory for the transfer functions is located here */
+//   struct transfer *tr = &rend->transfer;
+//
+//   if (rend->spline == NULL) {
+//     /* We will use bilinear interpolation in (tau, k) space */
+//     rend->interp_type = gsl_interp2d_bilinear;
+//
+//     /* Allocate memory for the spline */
+//     rend->spline =
+//         gsl_spline2d_alloc(rend->interp_type, tr->k_size, tr->tau_size);
+//     /* Note: this only copies the first transfer function from tr->delta */
+//     gsl_spline2d_init(rend->spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
+//                       tr->tau_size);
+//
+//
+//     /* Allocate memory for the accelerator objects */
+//     rend->k_acc = gsl_interp_accel_alloc();
+//     rend->tau_acc = gsl_interp_accel_alloc();
+//   } else {
+//    message("Warning, spline already allocated.");
+//   }
+// #else
+//   error("No GSL library found. Cannot perform cosmological interpolation.");
+// #endif
+// }
 
 /* index_src is the index of the transfer function type */
-void rend_interp_switch_source(struct renderer *rend, int index_src) {
-#ifdef HAVE_LIBGSL
-
-  /* The memory for the transfer functions is located here */
-  struct transfer *tr = &rend->transfer;
-
-  /* The array tr->delta contains a sequence of all transfer functions T(k,tau),
-   * each of size tr->k_size * tr->tau_size doubles */
-  int chunk_size = tr->k_size * tr->tau_size;
-
-  /* Copy the desired transfer function to the spline */
-  double *destination = rend->spline->zarr;
-  double *source_address = tr->delta + index_src * chunk_size;
-  memcpy(destination, source_address, chunk_size * sizeof(double));
-
-#else
-  error("No GSL library found. Cannot perform cosmological interpolation.");
-#endif
-}
-
-void rend_interp_free(struct renderer *rend) {
-#ifdef HAVE_LIBGSL
-  /* Done with the GSL interpolation */
-  gsl_spline2d_free(rend->spline);
-  gsl_interp_accel_free(rend->k_acc);
-  gsl_interp_accel_free(rend->tau_acc);
-#else
-  error("No GSL library found. Cannot perform cosmological interpolation.");
-#endif
-}
+// void rend_interp_switch_source(struct renderer *rend, int index_src) {
+// #ifdef HAVE_LIBGSL
+//
+//   /* The memory for the transfer functions is located here */
+//   struct transfer *tr = &rend->transfer;
+//
+//   /* The array tr->delta contains a sequence of all transfer functions T(k,tau),
+//    * each of size tr->k_size * tr->tau_size doubles */
+//   int chunk_size = tr->k_size * tr->tau_size;
+//
+//   /* Copy the desired transfer function to the spline */
+//   double *destination = rend->spline->zarr;
+//   double *source_address = tr->delta + index_src * chunk_size;
+//   memcpy(destination, source_address, chunk_size * sizeof(double));
+//
+// #else
+//   error("No GSL library found. Cannot perform cosmological interpolation.");
+// #endif
+// }
+//
+// void rend_interp_free(struct renderer *rend) {
+// #ifdef HAVE_LIBGSL
+//   /* Done with the GSL interpolation */
+//   gsl_spline2d_free(rend->spline);
+//   gsl_interp_accel_free(rend->k_acc);
+//   gsl_interp_accel_free(rend->tau_acc);
+// #else
+//   error("No GSL library found. Cannot perform cosmological interpolation.");
+// #endif
+// }
 
 void rend_clean(struct renderer *rend) {
   /* Free the Gaussian field */
   free(rend->primordial_grid);
   free(rend->primordial_dims);
+
+  /* Free strings */
+  free(rend->in_perturb_fname);
+  free(rend->out_perturb_fname);
+  free(rend->class_ini_fname);
+  free(rend->class_pre_fname);
 
   /* Free interpolation tables */
   free(rend->transfer.delta);
@@ -313,7 +319,9 @@ void rend_clean(struct renderer *rend) {
   free(rend->transfer.titles);
 
   /* Free density & perturbation theory grids */
+#ifdef RENDERER_FULL_GR
   free(rend->the_grids);
+#endif
 
   /* Free the index table */
   free(rend->k_acc_table);
@@ -493,8 +501,11 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
 
+  /* Free memory */
   fftw_free(potential);
   fftw_free(fp);
+  fftw_destroy_plan(pr2c);
+  fftw_destroy_plan(pc2r);
 
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");
@@ -689,8 +700,11 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
 
+  /* Free memory */
   fftw_free(potential);
   fftw_free(fp);
+  fftw_destroy_plan(pr2c);
+  fftw_destroy_plan(pc2r);
 
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");
@@ -816,6 +830,10 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
     /* Transform back */
     fftw_execute(c2r_grid);
+    
+    /* Free memory */
+    fftw_destroy_plan(c2r_grid);
+    fftw_destroy_plan(r2c_grid);
 
     /* Normalization */
     for (int i = 0; i < N * N * N; i++) {
@@ -828,6 +846,7 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
       sprintf(boxname, "grid_%d.hdf5", index_f);
       writeGRF_H5(grid, N, box_len, boxname);
     }
+
   }
 
   /* Next, compute the potential due to neutrinos (modulo a factor G_newt) */
@@ -961,8 +980,12 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
   writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
 
+  /* Free memory */
   fftw_free(potential);
   fftw_free(fp);
+  fftw_destroy_plan(pr2c);
+  fftw_destroy_plan(pc2r);
+
 
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");
