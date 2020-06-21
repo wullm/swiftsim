@@ -143,7 +143,7 @@ __attribute__((always_inline)) INLINE static void CIC_set(
  */
 INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho,
                                      const int N, const double fac,
-                                     const double dim[3]) {
+                                     const double dim[3], int step) {
 
   /* Box wrap the multipole's position */
   const double pos_x = box_wrap(gp->x[0], 0., dim[0]);
@@ -175,6 +175,7 @@ INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho,
   const double mass = gp->mass;
 
   /* CIC ! */
+  if (gp->type == swift_type_neutrino || step % 10 != 0)
   CIC_set(rho, N, i, j, k, tx, ty, tz, dx, dy, dz, mass);
 }
 
@@ -189,14 +190,14 @@ INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho,
  * @param dim The dimensions of the simulation box.
  */
 void cell_gpart_to_mesh_CIC(const struct cell* c, double* rho, const int N,
-                            const double fac, const double dim[3]) {
+                            const double fac, const double dim[3], int step) {
 
   const int gcount = c->grav.count;
   const struct gpart* gparts = c->grav.parts;
 
   /* Assign all the gpart of that cell to the mesh */
   for (int i = 0; i < gcount; ++i)
-    gpart_to_mesh_CIC(&gparts[i], rho, N, fac, dim);
+    gpart_to_mesh_CIC(&gparts[i], rho, N, fac, dim, step);
 }
 
 /**
@@ -209,6 +210,7 @@ struct cic_mapper_data {
   int N;
   double fac;
   double dim[3];
+  int step;
 };
 
 /**
@@ -227,6 +229,7 @@ void cell_gpart_to_mesh_CIC_mapper(void* map_data, int num, void* extra) {
   const int N = data->N;
   const double fac = data->fac;
   const double dim[3] = {data->dim[0], data->dim[1], data->dim[2]};
+  int step = data->step;
 
   /* Pointer to the chunk to be processed */
   int* local_cells = (int*)map_data;
@@ -243,7 +246,7 @@ void cell_gpart_to_mesh_CIC_mapper(void* map_data, int num, void* extra) {
     const struct cell* c = &cells[local_cells[i]];
 
     /* Assign this cell's content to the mesh */
-    cell_gpart_to_mesh_CIC(c, rho, N, fac, dim);
+    cell_gpart_to_mesh_CIC(c, rho, N, fac, dim, step);
   }
 }
 
@@ -551,6 +554,7 @@ void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
   data.dim[0] = dim[0];
   data.dim[1] = dim[1];
   data.dim[2] = dim[2];
+  data.step = s->e->step;
 
   /* Do a parallel CIC mesh assignment of the gparts but only using
      the local top-level cells */
