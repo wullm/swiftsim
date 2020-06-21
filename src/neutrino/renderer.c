@@ -704,7 +704,8 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   for (int i = 0; i < N * N * N; i++) {
     R += e->mesh->potential[i] * e->mesh->potential[i];
     Q += potential[i] * potential[i];
-    e->mesh->potential[i] += potential[i];
+    // e->mesh->potential[i] += potential[i];
+    e->mesh->potential[i] = 0;
   }
 
   message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));

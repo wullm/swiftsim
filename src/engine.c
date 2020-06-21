@@ -1760,13 +1760,27 @@ void engine_rebuild(struct engine *e, const int repartitioned,
     if (repartitioned) pm_mesh_allocate(e->mesh);
 
     /* ... and recompute */
-    pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose);
-  }
+    pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose, e->step);
+  // }
 
 #ifdef RENDERER_USED
   /* Add the perturbation theory contributions to the mesh forces */
   rend_add_to_mesh(e->rend, e);
 #endif
+
+    /* ... and recompute */
+    if (e->step % 10 == 0) {
+      pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose, 1);
+
+      double R = 0;
+      int N = e->mesh->N;
+      for (int i = 0; i < N * N * N; i++) {
+        R += e->mesh->potential[i] * e->mesh->potential[i];
+      }
+
+      message("[R] = [%e]", sqrt(R/(N*N*N)));
+    }
+  }
 
   /* Re-compute the maximal RMS displacement constraint */
   if (e->policy & engine_policy_cosmology)
