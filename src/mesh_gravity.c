@@ -175,7 +175,9 @@ INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho,
   const double mass = gp->mass;
 
   /* CIC ! */
-  if (gp->type == swift_type_neutrino || step % 10 != 0)
+  if (gp->type == swift_type_neutrino)
+  CIC_set(rho, N, i, j, k, tx, ty, tz, dx, dy, dz, gp->mass_i);
+  else
   CIC_set(rho, N, i, j, k, tx, ty, tz, dx, dy, dz, mass);
 }
 
