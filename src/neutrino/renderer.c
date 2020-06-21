@@ -709,7 +709,9 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
 
-  writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
+  if (e->nodeID == 0) {
+    writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
+  }
 
   /* Free memory */
   fftw_free(potential);
@@ -982,14 +984,18 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
     potential[i] -= (phi_grid[i] - psi_grid[i]);
   }
 
-  writeGRF_H5(potential, N, box_len, "gr_potential.hdf5");
+  if (e->nodeID == 0) {
+    writeGRF_H5(potential, N, box_len, "gr_potential.hdf5");
+  }
 
   /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
     e->mesh->potential[i] += potential[i];
   }
 
-  writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
+  if (e->nodeID == 0) {
+    writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
+  }
 
   /* Free memory */
   fftw_free(potential);
