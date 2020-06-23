@@ -23,6 +23,11 @@
 /* This object's header. */
 #include "renderer.h"
 
+/* We use Firebolt for linear theory neutrino calculations */
+#ifdef WITH_FIREBOLT_INTERFACE
+#include "firebolt_interface.h"
+#endif
+
 /* We use GSL for accelerated 2D interpolation */
 #ifdef HAVE_LIBGSL
 #include <gsl/gsl_spline2d.h>
@@ -121,6 +126,11 @@ void rend_init(struct renderer *rend, struct swift_params *params,
   // if (rend->density_grid == NULL) {
   //   error("Error allocating memory for density grid.");
   // }
+
+  /* Initialize the Firebolt interface */
+  #ifdef WITH_FIREBOLT_INTERFACE
+  firebolt_init(params, rend, e);
+  #endif
 }
 
 void rend_grids_alloc(struct renderer *rend) {
@@ -290,6 +300,11 @@ void rend_clean(struct renderer *rend) {
 
   /* Clean up the interpolation spline */
   rend_interp_free(rend);
+
+  /* Clean up the Firebolt interface */
+  #ifdef WITH_FIREBOLT_INTERFACE
+  firebolt_free();
+  #endif
 }
 
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
@@ -306,12 +321,19 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
   const double tau = cosmo->conformal_time;
   const double H_conformal = cosmo->H * cosmo->a;
 
-  message("H-conformal = %f", H_conformal);
+  // message("H-conformal = %f", H_conformal);
 
   /* Prevent out of interpolation range error */
   const int tau_size = rend->transfer.tau_size;
   const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
   const double log_tau = min(log(tau), final_log_tau);
+
+  /* Make sure that Firebolt has updated all the multipoles */
+  #ifdef WITH_FIREBOLT_INTERFACE
+  firebolt_update(rend, e);
+  #endif
+
+  if (false) {
 
   /* Boxes in configuration and momentum space */
   double *restrict potential;
@@ -538,6 +560,8 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
   fftw_free(potential);
   fftw_free(fp);
+
+  }
 
 #else
   error("No GSL library found. Cannot perform cosmological interpolation.");

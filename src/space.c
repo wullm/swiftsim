@@ -2344,6 +2344,12 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   float ff_sum = 0.f;
   float ff0_sum = 0.f;
   float ww_sum = 0.f;
+
+  size_t Nnupart = 0;
+
+  float df0df0_sum = 0.f;
+  float dfdf_sum = 0.f;
+  float dfdf0_sum = 0.f;
 #endif
 
   for (int k = 0; k < nr_gparts; k++) {
@@ -2439,15 +2445,17 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
 
 #ifdef WITH_DF_DIAGNOSTICS
         /* Compute delta-f statistics */
-        f0_sum += gp->f_phase;
-        f0f0_sum += gp->f_phase * gp->f_phase;
+        f0_sum += gp->f_phase * gp->Psi;
+        f0f0_sum += gp->f_phase * gp->f_phase * gp->Psi * gp->Psi;
         f_sum += gp->f_phase_i;
         ff_sum += gp->f_phase_i * gp->f_phase_i;
-        ff0_sum += gp->f_phase_i * gp->f_phase;
+        ff0_sum += gp->f_phase_i * gp->f_phase * gp->Psi;
         if (gp->f_phase_i > 0) {
           const double w = 1 - gp->f_phase / gp->f_phase_i;
           ww_sum += w * w;
         }
+
+        Nnupart++;
 #endif
 
         /* Compute the squared velocity */
@@ -2472,6 +2480,32 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
     }
   }
 
+
+/* Second pass of the variance/covariance calculations for neutrinos */
+#ifdef WITH_DF_DIAGNOSTICS
+
+  float f_mean = f_sum / Nnupart;
+  float f0_mean = f0_sum / Nnupart;
+
+  for (int k = 0; k < nr_gparts; k++) {
+
+    /* Get the particle */
+    struct gpart *restrict gp = &gparts[k];
+
+    if (gp->time_bin != time_bin_inhibited
+        && gp->time_bin != time_bin_not_created
+        && gp->type == swift_type_neutrino) {
+
+      float f0 = gp->f_phase * gp->Psi;
+      float f = gp->f_phase_i;
+
+      df0df0_sum += (f0 - f0_mean) * (f0 - f0_mean);
+      dfdf_sum += (f - f_mean) * (f - f_mean);
+      dfdf0_sum += (f - f_mean) * (f0 - f0_mean);
+    }
+  }
+#endif
+
   /* Write the counts back to the global array. */
   for (int k = 0; k < s->nr_cells; k++)
     if (cell_counts[k]) atomic_add(&data->cell_counts[k], cell_counts[k]);
@@ -2494,6 +2528,16 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   atomic_add_f(&s->sum_nupart_ff, ff_sum);
   atomic_add_f(&s->sum_nupart_ff0, ff0_sum);
   atomic_add_f(&s->sum_nupart_ww, ww_sum);
+
+  /* We collect differentials for a more robust two-pass algorithm */
+  atomic_add_f(&s->sum_nupart_dfdf, dfdf_sum);
+  atomic_add_f(&s->sum_nupart_dfdf0, dfdf0_sum);
+  atomic_add_f(&s->sum_nupart_df0df0, df0df0_sum);
+
+  /* We divide the squares of sums by N to make it easy to aggregate batches */
+  atomic_add_f(&s->nupart_fsum_fsum_over_N, f_sum * f_sum / Nnupart);
+  atomic_add_f(&s->nupart_fsum_f0sum_over_N, f_sum * f0_sum / Nnupart);
+  atomic_add_f(&s->nupart_f0sum_f0sum_over_N, f0_sum * f0_sum / Nnupart);
 #endif
 
   /* Do the same for the neutrinos */

@@ -1,28 +1,29 @@
 # Define the system of units to use internally.
 InternalUnitSystem:
   UnitMass_in_cgs:     1.98848e43    # 10^10 M_sun
-  UnitLength_in_cgs:   3.08567758e24 # 1 Mpc
-  UnitVelocity_in_cgs: 9.785e7       # 1 Mpc/Gyr
+  UnitLength_in_cgs:   3.085677581491e+024 # 1 Mpc
+  UnitVelocity_in_cgs: 9.784619423805e7       # 1 Mpc/Gyr
   UnitCurrent_in_cgs:  1   	     # Amperes
   UnitTemp_in_cgs:     1   	     # Kelvin
 
 Cosmology:
-  Omega_m: 0.31205
-  Omega_lambda: 0.6737588 #chosen to close the universe
-  Omega_b: 0.048275
-  h: 0.67556
+  Omega_m: 0.30997156435
+  Omega_lambda: 0.6850465 #chosen to close the universe
+  Omega_b: 0.0482386599
+  h: 0.679
   a_begin: 0.0243902	# z_ini = 40.
   a_end: 1.0		# z_end = 0.
   T_CMB: 2.7255
-  N_eff: 3.046
+  #N_eff: 3.046
+  T_nu: 1.9517581 # default CLASS temp, differing from the (4/11)^(4/3) value
   N_nu: 3
-  M_nu: 0.2, 0.2, 0.2
+  M_nu: 0.07, 0.07, 0.07
 
 # Boltzmann solver parameters
 Boltzmann:
   field_file_name: ./gaussian_pure.hdf5 # file containing the primordial fluctuations
-#  in_perturb_file_name: ./perturb.hdf5
-  in_perturb_file_name: ./perturb_big.hdf5
+  in_perturb_file_name: ./perturb_210.hdf5
+  firebolt_settings_file: firebolt_settings.ini
 #  class_ini_file: ./neutrino_example.ini
 #  class_pre_file: ./neutrino_example.pre
 #  k_bins: 25
@@ -34,8 +35,7 @@ Boltzmann:
 # Parameters governing the time integration
 TimeIntegration:
   dt_min:     1e-6
-  dt_max:     2e-2
-  neutrino_dt_switch_threshold: 1e-4
+  dt_max:     1e-2
 
 # Parameters governing the snapshots
 Snapshots:
@@ -60,20 +60,18 @@ InitialConditions:
   periodic:   1
 
 Scheduler:
-  max_top_level_cells: 8
-  cell_split_size:     50
+  max_top_level_cells: 16
+  cell_split_size:     100
 
 Gravity:
-  mesh_side_length: 64 
+  mesh_side_length:  64
   eta: 0.025
   theta: 0.5
   dithering: 0
-  comoving_DM_softening: 0.08 # in internal units
-  max_physical_DM_softening: 0.08 # in internal units
-  comoving_nu_softening: 0.08 # in internal units
-  max_physical_nu_softening: 0.08 # in internal units
-  comoving_baryon_softening: 0.08 # in internal units
-  max_physical_baryon_softening: 0.08  # 80 kpc = 1/25 of mean inter-particle separation
+  comoving_DM_softening: 0.04 # in internal units (1/25 mean interparticle sep)
+  max_physical_DM_softening: 0.04 # in internal units
+  comoving_nu_softening: 0.04 # in internal units
+  max_physical_nu_softening: 0.04 # in internal units
 
 Restarts:
-    delta_hours: 1
+  delta_hours: 2

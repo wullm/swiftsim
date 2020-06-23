@@ -284,6 +284,24 @@ struct space {
 
   /*! Sum of squared weights or mass ratios (m/m_initial) of #nupart */
   float sum_nupart_ww;
+
+  /*! Sum of squared differentials (f - f_mean)^2 of phase space densities */
+  float sum_nupart_dfdf;
+
+  /*! Sum of squared differentials (f0 - f0_mean)^2 of background model */
+  float sum_nupart_df0df0;
+
+  /*! Sum of cross products of differentials (f0 - f0_mean) * (f - f_mean) */
+  float sum_nupart_dfdf0;
+
+  /* Square of sum of background phase space densities */
+  float nupart_f0sum_f0sum_over_N; // = sum_nupart_f0^2 / Nnupart
+
+  /*! Square of sum of phase space densities */
+  float nupart_fsum_fsum_over_N; // = sum_nupart_f^2 / Nnupart
+
+  /* Product of sums of actual & background phase space densities */
+  float nupart_fsum_f0sum_over_N; // = sum_nupart_f * sum_nupart_f0 / Nnupart
 #endif
 
   /*! Initial value of the smoothing length read from the parameter file */

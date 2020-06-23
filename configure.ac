@@ -2337,6 +2337,25 @@ fi
 #              { (exit 1); exit 1; };
 #fi
 
+#  Interface with our own Boltzmann solver Firebolt
+AC_ARG_WITH([firebolt],
+    [AS_HELP_STRING([--with-firebolt=<path>],
+       [path to directory with Firebolt library @<:@none, PATH, default: none@:>@]
+    )],
+    [firebolt_path="$withval"],
+    [firebolt_path="none"]
+)
+
+# Check if Firebolt is to be included
+AM_CONDITIONAL([WITH_FIREBOLT_INTERFACE], [test $firebolt_path != "none"])
+
+if test $firebolt_path != "none"; then
+    FIREBOLT_LIBS="-L$firebolt_path -lfirebolt -Wl,-rpath=$firebolt_path"
+    FIREBOLT_INCS="-I$firebolt_path/include"
+    AC_SUBST([FIREBOLT_LIBS])
+    AC_SUBST([FIREBOLT_INCS])
+    AC_DEFINE([WITH_FIREBOLT_INTERFACE], [1], [Interface with the Firebolt code])
+fi
 
 #  Relativistic kick & drift - equation of motion
 AC_ARG_WITH([relativistic-eom],
@@ -2514,6 +2533,7 @@ AC_MSG_RESULT([
    Task dependencies    : $with_task_order
 
    CLASS library        : $class_path
+   Firebolt library     : $firebolt_path
    Neutrino cosmology   : $with_neutrino_cosmo
    Neutrino delta-f     : $with_neutrino_df
    Relativistic kick    : $with_relativistic_eom

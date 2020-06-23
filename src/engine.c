@@ -2460,11 +2460,16 @@ void engine_step(struct engine *e) {
   const float N_nu = (float)e->total_nr_nuparts;
 
   /* Reduce neutrino delta-f diagnostics */
-  float diagnostics[6] = {e->s->sum_nupart_f0,  e->s->sum_nupart_f0f0,
+  float diagnostics[12] = {e->s->sum_nupart_f0,  e->s->sum_nupart_f0f0,
                           e->s->sum_nupart_f,   e->s->sum_nupart_ff,
-                          e->s->sum_nupart_ff0, e->s->sum_nupart_ww};
+                          e->s->sum_nupart_ff0, e->s->sum_nupart_ww,
+                          e->s->sum_nupart_dfdf, e->s->sum_nupart_dfdf0,
+                          e->s->sum_nupart_df0df0,
+                          e->s->nupart_fsum_fsum_over_N,
+                          e->s->nupart_f0sum_f0sum_over_N,
+                          e->s->nupart_fsum_f0sum_over_N};
 #ifdef WITH_MPI
-  MPI_Allreduce(MPI_IN_PLACE, diagnostics, 6, MPI_FLOAT, MPI_SUM,
+  MPI_Allreduce(MPI_IN_PLACE, diagnostics, 12, MPI_FLOAT, MPI_SUM,
                 MPI_COMM_WORLD);
 #endif
 
@@ -2474,6 +2479,22 @@ void engine_step(struct engine *e) {
   const float ff_sum = diagnostics[3];
   const float ff0_sum = diagnostics[4];
   const float ww_sum = diagnostics[5];
+
+  const float dfdf_sum = diagnostics[6];
+  const float dfdf0_sum = diagnostics[7];
+  const float df0df0_sum = diagnostics[8];
+  const float f_sum_f_sum_sum = diagnostics[9];
+  const float f0_sum_f0_sum_sum = diagnostics[10];
+  const float f_sum_f0_sum_sum = diagnostics[11];
+
+  const float f_mean = f_sum / N_nu;
+  const float f_var = (dfdf_sum + f_sum_f_sum_sum - 2 * f_mean * f_sum
+                        + N_nu * f_mean * f_mean) / N_nu;
+  const float f0_mean = f0_sum / N_nu;
+  const float f0_var = (df0df0_sum + f0_sum_f0_sum_sum - 2 * f0_mean * f0_sum
+                      + N_nu * f0_mean * f0_mean) / N_nu;
+  const float covar = (dfdf0_sum + f_sum_f0_sum_sum - f_mean * f0_sum
+                      - f0_mean * f_sum + N_nu * f_mean * f0_mean) / N_nu;
 
   /* The global weight of the perturbation */
   float I_df;
@@ -2493,10 +2514,21 @@ void engine_step(struct engine *e) {
     /* No data => perfect correlation */
     beta = 1.0;
   } else {
+
     /* Calculate Pearson's correlation coefficient */
     const float sf = N_nu * ff_sum - f_sum * f_sum;
     const float sf0 = N_nu * f0f0_sum - f0_sum * f0_sum;
     beta = (N_nu * ff0_sum - f_sum * f0_sum) / sqrt(sf * sf0);
+
+    // const float sf = N_nu * ff_sum - f_sum * f_sum;
+    // const float sf0 = N_nu * f0f0_sum - f0_sum * f0_sum;
+    // beta = (N_nu * ff0_sum - f_sum * f0_sum) / sf0;
+
+    beta = covar / sqrt(f0_var * f_var);
+
+    beta = covar / f0_var;
+
+
   }
 #endif
 

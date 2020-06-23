@@ -42,6 +42,11 @@
 #include <hdf5.h>
 #endif
 
+/* We use Firebolt for linear theory neutrino calculations */
+#ifdef WITH_FIREBOLT_INTERFACE
+#include <firebolt.h>
+#endif
+
 /**
  * @brief Data structure for the renderer, generating perturbation theory grids
  */
@@ -54,6 +59,14 @@ struct renderer {
 
   /*! Array containing sequency of perturbation theory grids */
   double *the_grids;
+
+  /*! Array containing Firebolt grids */
+  struct grids *firebolt_grids;
+
+  /* Firebolt momentum range */
+  double firebolt_q_size;
+  double firebolt_log_q_min;
+  double firebolt_log_q_max;
 
   /*! Pointer to the neutrino over-density field, corresponding to the first
       N * N * N doubles in the_grids */

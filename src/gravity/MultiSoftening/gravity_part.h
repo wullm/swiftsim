@@ -110,6 +110,7 @@ struct gpart {
   /* The initial mass (as given by the initial conditions) */
   float mass_i;
 
+  double Psi_i, Psi;
 #endif
 
 } SWIFT_STRUCT_ALIGN;

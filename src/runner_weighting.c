@@ -26,6 +26,11 @@
 /* Phase space density functions needed */
 #include "neutrino/phase_space.h"
 
+/* We use Firebolt for linear theory neutrino calculations */
+#ifdef WITH_FIREBOLT_INTERFACE
+#include "neutrino/firebolt_interface.h"
+#endif
+
 /* Local headers. */
 #include "active.h"
 #include "cell.h"
@@ -193,17 +198,17 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   const double dim[3] = {e->s->dim[0], e->s->dim[1], e->s->dim[2]};
 #endif
 
-  // const struct phys_const *physical_constants = e->physical_constants;
-  // const struct cosmology *cosmo = e->cosmology;
+  const struct phys_const *physical_constants = e->physical_constants;
+  const struct cosmology *cosmo = e->cosmology;
   // const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
   // const double H_ratio = cosmo->H0 / cosmo->H;
   // const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
   // const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
   // const double particle_mass = neutrino_mass / e->total_nr_nuparts;
-  // const double T_nu = cosmo->T_nu;
-  // const double k_b = physical_constants->const_boltzmann_k;
-  // const double eV = physical_constants->const_electron_volt;
-  // const double T_eV = k_b * T_nu / eV; // temperature in eV
+  const double T_nu = cosmo->T_nu;
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double eV = physical_constants->const_electron_volt;
+  const double T_eV = k_b * T_nu / eV; // temperature in eV
 
   /* Conversion factor from macro particle mass to neutrino mass in eV */
   const double mult = e->neutrino_mass_conversion_factor;
@@ -229,46 +234,93 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 #else
           double temperature_factor = 1.0;
 #endif
+
+        if (e->step == 0) {
+          gp->mass_i = gp->mass;
+        }
+
+#ifdef WITH_FIREBOLT_INTERFACE
+          double n = sqrt(gp->v_full[0] * gp->v_full[0]
+                        + gp->v_full[1] * gp->v_full[1]
+                        + gp->v_full[2] * gp->v_full[2]);
+          double nx = gp->v_full[0]/n;
+          double ny = gp->v_full[1]/n;
+          double nz = gp->v_full[2]/n;
+
+          /* The mass of a microscopic neutrino in eV */
+          double m_eV = gp->mass_i * mult;
+
+          double q_eV = fermi_dirac_momentum(e, gp->v_full, m_eV);
+          double q = q_eV / T_eV;
+
+          // double Psi = evalDensityBin(e->rend->firebolt_grids, gp->x[0], gp->x[1], gp->x[2], nx, ny, nz, 2);
+          double Psi = evalDensity(e->rend->firebolt_grids, e->rend->firebolt_q_size, e->rend->firebolt_log_q_min, e->rend->firebolt_log_q_max, gp->x[0], gp->x[1], gp->x[2],
+                                     nx, ny, nz, q, 0);
+          double Psi1 = evalDensity(e->rend->firebolt_grids, e->rend->firebolt_q_size, e->rend->firebolt_log_q_min, e->rend->firebolt_log_q_max, gp->x[0], gp->x[1], gp->x[2],
+                                     nx, ny, nz, q, 1);
+          gp->Psis[0] = 1.f;
+          gp->Psis[1] = Psi;
+          gp->Psis[2] = Psi1;
+
+          // if (gp->id_or_neg_offset % 100 == 0)
+          // message("%e %f %f %f %f %f %f %f", Psi, nx, ny, nz, q, gp->x[0], gp->x[1], gp->x[2]);
+#else
+          double m_eV = gp->mass_i * mult;
+          double Psi = 0.f;
+#endif
+
           /* Is it the first time step? */
           if (e->step == 0) {
             /* The mass of a microscopic neutrino in eV */
-            double m_eV = gp->mass * mult;
+            // double m_eV = gp->mass * mult;
             double f;
 
             /* Store the initial mass & phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
-            gp->mass_i = gp->mass;
+            f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0 + 0*temperature_factor);
+            // gp->mass_i = gp->mass;
             gp->f_phase = f;
             gp->f_phase_i = f;
+            gp->Psi_i = Psi;
             gp->mass = FLT_MIN;  // dither in the first time step
+
+            // if (gp->id_or_neg_offset >= 262144 &&
+            //     gp->id_or_neg_offset < 262144 + 5) {
+            //       message("%e %f", gp->v_full[0], m_eV);
+            //     }
           } else {
             /* The mass of a microscopic neutrino in eV */
-            double m_eV = gp->mass_i * mult;
+            m_eV = gp->mass_i * mult;
             double f;
 
             /* Compute the phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0 + 0*temperature_factor);
             gp->f_phase = f;
+            gp->Psi = Psi;
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
             double energy_eV = fermi_dirac_energy(e, gp->v_full, m_eV);
             double energy = energy_eV / mult;  // energy in internal mass units
 
+            // double w_bare = 1.0 - gp->f_phase / (1 + Psi) / (gp->f_phase_i / (1 + gp->Psi_i));
+            double w_full = 1.0 - gp->f_phase / gp->f_phase_i;
+
             /* Use the weighted energy instead of the mass */
-            gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
+            // gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
+            gp->mass = energy * w_full;
 
             /* Avoid poles */
             if (gp->mass == 0) {
               gp->mass = FLT_MIN;
             }
-
-            // if (gp->id_or_neg_offset >= 114688-4096 &&
-            //     gp->id_or_neg_offset < 114688-4096 + 5) {
-            //         message("%f %f %f %f", linear_overdensity,
-            //         temperature_factor, f, energy);
+            //
+            // // if (q < 0.1 || q > 10) {
+            // if (gp->id_or_neg_offset >= 262144 &&
+            //     gp->id_or_neg_offset < 262144 + 50) {
+            //
+            //         message("%f %f %f %f %e %e \t q = %f %f", gp->f_phase_i / (1 + gp->Psi_i), gp->f_phase / (1 + Psi), gp->Psi_i, Psi, w_bare, w_full, q, q_eV);
             // //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) /
             // //         e->cosmology->a; message("%.10e %.10e %.10e %f", p,
-            // m_eV,
+            // // m_eV,
             // //         energy_eV, energy / gp->mass_i);
             //     }
           }
