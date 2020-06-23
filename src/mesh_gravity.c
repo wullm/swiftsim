@@ -501,7 +501,7 @@ void mesh_apply_Green_function(struct threadpool* tp, fftw_complex* frho,
  * @param verbose Are we talkative?
  */
 void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
-                               struct threadpool* tp, const int verbose, int strange) {
+                               struct threadpool* tp, const int verbose) {
 
 #ifdef HAVE_FFTW
 
@@ -554,7 +554,7 @@ void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
   data.dim[0] = dim[0];
   data.dim[1] = dim[1];
   data.dim[2] = dim[2];
-  data.step = strange;
+  data.step = s->e->step;
 
   /* Do a parallel CIC mesh assignment of the gparts but only using
      the local top-level cells */
