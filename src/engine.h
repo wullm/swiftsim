@@ -120,6 +120,7 @@ enum engine_step_properties {
 #define engine_foreign_alloc_margin 1.05
 #define engine_default_energy_file_name "energy"
 #define engine_default_timesteps_file_name "timesteps"
+#define engine_default_control_vars_file_name "control_vars"
 #define engine_max_parts_per_ghost_default 1000
 #define engine_max_sparts_per_ghost_default 1000
 #define engine_star_resort_task_depth_default 2
@@ -354,6 +355,11 @@ struct engine {
 
   /* File handle for the SFH logger file */
   FILE *sfh_logger;
+
+#ifdef WITH_CV_STATS
+  /* File handle for control variate statistics */
+  FILE *control_var_stats;
+#endif
 
   /* The current step number. */
   int step;

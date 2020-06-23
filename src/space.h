@@ -285,23 +285,18 @@ struct space {
   /*! Sum of squared weights or mass ratios (m/m_initial) of #nupart */
   float sum_nupart_ww;
 
-  /*! Sum of squared differentials (f - f_mean)^2 of phase space densities */
-  float sum_nupart_dfdf;
+#ifdef WITH_CV_STATS
+#define NUMBER_CV_STAT_PAIRS NUMBER_CV_STATS * (NUMBER_CV_STATS + 1) / 2
 
-  /*! Sum of squared differentials (f0 - f0_mean)^2 of background model */
-  float sum_nupart_df0df0;
+  /* Sum over particles i of control variates: X_i */
+  double sum_control_vars[NUMBER_CV_STATS];
 
-  /*! Sum of cross products of differentials (f0 - f0_mean) * (f - f_mean) */
-  float sum_nupart_dfdf0;
+  /* Sum over parts i, nodes j of deviations (X_i - X_mean_j)*(Y_i - Y_mean_j) */
+  double sum_control_vars_deviations[NUMBER_CV_STAT_PAIRS];
 
-  /* Square of sum of background phase space densities */
-  float nupart_f0sum_f0sum_over_N; // = sum_nupart_f0^2 / Nnupart
-
-  /*! Square of sum of phase space densities */
-  float nupart_fsum_fsum_over_N; // = sum_nupart_f^2 / Nnupart
-
-  /* Product of sums of actual & background phase space densities */
-  float nupart_fsum_f0sum_over_N; // = sum_nupart_f * sum_nupart_f0 / Nnupart
+  /* Sum over nodes i of the product of means: N_i * X_mean_i * Y_mean_i */
+  double sum_control_vars_meanproducts[NUMBER_CV_STAT_PAIRS];
+#endif
 #endif
 
   /*! Initial value of the smoothing length read from the parameter file */

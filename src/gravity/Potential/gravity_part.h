@@ -95,6 +95,10 @@ struct gpart {
   /* The initial mass (as given by the initial conditions) */
   float mass_i;
 
+#ifdef WITH_CV_STATS
+  /* Control variates recorded separately for statistical purposes */
+  float control_vars[NUMBER_CV_STATS];
+#endif
 #endif
 
 } SWIFT_STRUCT_ALIGN;

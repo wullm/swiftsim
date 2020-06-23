@@ -2347,9 +2347,17 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
 
   size_t Nnupart = 0;
 
-  float df0df0_sum = 0.f;
-  float dfdf_sum = 0.f;
-  float dfdf0_sum = 0.f;
+#ifdef WITH_CV_STATS
+  /* Local collectors for control variate statistics (means and covariances) */
+  double cont_var_sum[NUMBER_CV_STATS]; // sum(X)
+  double cont_var_deviations[NUMBER_CV_STAT_PAIRS]; // sum(X-X_mean) * (Y-Y_mean)
+  double cont_var_meanproducts[NUMBER_CV_STAT_PAIRS]; // N * X_mean * Y_mean
+
+  /* Zero everything */
+  bzero(cont_var_sum, NUMBER_CV_STATS * sizeof(double));
+  bzero(cont_var_deviations, NUMBER_CV_STAT_PAIRS * sizeof(double));
+  bzero(cont_var_meanproducts, NUMBER_CV_STAT_PAIRS * sizeof(double));
+#endif
 #endif
 
   for (int k = 0; k < nr_gparts; k++) {
@@ -2445,17 +2453,24 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
 
 #ifdef WITH_DF_DIAGNOSTICS
         /* Compute delta-f statistics */
-        f0_sum += gp->f_phase * gp->Psi;
-        f0f0_sum += gp->f_phase * gp->f_phase * gp->Psi * gp->Psi;
+        f0_sum += gp->f_phase;
+        f0f0_sum += gp->f_phase * gp->f_phase;
         f_sum += gp->f_phase_i;
         ff_sum += gp->f_phase_i * gp->f_phase_i;
-        ff0_sum += gp->f_phase_i * gp->f_phase * gp->Psi;
+        ff0_sum += gp->f_phase_i * gp->f_phase;
         if (gp->f_phase_i > 0) {
           const double w = 1 - gp->f_phase / gp->f_phase_i;
           ww_sum += w * w;
         }
 
         Nnupart++;
+
+#ifdef WITH_CV_STATS
+        /* Compute the aggregate for each control variate */
+        for (int i = 0; i < NUMBER_CV_STATS; i++) {
+          cont_var_sum[i] += gp->control_vars[i];
+        }
+#endif
 #endif
 
         /* Compute the squared velocity */
@@ -2482,11 +2497,9 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
 
 
 /* Second pass of the variance/covariance calculations for neutrinos */
-#ifdef WITH_DF_DIAGNOSTICS
+#ifdef WITH_CV_STATS
 
-  float f_mean = f_sum / Nnupart;
-  float f0_mean = f0_sum / Nnupart;
-
+  /* Compute the deviations */
   for (int k = 0; k < nr_gparts; k++) {
 
     /* Get the particle */
@@ -2496,12 +2509,33 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
         && gp->time_bin != time_bin_not_created
         && gp->type == swift_type_neutrino) {
 
-      float f0 = gp->f_phase * gp->Psi;
-      float f = gp->f_phase_i;
+      /* Compute all cross-deviations (X - X_mean) * (Y - Y_mean) */
+      for (int i = 0; i < NUMBER_CV_STATS; i++) {
+        for (int j = i; j < NUMBER_CV_STATS; j++) {
+          /* Index of (i,j) entry in symmetric matrix */
+          int index = j + NUMBER_CV_STATS * i - i * (i + 1) / 2;
+          /* The deviations of the ith and jth variates w.r.t. their means */
+          double di = gp->control_vars[i] - cont_var_sum[i] / Nnupart;
+          double dj = gp->control_vars[j] - cont_var_sum[j] / Nnupart;
+          /* Store the cross product */
+          cont_var_deviations[index] += di * dj;
+        }
+      }
+    }
+  }
 
-      df0df0_sum += (f0 - f0_mean) * (f0 - f0_mean);
-      dfdf_sum += (f - f_mean) * (f - f_mean);
-      dfdf0_sum += (f - f_mean) * (f0 - f0_mean);
+  /* Compute products of local means of control variates: N * X_mean * Y_mean */
+  for (int i = 0; i < NUMBER_CV_STATS; i++) {
+    for (int j = i; j < NUMBER_CV_STATS; j++) {
+      /* Index of (i,j) entry in symmetric matrix */
+      int index = j + NUMBER_CV_STATS * i - i * (i + 1) / 2;
+
+      /* The means of the ith and jth variates */
+      double mean_i = cont_var_sum[i] / Nnupart;
+      double mean_j = cont_var_sum[j] / Nnupart;
+
+      /* Store the cross product */
+      cont_var_meanproducts[index] = Nnupart * mean_i * mean_j;
     }
   }
 #endif
@@ -2522,6 +2556,7 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   atomic_add_f(&s->sum_gpart_vel_norm, sum_vel_norm);
 
 #ifdef WITH_DF_DIAGNOSTICS
+  /* Write back delta-f statistics */
   atomic_add_f(&s->sum_nupart_f0, f0_sum);
   atomic_add_f(&s->sum_nupart_f0f0, f0f0_sum);
   atomic_add_f(&s->sum_nupart_f, f_sum);
@@ -2529,15 +2564,17 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   atomic_add_f(&s->sum_nupart_ff0, ff0_sum);
   atomic_add_f(&s->sum_nupart_ww, ww_sum);
 
-  /* We collect differentials for a more robust two-pass algorithm */
-  atomic_add_f(&s->sum_nupart_dfdf, dfdf_sum);
-  atomic_add_f(&s->sum_nupart_dfdf0, dfdf0_sum);
-  atomic_add_f(&s->sum_nupart_df0df0, df0df0_sum);
+#ifdef WITH_CV_STATS
+  /* Write back control variate statistics */
+  for (int i = 0; i < NUMBER_CV_STATS; i++) {
+    atomic_add_d(s->sum_control_vars + i, cont_var_sum[i]);
+  }
 
-  /* We divide the squares of sums by N to make it easy to aggregate batches */
-  atomic_add_f(&s->nupart_fsum_fsum_over_N, f_sum * f_sum / Nnupart);
-  atomic_add_f(&s->nupart_fsum_f0sum_over_N, f_sum * f0_sum / Nnupart);
-  atomic_add_f(&s->nupart_f0sum_f0sum_over_N, f0_sum * f0_sum / Nnupart);
+  for (int i = 0; i < NUMBER_CV_STAT_PAIRS; i++) {
+    atomic_add_d(s->sum_control_vars_deviations + i, cont_var_deviations[i]);
+    atomic_add_d(s->sum_control_vars_meanproducts + i, cont_var_meanproducts[i]);
+  }
+#endif
 #endif
 
   /* Do the same for the neutrinos */
@@ -2930,6 +2967,12 @@ void space_gparts_get_cell_index(struct space *s, int *gind, int *cell_counts,
   s->sum_nupart_ff = 0.f;
   s->sum_nupart_ff0 = 0.f;
   s->sum_nupart_ww = 0.f;
+
+#ifdef WITH_CV_STATS
+  bzero(s->sum_control_vars, NUMBER_CV_STATS * sizeof(double));
+  bzero(s->sum_control_vars_deviations, NUMBER_CV_STAT_PAIRS * sizeof(double));
+  bzero(s->sum_control_vars_meanproducts, NUMBER_CV_STAT_PAIRS * sizeof(double));
+#endif
 #endif
 
   /* Pack the extra information */
@@ -5039,6 +5082,11 @@ void space_init(struct space *s, struct swift_params *params,
   s->sum_nupart_ff = 0.f;
   s->sum_nupart_ff0 = 0.f;
   s->sum_nupart_ww = 0.f;
+#ifdef WITH_CV_STATS
+  bzero(s->sum_control_vars, NUMBER_CV_STATS * sizeof(double));
+  bzero(s->sum_control_vars_deviations, NUMBER_CV_STAT_PAIRS * sizeof(double));
+  bzero(s->sum_control_vars_meanproducts, NUMBER_CV_STAT_PAIRS * sizeof(double));
+#endif
 #endif
   s->nr_queues = 1; /* Temporary value until engine construction */
 

@@ -2383,7 +2383,7 @@ esac
 #  With neutrino delta-f diagnostics?
 AC_ARG_WITH([df-diagnost],
     [AS_HELP_STRING([--with-df-diagnost=<mode>],
-       [use relativistic kick/drift @<:@no, yes, default: no@:>@]
+       [record diagnostics for delta-f method @<:@no, yes, default: no@:>@]
     )],
     [with_df_diagnost="$withval"],
     [with_df_diagnost="no"]
@@ -2400,6 +2400,34 @@ case "$with_df_diagnost" in
       AC_MSG_ERROR([Unknown option for delta-f diagnostics])
    ;;
 esac
+
+#  With control variate (i.e. higher order delta-f) statistics?
+AC_ARG_WITH([cv-stats],
+    [AS_HELP_STRING([--with-cv-stats=<mode>],
+       [use relativistic kick/drift @<:@no, yes, default: no@:>@]
+    )],
+    [with_cv_stats="$withval"],
+    [with_cv_stats="no"]
+)
+
+case "$with_cv_stats" in
+   no)
+
+   ;;
+   yes)
+      AC_DEFINE([WITH_CV_STATS], [1], [With control variate statistics])
+      AC_DEFINE([NUMBER_CV_STATS], [4], [Number of control variates])
+   ;;
+   *)
+      AC_MSG_ERROR([Unknown option for control variate statistics])
+   ;;
+esac
+
+# Check if the CV_STATS option was used, but not df-diagnostics
+if test $with_df_diagnost == "no" && test $with_cv_stats = "yes"; then
+    $as_echo "$as_me: error: control variate stats without df diagnostics " >&2
+              { (exit 1); exit 1; };
+fi
 
 
 #  Time stepping scheme for neutrinos

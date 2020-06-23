@@ -227,17 +227,20 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
       if (gp->type == swift_type_neutrino && true) {
         if (gpart_is_active(gp, e)) {
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
-          double linear_overdensity =
-              grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
-          double temperature_factor = cbrt(1.0 + linear_overdensity);
-#else
           double temperature_factor = 1.0;
+
+#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+          double overdensity = grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
+          temperature_factor = cbrt(1.0 + overdensity);
 #endif
 
+        /* Store the initial mass in the first time step */
         if (e->step == 0) {
           gp->mass_i = gp->mass;
         }
+
+        /* The mass of a microscopic neutrino in eV */
+        double m_eV = gp->mass_i * mult;
 
 #ifdef WITH_FIREBOLT_INTERFACE
           double n = sqrt(gp->v_full[0] * gp->v_full[0]
@@ -247,46 +250,26 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           double ny = gp->v_full[1]/n;
           double nz = gp->v_full[2]/n;
 
-          /* The mass of a microscopic neutrino in eV */
-          double m_eV = gp->mass_i * mult;
-
+          /* Momentum in temperature units */
           double q_eV = fermi_dirac_momentum(e, gp->v_full, m_eV);
           double q = q_eV / T_eV;
 
-          // double Psi = evalDensityBin(e->rend->firebolt_grids, gp->x[0], gp->x[1], gp->x[2], nx, ny, nz, 2);
+          /* Multipoles in monomial basis */
           double Psi = evalDensity(e->rend->firebolt_grids, e->rend->firebolt_q_size, e->rend->firebolt_log_q_min, e->rend->firebolt_log_q_max, gp->x[0], gp->x[1], gp->x[2],
                                      nx, ny, nz, q, 0);
           double Psi1 = evalDensity(e->rend->firebolt_grids, e->rend->firebolt_q_size, e->rend->firebolt_log_q_min, e->rend->firebolt_log_q_max, gp->x[0], gp->x[1], gp->x[2],
                                      nx, ny, nz, q, 1);
-          gp->Psis[0] = 1.f;
-          gp->Psis[1] = Psi;
-          gp->Psis[2] = Psi1;
-
-          // if (gp->id_or_neg_offset % 100 == 0)
-          // message("%e %f %f %f %f %f %f %f", Psi, nx, ny, nz, q, gp->x[0], gp->x[1], gp->x[2]);
-#else
-          double m_eV = gp->mass_i * mult;
-          double Psi = 0.f;
 #endif
 
           /* Is it the first time step? */
           if (e->step == 0) {
-            /* The mass of a microscopic neutrino in eV */
-            // double m_eV = gp->mass * mult;
             double f;
 
             /* Store the initial mass & phase space density */
             f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0 + 0*temperature_factor);
-            // gp->mass_i = gp->mass;
             gp->f_phase = f;
             gp->f_phase_i = f;
-            gp->Psi_i = Psi;
             gp->mass = FLT_MIN;  // dither in the first time step
-
-            // if (gp->id_or_neg_offset >= 262144 &&
-            //     gp->id_or_neg_offset < 262144 + 5) {
-            //       message("%e %f", gp->v_full[0], m_eV);
-            //     }
           } else {
             /* The mass of a microscopic neutrino in eV */
             m_eV = gp->mass_i * mult;
@@ -295,35 +278,27 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             /* Compute the phase space density */
             f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0 + 0*temperature_factor);
             gp->f_phase = f;
-            gp->Psi = Psi;
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
             double energy_eV = fermi_dirac_energy(e, gp->v_full, m_eV);
             double energy = energy_eV / mult;  // energy in internal mass units
 
-            // double w_bare = 1.0 - gp->f_phase / (1 + Psi) / (gp->f_phase_i / (1 + gp->Psi_i));
-            double w_full = 1.0 - gp->f_phase / gp->f_phase_i;
-
             /* Use the weighted energy instead of the mass */
-            // gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
-            gp->mass = energy * w_full;
+            gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
 
             /* Avoid poles */
             if (gp->mass == 0) {
               gp->mass = FLT_MIN;
             }
-            //
-            // // if (q < 0.1 || q > 10) {
-            // if (gp->id_or_neg_offset >= 262144 &&
-            //     gp->id_or_neg_offset < 262144 + 50) {
-            //
-            //         message("%f %f %f %f %e %e \t q = %f %f", gp->f_phase_i / (1 + gp->Psi_i), gp->f_phase / (1 + Psi), gp->Psi_i, Psi, w_bare, w_full, q, q_eV);
-            // //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) /
-            // //         e->cosmology->a; message("%.10e %.10e %.10e %f", p,
-            // // m_eV,
-            // //         energy_eV, energy / gp->mass_i);
-            //     }
           }
+
+#ifdef WITH_CV_STATS
+          /* Record control variate statistics */
+          gp->control_vars[0] = gp->f_phase_i;
+          gp->control_vars[1] = gp->f_phase;
+          gp->control_vars[2] = gp->f_phase * Psi;
+          gp->control_vars[3] = gp->f_phase * Psi1;
+#endif
         }
       }
     }

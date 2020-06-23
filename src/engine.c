@@ -2460,16 +2460,11 @@ void engine_step(struct engine *e) {
   const float N_nu = (float)e->total_nr_nuparts;
 
   /* Reduce neutrino delta-f diagnostics */
-  float diagnostics[12] = {e->s->sum_nupart_f0,  e->s->sum_nupart_f0f0,
+  float diagnostics[6] = {e->s->sum_nupart_f0,  e->s->sum_nupart_f0f0,
                           e->s->sum_nupart_f,   e->s->sum_nupart_ff,
-                          e->s->sum_nupart_ff0, e->s->sum_nupart_ww,
-                          e->s->sum_nupart_dfdf, e->s->sum_nupart_dfdf0,
-                          e->s->sum_nupart_df0df0,
-                          e->s->nupart_fsum_fsum_over_N,
-                          e->s->nupart_f0sum_f0sum_over_N,
-                          e->s->nupart_fsum_f0sum_over_N};
+                          e->s->sum_nupart_ff0, e->s->sum_nupart_ww};
 #ifdef WITH_MPI
-  MPI_Allreduce(MPI_IN_PLACE, diagnostics, 12, MPI_FLOAT, MPI_SUM,
+  MPI_Allreduce(MPI_IN_PLACE, diagnostics, 6, MPI_FLOAT, MPI_SUM,
                 MPI_COMM_WORLD);
 #endif
 
@@ -2479,22 +2474,6 @@ void engine_step(struct engine *e) {
   const float ff_sum = diagnostics[3];
   const float ff0_sum = diagnostics[4];
   const float ww_sum = diagnostics[5];
-
-  const float dfdf_sum = diagnostics[6];
-  const float dfdf0_sum = diagnostics[7];
-  const float df0df0_sum = diagnostics[8];
-  const float f_sum_f_sum_sum = diagnostics[9];
-  const float f0_sum_f0_sum_sum = diagnostics[10];
-  const float f_sum_f0_sum_sum = diagnostics[11];
-
-  const float f_mean = f_sum / N_nu;
-  const float f_var = (dfdf_sum + f_sum_f_sum_sum - 2 * f_mean * f_sum
-                        + N_nu * f_mean * f_mean) / N_nu;
-  const float f0_mean = f0_sum / N_nu;
-  const float f0_var = (df0df0_sum + f0_sum_f0_sum_sum - 2 * f0_mean * f0_sum
-                      + N_nu * f0_mean * f0_mean) / N_nu;
-  const float covar = (dfdf0_sum + f_sum_f0_sum_sum - f_mean * f0_sum
-                      - f0_mean * f_sum + N_nu * f_mean * f0_mean) / N_nu;
 
   /* The global weight of the perturbation */
   float I_df;
@@ -2514,22 +2493,68 @@ void engine_step(struct engine *e) {
     /* No data => perfect correlation */
     beta = 1.0;
   } else {
-
     /* Calculate Pearson's correlation coefficient */
     const float sf = N_nu * ff_sum - f_sum * f_sum;
     const float sf0 = N_nu * f0f0_sum - f0_sum * f0_sum;
     beta = (N_nu * ff0_sum - f_sum * f0_sum) / sqrt(sf * sf0);
-
-    // const float sf = N_nu * ff_sum - f_sum * f_sum;
-    // const float sf0 = N_nu * f0f0_sum - f0_sum * f0_sum;
-    // beta = (N_nu * ff0_sum - f_sum * f0_sum) / sf0;
-
-    beta = covar / sqrt(f0_var * f_var);
-
-    beta = covar / f0_var;
-
-
   }
+
+#ifdef WITH_CV_STATS
+  /* Retrieve control variate statistics */
+  double sum_cont_vars[NUMBER_CV_STATS];
+  double sum_cont_vars_deviations[NUMBER_CV_STAT_PAIRS];
+  double sum_cont_vars_meanproducts[NUMBER_CV_STAT_PAIRS];
+
+  memcpy(sum_cont_vars, e->s->sum_control_vars,
+         NUMBER_CV_STATS * sizeof(double));
+  memcpy(sum_cont_vars_deviations, e->s->sum_control_vars_deviations,
+         NUMBER_CV_STAT_PAIRS * sizeof(double));
+  memcpy(sum_cont_vars_meanproducts, e->s->sum_control_vars_meanproducts,
+         NUMBER_CV_STAT_PAIRS * sizeof(double));
+
+#ifdef WITH_MPI
+  /* Aggregate the results from all the nodes */
+  MPI_Allreduce(MPI_IN_PLACE, sum_cont_vars, NUMBER_CV_STATS, MPI_DOUBLE,
+                MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, sum_cont_vars_deviations, NUMBER_CV_STAT_PAIRS,
+                MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, sum_cont_vars_meanproducts, NUMBER_CV_STAT_PAIRS,
+                MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+#endif
+
+  /* Compute the global means and (co-)variances of control variates */
+  double mean_cont_vars[NUMBER_CV_STATS];
+  double covar_cont_vars[NUMBER_CV_STAT_PAIRS];
+
+  for (int i = 0; i < NUMBER_CV_STATS; i++) {
+    mean_cont_vars[i] = sum_cont_vars[i] / N_nu;
+  }
+
+  for (int i = 0; i < NUMBER_CV_STATS; i++) {
+    for (int j = i; j < NUMBER_CV_STATS; j++) {
+      /* Index of (i,j) entry in symmetric matrix */
+      int index = j + NUMBER_CV_STATS * i - i * (i + 1) / 2;
+
+      /* Compute the covariance of variates i and j */
+      covar_cont_vars[index] = sum_cont_vars_deviations[index] / N_nu;
+      covar_cont_vars[index] += sum_cont_vars_meanproducts[index] / N_nu;
+      covar_cont_vars[index] -= sum_cont_vars[i] * mean_cont_vars[j] / N_nu;
+      covar_cont_vars[index] -= sum_cont_vars[j] * mean_cont_vars[i] / N_nu;
+      covar_cont_vars[index] += mean_cont_vars[i] * mean_cont_vars[j];
+    }
+  }
+
+  if (e->nodeID == 0 && !e->restarting) {
+    fprintf(e->control_var_stats, "%6d %14e %12.7f ", e->step, e->time,
+                                                      e->cosmology->a);
+    for (int i = 0; i < NUMBER_CV_STAT_PAIRS; i++) {
+      fprintf(e->control_var_stats, "%14e", covar_cont_vars[i]);
+    }
+    fprintf(e->control_var_stats, "\n");
+    fflush(e->control_var_stats);
+  }
+
+#endif
 #endif
 
   if (e->nodeID == 0) {
@@ -4217,6 +4242,10 @@ void engine_config(int restart, int fof, struct engine *e,
   e->run_fof = 0;
   engine_rank = nodeID;
 
+#ifdef WITH_CV_STATS
+    e->control_var_stats = NULL;
+#endif
+
   if (restart && fof) {
     error(
         "Can't configure the engine to be a stand-alone FOF and restarting "
@@ -4497,6 +4526,29 @@ void engine_config(int restart, int fof, struct engine *e,
       fprintf(e->file_timesteps, "\n");
       fflush(e->file_timesteps);
     }
+
+#ifdef WITH_CV_STATS
+  char controlvars_fileName[200] = "";
+  parser_get_opt_param_string(params, "Statistics:control_vars_file_name",
+                            controlvars_fileName,
+                            engine_default_control_vars_file_name);
+
+  sprintf(controlvars_fileName + strlen(controlvars_fileName), "_%d.txt",
+        nr_nodes * nr_threads);
+  e->control_var_stats = fopen(controlvars_fileName, mode);
+
+  if (!restart) {
+    fprintf(e->control_var_stats, "# %6s %14s %12s ",
+                                  "Step", "Time", "Scale-factor");
+    for (int i = 0; i < NUMBER_CV_STATS; i++) {
+      for (int j = i; j < NUMBER_CV_STATS; j++) {
+        fprintf(e->control_var_stats, "Covar_{%d,%d} ", i, j);
+      }
+    }
+    fprintf(e->control_var_stats, "\n");
+    fflush(e->control_var_stats);
+  }
+#endif
 
     /* Initialize the SFH logger if running with star formation */
     if (e->policy & engine_policy_star_formation) {
@@ -5600,6 +5652,10 @@ void engine_clean(struct engine *e, const int fof, const int restart) {
   if (!fof && e->nodeID == 0) {
     fclose(e->file_timesteps);
     fclose(e->file_stats);
+
+#ifdef WITH_CV_STATS
+    fclose(e->control_var_stats);
+#endif
 
     if (e->policy & engine_policy_star_formation) {
       fclose(e->sfh_logger);
