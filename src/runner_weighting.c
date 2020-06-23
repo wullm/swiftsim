@@ -262,13 +262,12 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             double energy = energy_eV / mult;  // energy in internal mass units
 
             /* Use the weighted energy instead of the mass */
-            // gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
-            gp->mass = FLT_MIN + 0 * energy;
-            
+            gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
+
             /* Avoid poles */
-            // if (gp->mass == 0) {
-            //   gp->mass = FLT_MIN;
-            // }
+            if (gp->mass == 0) {
+              gp->mass = FLT_MIN;
+            }
 
             // if (gp->id_or_neg_offset >= 114688-4096 &&
             //     gp->id_or_neg_offset < 114688-4096 + 5) {
