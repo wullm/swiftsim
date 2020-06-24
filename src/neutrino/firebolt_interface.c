@@ -36,36 +36,26 @@ struct grids firebolt_grs;
 /* SWIFT structure reference */
 struct cosmology *c;
 
+/* Redshift as a function of the logarithm of conformal time */
 double z_at_log_tau(double log_tau) {
     double conformal_time = exp(log_tau);
     double a = cosmology_get_scale_factor_from_conformal_time(c, conformal_time);
     return 1./a - 1.;
 }
 
-/* Quick and dirty write binary boxes */
-inline void write_doubles_as_floats(char *fname, double *doubles, int nfloats) {
-  /* Convert to floats */
-  float *floats = (float *)malloc(sizeof(float) * nfloats);
-  for (int i = 0; i < nfloats; i++) {
-    floats[i] = (float)doubles[i];
-  }
-
-  FILE *f = fopen(fname, "wb");
-  fwrite(floats, sizeof(float), nfloats, f);
-  fclose(f);
-  free(floats);
-}
-
-
 int firebolt_init(struct swift_params *params, struct renderer *rend, const struct engine *e) {
     char settingsFileName[200] = "";
-    parser_get_param_string(params, "Boltzmann:firebolt_settings_file", settingsFileName);
+    parser_get_param_string(params, "Boltzmann:firebolt_settings_file",
+                            settingsFileName);
 
     c = e->cosmology;
 
     /* When is the simulation supposed to start? */
     double a_begin = c->a_begin;
     double tau_begin_sim = cosmology_get_conformal_time(c, a_begin);
+
+    printf("\n");
+    printf("Running Firebolt.\n\n");
 
     /* Read the Firebolt settings and units */
     readParams(&firebolt_params, settingsFileName);
@@ -92,9 +82,8 @@ int firebolt_init(struct swift_params *params, struct renderer *rend, const stru
     switchPerturbInterp(&firebolt_ptdat, eta_prime_index, 1);
 
     /* Read the gaussian random field */
-    int N = rend->primordial_grid_N;
-    double *box = rend->primordial_grid;
-    double box_len = rend->primordial_dims[0];
+    int N = rend->primordial_box_small_N;
+    double box_len = rend->primordial_box_len;
 
     /* Determine the maximum and minimum wavenumbers */
     double dk = 2*M_PI/box_len;
@@ -105,20 +94,11 @@ int firebolt_init(struct swift_params *params, struct renderer *rend, const stru
     k_max *= 1.2;
     k_min /= 1.2;
 
-    printf("[kmin, kmax] = [%f, %f]\n", k_min, k_max);
-
-    /* Fourier transform */
-    fftw_complex *fbox = (fftw_complex*) fftw_malloc(N*N*(N/2+1)*sizeof(fftw_complex));
-    fftw_plan r2c = fftw_plan_dft_r2c_3d(N, N, N, box, fbox, FFTW_ESTIMATE);
-    fft_execute(r2c);
-    fft_normalize_r2c(fbox,N,box_len);
-    fftw_destroy_plan(r2c);
-
+    /* Propagate the grid dimensions */
     firebolt_params.GridSize = N;
     firebolt_params.BoxLen = box_len;
 
     /* The system to solve */
-    double k = firebolt_params.kSingle;
     double tau_ini = exp(firebolt_ptdat.log_tau[0]);
     double tau_fin = tau_begin_sim; //integrate up to the beginning of the sim
     double a_fin = a_begin; //integrate up to the beginning of the sim
@@ -130,10 +110,10 @@ int firebolt_init(struct swift_params *params, struct renderer *rend, const stru
     const double M = M_nu * eV / (kb * c->T_nu);
     const double c_vel = e->physical_constants->const_speed_light_c;
 
-
     /* Size of the problem */
     int l_max = firebolt_params.MaxMultipole;
     int l_max_convert = firebolt_params.MaxMultipoleConvert;
+    int k_size = firebolt_params.NumberWavenumbers;
     double q_min = firebolt_params.MinMomentum;
     double q_max = firebolt_params.MaxMomentum;
     int q_steps = firebolt_params.NumberMomentumBins;
@@ -145,17 +125,16 @@ int firebolt_init(struct swift_params *params, struct renderer *rend, const stru
     rend->firebolt_log_q_max = log(q_max);
 
     printf("\n");
-    printf("[k] = [%f]\n", k);
+    printf("[k_min, k_max, k_size] = [%f, %f, %d]\n", k_min, k_max, k_size);
     printf("[l_max, q_steps, q_max, tol] = [%d, %d, %.1f, %.3e]\n", l_max, q_steps, q_max, tol);
     printf("[l_max_convert] = %d\n", l_max_convert);
     printf("\n");
 
     printf("The initial time is %f\n", exp(firebolt_ptdat.log_tau[0]));
     printf("Speed of light c = %f\n", c_vel);
-    printf("Mass neutrino M = %f (%f)\n", M, M_nu);
+    printf("Neutrino mass M_nu = %f (%f eV)\n", M, M_nu);
 
     /* Initialize the multipoles */
-    int k_size = 30;
     initMultipoles(&firebolt_mL, k_size, q_steps, l_max, q_min, q_max, k_min, k_max);
 
     /* Also initialize the multipoles in monomial basis (with much lower l_max) */
@@ -186,9 +165,8 @@ int firebolt_init(struct swift_params *params, struct renderer *rend, const stru
     initGrids(&firebolt_params, &firebolt_mmono, &firebolt_grs);
     rend->firebolt_grids = &firebolt_grs;
 
-    generateGrids(&firebolt_params, &firebolt_units, &firebolt_mmono, fbox, &firebolt_grs);
-
-    free(fbox);
+    generateGrids(&firebolt_params, &firebolt_units, &firebolt_mmono,
+                  rend->primordial_phases_small, &firebolt_grs);
 
     return 0;
 }
@@ -232,30 +210,25 @@ int firebolt_update(const struct renderer *rend, const struct engine *e) {
     initMultipoleInterp(&firebolt_mmono);
 
     /* Read the gaussian random field */
-    int N = rend->primordial_grid_N;
-    double *box = rend->primordial_grid;
-    double box_len = rend->primordial_dims[0];
-
-    /* Fourier transform */
-    fftw_complex *fbox = (fftw_complex*) fftw_malloc(N*N*(N/2+1)*sizeof(fftw_complex));
-    fftw_plan r2c = fftw_plan_dft_r2c_3d(N, N, N, box, fbox, FFTW_ESTIMATE);
-    fft_execute(r2c);
-    fft_normalize_r2c(fbox,N,box_len);
-    fftw_destroy_plan(r2c);
+    int N = rend->primordial_box_small_N;
+    double box_len = firebolt_params.BoxLen;
 
     /* Generate grids with the monomial multipoles */
-    generateGrids(&firebolt_params, &firebolt_units, &firebolt_mmono, fbox, &firebolt_grs);
+    generateGrids(&firebolt_params, &firebolt_units, &firebolt_mmono,
+                  rend->primordial_phases_small, &firebolt_grs);
 
-    for (int index_q=0; index_q<firebolt_mmono.q_size; index_q++) {
-        for (int index_l=0; index_l<firebolt_mmono.l_size; index_l++) {
-            char boxname[40];
-            sprintf(boxname, "grid_l%d_q%d.box", index_l, index_q);
-            write_doubles_as_floats(boxname, firebolt_grs.grids + index_l * (N*N*N) * firebolt_mmono.q_size + index_q * (N*N*N), N * N * N);
+    /* Store the grids on master node */
+    if (e->nodeID == 0) {
+        for (int index_q=0; index_q<firebolt_mmono.q_size; index_q++) {
+            for (int index_l=0; index_l<firebolt_mmono.l_size; index_l++) {
+                char boxname[40];
+                sprintf(boxname, "grid_l%d_q%d.hdf5", index_l, index_q);
+                double *the_grid = firebolt_grs.grids + index_l * (N * N * N)
+                                 * firebolt_mmono.q_size + index_q * (N * N * N);
+                writeGRF_H5(the_grid, N, box_len, boxname);
+            }
         }
     }
-
-    free(fbox);
-
 
     return 0;
 }
@@ -271,7 +244,6 @@ int firebolt_free(void) {
     cleanMultipoles(&firebolt_mgauge);
 
     cleanMultipoleInterp();
-
 
     return 0;
 }

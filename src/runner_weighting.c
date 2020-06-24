@@ -190,18 +190,6 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   if (!with_cosmology)
     error("Phase space weighting without cosmology not implemented.");
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
-#ifdef RENDERER_USED
-  /* Locate the linear theory density grid */
-  const int N = e->rend->primordial_grid_N;
-  const double cell_fac = e->mesh->cell_fac;
-  const double *grid = e->rend->density_grid;
-  const double dim[3] = {e->s->dim[0], e->s->dim[1], e->s->dim[2]};
-#else
-  error("Running with linear theory delta-f, but no renderer.");
-#endif
-#endif
-
   const struct phys_const *physical_constants = e->physical_constants;
   const struct cosmology *cosmo = e->cosmology;
   // const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
@@ -230,17 +218,6 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
       /* If the g-particle is a neutrino and needs to be weighted */
       if (gp->type == swift_type_neutrino && true) {
         if (gpart_is_active(gp, e)) {
-
-          double temperature_factor = 1.0;
-
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
-#ifdef RENDERER_USED
-          double overdensity = grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
-          temperature_factor = cbrt(1.0 + overdensity);
-#else
-          error("Running with linear theory delta-f, but no renderer.");
-#endif
-#endif
 
         /* Store the initial mass in the first time step */
         if (e->step == 0) {
@@ -274,7 +251,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             double f;
 
             /* Store the initial mass & phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0 + 0*temperature_factor);
+            f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0);
             gp->f_phase = f;
             gp->f_phase_i = f;
             gp->mass = FLT_MIN;  // dither in the first time step
@@ -284,7 +261,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             double f;
 
             /* Compute the phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0 + 0*temperature_factor);
+            f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0);
             gp->f_phase = f;
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */

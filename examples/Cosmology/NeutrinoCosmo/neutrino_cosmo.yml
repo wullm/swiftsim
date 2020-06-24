@@ -24,6 +24,7 @@ Boltzmann:
   field_file_name: ./gaussian_pure.hdf5 # file containing the primordial fluctuations
   in_perturb_file_name: ./perturb_210.hdf5
   firebolt_settings_file: firebolt_settings.ini
+  small_mesh_side_length: 32
 #  class_ini_file: ./neutrino_example.ini
 #  class_pre_file: ./neutrino_example.pre
 #  k_bins: 25

@@ -57,25 +57,25 @@
  */
 struct renderer {
 
-  /*! Array containing the primordial fluctuations on a grid */
-  double *primordial_grid;
-  double *primordial_dims;
-  int primordial_grid_N;
+  /*! Array containing the primordial phases (Fourier transform of the GRF) */
+  fftw_complex *primordial_phases;
+  double primordial_box_len;
+  int primordial_box_N;
+
+  /*! Array containing a down-sampled version of the primordial phases */
+  fftw_complex *primordial_phases_small;
+  int primordial_box_small_N;
 
   /*! Array containing sequency of perturbation theory grids */
   double *the_grids;
 
-  /*! Array containing Firebolt grids */
+  /*! Structure containing Firebolt grids */
   struct grids *firebolt_grids;
 
   /* Firebolt momentum range */
   double firebolt_q_size;
   double firebolt_log_q_min;
   double firebolt_log_q_max;
-
-  /*! Pointer to the neutrino over-density field, corresponding to the first
-      N * N * N doubles in the_grids */
-  double *density_grid;
 
   /* File name of the perturbation data */
   char *in_perturb_fname;
@@ -106,20 +106,9 @@ struct renderer {
     char **titles;
   } transfer;
 
-  /*! Desired length of the neutrino perturbation along the k dimension */
-  int num_of_k_bins;  // user-defined
-
   /* Search table for interpolation acceleration in the k direction */
   int k_acc_table_size;
   double *k_acc_table;
-
-// #ifdef HAVE_LIBGSL
-//   /* GSL interpolation objects */
-//   const gsl_interp2d_type *interp_type;
-//   gsl_interp_accel *k_acc;
-//   gsl_interp_accel *tau_acc;
-//   gsl_spline2d *spline;
-// #endif
 };
 
 /* The renderer object renders transfer functions onto the grid */
@@ -127,19 +116,13 @@ void rend_init(struct renderer *rend, struct swift_params *params,
                const struct engine *e);
 void rend_clean(struct renderer *rend);
 
-/* Input of the primordial Gaussian field data */
-void rend_load_primordial_field(struct renderer *rend, const char *fname);
-
 /* Rendering the transfer functions onto the primordial field */
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e);
 void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e);
 void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e);
 void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e);
 
-/* The GSL interpolation structures */
-// void rend_interp_init(struct renderer *rend);
-// void rend_interp_switch_source(struct renderer *rend, int index_src);
-// void rend_interp_free(struct renderer *rend);
+
 void rend_grids_alloc(struct renderer *rend);
 
 /* Custom interpolation functions */
