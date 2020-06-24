@@ -191,11 +191,15 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
     error("Phase space weighting without cosmology not implemented.");
 
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef RENDERER_USED
   /* Locate the linear theory density grid */
   const int N = e->rend->primordial_grid_N;
   const double cell_fac = e->mesh->cell_fac;
   const double *grid = e->rend->density_grid;
   const double dim[3] = {e->s->dim[0], e->s->dim[1], e->s->dim[2]};
+#else
+  error("Running with linear theory delta-f, but no renderer.");
+#endif
 #endif
 
   const struct phys_const *physical_constants = e->physical_constants;
@@ -230,8 +234,12 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           double temperature_factor = 1.0;
 
 #ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef RENDERER_USED
           double overdensity = grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
           temperature_factor = cbrt(1.0 + overdensity);
+#else
+          error("Running with linear theory delta-f, but no renderer.");
+#endif
 #endif
 
         /* Store the initial mass in the first time step */

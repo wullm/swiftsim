@@ -828,8 +828,8 @@ int main(int argc, char *argv[]) {
     /* Now read it. */
     restart_read(&e, restart_file);
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
-    /* Initialize the renderer. */
+#ifdef RENDERER_USED
+    /* Initialize the perturbation theory renderer. */
     e.rend = &rend;
     rend_init(e.rend, e.parameter_file, &e);
     rend_init_perturb_vec(e.rend, e.parameter_file, &e, myrank);
@@ -1272,7 +1272,7 @@ int main(int argc, char *argv[]) {
       fflush(stdout);
     }
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef RENDERER_USED
     rend_init_perturb_vec(e.rend, e.parameter_file, &e, myrank);
 #endif
 

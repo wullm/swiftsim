@@ -1763,7 +1763,7 @@ void engine_rebuild(struct engine *e, const int repartitioned,
     pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose);
   }
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef RENDERER_USED
   /* Add the perturbation theory contributions to the mesh forces */
   rend_add_to_mesh(e->rend, e);
 #endif
@@ -4181,8 +4181,8 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->neutrino_mass_conversion_factor = neutrino_mass_factor(e);
 #endif
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
-  /* Initialize the renderer */
+#ifdef RENDERER_USED
+  /* Initialize the perturbation theory renderer */
   rend_init(rend, params, e);
 #endif
 
@@ -5635,7 +5635,7 @@ void engine_clean(struct engine *e, const int fof, const int restart) {
   free(e->proxy_ind);
   free(e->proxies);
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef RENDERER_USED
   rend_clean(e->rend);
 #endif
 

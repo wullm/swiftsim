@@ -2310,6 +2310,49 @@ AM_CONDITIONAL([NEUTRINO_WITH_DELTA_F], [test $with_neutrino_df != "none"])
 AM_CONDITIONAL([NEUTRINO_DELTA_F_FERMI_DIRAC], [test $with_neutrino_df = "FERMI-DIRAC"])
 AM_CONDITIONAL([NEUTRINO_DELTA_F_LINEAR_THEORY], [test $with_neutrino_df = "LINEAR-THEORY"])
 
+#  Use the linear-theory renderer?
+AC_ARG_WITH([renderer],
+    [AS_HELP_STRING([--with-renderer=<model>],
+       [linear theory renderer @<:@none, NEUTRINOS, RESCALED-NEUTRINOS, FULL-GR,
+                                default: none@:>@]
+    )],
+    [with_renderer="$withval"],
+    [with_renderer="none"]
+)
+
+case "$with_renderer" in
+   none)
+      AC_DEFINE([RENDERER_NONE], [1], [No linear theory renderer])
+   ;;
+   NEUTRINOS)
+      AC_DEFINE([RENDERER_USED], [1], [Use the linear theory renderer])
+      AC_DEFINE([RENDERER_NEUTRINOS], [1], [Include linear theory neutrins])
+   ;;
+   RESCALED-NEUTRINOS)
+      AC_DEFINE([RENDERER_USED], [1], [Use the linear theory renderer])
+      AC_DEFINE([RENDERER_RESCALED_NEUTRINOS], [1], [Rescale cdm phases to account for neutrinos])
+   ;;
+   FULL-GR)
+      AC_DEFINE([RENDERER_USED], [1], [Use the linear theory renderer])
+      AC_DEFINE([RENDERER_FULL_GR], [1], [Include all GR potentials])
+   ;;
+   *)
+      AC_MSG_ERROR([Unknown linear theory renderer option])
+   ;;
+esac
+
+# Check renderer options
+AM_CONDITIONAL([RENDERER_NONE], [test $with_renderer = "none"])
+AM_CONDITIONAL([RENDERER_USED], [test $with_renderer != "none"])
+AM_CONDITIONAL([RENDERER_NEUTRINOS], [test $with_renderer = "NEUTRINOS"])
+AM_CONDITIONAL([RENDERER_RESCALED_NEUTRINOS], [test $with_renderer = "RESCALED-NEUTRINOS"])
+AM_CONDITIONAL([RENDERER_FULL_GR], [test $with_renderer = "FULL-GR"])
+
+# Check if the LINEAR-THEORY option was used, but not the RENDERER
+if test $with_renderer == "none" && test $with_neutrino_df = "LINEAR-THEORY"; then
+    $as_echo "$as_me: error: linear theory neutrinos without renderer option " >&2
+              { (exit 1); exit 1; };
+fi
 
 #  Interface with Boltzmann solver CLASS
 AC_ARG_WITH([class],
@@ -2355,6 +2398,12 @@ if test $firebolt_path != "none"; then
     AC_SUBST([FIREBOLT_LIBS])
     AC_SUBST([FIREBOLT_INCS])
     AC_DEFINE([WITH_FIREBOLT_INTERFACE], [1], [Interface with the Firebolt code])
+fi
+
+# Check if the Firebolt option was used, but not the RENDERER
+if test $firebolt_path != "none" && test $with_renderer = "none"; then
+    $as_echo "$as_me: error: with Firebolt interface but no renderer " >&2
+              { (exit 1); exit 1; };
 fi
 
 #  Relativistic kick & drift - equation of motion
@@ -2560,14 +2609,16 @@ AC_MSG_RESULT([
    Black holes model    : $with_black_holes
    Task dependencies    : $with_task_order
 
-   CLASS library        : $class_path
-   Firebolt library     : $firebolt_path
-   Neutrino cosmology   : $with_neutrino_cosmo
-   Neutrino delta-f     : $with_neutrino_df
-   Relativistic kick    : $with_relativistic_eom
-   Relativistic drift   : $with_relativistic_eom
-   Delta-f diagnostics  : $with_df_diagnost
-   Neutrino dt scheme   : $with_neutrino_dt_scheme
+   CLASS library         : $class_path
+   Firebolt library      : $firebolt_path
+   Neutrino cosmology    : $with_neutrino_cosmo
+   Neutrino delta-f      : $with_neutrino_df
+   Relativistic kick     : $with_relativistic_eom
+   Relativistic drift    : $with_relativistic_eom
+   Linear renderer       : $with_renderer
+   Delta-f diagnostics   : $with_df_diagnost
+   Control variate stats : $with_cv_stats
+   Neutrino dt scheme    : $with_neutrino_dt_scheme
 
    Atomic operations in tasks  : $enable_atomics_within_tasks
    Individual timers           : $enable_timers

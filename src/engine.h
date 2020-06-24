@@ -49,7 +49,7 @@
 #include "units.h"
 #include "velociraptor_interface.h"
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef RENDERER_USED
 #include "neutrino/renderer.h"
 #endif
 
