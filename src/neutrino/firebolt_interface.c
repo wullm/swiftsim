@@ -166,7 +166,8 @@ int firebolt_init(struct swift_params *params, struct renderer *rend, const stru
     rend->firebolt_grids = &firebolt_grs;
 
     generateGrids(&firebolt_params, &firebolt_units, &firebolt_mmono,
-                  rend->primordial_phases_small, &firebolt_grs);
+                  (const fftw_complex*) rend->primordial_phases_small,
+                  &firebolt_grs);
 
     return 0;
 }
@@ -215,7 +216,8 @@ int firebolt_update(const struct renderer *rend, const struct engine *e) {
 
     /* Generate grids with the monomial multipoles */
     generateGrids(&firebolt_params, &firebolt_units, &firebolt_mmono,
-                  rend->primordial_phases_small, &firebolt_grs);
+                  (const fftw_complex*) rend->primordial_phases_small,
+                  &firebolt_grs);
 
     /* Store the grids on master node */
     if (e->nodeID == 0) {
