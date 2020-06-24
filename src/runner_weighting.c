@@ -190,17 +190,20 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   if (!with_cosmology)
     error("Phase space weighting without cosmology not implemented.");
 
+
+#ifdef WITH_FIREBOLT_INTERFACE
   const struct phys_const *physical_constants = e->physical_constants;
   const struct cosmology *cosmo = e->cosmology;
-  // const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
-  // const double H_ratio = cosmo->H0 / cosmo->H;
-  // const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
-  // const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
-  // const double particle_mass = neutrino_mass / e->total_nr_nuparts;
+// const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
+// const double H_ratio = cosmo->H0 / cosmo->H;
+// const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
+// const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
+// const double particle_mass = neutrino_mass / e->total_nr_nuparts;
   const double T_nu = cosmo->T_nu;
   const double k_b = physical_constants->const_boltzmann_k;
   const double eV = physical_constants->const_electron_volt;
   const double T_eV = k_b * T_nu / eV; // temperature in eV
+#endif
 
   /* Conversion factor from macro particle mass to neutrino mass in eV */
   const double mult = e->neutrino_mass_conversion_factor;
