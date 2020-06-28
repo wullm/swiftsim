@@ -4121,7 +4121,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
 
 #ifdef NEUTRINO_DELTA_F
   /* Initialize the neutrino mass conversion factor */
-  e->neutrino_mass_conversion_factor = neutrino_mass_factor(e);
+  e->neutrino_mass_conversion_factor = photon_mass_factor(e);
 #endif
 
 #ifdef RENDERER_USED

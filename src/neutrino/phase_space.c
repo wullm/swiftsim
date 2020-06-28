@@ -40,14 +40,14 @@ __attribute__((always_inline, const)) INLINE static double hypot3(double x,
   return hypot(x, hypot(y, z));
 }
 
-double fermi_dirac_density(const struct engine *e, float *v, double m_eV,
+double bose_einstein_density(const struct engine *e, float *v, double m_eV,
                            double T_factor) {
   const struct phys_const *physical_constants = e->physical_constants;
 
 /* Retrieve the neutrino temperature today */
 #ifdef NEUTRINO_BACKGROUND
   const struct cosmology *cosmo = e->cosmology;
-  const double T_nu = cosmo->T_nu;
+  const double T_cmb = cosmo->T_CMB;
 #else
   /* No neutrino cosmology module, use the fiducial value */
   const struct unit_system *internal_units = e->internal_units;
@@ -58,19 +58,23 @@ double fermi_dirac_density(const struct engine *e, float *v, double m_eV,
   /* Convert temperature to eV (to prevent overflows)*/
   const double k_b = physical_constants->const_boltzmann_k;
   const double eV = physical_constants->const_electron_volt;
-  const double T_eV = k_b * T_nu / eV;  // temperature in eV
+  const double T_eV = k_b * T_cmb / eV;  // temperature in eV
+  const double c = physical_constants->const_speed_light_c;
 
   /* Calculate the momentum in eV */
-  double p_eV = fermi_dirac_momentum(e, v, m_eV);
+  (void) m_eV;
+  double p_eV = hypot3(v[0], v[1], v[2]) / c;
 
-  return 1.0 / (exp(p_eV / (T_eV * T_factor)) + 1.0);
+  if (p_eV <= 0) return 0;
+
+  return 1.0 / (exp(p_eV / (T_eV * T_factor)) - 1.0);
 }
 
 /* Calculate the momentum in energy units, using E = a*sqrt(p^2 + m^2) ~ ap.
  * Note that this is the present-day momentum, i.e. p0 = ap, which is
  * constant in a homogenous Universe.
  */
-double fermi_dirac_momentum(const struct engine *e, float *v, double m_eV) {
+double bose_einstein_momentum(const struct engine *e, float *v, double m_eV) {
   const struct cosmology *cosmo = e->cosmology;
   const struct phys_const *physical_constants = e->physical_constants;
   const double c = physical_constants->const_speed_light_c;
@@ -95,13 +99,11 @@ double fermi_dirac_momentum(const struct engine *e, float *v, double m_eV) {
 }
 
 /* Compute the energy E=sqrt(p^2+m^2) of a micrscopic neutrino in eV */
-double fermi_dirac_energy(const struct engine *e, float *v, double m_eV) {
+double bose_einstein_energy(const struct engine *e, float *v, double m_eV) {
   /* Compute the present-day 3-momentum in eV */
-  double p0_eV = fermi_dirac_momentum(e, v, m_eV);
-
-  /* Compute the momentum and energy at scale-factor a in eV */
-  double p_eV = p0_eV / e->cosmology->a;
-  double energy_eV = hypot(m_eV, p_eV);
+  const double c = e->physical_constants->const_speed_light_c;
+  double p_eV = hypot3(v[0], v[1], v[2]) / c;
+  double energy_eV = p_eV;
 
   return energy_eV;
 }
@@ -143,6 +145,41 @@ double neutrino_mass_factor(const struct engine *e) {
 
   /* Compute the conversion factor */
   const double mass_factor = nuparts / (flavours * n * volume);
+
+  /* Convert to eV */
+  const double mass_factor_eV = mass_factor / eV_mass;
+
+  return mass_factor_eV;
+}
+
+/* Compute the ratio of macro particle mass in internal mass units to
+ * the energy of one microscopic photon in eV.
+ */
+double photon_mass_factor(const struct engine *e) {
+  const struct phys_const *physical_constants = e->physical_constants;
+  const struct space *s = e->s;
+
+  /* Some constants */
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double hbar = physical_constants->const_planck_hbar;
+  const double c = physical_constants->const_speed_light_c;
+  const double eV = physical_constants->const_electron_volt;
+  const double eV_mass = eV / (c * c);  // 1 eV/c^2 in internal mass units
+  const double prefactor = (1.5 * M_ZETA_3) / (M_PI * M_PI);
+
+/* Retrieve the photon temperature today */
+  const struct cosmology *cosmo = e->cosmology;
+  const double T_cmb = cosmo->T_CMB;
+
+  /* Compute the comoving number density */
+  const double n = prefactor * pow(k_b * T_cmb / (hbar * c), 3);
+  const double volume = s->dim[0] * s->dim[1] * s->dim[2];
+
+  /* The total number of photon macropaticles present */
+  const long long gparts = e->total_nr_nuparts;
+
+  /* Compute the conversion factor */
+  const double mass_factor = gparts / (n * volume);
 
   /* Convert to eV */
   const double mass_factor_eV = mass_factor / eV_mass;

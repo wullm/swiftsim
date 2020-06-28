@@ -225,8 +225,10 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, gp->v_full);
-        dt_kick_grav *= correction;
+        if (gp->type == swift_type_neutrino) {
+            double correction = relat_corr_kick(e, gp->v_full);
+            dt_kick_grav *= correction;
+        }
 #endif
 
         /* do the kick */
@@ -471,8 +473,10 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, gp->v_full);
-        dt_kick_grav *= correction;
+        if (gp->type == swift_type_neutrino) {
+            double correction = relat_corr_kick(e, gp->v_full);
+            dt_kick_grav *= correction;
+        }
 #endif
 
         /* Finish the time-step with a second half-kick */

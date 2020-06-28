@@ -4798,8 +4798,10 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
 
 #ifdef WITH_RELATIVISTIC_DRIFT
       /* Perform a relativistic correction */
-      double correction = relat_corr_drift(e, gp->v_full);
-      dt_drift_k *= correction;
+      if (gp->type == swift_type_neutrino) {
+          double correction = relat_corr_drift(e, gp->v_full);
+          dt_drift_k *= correction;
+      }
 #endif
 
       /* Drift... */

@@ -243,7 +243,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             double f;
 
             /* Store the initial mass & phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            f = bose_einstein_density(e, gp->v_full, m_eV, temperature_factor);
             gp->mass_i = gp->mass;
             gp->f_phase = f;
             gp->f_phase_i = f;
@@ -254,11 +254,11 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             double f;
 
             /* Compute the phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            f = bose_einstein_density(e, gp->v_full, m_eV, temperature_factor);
             gp->f_phase = f;
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
-            double energy_eV = fermi_dirac_energy(e, gp->v_full, m_eV);
+            double energy_eV = bose_einstein_energy(e, gp->v_full, m_eV);
             double energy = energy_eV / mult;  // energy in internal mass units
 
             /* Use the weighted energy instead of the mass */
@@ -273,7 +273,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             //     gp->id_or_neg_offset < 114688-4096 + 5) {
             //         message("%f %f %f %f", linear_overdensity,
             //         temperature_factor, f, energy);
-            // //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) /
+            // //         double p = bose_einstein_momentum(e, gp->v_full, m_eV) /
             // //         e->cosmology->a; message("%.10e %.10e %.10e %f", p,
             // m_eV,
             // //         energy_eV, energy / gp->mass_i);

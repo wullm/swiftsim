@@ -109,8 +109,10 @@ __attribute__((always_inline)) INLINE static integertime_t get_gpart_timestep(
 
 #ifdef WITH_RELATIVISTIC_KICK
   /* Perform a relativistic correction, using dt ~ 1/sqrt(accel) */
-  double accel_correction = relat_corr_kick(e, gp->v_full);
-  new_dt /= sqrtf(accel_correction);
+  if (gp->type == swift_type_neutrino) {
+      double accel_correction = relat_corr_kick(e, gp->v_full);
+      new_dt /= sqrtf(accel_correction);
+  }
 #endif
 
   /* Apply the maximal displacement constraint (FLT_MAX  if non-cosmological)*/

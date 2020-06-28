@@ -2426,8 +2426,10 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
 
 #ifdef WITH_RELATIVISTIC_DRIFT
         /* Perform a relativistic correction */
-        double correction = relat_corr_drift(s->e, gp->v_full);
-        v2 *= correction * correction;
+        if (gp->type == swift_type_neutrino) {
+            double correction = relat_corr_drift(s->e, gp->v_full);
+            v2 *= correction * correction;
+        }
 #endif
 
         /* Compute sum of velocity norm */
@@ -2457,8 +2459,10 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
 
 #ifdef WITH_RELATIVISTIC_DRIFT
         /* Perform a relativistic correction */
-        double correction = relat_corr_drift(s->e, gp->v_full);
-        v2 *= correction * correction;
+        if (gp->type == swift_type_neutrino) {
+            double correction = relat_corr_drift(s->e, gp->v_full);
+            v2 *= correction * correction;
+        }
 #endif
 
         /* Compute sum of velocity norm */

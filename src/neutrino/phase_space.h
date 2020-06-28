@@ -25,10 +25,11 @@
 /* Engine header */
 #include "../engine.h"
 
-double fermi_dirac_density(const struct engine*, float*, double, double);
-double fermi_dirac_momentum(const struct engine*, float*, double);
-double fermi_dirac_energy(const struct engine*, float*, double);
+double bose_einstein_density(const struct engine*, float*, double, double);
+double bose_einstein_momentum(const struct engine*, float*, double);
+double bose_einstein_energy(const struct engine*, float*, double);
 double neutrino_mass_factor(const struct engine*);
+double photon_mass_factor(const struct engine*);
 
 /*
  * Hard-coded fiducial neutrino values. These are only used if Swift is
