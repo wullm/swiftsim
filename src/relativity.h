@@ -44,7 +44,7 @@ __attribute__((always_inline)) INLINE static double relat_corr_drift(
    * limit of c --> infinity.
    */
 
-  return 1. / v;
+  return 1. / hypot(v, 1.);
 }
 
 /**
@@ -67,7 +67,7 @@ __attribute__((always_inline)) INLINE static double relat_corr_kick(
    * limit of c --> infinity.
    */
 
-  return 2 * v;
+  return (2 * v * v + 1.) / hypot(v, 1.);
 }
 
 #endif /* SWIFT_RELATIVITY_H */
