@@ -20,7 +20,7 @@
 //The unnormalized pdf (Fermi-Dirac version)
 const double sqp = sqrt(M_PI);
 double pdf(double x, double T, double mu) {
-    return x*x/(exp((x-mu)/T) + 1);
+    return (x == 0) ? 0 : x*x/(exp((x-mu)/T) - 1);
 }
 
 //Numerically integrate the unnormalized pdf to find the cdf and the normalization
@@ -44,7 +44,7 @@ void seed_rng(struct sampler *s, int seed) {
 
 void prepare_intervals(struct sampler *s, double T, double mu = 0) {
     //Setup
-    double bl = 0;
+    double bl = 1e-10;
     double br = 10*T;
     int numIntegrateN = 1000;
 
