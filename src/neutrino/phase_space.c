@@ -40,14 +40,14 @@ __attribute__((always_inline, const)) INLINE static double hypot3(double x,
   return hypot(x, hypot(y, z));
 }
 
-double bose_einstein_density(const struct engine *e, float *v, double m_eV,
+double fermi_dirac_density(const struct engine *e, float *v, double m_eV,
                            double T_factor) {
   const struct phys_const *physical_constants = e->physical_constants;
 
 /* Retrieve the neutrino temperature today */
 #ifdef NEUTRINO_BACKGROUND
   const struct cosmology *cosmo = e->cosmology;
-  const double T_cmb = cosmo->T_CMB;
+  const double T_nu = cosmo->T_nu;
 #else
   /* No neutrino cosmology module, use the fiducial value */
   const struct unit_system *internal_units = e->internal_units;
@@ -58,14 +58,27 @@ double bose_einstein_density(const struct engine *e, float *v, double m_eV,
   /* Convert temperature to eV (to prevent overflows)*/
   const double k_b = physical_constants->const_boltzmann_k;
   const double eV = physical_constants->const_electron_volt;
-  const double T_eV = k_b * T_cmb / eV;  // temperature in eV
-  const double c = physical_constants->const_speed_light_c;
+  const double T_eV = k_b * T_nu / eV;  // temperature in eV
 
   /* Calculate the momentum in eV */
-  (void) m_eV;
-  double p_eV = hypot3(v[0], v[1], v[2]) / c;
+  double p_eV = fermi_dirac_momentum(e, v, m_eV);
 
-  if (p_eV <= 0) return 0;
+  return 1.0 / (exp(p_eV / (T_eV * T_factor)) + 1.0);
+}
+
+double bose_einstein_density(const struct engine *e, float *v, double m_eV,
+                            double T_factor) {
+  const struct phys_const *physical_constants = e->physical_constants;
+  const struct cosmology *cosmo = e->cosmology;
+  const double T_cmb = cosmo->T_CMB;
+
+  /* Convert temperature to eV (to prevent overflows)*/
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double eV = physical_constants->const_electron_volt;
+  const double T_eV = k_b * T_cmb / eV;  // temperature in eV
+
+  /* Calculate the momentum in eV */
+  double p_eV = fermi_dirac_momentum(e, v, m_eV);
 
   return 1.0 / (exp(p_eV / (T_eV * T_factor)) - 1.0);
 }
@@ -74,7 +87,7 @@ double bose_einstein_density(const struct engine *e, float *v, double m_eV,
  * Note that this is the present-day momentum, i.e. p0 = ap, which is
  * constant in a homogenous Universe.
  */
-double bose_einstein_momentum(const struct engine *e, float *v, double m_eV) {
+double fermi_dirac_momentum(const struct engine *e, float *v, double m_eV) {
   const struct cosmology *cosmo = e->cosmology;
   const struct phys_const *physical_constants = e->physical_constants;
   const double c = physical_constants->const_speed_light_c;
@@ -99,11 +112,13 @@ double bose_einstein_momentum(const struct engine *e, float *v, double m_eV) {
 }
 
 /* Compute the energy E=sqrt(p^2+m^2) of a micrscopic neutrino in eV */
-double bose_einstein_energy(const struct engine *e, float *v, double m_eV) {
+double fermi_dirac_energy(const struct engine *e, float *v, double m_eV) {
   /* Compute the present-day 3-momentum in eV */
-  const double c = e->physical_constants->const_speed_light_c;
-  double p_eV = hypot3(v[0], v[1], v[2]) / c;
-  double energy_eV = p_eV;
+  double p0_eV = fermi_dirac_momentum(e, v, m_eV);
+
+  /* Compute the momentum and energy at scale-factor a in eV */
+  double p_eV = p0_eV / e->cosmology->a;
+  double energy_eV = hypot(m_eV, p_eV);
 
   return energy_eV;
 }

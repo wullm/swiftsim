@@ -239,7 +239,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           /* Is it the first time step? */
           if (e->step == 0) {
             /* The mass of a microscopic neutrino in eV */
-            double m_eV = gp->mass * mult;
+            double m_eV = 1e-3;
             double f;
 
             /* Store the initial mass & phase space density */
@@ -250,7 +250,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             gp->mass = FLT_MIN;  // dither in the first time step
           } else {
             /* The mass of a microscopic neutrino in eV */
-            double m_eV = gp->mass_i * mult;
+            double m_eV = 1e-3;
             double f;
 
             /* Compute the phase space density */
@@ -258,7 +258,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             gp->f_phase = f;
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
-            double energy_eV = bose_einstein_energy(e, gp->v_full, m_eV);
+            double energy_eV = fermi_dirac_momentum(e, gp->v_full, m_eV);
             double energy = energy_eV / mult;  // energy in internal mass units
 
             /* Use the weighted energy instead of the mass */
@@ -273,7 +273,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             //     gp->id_or_neg_offset < 114688-4096 + 5) {
             //         message("%f %f %f %f", linear_overdensity,
             //         temperature_factor, f, energy);
-            // //         double p = bose_einstein_momentum(e, gp->v_full, m_eV) /
+            // //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) /
             // //         e->cosmology->a; message("%.10e %.10e %.10e %f", p,
             // m_eV,
             // //         energy_eV, energy / gp->mass_i);
