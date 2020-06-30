@@ -1491,17 +1491,20 @@ int main() {
         //Convert to speed
         double p0 = draw * eV / c_vel * pow(Gyr/Mpc,2); // momentum in kg*Mpc/Gyr
         double p = p0/a_start; // redshifted momentum in kg*Mpc/Gyr
-        double gamma = sqrt(1 + pow(p / (M_nu_kg*c_vel), 2)); // Lorentz factor
+        double gamma;
+        if (OUTPUT_RELATIVISTIC_VELOCITY == TRUE) {
+            gamma = 1.0; // Lorentz factor not needed
+        } else {
+            gamma = sqrt(1 + pow(p / (M_nu_kg*c_vel), 2)); // Lorentz factor
+        }
         double V = p/(gamma*M_nu_kg); // physical speed in Mpc/Gyr
-
-
 
         //Recall that our internal velocity variable is V = a^2(dx/dt),
         //where x=r/a is comoving. We therefore multiply by a.
         V *= a_start;
 
         //Just for diagnostics, look at the bulk speed before adding the thermal component
-        double V_bulk = sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z);
+        double V_bulk = hypot(hypot(body.v_X, body.v_Y), body.v_Z);
 
         //Generate a random point on the sphere
         double x = Gaussian(oracle);
@@ -1523,7 +1526,7 @@ int main() {
         body.v_Z += V*z;
 
         //For diagnostics, look at the new total speed
-        double V_tot = sqrt(body.v_X*body.v_X + body.v_Y*body.v_Y + body.v_Z*body.v_Z);
+        double V_tot = hypot(hypot(body.v_X, body.v_Y), body.v_Z);
 
         //Record statistics for diagnostics
         avg_speed += V_tot/neutrino_num;
@@ -1600,20 +1603,6 @@ int main() {
             bodies[i].v_Y *= gamma;
             bodies[i].v_Z *= gamma;
         }
-
-#if (NEUTRINO_NUM>0)
-        for (int i=0; i<neutrino_num; i++) {
-            corpuscle b = bodies_nu[i];
-            double V_general = sqrt(b.v_X*b.v_X + b.v_Y*b.v_Y + b.v_Z*b.v_Z);
-            double V_peculiar = V_general / a;
-            double beta = V_peculiar / c_vel;
-            double gamma = 1./sqrt(1. - beta*beta);
-
-            bodies_nu[i].v_X *= gamma;
-            bodies_nu[i].v_Y *= gamma;
-            bodies_nu[i].v_Z *= gamma;
-        }
-#endif
 
         std::cout << "Converted physical velocities ~(dx/dt) to relativistic velocities ~(dx/ds)" << std::endl;
         std::cout << " by multiplying by (ds/dt)=1/sqrt(1-a^2*(dx/dt)^2/c^2)." << std::endl;
