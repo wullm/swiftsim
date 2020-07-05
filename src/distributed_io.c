@@ -275,6 +275,8 @@ void write_output_distributed(struct engine* e,
     Ndm_background = io_count_dm_background_gparts(gparts, Ntot);
   }
 
+  size_t Ndm_neutrino = io_count_nuparts(gparts, Ntot);
+
   /* Number of particles that we will write in this file.
    * Recall that background particles are never inhibited and have no extras */
   const size_t Ntot_written =
@@ -288,7 +290,8 @@ void write_output_distributed(struct engine* e,
   const size_t Nbaryons_written =
       Ngas_written + Nstars_written + Nblackholes_written;
   const size_t Ndm_written =
-      Ntot_written > 0 ? Ntot_written - Nbaryons_written - Ndm_background : 0;
+      Ntot_written > 0 ? Ntot_written - Nbaryons_written - Ndm_background
+                                      - Ndm_neutrino : 0;
 
   int snap_count = -1;
   if (e->snapshot_int_time_label_on)
@@ -332,7 +335,8 @@ void write_output_distributed(struct engine* e,
   /* Compute offset in the file and total number of particles */
   const long long N[swift_type_count] = {Ngas_written,   Ndm_written,
                                          Ndm_background, 0,
-                                         Nstars_written, Nblackholes_written};
+                                         Nstars_written, Nblackholes_written,
+                                         Ndm_neutrino};
 
   /* Gather the total number of particles to write */
   long long N_total[swift_type_count] = {0};
@@ -620,6 +624,43 @@ void write_output_distributed(struct engine* e,
         io_collect_gparts_background_to_write(
             gparts, e->s->gpart_group_data, gparts_written,
             gpart_group_data_written, Ntot, Ndm_background, with_stf);
+
+        /* Select the fields to write */
+        darkmatter_write_particles(gparts_written, list, &num_fields);
+        if (with_fof) {
+          num_fields += fof_write_gparts(gparts_written, list + num_fields);
+        }
+        if (with_stf) {
+          num_fields += velociraptor_write_gparts(gpart_group_data_written,
+                                                  list + num_fields);
+        }
+      } break;
+
+      case swift_type_neutrino: {
+
+        /* Ok, we need to fish out the particles we want */
+        Nparticles = Ndm_neutrino;
+
+        /* Allocate temporary array */
+        if (swift_memalign("gparts_written", (void**)&gparts_written,
+                           gpart_align,
+                           Ndm_neutrino * sizeof(struct gpart)) != 0)
+          error("Error while allocating temporart memory for gparts");
+
+        if (with_stf) {
+          if (swift_memalign(
+                  "gpart_group_written", (void**)&gpart_group_data_written,
+                  gpart_align,
+                  Ndm_neutrino * sizeof(struct velociraptor_gpart_data)) != 0)
+            error(
+                "Error while allocating temporart memory for gparts STF "
+                "data");
+        }
+
+        /* Collect the non-inhibited DM particles from gpart */
+        io_collect_nuparts_to_write(
+            gparts, e->s->gpart_group_data, gparts_written,
+            gpart_group_data_written, Ntot, Ndm_neutrino, with_stf);
 
         /* Select the fields to write */
         darkmatter_write_particles(gparts_written, list, &num_fields);
