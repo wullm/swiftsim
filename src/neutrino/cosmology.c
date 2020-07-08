@@ -856,6 +856,11 @@ void cosmology_neutrino_init(struct swift_params *params,
     error("Specify Omega_g or T_CMB to include relativistic species.");
   }
 
+  /* Ensure that we have don't have fixed values for N_ur & N_eff */
+  if ((c->N_ur != 0 || c->Omega_ur != 0) && c->N_eff != 0) {
+    error("N_ur (or Omega_ur) and N_eff should not both be specified.");
+  }
+
   if (c->N_nu == 0) {
     c->M_nu_tot = 0;
   } else {
@@ -885,11 +890,6 @@ void cosmology_neutrino_init(struct swift_params *params,
   /* Ensure that we have don't have ultra-relativistic fluids without photons */
   if ((c->N_ur != 0 || c->Omega_ur != 0) && c->Omega_g == 0) {
     error("Specify Omega_g or T_CMB to include relativistic species.");
-  }
-
-  /* Ensure that we have don't have fixed values for N_ur & N_eff */
-  if ((c->N_ur != 0 || c->Omega_ur != 0) && c->N_eff != 0) {
-    error("N_ur and N_eff should not both be specified.");
   }
 
   /* Ensure that we have don't have fixed values for N_ur & Omega_ur */
