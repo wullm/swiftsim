@@ -531,7 +531,7 @@ void cosmology_init_neutrino_tables(struct cosmology *c,
     for (size_t j = 0; j < N_nu; j++) {
       /* Massless neutrino case */
       if (M_nu[j] == 0) {
-        Onu_d_g += (c->N_eff / c->N_nu) * fermi_factor;
+        Onu_d_g += (N_eff_from_nu / c->N_nu) * fermi_factor;
       } else {
         /* Integrate the FD distribtuion */
         double y = long_a_table[i] * M_nu[j] * eV / (kb * c->T_nu);
