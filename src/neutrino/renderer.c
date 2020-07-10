@@ -1448,6 +1448,9 @@ void rend_custom_interp_init(struct renderer *rend, int table_size) {
     rend->k_acc_table = malloc(table_size * sizeof(double));
     rend->k_acc_table_size = table_size;
 
+    /* The last index that was found. We start looking there. */
+    rend->k_acc_last_index = 0;
+
     /* Bounding values for the larger table */
     struct transfer *tr = &rend->transfer;
     int k_size = tr->k_size;
