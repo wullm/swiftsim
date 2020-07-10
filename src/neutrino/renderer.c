@@ -709,7 +709,9 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
     e->mesh->potential[i] += potential[i];
   }
 
-  message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
+  if (e->nodeID == 0) {
+    message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
+  }
 
   if (e->nodeID == 0) {
     writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
@@ -1505,17 +1507,17 @@ void rend_interp_locate_k(struct renderer *rend, double k,
     *index = last_index;
   } else {
     /* We will use the fast look-up table */
-    int k_acc_table_size = rend->k_acc_table_size;
-    int k_size = tr->k_size;
+    const int k_acc_table_size = rend->k_acc_table_size;
+    const int k_size = tr->k_size;
 
     /* Bounding values in the lookup table */
-    double lookup_k_min = rend->lookup_k_min;
-    double lookup_k_max = rend->lookup_k_max;
+    const double lookup_k_min = rend->lookup_k_min;
+    const double lookup_k_max = rend->lookup_k_max;
 
     /* Quickly find a starting index using the look-up table */
-    double u = (k - lookup_k_min) / (lookup_k_max - lookup_k_min);
-    int I = floor(u * k_acc_table_size);
-    int start = rend->k_acc_table[I < k_acc_table_size ? I : k_acc_table_size - 1];
+    const double u = (k - lookup_k_min) / (lookup_k_max - lookup_k_min);
+    const int I = floor(u * k_acc_table_size);
+    const int start = rend->k_acc_table[I];
 
     /* Search in the k vector, starting from the looked up index */
     int i;
@@ -1531,8 +1533,8 @@ void rend_interp_locate_k(struct renderer *rend, double k,
   }
 
   /* Find the bounding values */
-  double left = tr->k[*index];
-  double right = tr->k[*index + 1];
+  const double left = tr->k[*index];
+  const double right = tr->k[*index + 1];
 
   /* Calculate the ratio (X - X_left) / (X_right - X_left) */
   *w = (k - left) / (right - left);
