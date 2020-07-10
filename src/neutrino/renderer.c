@@ -1316,7 +1316,7 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
 
     /* Initialize our own interpolation spline */
     // rend_interp_init(rend);
-    rend_custom_interp_init(rend, 100);
+    rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH);
 
 #ifdef RENDERER_FULL_GR
     rend_grids_alloc(rend);
@@ -1398,7 +1398,7 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
   /* Initialize the interpolation spline on the other ranks */
   if (myrank != 0) {
     // rend_interp_init(rend);
-    rend_custom_interp_init(rend, 20);
+    rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH);
 
 #ifdef RENDERER_FULL_GR
     rend_grids_alloc(rend);

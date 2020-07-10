@@ -47,6 +47,8 @@
 #include <hdf5.h>
 #endif
 
+#define LOOKUP_TABLE_LENGTH 1000
+
 /**
  * @brief Data structure for the renderer, generating perturbation theory grids
  */
