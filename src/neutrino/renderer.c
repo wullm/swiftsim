@@ -103,12 +103,12 @@ void rend_init(struct renderer *rend, struct swift_params *params,
                               rend->out_perturb_fname, "perturb.hdf5");
 
   /* The file names of the CLASS parameter files */
-  rend->class_ini_fname = (char *)malloc(200 * sizeof(char));
-  rend->class_pre_fname = (char *)malloc(200 * sizeof(char));
-  parser_get_opt_param_string(params, "Boltzmann:class_ini_file",
-                              rend->class_ini_fname, "");
-  parser_get_opt_param_string(params, "Boltzmann:class_pre_file",
-                              rend->class_pre_fname, "");
+  // rend->class_ini_fname = (char *)malloc(200 * sizeof(char));
+  // rend->class_pre_fname = (char *)malloc(200 * sizeof(char));
+  // parser_get_opt_param_string(params, "Boltzmann:class_ini_file",
+  //                             rend->class_ini_fname, "");
+  // parser_get_opt_param_string(params, "Boltzmann:class_pre_file",
+  //                             rend->class_pre_fname, "");
 
   /* Open and load the file with the primordial Gaussian field */
   rend_load_primordial_field(rend, fieldFName);
@@ -192,7 +192,7 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
     error("Error while opening field group\n");
   }
 
-  hid_t h_data = H5Dopen(h_grp, "GaussianRandomField", H5P_DEFAULT);
+  hid_t h_data = H5Dopen(h_grp, "Field", H5P_DEFAULT);
   hid_t space = H5Dget_space(h_data);
 
   // The number of dimensions in the dataset (expected 3)
@@ -304,8 +304,8 @@ void rend_clean(struct renderer *rend) {
   /* Free strings */
   free(rend->in_perturb_fname);
   free(rend->out_perturb_fname);
-  free(rend->class_ini_fname);
-  free(rend->class_pre_fname);
+  // free(rend->class_ini_fname);
+  // free(rend->class_pre_fname);
 
   /* Free interpolation tables */
   free(rend->transfer.delta);
@@ -1308,28 +1308,8 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
 
   if (myrank == 0) {
 
-    /* If a perturbation file & a CLASS ini file are both specified */
-    if (strlen(rend->in_perturb_fname) > 1 &&
-        strlen(rend->class_ini_fname) > 1) {
-      error(
-          "Specified both perturbation file & CLASS .ini file. '%s' '%s' (%ld)",
-          rend->in_perturb_fname, rend->class_ini_fname,
-          strlen(rend->class_ini_fname));
-    } else if (strlen(rend->in_perturb_fname) == '\0') {
-#ifdef WITH_CLASS_INTERFACE
-      /* Initialize perturbations to the cosmology with CLASS */
-      message("We run CLASS to calculate perturbations to the cosmology.");
-      rend_perturb_from_class(rend, params, e);
-      message("Done with CLASS. The perturbations are now available.");
-
-      /* Save to disk */
-      if (strlen(rend->out_perturb_fname) > 1) {
-        rend_write_perturb(rend, e, rend->out_perturb_fname);
-      }
-#else
-      error("No CLASS library found. Cannot compute transfer functions.");
-#endif
-    } else if (strlen(rend->in_perturb_fname) > 1) {
+    /* If a perturbation file was both specified */
+    if (strlen(rend->in_perturb_fname) > 1) {
       /* Read from disk */
       rend_read_perturb(rend, e, rend->in_perturb_fname);
     }
