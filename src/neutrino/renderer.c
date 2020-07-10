@@ -497,7 +497,9 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
     e->mesh->potential[i] += potential[i];
   }
 
-  message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
+  if (e->nodeID == 0) {
+    message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
+  }
 
   writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
 
@@ -1425,7 +1427,8 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
 #endif
 }
 
-/* Locate the greatest lower bounding index in the log_tau table */
+/* Locate the index such that log_tau[index] <= log_tau < log_tau[index+1] and
+ *  the fractional distance w = (y - y[index]) / (y[index+1] - y[index]). */
 void rend_interp_locate_tau(struct renderer *rend, double log_tau,
                             int *index, double *w) {
   /* The memory for the transfer functions is located here */
@@ -1487,37 +1490,50 @@ void rend_custom_interp_init(struct renderer *rend, int table_size) {
     }
 }
 
-/* Locate the greatest lower bounding index in the log_tau table */
+/* Locate the index such that k[index] <= k < k[index+1] and the fractional
+ * distance w = (k - k[index]) / (k[index+1] - k[index]). */
 void rend_interp_locate_k(struct renderer *rend, double k,
                           int *index, double *w) {
 
-  /* Bounding values for the larger table */
+  /* The transfer functions structure */
   struct transfer *tr = &rend->transfer;
-  int k_acc_table_size = rend->k_acc_table_size;
-  int k_size = tr->k_size;
-  double k_min = tr->k[0];
-  double k_max = tr->k[k_size-1];
 
-  if (k > k_max) {
+  /* Before doing anything else, check if the last search is still valid */
+  int last_index = rend->k_acc_last_index;
+  if (k >= tr->k[last_index] && k < tr->k[last_index + 1]) {
+    /* We found the index */
+    *index = last_index;
+  } else {
+    /* We will use the fast look-up table */
+    int k_acc_table_size = rend->k_acc_table_size;
+    int k_size = tr->k_size;
+    double k_min = tr->k[0];
+    double k_max = tr->k[k_size-1];
+
+    if (k > k_max) {
       *index = k_size - 1;
       *w = 1.0;
       return;
+    }
+
+    /* Quickly find a starting index using the look-up table */
+    double v = k;
+    double u = (v - k_min) / (k_max - k_min);
+    int I = floor(u * k_acc_table_size);
+    int idx = rend->k_acc_table[I < k_acc_table_size ? I : k_acc_table_size - 1];
+
+    /* Search in the k vector, starting from the looked up index */
+    int i;
+    for (i = idx; i < k_size; i++) {
+      if (k >= tr->k[i] && k <= tr->k[i + 1]) break;
+    }
+
+    /* We found the index */
+    *index = i;
+
+    /* Store for later searches */
+    rend->k_acc_last_index = i;
   }
-
-  /* Quickly find a starting index using the indexed seach */
-  double v = log(k);
-  double u = (v - k_min) / (k_max - k_min);
-  int I = floor(u * k_acc_table_size);
-  int idx = rend->k_acc_table[I < k_acc_table_size ? I : k_acc_table_size - 1];
-
-  /* Search in the k vector */
-  int i;
-  for (i = idx; i < k_size; i++) {
-    if (k >= tr->k[i] && k <= tr->k[i + 1]) break;
-  }
-
-  /* We found the index */
-  *index = i;
 
   /* Find the bounding values */
   double left = tr->k[*index];

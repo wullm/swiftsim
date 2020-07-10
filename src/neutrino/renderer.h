@@ -99,6 +99,7 @@ struct renderer {
   /* Search table for interpolation acceleration in the k direction */
   int k_acc_table_size;
   double *k_acc_table;
+  int k_acc_last_index;
 
 // #ifdef HAVE_LIBGSL
 //   /* GSL interpolation objects */
