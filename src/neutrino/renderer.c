@@ -1306,17 +1306,29 @@ void rend_write_perturb(struct renderer *rend, const struct engine *e,
 void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
                            const struct engine *e, int myrank) {
 
+  /* Dimensions of the primordial field */
+  const int N = rend->primordial_grid_N;
+  const double box_len = rend->primordial_dims[0];
+
+  /* Determine the maximum and minimum wavenumbers we will ever need */
+  const double margin = 1.2; //ensure a safe error margin
+  const double dk = 2*M_PI/box_len;
+  const double lookup_k_max = sqrt(3)*dk*N/2 * margin;
+  const double lookup_k_min = dk / margin;
+
   if (myrank == 0) {
 
-    /* If a perturbation file was both specified */
-    if (strlen(rend->in_perturb_fname) > 1) {
-      /* Read from disk */
-      rend_read_perturb(rend, e, rend->in_perturb_fname);
+    /* Check if a perturbation file was specified */
+    if (strlen(rend->in_perturb_fname) < 1) {
+      error("No perturbation file specified.");
     }
 
+    /* Read from disk */
+    rend_read_perturb(rend, e, rend->in_perturb_fname);
+
     /* Initialize our own interpolation spline */
-    // rend_interp_init(rend);
-    rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH);
+    rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH, lookup_k_min,
+                            lookup_k_max);
 
 #ifdef RENDERER_FULL_GR
     rend_grids_alloc(rend);
@@ -1398,7 +1410,8 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
   /* Initialize the interpolation spline on the other ranks */
   if (myrank != 0) {
     // rend_interp_init(rend);
-    rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH);
+    rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH, lookup_k_min,
+                            lookup_k_max);
 
 #ifdef RENDERER_FULL_GR
     rend_grids_alloc(rend);
@@ -1443,24 +1456,26 @@ void rend_interp_locate_tau(struct renderer *rend, double log_tau,
 }
 
 
-void rend_custom_interp_init(struct renderer *rend, int table_size) {
+void rend_custom_interp_init(struct renderer *rend, int table_size,
+                             double lookup_k_min, double lookup_k_max) {
+
     /* Allocate the search table */
     rend->k_acc_table = malloc(table_size * sizeof(double));
     rend->k_acc_table_size = table_size;
+    rend->k_acc_prev_index = 0; //updated later
 
-    /* The last index that was found. We start looking there. */
-    rend->k_acc_last_index = 0;
+    /* Bounding values for the look-up table */
+    rend->lookup_k_min = lookup_k_min;
+    rend->lookup_k_max = lookup_k_max;
 
-    /* Bounding values for the larger table */
+    /* The perturbation structure containing the vector that is to be searched */
     struct transfer *tr = &rend->transfer;
-    int k_size = tr->k_size;
-    double k_min = tr->k[0];
-    double k_max = tr->k[k_size-1];
+    const int k_size = tr->k_size;
 
     /* Make the index table */
     for (int i=0; i<table_size; i++) {
         double u = (double) i/table_size;
-        double v = k_min + u * (k_max - k_min);
+        double v = lookup_k_min + u * (lookup_k_max - lookup_k_min);
 
         /* Find the largest bin such that w > k */
         double maxJ = 0;
@@ -1474,7 +1489,9 @@ void rend_custom_interp_init(struct renderer *rend, int table_size) {
 }
 
 /* Locate the index such that k[index] <= k < k[index+1] and the fractional
- * distance w = (k - k[index]) / (k[index+1] - k[index]). */
+ * distance w = (k - k[index]) / (k[index+1] - k[index]).
+ * To limit the number of branches, we do not check if the value is in bounds!
+ */
 void rend_interp_locate_k(struct renderer *rend, double k,
                           int *index, double *w) {
 
@@ -1482,7 +1499,7 @@ void rend_interp_locate_k(struct renderer *rend, double k,
   struct transfer *tr = &rend->transfer;
 
   /* Before doing anything else, check if the last search is still valid */
-  int last_index = rend->k_acc_last_index;
+  int last_index = rend->k_acc_prev_index;
   if (k >= tr->k[last_index] && k < tr->k[last_index + 1]) {
     /* We found the index */
     *index = last_index;
@@ -1490,24 +1507,19 @@ void rend_interp_locate_k(struct renderer *rend, double k,
     /* We will use the fast look-up table */
     int k_acc_table_size = rend->k_acc_table_size;
     int k_size = tr->k_size;
-    double k_min = tr->k[0];
-    double k_max = tr->k[k_size-1];
 
-    if (k > k_max) {
-      *index = k_size - 1;
-      *w = 1.0;
-      return;
-    }
+    /* Bounding values in the lookup table */
+    double lookup_k_min = rend->lookup_k_min;
+    double lookup_k_max = rend->lookup_k_max;
 
     /* Quickly find a starting index using the look-up table */
-    double v = k;
-    double u = (v - k_min) / (k_max - k_min);
+    double u = (k - lookup_k_min) / (lookup_k_max - lookup_k_min);
     int I = floor(u * k_acc_table_size);
-    int idx = rend->k_acc_table[I < k_acc_table_size ? I : k_acc_table_size - 1];
+    int start = rend->k_acc_table[I < k_acc_table_size ? I : k_acc_table_size - 1];
 
     /* Search in the k vector, starting from the looked up index */
     int i;
-    for (i = idx; i < k_size; i++) {
+    for (i = start; i < k_size; i++) {
       if (k >= tr->k[i] && k <= tr->k[i + 1]) break;
     }
 
@@ -1515,7 +1527,7 @@ void rend_interp_locate_k(struct renderer *rend, double k,
     *index = i;
 
     /* Store for later searches */
-    rend->k_acc_last_index = i;
+    rend->k_acc_prev_index = i;
   }
 
   /* Find the bounding values */
