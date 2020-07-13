@@ -682,40 +682,42 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   /* Export the potentials */
+  // if (e->nodeID == 0) {\
+  //   // writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
+  //   // writeGRF_H5(potential, N, box_len, "linear_nu_potential.hdf5");
+  //
+  //   /* Store the box as a separate box for the timestep */
+  //   if (e->step % 10 == 0) {
+  //     char one[40];
+  //     char two[40];
+  //     double z = e->cosmology->z;
+  //     sprintf(one, "m_potential_z_%.2f.hdf5", z);
+  //     sprintf(two, "linear_nu_potential_z_%.2f.hdf5", z);
+  //     writeGRF_H5(e->mesh->potential, N, box_len, one);
+  //     writeGRF_H5(potential, N, box_len, two);
+  //   }
+  // }
 
-  if (e->nodeID == 0) {
-    // writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
-    // writeGRF_H5(potential, N, box_len, "linear_nu_potential.hdf5");
+  // double Q = 0.f;
+  // double R = 0.f;
+  //
+  // for (int i = 0; i < N * N * N; i++) {
+  //   R += e->mesh->potential[i] * e->mesh->potential[i];
+  //   Q += potential[i] * potential[i];
+  // }
 
-    /* Store the box as a separate box for the timestep */
-    if (e->step % 10 == 0) {
-      char one[40];
-      char two[40];
-      double z = e->cosmology->z;
-      sprintf(one, "m_potential_z_%.2f.hdf5", z);
-      sprintf(two, "linear_nu_potential_z_%.2f.hdf5", z);
-      writeGRF_H5(e->mesh->potential, N, box_len, one);
-      writeGRF_H5(potential, N, box_len, two);
-    }
-  }
-
-  double Q = 0.f;
-  double R = 0.f;
+  // if (e->nodeID == 0) {
+  //   message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
+  // }
 
   /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
-    R += e->mesh->potential[i] * e->mesh->potential[i];
-    Q += potential[i] * potential[i];
     e->mesh->potential[i] += potential[i];
   }
 
-  if (e->nodeID == 0) {
-    message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
-  }
-
-  if (e->nodeID == 0) {
-    writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
-  }
+  // if (e->nodeID == 0) {
+  //   writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
+  // }
 
   /* Free memory */
   fftw_free(potential);

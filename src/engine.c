@@ -1763,12 +1763,13 @@ void engine_rebuild(struct engine *e, const int repartitioned,
 
     /* ... and recompute */
     pm_mesh_compute_potential(e->mesh, e->s, &e->threadpool, e->verbose);
-  }
 
 #ifdef RENDERER_USED
-  /* Add the perturbation theory contributions to the mesh forces */
-  rend_add_to_mesh(e->rend, e);
+    /* Add the perturbation theory contributions to the mesh forces */
+    rend_add_to_mesh(e->rend, e);
 #endif
+
+  }
 
   /* Re-compute the maximal RMS displacement constraint */
   if (e->policy & engine_policy_cosmology)
