@@ -37,7 +37,7 @@ inline int half_box_idx(int N, int x, int y, int z) {
 }
 
 /* Sinc function */
-inline double sinc(double x) { return x == 0 ? 0. : sin(x) / x; }
+inline double sinc(double x) { return x == 0 ? 1. : sin(x) / x; }
 
 /* Write binary boxes in HDF5 format */
 int writeGRF_H5(const double *box, int N, double boxlen, const char *fname) {
@@ -384,6 +384,9 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   fftw_plan pr2c = fftw_plan_dft_r2c_3d(N, N, N, potential, fp, FFTW_ESTIMATE);
   fftw_plan pc2r = fftw_plan_dft_c2r_3d(N, N, N, fp, potential, FFTW_ESTIMATE);
 
+  /* Start a timer */
+  ticks tic = getticks();
+
   /* First, copy the matter potential from SWIFT into the array */
   double *source_address = e->mesh->potential;
   double *destination = potential;
@@ -398,8 +401,12 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
     fp[i][1] *= box_volume / (N * N * N);
   }
 
-  /* Switch to the ncdm transfer function */
-  // rend_interp_switch_source(rend, rend->index_transfer_delta_ncdm);
+  if (e->verbose)
+    message("Forward Fourier transform took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
+
+  /* Time the next stage */
+  tic = getticks();
 
   /* Apply the transfer function */
   for (int x = 0; x < N; x++) {
@@ -413,58 +420,23 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
-          //                               rend->tau_acc);
-
           /* Find the k-space interpolation index */
           rend_interp_locate_k(rend, k, &k_index, &u_k);
 
           /* Bilinear interpolation of the ncdm transfer function */
-          double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
-                                         rend->index_transfer_delta_ncdm);
+          double Trn = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                          rend->index_transfer_delta_ncdm);
 
-          fp[half_box_idx(N, x, y, z)][0] *= Tr * bg_density_ratio;
-          fp[half_box_idx(N, x, y, z)][1] *= Tr * bg_density_ratio;
-        } else {
-          fp[half_box_idx(N, x, y, z)][0] = 0;
-          fp[half_box_idx(N, x, y, z)][1] = 0;
-        }
-      }
-    }
-  }
-
-  /* Switch to the cdm transfer function */
-  // rend_interp_switch_source(rend, rend->index_transfer_delta_cdm);
-
-  /* Undo the cdm transfer function and the long-range kernel */
-  for (int x = 0; x < N; x++) {
-    for (int y = 0; y < N; y++) {
-      for (int z = 0; z <= N / 2; z++) {
-        double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
-        double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
-        double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
-
-        double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
-
-        /* Ignore the DC mode */
-        if (k > 0) {
-          /* The cdm transfer function */
-          // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
-          //                               rend->tau_acc);
-
-          /* Find the k-space interpolation index */
-          rend_interp_locate_k(rend, k, &k_index, &u_k);
-
-          /* Bilinear interpolation of the ncdm transfer function */
-          double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
-                                         rend->index_transfer_delta_cdm);
+          /* Bilinear interpolation of the cdm transfer function */
+          double Trc = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                        rend->index_transfer_delta_cdm);
 
           /* The long-range kernel */
           double K = 1.;
           fourier_kernel_long_grav_eval(k * k * r_s * r_s, &K);
 
-          fp[half_box_idx(N, x, y, z)][0] /= Tr * K;
-          fp[half_box_idx(N, x, y, z)][1] /= Tr * K;
+          fp[half_box_idx(N, x, y, z)][0] *= (Trn / Trc) * bg_density_ratio / K;
+          fp[half_box_idx(N, x, y, z)][1] *= (Trn / Trc) * bg_density_ratio / K;
         } else {
           fp[half_box_idx(N, x, y, z)][0] = 0;
           fp[half_box_idx(N, x, y, z)][1] = 0;
@@ -472,6 +444,13 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
       }
     }
   }
+
+  if (e->verbose)
+    message("Applying transfer function took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
+
+  /* Time the next stage */
+  tic = getticks();
 
   /* Transform back */
   fftw_execute(pc2r);
@@ -481,27 +460,46 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
     potential[i] /= box_volume;
   }
 
-  /* Export the potentials */
-  if (e->nodeID == 0) {
-    writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
-    writeGRF_H5(potential, N, box_len, "scaled_nu_potential.hdf5");
-  }
+  if (e->verbose)
+    message("Backward Fourier transform took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
 
-  double Q = 0.f;
-  double R = 0.f;
+  /* Time the next stage */
+  tic = getticks();
+
+  /* Export the potentials if necessary */
+  if (e->nodeID == 0) {
+    /* Are we also exporting snapshots? */
+    if (e->step % 50 == 0) {
+      char one[40];
+      char two[40];
+      double z = e->cosmology->z;
+      sprintf(one, "m_potential_z_%.2f.hdf5", z);
+      sprintf(two, "scaled_nu_potential_z_%.2f.hdf5", z);
+      writeGRF_H5(e->mesh->potential, N, box_len, one);
+      writeGRF_H5(potential, N, box_len, two);
+
+      if (e->verbose) {
+        /* Print some statistics */
+        double rms_matter = 0.f;
+        double rms_nu = 0.f;
+
+        for (int i = 0; i < N * N * N; i++) {
+          rms_matter += e->mesh->potential[i] * e->mesh->potential[i];
+          rms_nu += potential[i] * potential[i];
+        }
+
+        message("Dumping render boxes took %.3f %s.",
+                clocks_from_ticks(getticks() - tic), clocks_getunit());
+        message("[Phi_m, Phi_nu] = [%e, %e].", rms_matter, rms_nu);
+      }
+    }
+  }
 
   /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
-    R += e->mesh->potential[i] * e->mesh->potential[i];
-    Q += potential[i] * potential[i];
     e->mesh->potential[i] += potential[i];
   }
-
-  if (e->nodeID == 0) {
-    message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
-  }
-
-  writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
 
   /* Free memory */
   fftw_free(potential);
@@ -569,6 +567,9 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   fftw_plan pr2c = fftw_plan_dft_r2c_3d(N, N, N, potential, fp, FFTW_ESTIMATE);
   fftw_plan pc2r = fftw_plan_dft_c2r_3d(N, N, N, fp, potential, FFTW_ESTIMATE);
 
+  /* Start a timer */
+  ticks tic = getticks();
+
   /* First, copy the primordial field into the array */
   double *source_address = rend->primordial_grid;
   double *destination = potential;
@@ -583,8 +584,12 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
     fp[i][1] *= box_volume / (N * N * N);
   }
 
-  /* Switch to the ncdm transfer function */
-  // rend_interp_switch_source(rend, rend->index_transfer_delta_ncdm);
+  if (e->verbose)
+    message("Forward Fourier transform took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
+
+  /* Time the next stage */
+  tic = getticks();
 
   /* Apply the neutrino transfer function */
   for (int x = 0; x < N; x++) {
@@ -598,9 +603,6 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 
         /* Ignore the DC mode */
         if (k > 0) {
-          // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
-          //                               rend->tau_acc);
-
           /* Find the k-space interpolation index */
           rend_interp_locate_k(rend, k, &k_index, &u_k);
 
@@ -610,12 +612,20 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 
 
           /* The CIC Window function in Fourier space */
-          double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
-          double W_y = (k_y == 0) ? 1 : pow(sinc(0.5 * k_y * box_len / N), 2);
-          double W_z = (k_z == 0) ? 1 : pow(sinc(0.5 * k_z * box_len / N), 2);
-          double W = W_x * W_y * W_z;
+          const double sqrt_W_x = sinc(0.5 * k_x * box_len / N);
+          const double sqrt_W_y = sinc(0.5 * k_y * box_len / N);
+          const double sqrt_W_z = sinc(0.5 * k_z * box_len / N);
+          const double sqrt_W = sqrt_W_x * sqrt_W_y * sqrt_W_z;
+          const double W = sqrt_W * sqrt_W;
 
-          Tr /= W * W;
+          /* Only deconvolve once for the interpolation (no gpart assignment) */
+          Tr /= W;
+
+          /* Convert from overdensity to density (we can ignore the k=0 mode) */
+          Tr *= neutrino_density;
+
+          /* Convert from density to potential by applying the -4 pi/k^2 kernel */
+          Tr *= -4 * M_PI / k / k;
 
           fp[half_box_idx(N, x, y, z)][0] *= Tr;
           fp[half_box_idx(N, x, y, z)][1] *= Tr;
@@ -627,6 +637,13 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
     }
   }
 
+  if (e->verbose)
+    message("Applying transfer function took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
+
+  /* Time the next stage */
+  tic = getticks();
+
   /* Transform back */
   fftw_execute(pc2r);
 
@@ -635,89 +652,46 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
     potential[i] /= box_volume;
   }
 
-  /* Convert from overdensity to density */
-  for (int i = 0; i < N * N * N; i++) {
-    potential[i] = (1.0 + potential[i]) * neutrino_density;
-  }
+  if (e->verbose)
+    message("Backward Fourier transform took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
 
-  /* Transform to momentum space */
-  fftw_execute(pr2c);
+  /* Time the next stage */
+  tic = getticks();
 
-  /* Normalization */
-  for (int i = 0; i < N * N * (N / 2 + 1); i++) {
-    fp[i][0] *= box_volume / (N * N * N);
-    fp[i][1] *= box_volume / (N * N * N);
-  }
+  /* Export the potentials if necessary */
+  if (e->nodeID == 0) {
+    /* Are we also exporting snapshots? */
+    if (e->step % 50 == 0) {
+      char one[40];
+      char two[40];
+      double z = e->cosmology->z;
+      sprintf(one, "m_potential_z_%.2f.hdf5", z);
+      sprintf(two, "linear_nu_potential_z_%.2f.hdf5", z);
+      writeGRF_H5(e->mesh->potential, N, box_len, one);
+      writeGRF_H5(potential, N, box_len, two);
 
-  /* Multiply by the -4 pi/k^2 kernel */
-  for (int x = 0; x < N; x++) {
-    for (int y = 0; y < N; y++) {
-      for (int z = 0; z <= N / 2; z++) {
-        double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
-        double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
-        double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+      if (e->verbose) {
+        /* Print some statistics */
+        double rms_matter = 0.f;
+        double rms_nu = 0.f;
 
-        double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
-
-        double kernel = -4 * M_PI / k / k;
-
-        /* Ignore the DC mode */
-        if (k > 0) {
-          fp[half_box_idx(N, x, y, z)][0] *= kernel;
-          fp[half_box_idx(N, x, y, z)][1] *= kernel;
-        } else {
-          fp[half_box_idx(N, x, y, z)][0] = 0;
-          fp[half_box_idx(N, x, y, z)][1] = 0;
+        for (int i = 0; i < N * N * N; i++) {
+          rms_matter += e->mesh->potential[i] * e->mesh->potential[i];
+          rms_nu += potential[i] * potential[i];
         }
+
+        message("Dumping render boxes took %.3f %s.",
+                clocks_from_ticks(getticks() - tic), clocks_getunit());
+        message("[Phi_m, Phi_nu] = [%e, %e].", rms_matter, rms_nu);
       }
     }
   }
-
-  /* Transform back */
-  fftw_execute(pc2r);
-
-  /* Normalization */
-  for (int i = 0; i < N * N * N; i++) {
-    potential[i] /= box_volume;
-  }
-
-  /* Export the potentials */
-  // if (e->nodeID == 0) {\
-  //   // writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
-  //   // writeGRF_H5(potential, N, box_len, "linear_nu_potential.hdf5");
-  //
-  //   /* Store the box as a separate box for the timestep */
-  //   if (e->step % 10 == 0) {
-  //     char one[40];
-  //     char two[40];
-  //     double z = e->cosmology->z;
-  //     sprintf(one, "m_potential_z_%.2f.hdf5", z);
-  //     sprintf(two, "linear_nu_potential_z_%.2f.hdf5", z);
-  //     writeGRF_H5(e->mesh->potential, N, box_len, one);
-  //     writeGRF_H5(potential, N, box_len, two);
-  //   }
-  // }
-
-  // double Q = 0.f;
-  // double R = 0.f;
-  //
-  // for (int i = 0; i < N * N * N; i++) {
-  //   R += e->mesh->potential[i] * e->mesh->potential[i];
-  //   Q += potential[i] * potential[i];
-  // }
-
-  // if (e->nodeID == 0) {
-  //   message("[Q, R] = [%e, %e]", sqrt(Q/(N*N*N)), sqrt(R/(N*N*N)));
-  // }
 
   /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
     e->mesh->potential[i] += potential[i];
   }
-
-  // if (e->nodeID == 0) {
-  //   writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
-  // }
 
   /* Free memory */
   fftw_free(potential);
@@ -830,12 +804,14 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
                                          index_f);
 
             /* The CIC Window function in Fourier space */
-            double W_x = (k_x == 0) ? 1 : pow(sinc(0.5 * k_x * box_len / N), 2);
-            double W_y = (k_y == 0) ? 1 : pow(sinc(0.5 * k_y * box_len / N), 2);
-            double W_z = (k_z == 0) ? 1 : pow(sinc(0.5 * k_z * box_len / N), 2);
-            double W = W_x * W_y * W_z;
+            const double sqrt_W_x = sinc(0.5 * k_x * box_len / N);
+            const double sqrt_W_y = sinc(0.5 * k_y * box_len / N);
+            const double sqrt_W_z = sinc(0.5 * k_z * box_len / N);
+            const double sqrt_W = sqrt_W_x * sqrt_W_y * sqrt_W_z;
+            const double W = sqrt_W * sqrt_W;
 
-            Tr /= W * W;
+            /* Only deconvolve once for the interpolation (no gpart assignment) */
+            Tr /= W;
 
             fp[half_box_idx(N, x, y, z)][0] *= Tr;
             fp[half_box_idx(N, x, y, z)][1] *= Tr;
