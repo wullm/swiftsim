@@ -300,6 +300,7 @@ __attribute__((nonnull)) INLINE static void gravity_multipole_print(
     const struct multipole *m) {
 
   printf("eps_max = %12.5e\n", m->max_softening);
+  printf("eps_mean = %12.5e\n", m->mean_softening);
   printf("Vel= [%12.5e %12.5e %12.5e]\n", m->vel[0], m->vel[1], m->vel[2]);
   printf("-------------------------\n");
   printf("M_000= %12.5e\n", m->M_000);
@@ -354,6 +355,11 @@ __attribute__((nonnull)) INLINE static void gravity_multipole_add(
 
   /* Maximum of both softenings */
   ma->max_softening = max(ma->max_softening, mb->max_softening);
+
+  /* Weighted mean of both softenings */
+  double eps_mean = (ma->mean_softening * ma->M_000 +
+                     mb->mean_softening * mb->M_000) / (ma->M_000 + mb->M_000);
+  ma->mean_softening = eps_mean;
 
   /* Minimum of both old accelerations */
   ma->min_old_a_grav_norm =
@@ -482,6 +488,14 @@ __attribute__((nonnull)) INLINE static int gravity_multipole_equal(
           fabsf(ma->max_softening + mb->max_softening) >
       tolerance) {
     message("max softening different!");
+    return 0;
+  }
+
+  /* Check mean softening */
+  if (fabsf(ma->mean_softening - mb->mean_softening) /
+          fabsf(ma->mean_softening + mb->mean_softening) >
+      tolerance) {
+    message("mean softening different!");
     return 0;
   }
 
@@ -986,6 +1000,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
 
   /* Temporary variables */
   float epsilon_max = 0.f;
+  double epsilon_mean = 0.d;
   float min_old_a_grav_norm = FLT_MAX;
   double mass = 0.0;
   double com[3] = {0.0, 0.0, 0.0};
@@ -1002,6 +1017,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
 #endif
 
     epsilon_max = max(epsilon_max, epsilon);
+    epsilon_mean += epsilon * m;
     min_old_a_grav_norm = min(min_old_a_grav_norm, gparts[k].old_a_grav_norm);
     mass += m;
     com[0] += gparts[k].x[0] * m;
@@ -1020,6 +1036,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   vel[0] *= imass;
   vel[1] *= imass;
   vel[2] *= imass;
+  epsilon_mean *= imass;
 
   /* Prepare some local counters */
   double r_max2 = 0.;
@@ -1165,6 +1182,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   multi->CoM[1] = com[1];
   multi->CoM[2] = com[2];
   multi->m_pole.max_softening = epsilon_max;
+  multi->m_pole.mean_softening = epsilon_mean;
   multi->m_pole.min_old_a_grav_norm = min_old_a_grav_norm;
   multi->m_pole.vel[0] = vel[0];
   multi->m_pole.vel[1] = vel[1];
@@ -1277,6 +1295,7 @@ __attribute__((nonnull)) INLINE static void gravity_M2M(
 
   /* "shift" the softening */
   m_a->max_softening = m_b->max_softening;
+  m_a->mean_softening = m_b->mean_softening;
 
   /* "shift" the minimal acceleration */
   m_a->min_old_a_grav_norm = m_b->min_old_a_grav_norm;
@@ -2003,7 +2022,7 @@ __attribute__((nonnull)) INLINE static void gravity_M2L_nonsym(
     const int periodic, const double dim[3], const float rs_inv) {
 
   /* Recover some constants */
-  const float eps = m_a->max_softening;
+  const float eps = m_a->mean_softening;
 
   /* Compute distance vector */
   float dx = (float)(pos_b[0] - pos_a[0]);
@@ -2053,7 +2072,7 @@ __attribute__((nonnull)) INLINE static void gravity_M2L_symmetric(
     const float rs_inv) {
 
   /* Recover some constants */
-  const float eps = max(m_a->max_softening, m_b->max_softening);
+  const float eps = max(m_a->mean_softening, m_b->mean_softening);
 
   /* Compute distance vector */
   float dx = (float)(pos_b[0] - pos_a[0]);

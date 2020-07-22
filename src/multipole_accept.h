@@ -92,7 +92,7 @@ __attribute__((nonnull, pure)) INLINE static int gravity_M2L_accept(
 
   /* Get the softening */
   const float max_softening =
-      max(A->m_pole.max_softening, B->m_pole.max_softening);
+      max(A->m_pole.mean_softening, B->m_pole.mean_softening);
 
   /* Compute the error estimator (without the 1/M_B term that cancels out) */
   float E_BA_term = 0.f;
@@ -215,7 +215,7 @@ __attribute__((nonnull, pure)) INLINE static int gravity_M2P_accept(
 
   /* Get the maximal softening */
   const float max_softening =
-      max(B->m_pole.max_softening, gravity_get_softening(pa, props));
+      max(B->m_pole.mean_softening, gravity_get_softening(pa, props));
 
 #ifdef SWIFT_DEBUG_CHECKS
   if (rho_B == 0.) error("Size of multipole B is 0!");
