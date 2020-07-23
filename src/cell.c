@@ -4900,6 +4900,18 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
         }
       }
 
+#ifdef NEUTRINO_DELTA_F
+      /* For weighted neutrino particles, prevent run-away weights */
+      if (gp->type == swift_type_neutrino) {
+        double w = 1.0 - gp->f_phase / gp->f_phase_i;
+        if (fabs(w) > 10) {
+          error("Runaway nupart [w, m, v, id] = [%e, %e, (%e, %e, %e), %lld]",
+                w, gp->mass, gp->v_full[0], gp->v_full[1], gp->v_full[2],
+                gp->id_or_neg_offset);
+        }
+      }
+#endif
+
       /* Init gravity force fields. */
       if (gpart_is_active(gp, e)) {
         gravity_init_gpart(gp);
