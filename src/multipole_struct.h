@@ -121,9 +121,6 @@ struct multipole {
   /*! Maximal co-moving softening of all the #gpart in the mulipole */
   float max_softening;
 
-  /*! Mass weighted co-moving softening of all the #gpart in the multipole */
-  float mean_softening;
-
   /*! Minimal acceleration norm of all the #gpart in the mulipole */
   float min_old_a_grav_norm;
 
