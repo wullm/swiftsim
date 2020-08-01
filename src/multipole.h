@@ -1012,6 +1012,14 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   double com[3] = {0.0, 0.0, 0.0};
   double vel[3] = {0.f, 0.f, 0.f};
 
+#ifdef NEUTRINO_DELTA_F
+  /* Additional variables for an alternative CoM calculation using absolute
+   * masses, needed when negative masses cause catastrophic cancellation */
+  double pseudo_mass = 0.0; //sum of absolute values
+  double pseudo_com[3] = {0.0, 0.0, 0.0}; //weighted by absolute values
+  double pseudo_vel[3] = {0.0, 0.0, 0.0}; //weighted by absolute values
+#endif
+
   /* Collect the particle data for CoM. */
   for (int k = 0; k < gcount; k++) {
     const double m = gparts[k].mass;
@@ -1031,6 +1039,17 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
     vel[0] += gparts[k].v_full[0] * m;
     vel[1] += gparts[k].v_full[1] * m;
     vel[2] += gparts[k].v_full[2] * m;
+
+#ifdef NEUTRINO_DELTA_F
+    const double abs_m = fabs(m);
+    pseudo_mass += abs_m;
+    pseudo_com[0] += gparts[k].x[0] * abs_m;
+    pseudo_com[1] += gparts[k].x[1] * abs_m;
+    pseudo_com[2] += gparts[k].x[2] * abs_m;
+    pseudo_vel[0] += gparts[k].v_full[0] * abs_m;
+    pseudo_vel[1] += gparts[k].v_full[1] * abs_m;
+    pseudo_vel[2] += gparts[k].v_full[2] * abs_m;
+#endif
   }
 
   /* Final operation on CoM */
@@ -1041,6 +1060,34 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   vel[0] *= imass;
   vel[1] *= imass;
   vel[2] *= imass;
+
+#ifdef NEUTRINO_DELTA_F
+  /* Final operation on pseudo-CoM, computed with absolute value masses */
+  const double ipseudo_mass = 1.0 / pseudo_mass;
+  pseudo_com[0] *= ipseudo_mass;
+  pseudo_com[1] *= ipseudo_mass;
+  pseudo_com[2] *= ipseudo_mass;
+  pseudo_vel[0] *= ipseudo_mass;
+  pseudo_vel[1] *= ipseudo_mass;
+  pseudo_vel[2] *= ipseudo_mass;
+
+  /* Compute distance between CoM and pseudo-CoM */
+  const double dpx = com[0] - pseudo_com[0];
+  const double dpy = com[1] - pseudo_com[1];
+  const double dpz = com[2] - pseudo_com[2];
+  const double pd2 = dpx * dpx + dpy * dpy + dpz * dpz;
+
+  /* Switch over if the CoM is far removed from the particles */
+  const double alpha = grav_props->pseudo_com_distance_criterion;
+  if (pd2 > alpha * alpha * epsilon_max * epsilon_max) {
+    com[0] = pseudo_com[0];
+    com[1] = pseudo_com[1];
+    com[2] = pseudo_com[2];
+    vel[0] = pseudo_vel[0];
+    vel[1] = pseudo_vel[1];
+    vel[2] = pseudo_vel[2];
+  }
+#endif
 
   /* Prepare some local counters */
   double r_max2 = 0.;

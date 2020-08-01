@@ -139,6 +139,11 @@ struct gravity_props {
   /*! Fraction of the top-level cell size used to normalize the dithering */
   double dithering_ratio;
 
+#ifdef NEUTRINO_DELTA_F
+  /*! Maximum distance/softening length ratio before switching to pseudo-com */
+  double pseudo_com_distance_criterion;
+#endif
+
   /* ------------- Physical constants ---------------------------------- */
 
   /*! Gravitational constant (in internal units, copied from the physical
