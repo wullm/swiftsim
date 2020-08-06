@@ -319,9 +319,9 @@ void rend_clean(struct renderer *rend) {
   free(rend->transfer.titles);
 
   /* Free density & perturbation theory grids */
-#ifdef RENDERER_FULL_GR
-  free(rend->the_grids);
-#endif
+// #ifdef RENDERER_FULL_GR
+//   free(rend->the_grids);
+// #endif
 
   /* Free the index table */
   free(rend->k_acc_table);
@@ -333,7 +333,6 @@ void rend_clean(struct renderer *rend) {
 /* Add neutrinos using the Bird & Ali-Haïmoud method */
 void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 #ifdef HAVE_FFTW
-#ifdef HAVE_LIBGSL
   /* Grid size */
   const int N = rend->primordial_grid_N;
   const double box_len = e->s->dim[0];
@@ -508,10 +507,6 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   fftw_destroy_plan(pc2r);
 
 #else
-  error("No GSL library found. Cannot perform cosmological interpolation.");
-#endif
-
-#else
   error("No FFTW library found. Cannot compute periodic long-range forces.");
 #endif
 }
@@ -519,7 +514,6 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 /* Add neutrinos using the linear theory transfer function */
 void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
 #ifdef HAVE_FFTW
-#ifdef HAVE_LIBGSL
   /* Grid size */
   const int N = rend->primordial_grid_N;
   const double box_len = e->s->dim[0];
@@ -700,17 +694,15 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   fftw_destroy_plan(pc2r);
 
 #else
-  error("No GSL library found. Cannot perform cosmological interpolation.");
-#endif
-
-#else
   error("No FFTW library found. Cannot compute periodic long-range forces.");
 #endif
 }
 
+
+
+/* Add all the linear theory transfer functions for relativistic components */
 void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 #ifdef HAVE_FFTW
-#ifdef HAVE_LIBGSL
   /* Grid size */
   const int N = rend->primordial_grid_N;
   const double box_len = e->s->dim[0];
@@ -721,8 +713,6 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
   const struct cosmology *cosmo = e->cosmology;
   const double tau = cosmo->conformal_time;
   const double H_conformal = cosmo->H * cosmo->a;
-
-  message("H-conformal = %f", H_conformal);
 
   /* Prevent out of interpolation range error */
   const int tau_size = rend->transfer.tau_size;
@@ -735,6 +725,23 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Find the time index */
   rend_interp_locate_tau(rend, log_tau, &tau_index, &u_tau);
+
+  /* Calculate the background neutrino density at the present time */
+  const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
+  const double Omega_g = cosmo->Omega_g;
+  const double Omega_ur = cosmo->Omega_ur;
+  const double rho_crit0 = cosmo->critical_density_0;
+  /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
+  const double neutrino_density = Omega_nu * rho_crit0 / cosmo->a;
+  const double photon_density = Omega_g * rho_crit0 / cosmo->a;
+  const double ultra_relativistic_density = Omega_ur * rho_crit0 / cosmo->a;
+
+  /* The potential is multiplied by G_newton later, so for phi, psi & H_T_Nb,
+   * which should not be multiplied by G_newton, we need to divide here.
+   * Also, we multiply by the scale factor a to get peculiar potentials.
+   */
+  const float G_newton = e->physical_constants->const_newton_G;
+  const double potential_factor = cosmo->a / G_newton;
 
   /* Boxes in configuration and momentum space */
   double *restrict potential;
@@ -755,164 +762,13 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
   fftw_plan pr2c = fftw_plan_dft_r2c_3d(N, N, N, potential, fp, FFTW_ESTIMATE);
   fftw_plan pc2r = fftw_plan_dft_c2r_3d(N, N, N, fp, potential, FFTW_ESTIMATE);
 
-  /* Realize all the perturbation theory grids */
-  for (int index_f = 0; index_f < rend->transfer.n_functions; index_f++) {
-    /* Switch the interpolation spline to the desired transfer function */
-    // rend_interp_switch_source(rend, index_f);
+  /* Start a timer */
+  ticks tic = getticks();
 
-    /* Use memory that has already been allocated */
-    double *grid = rend->the_grids + index_f * N * N * N;
-
-    /* First, copy the primordial field into the array */
-    double *source_address = rend->primordial_grid;
-    double *destination = grid;
-    memcpy(destination, source_address, N * N * N * sizeof(double));
-
-    /* Create plans */
-    fftw_plan r2c_grid = fftw_plan_dft_r2c_3d(N, N, N, grid, fp, FFTW_ESTIMATE);
-    fftw_plan c2r_grid = fftw_plan_dft_c2r_3d(N, N, N, fp, grid, FFTW_ESTIMATE);
-
-    /* Transform to momentum space */
-    fftw_execute(r2c_grid);
-
-    /* Normalization */
-    for (int i = 0; i < N * N * (N / 2 + 1); i++) {
-      fp[i][0] *= box_volume / (N * N * N);
-      fp[i][1] *= box_volume / (N * N * N);
-    }
-
-    /* Apply the transfer function */
-    for (int x = 0; x < N; x++) {
-      for (int y = 0; y < N; y++) {
-        for (int z = 0; z <= N / 2; z++) {
-          double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
-          double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
-          double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
-
-          double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
-
-          /* Ignore the DC mode */
-          if (k > 0) {
-            // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
-            //                               rend->tau_acc);
-
-            /* Find the k-space interpolation index */
-            rend_interp_locate_k(rend, k, &k_index, &u_k);
-
-            /* Bilinear interpolation of the ncdm transfer function */
-            double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
-                                         index_f);
-
-            /* The CIC Window function in Fourier space */
-            const double sqrt_W_x = sinc(0.5 * k_x * box_len / N);
-            const double sqrt_W_y = sinc(0.5 * k_y * box_len / N);
-            const double sqrt_W_z = sinc(0.5 * k_z * box_len / N);
-            const double sqrt_W = sqrt_W_x * sqrt_W_y * sqrt_W_z;
-            const double W = sqrt_W * sqrt_W;
-
-            /* Only deconvolve once for the interpolation (no gpart assignment) */
-            Tr /= W;
-
-            fp[half_box_idx(N, x, y, z)][0] *= Tr;
-            fp[half_box_idx(N, x, y, z)][1] *= Tr;
-          } else {
-            fp[half_box_idx(N, x, y, z)][0] = 0;
-            fp[half_box_idx(N, x, y, z)][1] = 0;
-          }
-        }
-      }
-    }
-
-    /* Transform back */
-    fftw_execute(c2r_grid);
-
-    /* Free memory */
-    fftw_destroy_plan(c2r_grid);
-    fftw_destroy_plan(r2c_grid);
-
-    /* Normalization */
-    for (int i = 0; i < N * N * N; i++) {
-      grid[i] /= box_volume;
-    }
-
-    /* Export the data block (only on master node) */
-    if (e->nodeID == 0) {
-      char boxname[40];
-      sprintf(boxname, "grid_%d.hdf5", index_f);
-      writeGRF_H5(grid, N, box_len, boxname);
-    }
-
-  }
-
-  /* Next, compute the potential due to neutrinos (modulo a factor G_newt) */
-
-  /* Calculate the background neutrino density at the present time */
-  const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
-  const double Omega_g = cosmo->Omega_g;
-  const double Omega_ur = cosmo->Omega_ur;
-  const double rho_crit0 = cosmo->critical_density_0;
-  /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
-  const double neutrino_density = Omega_nu * rho_crit0 / cosmo->a;
-  const double photon_density = Omega_g * rho_crit0 / cosmo->a;
-  const double ultra_relativistic_density = Omega_ur * rho_crit0 / cosmo->a;
-
-  /* The starting indices of the respective grids */
-  double *ncdm_grid =
-      rend->density_grid + rend->index_transfer_delta_ncdm * N * N * N;
-  double *g_grid =
-      rend->density_grid + rend->index_transfer_delta_g * N * N * N;
-  double *ur_grid =
-      rend->density_grid + rend->index_transfer_delta_ur * N * N * N;
-  double *HT_prime_grid =
-      rend->density_grid + rend->index_transfer_H_T_Nb_prime * N * N * N;
-  double *HT_prime_prime_grid =
-      rend->density_grid + rend->index_transfer_H_T_Nb_pprime * N * N * N;
-  double *phi_grid = rend->density_grid + rend->index_transfer_phi * N * N * N;
-  double *psi_grid = rend->density_grid + rend->index_transfer_psi * N * N * N;
-
-  /* The potential is multiplied by G_newton later, so for phi, psi & H_T_Nb,
-   * which should not be multiplied by G_newton, we need to divide now.
-   * Also, we multiply by the scale factor a to get peculiar potentials.
-   */
-  const float G_newton = e->physical_constants->const_newton_G;
-  const double potential_factor = cosmo->a / G_newton;
-
-  /* Apply this factor to phi, psi, and the H_T_Nb derivatives */
-  for (int i = 0; i < N * N * N; i++) {
-    phi_grid[i] *= potential_factor;
-    psi_grid[i] *= potential_factor;
-    HT_prime_grid[i] *= potential_factor;
-    HT_prime_prime_grid[i] *= potential_factor;
-  }
-
-  /* Compute RHS of Poisson's equation (modulo G_newton) */
-  for (int i = 0; i < N * N * N; i++) {
-    /* Neutrino contribution */
-    double rho_ncdm = (1.0 + ncdm_grid[i]) * neutrino_density;
-    /* Ultra-relativistic fluid contribution */
-    double rho_ur = (1.0 + ur_grid[i]) * ultra_relativistic_density;
-    /* Photon contribution (gamma) */
-    double rho_g = (1.0 + g_grid[i]) * photon_density;
-    /* H_T_Nb term = (H*a + d/dtau) * (d/dtau) * H_T_Nb */
-    double H_T_term = HT_prime_grid[i] * H_conformal + HT_prime_prime_grid[i];
-
-    /* We will apply the 1/k^2 kernel to the Fourier transform of this */
-    potential[i] = -4 * M_PI * (rho_ncdm + rho_g + rho_ur) + H_T_term;
-
-    /* Note: the phi & psi contribution is added later. */
-  }
-
-  /* Export the grids for troubleshooting */
-  if (e->nodeID == 0) {
-    writeGRF_H5(ncdm_grid, N, box_len, "grid_ncdm.hdf5");
-    writeGRF_H5(g_grid, N, box_len, "grid_g.hdf5");
-    writeGRF_H5(ur_grid, N, box_len, "grid_ur.hdf5");
-    writeGRF_H5(HT_prime_grid, N, box_len, "grid_HT_prime.hdf5");
-    writeGRF_H5(HT_prime_prime_grid, N, box_len, "grid_HT_prime_prime.hdf5");
-    writeGRF_H5(potential, N, box_len, "gr_dens.hdf5");
-    writeGRF_H5(phi_grid, N, box_len, "grid_phi.hdf5");
-    writeGRF_H5(psi_grid, N, box_len, "grid_psi.hdf5");
-  }
+  /* First, copy the primordial field into the array */
+  double *source_address = rend->primordial_grid;
+  double *destination = potential;
+  memcpy(destination, source_address, N * N * N * sizeof(double));
 
   /* Transform to momentum space */
   fftw_execute(pr2c);
@@ -923,7 +779,14 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
     fp[i][1] *= box_volume / (N * N * N);
   }
 
-  /* Multiply by the 1/k^2 kernel */
+  if (e->verbose)
+    message("Forward Fourier transform took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
+
+  /* Time the next stage */
+  tic = getticks();
+
+  /* Apply the neutrino transfer function */
   for (int x = 0; x < N; x++) {
     for (int y = 0; y < N; y++) {
       for (int z = 0; z <= N / 2; z++) {
@@ -933,12 +796,72 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 
         double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
 
-        double kernel = 1.0 / k / k;
-
         /* Ignore the DC mode */
         if (k > 0) {
-          fp[half_box_idx(N, x, y, z)][0] *= kernel;
-          fp[half_box_idx(N, x, y, z)][1] *= kernel;
+          /* Find the k-space interpolation index */
+          rend_interp_locate_k(rend, k, &k_index, &u_k);
+
+          /* Bilinear interpolation of the ncdm transfer function */
+          double Tr_nu = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                            rend->index_transfer_delta_ncdm);
+
+          /* Bilinear interpolation of the photon transfer function */
+          double Tr_g = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                           rend->index_transfer_delta_g);
+
+          /* Bilinear interpolation of the ur transfer function */
+          double Tr_ur = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                            rend->index_transfer_delta_ur);
+
+          /* Convert from overdensity to density (we ignore the k=0 mode) */
+          Tr_nu *= neutrino_density;
+          Tr_g *= photon_density;
+          Tr_ur *= ultra_relativistic_density;
+
+          /* Collect the relativistic fluid contributions to the potential */
+          double Tr_pot = -4 * M_PI * (Tr_nu + Tr_g + Tr_ur);
+
+          /* Bilinear interpolation of the metric derivative functions */
+          double Tr_HT_p = rend_custom_interp(rend, k_index, tau_index,
+                                              u_tau, u_k,
+                                             rend->index_transfer_H_T_Nb_prime);
+          double Tr_HT_pp = rend_custom_interp(rend, k_index, tau_index,
+                                              u_tau, u_k,
+                                            rend->index_transfer_H_T_Nb_pprime);
+
+          /* Compute the contributiom from the transverse metric term H_T */
+          double Tr_HT_term = Tr_HT_p * H_conformal + Tr_HT_pp;
+
+          /* Bilinear interpolation of the scalar metric transfer functions */
+          double Tr_phi = rend_custom_interp(rend, k_index, tau_index,
+                                             u_tau, u_k,
+                                             rend->index_transfer_phi);
+          double Tr_psi = rend_custom_interp(rend, k_index, tau_index,
+                                             u_tau, u_k,
+                                             rend->index_transfer_psi);
+
+          /* The anisotropic stress term */
+          double Tr_as_term = Tr_psi - Tr_phi;
+
+          /* Divide Newton's constant out of the potential terms */
+          Tr_HT_term *= potential_factor;
+          Tr_as_term *= potential_factor;
+
+          /* Add all the contributions */
+          double Tr = (Tr_pot + Tr_HT_term) / (k * k) + Tr_as_term;
+
+          /* The CIC Window function in Fourier space */
+          const double sqrt_W_x = sinc(0.5 * k_x * box_len / N);
+          const double sqrt_W_y = sinc(0.5 * k_y * box_len / N);
+          const double sqrt_W_z = sinc(0.5 * k_z * box_len / N);
+          const double sqrt_W = sqrt_W_x * sqrt_W_y * sqrt_W_z;
+          const double W = sqrt_W * sqrt_W;
+
+          /* Only deconvolve once for the interpolation (no gpart assignment) */
+          Tr /= W;
+
+          fp[half_box_idx(N, x, y, z)][0] *= Tr;
+          fp[half_box_idx(N, x, y, z)][1] *= Tr;
         } else {
           fp[half_box_idx(N, x, y, z)][0] = 0;
           fp[half_box_idx(N, x, y, z)][1] = 0;
@@ -946,6 +869,13 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
       }
     }
   }
+
+  if (e->verbose)
+    message("Applying transfer function took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
+
+  /* Time the next stage */
+  tic = getticks();
 
   /* Transform back */
   fftw_execute(pc2r);
@@ -955,28 +885,45 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
     potential[i] /= box_volume;
   }
 
-  /* Export the potentials */
-  if (e->nodeID == 0) {
-    writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
-    writeGRF_H5(potential, N, box_len, "gr_potential_without_stress.hdf5");
-  }
+  if (e->verbose)
+    message("Backward Fourier transform took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
 
-  /* Add the contribution from anisotropic stress = (phi - psi) */
-  for (int i = 0; i < N * N * N; i++) {
-    potential[i] -= (phi_grid[i] - psi_grid[i]);
-  }
+  /* Time the next stage */
+  tic = getticks();
 
+  /* Export the potentials if necessary */
   if (e->nodeID == 0) {
-    writeGRF_H5(potential, N, box_len, "gr_potential.hdf5");
+    /* Are we also exporting snapshots? */
+    if (e->step % 50 == 0) {
+      char one[40];
+      char two[40];
+      double z = e->cosmology->z;
+      sprintf(one, "m_potential_z_%.2f.hdf5", z);
+      sprintf(two, "linear_gr_potential_z_%.2f.hdf5", z);
+      writeGRF_H5(e->mesh->potential, N, box_len, one);
+      writeGRF_H5(potential, N, box_len, two);
+
+      if (e->verbose) {
+        /* Print some statistics */
+        double rms_matter = 0.f;
+        double rms_nu = 0.f;
+
+        for (int i = 0; i < N * N * N; i++) {
+          rms_matter += e->mesh->potential[i] * e->mesh->potential[i];
+          rms_nu += potential[i] * potential[i];
+        }
+
+        message("Dumping render boxes took %.3f %s.",
+                clocks_from_ticks(getticks() - tic), clocks_getunit());
+        message("[Phi_m, Phi_gr] = [%e, %e].", rms_matter, rms_nu);
+      }
+    }
   }
 
   /* Add the contribution to the gravity mesh */
   for (int i = 0; i < N * N * N; i++) {
     e->mesh->potential[i] += potential[i];
-  }
-
-  if (e->nodeID == 0) {
-    writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
   }
 
   /* Free memory */
@@ -985,15 +932,297 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
   fftw_destroy_plan(pr2c);
   fftw_destroy_plan(pc2r);
 
-
-#else
-  error("No GSL library found. Cannot perform cosmological interpolation.");
-#endif
-
 #else
   error("No FFTW library found. Cannot compute periodic long-range forces.");
 #endif
 }
+
+// void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
+// #ifdef HAVE_FFTW
+// #ifdef HAVE_LIBGSL
+//   /* Grid size */
+//   const int N = rend->primordial_grid_N;
+//   const double box_len = e->s->dim[0];
+//   const double box_volume = pow(box_len, 3);
+//   const double delta_k = 2 * M_PI / box_len;  // U_L^-1
+//
+//   /* Current conformal time */
+//   const struct cosmology *cosmo = e->cosmology;
+//   const double tau = cosmo->conformal_time;
+//   const double H_conformal = cosmo->H * cosmo->a;
+//
+//   message("H-conformal = %f", H_conformal);
+//
+//   /* Prevent out of interpolation range error */
+//   const int tau_size = rend->transfer.tau_size;
+//   const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
+//   const double log_tau = min(log(tau), final_log_tau);
+//
+//   /* Bilinear interpolation indices in (log_tau, k) space */
+//   int tau_index = 0, k_index = 0;
+//   double u_tau = 0.f, u_k = 0.f;
+//
+//   /* Find the time index */
+//   rend_interp_locate_tau(rend, log_tau, &tau_index, &u_tau);
+//
+//   /* Boxes in configuration and momentum space */
+//   double *restrict potential;
+//   fftw_complex *restrict fp;
+//
+//   /* Allocate memory for the rendered field */
+//   potential = (double *)fftw_malloc(sizeof(double) * N * N * N);
+//   fp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 + 1));
+//
+//   if (potential == NULL || fp == NULL) {
+//     error("Error allocating memory for rendering.");
+//   }
+//
+//   memuse_log_allocation("potential", potential, 1, sizeof(double) * N * N * N);
+//   memuse_log_allocation("f", fp, 1, sizeof(fftw_complex) * N * N * (N / 2 + 1));
+//
+//   /* Prepare the FFTW plans */
+//   fftw_plan pr2c = fftw_plan_dft_r2c_3d(N, N, N, potential, fp, FFTW_ESTIMATE);
+//   fftw_plan pc2r = fftw_plan_dft_c2r_3d(N, N, N, fp, potential, FFTW_ESTIMATE);
+//
+//   /* Realize all the perturbation theory grids */
+//   for (int index_f = 0; index_f < rend->transfer.n_functions; index_f++) {
+//     /* Switch the interpolation spline to the desired transfer function */
+//     // rend_interp_switch_source(rend, index_f);
+//
+//     /* Use memory that has already been allocated */
+//     double *grid = rend->the_grids + index_f * N * N * N;
+//
+//     /* First, copy the primordial field into the array */
+//     double *source_address = rend->primordial_grid;
+//     double *destination = grid;
+//     memcpy(destination, source_address, N * N * N * sizeof(double));
+//
+//     /* Create plans */
+//     fftw_plan r2c_grid = fftw_plan_dft_r2c_3d(N, N, N, grid, fp, FFTW_ESTIMATE);
+//     fftw_plan c2r_grid = fftw_plan_dft_c2r_3d(N, N, N, fp, grid, FFTW_ESTIMATE);
+//
+//     /* Transform to momentum space */
+//     fftw_execute(r2c_grid);
+//
+//     /* Normalization */
+//     for (int i = 0; i < N * N * (N / 2 + 1); i++) {
+//       fp[i][0] *= box_volume / (N * N * N);
+//       fp[i][1] *= box_volume / (N * N * N);
+//     }
+//
+//     /* Apply the transfer function */
+//     for (int x = 0; x < N; x++) {
+//       for (int y = 0; y < N; y++) {
+//         for (int z = 0; z <= N / 2; z++) {
+//           double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
+//           double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
+//           double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+//
+//           double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
+//
+//           /* Ignore the DC mode */
+//           if (k > 0) {
+//             // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+//             //                               rend->tau_acc);
+//
+//             /* Find the k-space interpolation index */
+//             rend_interp_locate_k(rend, k, &k_index, &u_k);
+//
+//             /* Bilinear interpolation of the ncdm transfer function */
+//             double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+//                                          index_f);
+//
+//             /* The CIC Window function in Fourier space */
+//             const double sqrt_W_x = sinc(0.5 * k_x * box_len / N);
+//             const double sqrt_W_y = sinc(0.5 * k_y * box_len / N);
+//             const double sqrt_W_z = sinc(0.5 * k_z * box_len / N);
+//             const double sqrt_W = sqrt_W_x * sqrt_W_y * sqrt_W_z;
+//             const double W = sqrt_W * sqrt_W;
+//
+//             /* Only deconvolve once for the interpolation (no gpart assignment) */
+//             Tr /= W;
+//
+//             fp[half_box_idx(N, x, y, z)][0] *= Tr;
+//             fp[half_box_idx(N, x, y, z)][1] *= Tr;
+//           } else {
+//             fp[half_box_idx(N, x, y, z)][0] = 0;
+//             fp[half_box_idx(N, x, y, z)][1] = 0;
+//           }
+//         }
+//       }
+//     }
+//
+//     /* Transform back */
+//     fftw_execute(c2r_grid);
+//
+//     /* Free memory */
+//     fftw_destroy_plan(c2r_grid);
+//     fftw_destroy_plan(r2c_grid);
+//
+//     /* Normalization */
+//     for (int i = 0; i < N * N * N; i++) {
+//       grid[i] /= box_volume;
+//     }
+//
+//     /* Export the data block (only on master node) */
+//     if (e->nodeID == 0) {
+//       char boxname[40];
+//       sprintf(boxname, "grid_%d.hdf5", index_f);
+//       writeGRF_H5(grid, N, box_len, boxname);
+//     }
+//
+//   }
+//
+//   /* Next, compute the potential due to neutrinos (modulo a factor G_newt) */
+//
+//   /* Calculate the background neutrino density at the present time */
+//   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
+//   const double Omega_g = cosmo->Omega_g;
+//   const double Omega_ur = cosmo->Omega_ur;
+//   const double rho_crit0 = cosmo->critical_density_0;
+//   /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
+//   const double neutrino_density = Omega_nu * rho_crit0 / cosmo->a;
+//   const double photon_density = Omega_g * rho_crit0 / cosmo->a;
+//   const double ultra_relativistic_density = Omega_ur * rho_crit0 / cosmo->a;
+//
+//   /* The starting indices of the respective grids */
+//   double *ncdm_grid =
+//       rend->density_grid + rend->index_transfer_delta_ncdm * N * N * N;
+//   double *g_grid =
+//       rend->density_grid + rend->index_transfer_delta_g * N * N * N;
+//   double *ur_grid =
+//       rend->density_grid + rend->index_transfer_delta_ur * N * N * N;
+//   double *HT_prime_grid =
+//       rend->density_grid + rend->index_transfer_H_T_Nb_prime * N * N * N;
+//   double *HT_prime_prime_grid =
+//       rend->density_grid + rend->index_transfer_H_T_Nb_pprime * N * N * N;
+//   double *phi_grid = rend->density_grid + rend->index_transfer_phi * N * N * N;
+//   double *psi_grid = rend->density_grid + rend->index_transfer_psi * N * N * N;
+//
+//   /* The potential is multiplied by G_newton later, so for phi, psi & H_T_Nb,
+//    * which should not be multiplied by G_newton, we need to divide now.
+//    * Also, we multiply by the scale factor a to get peculiar potentials.
+//    */
+//   const float G_newton = e->physical_constants->const_newton_G;
+//   const double potential_factor = cosmo->a / G_newton;
+//
+//   /* Apply this factor to phi, psi, and the H_T_Nb derivatives */
+//   for (int i = 0; i < N * N * N; i++) {
+//     phi_grid[i] *= potential_factor;
+//     psi_grid[i] *= potential_factor;
+//     HT_prime_grid[i] *= potential_factor;
+//     HT_prime_prime_grid[i] *= potential_factor;
+//   }
+//
+//   /* Compute RHS of Poisson's equation (modulo G_newton) */
+//   for (int i = 0; i < N * N * N; i++) {
+//     /* Neutrino contribution */
+//     double rho_ncdm = (1.0 + ncdm_grid[i]) * neutrino_density;
+//     /* Ultra-relativistic fluid contribution */
+//     double rho_ur = (1.0 + ur_grid[i]) * ultra_relativistic_density;
+//     /* Photon contribution (gamma) */
+//     double rho_g = (1.0 + g_grid[i]) * photon_density;
+//     /* H_T_Nb term = (H*a + d/dtau) * (d/dtau) * H_T_Nb */
+//     double H_T_term = HT_prime_grid[i] * H_conformal + HT_prime_prime_grid[i];
+//
+//     /* We will apply the 1/k^2 kernel to the Fourier transform of this */
+//     potential[i] = -4 * M_PI * (rho_ncdm + rho_g + rho_ur) + H_T_term;
+//
+//     /* Note: the phi & psi contribution is added later. */
+//   }
+//
+//   /* Export the grids for troubleshooting */
+//   if (e->nodeID == 0) {
+//     writeGRF_H5(ncdm_grid, N, box_len, "grid_ncdm.hdf5");
+//     writeGRF_H5(g_grid, N, box_len, "grid_g.hdf5");
+//     writeGRF_H5(ur_grid, N, box_len, "grid_ur.hdf5");
+//     writeGRF_H5(HT_prime_grid, N, box_len, "grid_HT_prime.hdf5");
+//     writeGRF_H5(HT_prime_prime_grid, N, box_len, "grid_HT_prime_prime.hdf5");
+//     writeGRF_H5(potential, N, box_len, "gr_dens.hdf5");
+//     writeGRF_H5(phi_grid, N, box_len, "grid_phi.hdf5");
+//     writeGRF_H5(psi_grid, N, box_len, "grid_psi.hdf5");
+//   }
+//
+//   /* Transform to momentum space */
+//   fftw_execute(pr2c);
+//
+//   /* Normalization */
+//   for (int i = 0; i < N * N * (N / 2 + 1); i++) {
+//     fp[i][0] *= box_volume / (N * N * N);
+//     fp[i][1] *= box_volume / (N * N * N);
+//   }
+//
+//   /* Multiply by the 1/k^2 kernel */
+//   for (int x = 0; x < N; x++) {
+//     for (int y = 0; y < N; y++) {
+//       for (int z = 0; z <= N / 2; z++) {
+//         double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
+//         double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
+//         double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+//
+//         double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
+//
+//         double kernel = 1.0 / k / k;
+//
+//         /* Ignore the DC mode */
+//         if (k > 0) {
+//           fp[half_box_idx(N, x, y, z)][0] *= kernel;
+//           fp[half_box_idx(N, x, y, z)][1] *= kernel;
+//         } else {
+//           fp[half_box_idx(N, x, y, z)][0] = 0;
+//           fp[half_box_idx(N, x, y, z)][1] = 0;
+//         }
+//       }
+//     }
+//   }
+//
+//   /* Transform back */
+//   fftw_execute(pc2r);
+//
+//   /* Normalization */
+//   for (int i = 0; i < N * N * N; i++) {
+//     potential[i] /= box_volume;
+//   }
+//
+//   /* Export the potentials */
+//   if (e->nodeID == 0) {
+//     writeGRF_H5(e->mesh->potential, N, box_len, "m_potential.hdf5");
+//     writeGRF_H5(potential, N, box_len, "gr_potential_without_stress.hdf5");
+//   }
+//
+//   /* Add the contribution from anisotropic stress = (phi - psi) */
+//   for (int i = 0; i < N * N * N; i++) {
+//     potential[i] -= (phi_grid[i] - psi_grid[i]);
+//   }
+//
+//   if (e->nodeID == 0) {
+//     writeGRF_H5(potential, N, box_len, "gr_potential.hdf5");
+//   }
+//
+//   /* Add the contribution to the gravity mesh */
+//   for (int i = 0; i < N * N * N; i++) {
+//     e->mesh->potential[i] += potential[i];
+//   }
+//
+//   if (e->nodeID == 0) {
+//     writeGRF_H5(e->mesh->potential, N, box_len, "full_potential.hdf5");
+//   }
+//
+//   /* Free memory */
+//   fftw_free(potential);
+//   fftw_free(fp);
+//   fftw_destroy_plan(pr2c);
+//   fftw_destroy_plan(pc2r);
+//
+//
+// #else
+//   error("No GSL library found. Cannot perform cosmological interpolation.");
+// #endif
+//
+// #else
+//   error("No FFTW library found. Cannot compute periodic long-range forces.");
+// #endif
+// }
 
 /* Depending on the compilation option, add linear theory potentials
  * to the long-range potential mesh. */
@@ -1310,9 +1539,9 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
     rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH, lookup_k_min,
                             lookup_k_max);
 
-#ifdef RENDERER_FULL_GR
-    rend_grids_alloc(rend);
-#endif
+// #ifdef RENDERER_FULL_GR
+//     rend_grids_alloc(rend);
+// #endif
   }
 
   /* The memory for the transfer functions is located here */
@@ -1393,9 +1622,9 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
     rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH, lookup_k_min,
                             lookup_k_max);
 
-#ifdef RENDERER_FULL_GR
-    rend_grids_alloc(rend);
-#endif
+// #ifdef RENDERER_FULL_GR
+//     rend_grids_alloc(rend);
+// #endif
   }
 #endif
 }
