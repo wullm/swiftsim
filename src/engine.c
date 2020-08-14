@@ -4122,11 +4122,6 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->neutrino_mass_conversion_factor = neutrino_mass_factor(e);
 #endif
 
-#ifdef RENDERER_USED
-  /* Initialize the perturbation theory renderer */
-  rend_init(rend, params, e);
-#endif
-
   engine_init_output_lists(e, params);
 }
 

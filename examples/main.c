@@ -1292,6 +1292,8 @@ int main(int argc, char *argv[]) {
     }
 
 #ifdef RENDERER_USED
+    /* Initialize the perturbation theory renderer */
+    rend_init(e.rend, e.parameter_file, &e);
     rend_init_perturb_vec(e.rend, e.parameter_file, &e, myrank);
 #endif
 

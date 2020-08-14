@@ -122,11 +122,11 @@ void rend_init(struct renderer *rend, struct swift_params *params,
 
   /* Verify that the physical dimensions of the primordial field match the
      cosmology */
-  for (int i = 0; i < 3; i++) {
-    if (fabs(rend->primordial_dims[i] - e->s->dim[i]) / e->s->dim[i] > 1e-3) {
-      error("Dimensions[%i] of primordial field do not agree with space.", i);
-    }
-  }
+  // for (int i = 0; i < 3; i++) {
+  //   if (fabs(rend->primordial_dims[i] - e->s->dim[i]) / e->s->dim[i] > 1e-3) {
+  //     error("Dimensions[%i] of primordial field do not agree with space.", i);
+  //   }
+  // }
 
   /* Verify that the primordial grid has the same size as the gravity mesh */
   if (rend->primordial_grid_N != e->mesh->N) {
@@ -161,77 +161,70 @@ void rend_grids_alloc(struct renderer *rend) {
 }
 
 void rend_load_primordial_field(struct renderer *rend, const char *fname) {
-  // Open the file containing the primordial fluctuation field
+  /* Open the file containing the primordial fluctuation field */
   const hid_t field_file = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (field_file < 0) {
     error("Error opening the primordial field file.");
   }
 
-  // Open the header group
+  /* Open the Header group */
   hid_t h_grp = H5Gopen(field_file, "/Header", H5P_DEFAULT);
   if (h_grp < 0) {
     error("Error while opening file header\n");
   }
 
-  // Read the physical dimensions of the box
+  /* Determine whether the BoxSize attribute exists */
   const hid_t hid_bsz = H5Aexists(h_grp, "BoxSize");
   if (hid_bsz < 0) {
     error("Error while testing existance of 'BoxSize' attribute");
   }
 
-  double field_dims[3];
-  io_read_attribute(h_grp, "BoxSize", DOUBLE, field_dims);
+  /* Load the physical BoxSize attribute */
   rend->primordial_dims = (double *)malloc(3 * sizeof(double));
-  for (int i = 0; i < 3; i++) {
-    rend->primordial_dims[i] = field_dims[i];
-  }
+  io_read_attribute(h_grp, "BoxSize", DOUBLE, rend->primordial_dims);
 
-  // Now load the actual grid
+  /* Open the Field group */
   h_grp = H5Gopen(field_file, "/Field", H5P_DEFAULT);
   if (h_grp < 0) {
     error("Error while opening field group\n");
   }
 
+  /* Open the dataset */
   hid_t h_data = H5Dopen(h_grp, "Field", H5P_DEFAULT);
+
+  /* Open the dataspace */
   hid_t space = H5Dget_space(h_data);
 
-  // The number of dimensions in the dataset (expected 3)
+  /* The number of dimensions in the dataset (expected 3) */
   const int rank = H5Sget_simple_extent_ndims(space);
   if (rank != 3) {
     error("Incorrect dataset dimensions for primordial field.");
   }
 
-  // Find the extent of each dimension (the grid size; not physical size)
+  /* Find the extent of each dimension (the grid size; not physical size) */
   hsize_t grid_dims[rank];
   H5Sget_simple_extent_dims(space, grid_dims, NULL);
 
-  // The grid must be cubic
+  /* The grid must be cubic */
   if (grid_dims[0] != grid_dims[1] || grid_dims[0] != grid_dims[2]) {
     error("Primordial grid is not cubic.");
   }
 
+  /* Store the grid dimensions */
   int N = grid_dims[0];
   rend->primordial_grid_N = N;
 
-  // Create a temporary array to read the data
-  float grf[N][N][N];
-  H5Dread(h_data, H5T_NATIVE_FLOAT, space, space, H5P_DEFAULT, grf);
-  H5Dclose(h_data);
-
-  // Allocate memory in the main program
+  /* Allocate memory for the Gaussian random field */
   const int bytes = N * N * N * sizeof(double);
   rend->primordial_grid = (double *)swift_malloc("primordial_grid", bytes);
 
-  // Transfer the data to rend->primordial_grid
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      for (int k = 0; k < N; k++) {
-        rend->primordial_grid[k + j * N + i * N * N] = grf[i][j][k];
-      }
-    }
-  }
+  /* Read the data */
+  H5Dread(h_data, H5T_NATIVE_DOUBLE, space, space, H5P_DEFAULT, rend->primordial_grid);
 
-  // Close the file
+  /* Close the dataset */
+  H5Dclose(h_data);
+
+  /* Close the file */
   H5Fclose(field_file);
 }
 
@@ -529,6 +522,11 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
   const double log_tau = min(log(tau), final_log_tau);
 
+  /* Throw an error if the neutrino transfer function was not found */
+  if (rend->index_transfer_delta_ncdm < 0) {
+    error("Running the neutrino renderer: transfer function d_ncdm is absent.");
+  }
+
   /* Bilinear interpolation indices in (log_tau, k) space */
   int tau_index = 0, k_index = 0;
   double u_tau = 0.f, u_k = 0.f;
@@ -719,6 +717,17 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
   const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
   const double log_tau = min(log(tau), final_log_tau);
 
+  /* Throw an error if essential transfer functions are missing */
+  if (rend->index_transfer_H_T_Nb_prime < 0) {
+    error("Running the GR renderer: transfer function HT_Nb_prime is absent.");
+  }
+  if (rend->index_transfer_phi < 0) {
+    error("Running the GR renderer: transfer function phi is absent.");
+  }
+  if (rend->index_transfer_psi < 0) {
+    error("Running the GR renderer: transfer function psi is absent.");
+  }
+
   /* Bilinear interpolation indices in (log_tau, k) space */
   int tau_index = 0, k_index = 0;
   double u_tau = 0.f, u_k = 0.f;
@@ -801,17 +810,28 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
           /* Find the k-space interpolation index */
           rend_interp_locate_k(rend, k, &k_index, &u_k);
 
+          /* Interpolate relativistic species density transfer functions */
+          double Tr_nu = 0;
+          double Tr_g = 0;
+          double Tr_ur = 0;
+
           /* Bilinear interpolation of the ncdm transfer function */
-          double Tr_nu = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
-                                            rend->index_transfer_delta_ncdm);
+          if (rend->index_transfer_delta_ncdm > -1) {
+            Tr_nu = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                       rend->index_transfer_delta_ncdm);
+          }
 
           /* Bilinear interpolation of the photon transfer function */
-          double Tr_g = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
-                                           rend->index_transfer_delta_g);
+          if (rend->index_transfer_delta_g > -1) {
+            Tr_g = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                      rend->index_transfer_delta_g);
+          }
 
           /* Bilinear interpolation of the ur transfer function */
-          double Tr_ur = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
-                                            rend->index_transfer_delta_ur);
+          if (rend->index_transfer_delta_ur > -1) {
+            Tr_ur = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                       rend->index_transfer_delta_ur);
+          }
 
           /* Convert from overdensity to density (we ignore the k=0 mode) */
           Tr_nu *= neutrino_density;
@@ -821,24 +841,36 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
           /* Collect the relativistic fluid contributions to the potential */
           double Tr_pot = -4 * M_PI * (Tr_nu + Tr_g + Tr_ur);
 
+          /* Interpolate metric derivative transfer functions */
+          double Tr_HT_p = 0;
+          double Tr_HT_pp = 0;
+
           /* Bilinear interpolation of the metric derivative functions */
-          double Tr_HT_p = rend_custom_interp(rend, k_index, tau_index,
-                                              u_tau, u_k,
-                                             rend->index_transfer_H_T_Nb_prime);
-          double Tr_HT_pp = rend_custom_interp(rend, k_index, tau_index,
-                                              u_tau, u_k,
-                                            rend->index_transfer_H_T_Nb_pprime);
+          if (rend->index_transfer_H_T_Nb_prime > -1) {
+            Tr_HT_p = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                         rend->index_transfer_H_T_Nb_prime);
+          }
+          if (rend->index_transfer_H_T_Nb_pprime > -1) {
+            Tr_HT_pp = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                          rend->index_transfer_H_T_Nb_pprime);
+          }
 
           /* Compute the contributiom from the transverse metric term H_T */
           double Tr_HT_term = Tr_HT_p * H_conformal + Tr_HT_pp;
 
+          /* Interpolate scalar metric transfer functions */
+          double Tr_phi = 0;
+          double Tr_psi = 0;
+
           /* Bilinear interpolation of the scalar metric transfer functions */
-          double Tr_phi = rend_custom_interp(rend, k_index, tau_index,
-                                             u_tau, u_k,
-                                             rend->index_transfer_phi);
-          double Tr_psi = rend_custom_interp(rend, k_index, tau_index,
-                                             u_tau, u_k,
-                                             rend->index_transfer_psi);
+          if (rend->index_transfer_phi > -1) {
+            Tr_phi = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                        rend->index_transfer_phi);
+          }
+          if (rend->index_transfer_psi > -1) {
+            Tr_psi = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                        rend->index_transfer_psi);
+          }
 
           /* The anisotropic stress term */
           double Tr_as_term = Tr_psi - Tr_phi;
@@ -1574,6 +1606,17 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
 
   /* Identify commonly used indices by their titles */
   if (myrank == 0) {
+    /* Initialize the transfer function indices */
+    rend->index_transfer_delta_cdm = -1;
+    rend->index_transfer_delta_ncdm = -1;
+    rend->index_transfer_delta_g = -1;
+    rend->index_transfer_delta_ur = -1;
+    rend->index_transfer_phi = -1;
+    rend->index_transfer_psi = -1;
+    rend->index_transfer_H_T_Nb_prime = -1;
+    rend->index_transfer_H_T_Nb_pprime = -1;
+
+    /* Find the indices */
     for (int i = 0; i < tr->n_functions; i++) {
       if (strcmp(tr->titles[i], "d_ncdm[0]") == 0) {
         rend->index_transfer_delta_ncdm = i;
