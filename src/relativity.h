@@ -24,6 +24,15 @@
 
 #include "engine.h"
 
+/* Calculation of sqrt(x^2 + y^2 + z^2), without undue overflow or underflow. */
+__attribute__((always_inline, const)) INLINE static double hypot3(double x,
+                                                                  double y,
+                                                                  double z) {
+
+  return hypot(x, hypot(y, z));
+}
+
+
 /**
  * @brief Calculate the relativistic correction to the 'drift' timestep
  *
@@ -36,7 +45,7 @@ __attribute__((always_inline)) INLINE static double relat_corr_drift(
   /* Perform a relativistic correction, see eq. (5.13) in 1604.06065 */
   double a = e->cosmology->a;
   double c = e->physical_constants->const_speed_light_c;
-  float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]) / (a * c);
+  float v = hypot3(V[0], V[1], V[2]) / (a * c);
 
   /* When this is enabled, the internal velocity variable is
    * the spatial component of the 4-velocity U^i, multiplied by a^2,
@@ -59,7 +68,7 @@ __attribute__((always_inline)) INLINE static double relat_corr_kick(
   /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
   double a = e->cosmology->a;
   double c = e->physical_constants->const_speed_light_c;
-  float v = sqrt(V[0] * V[0] + V[1] * V[1] + V[2] * V[2]) / (a * c);
+  float v = hypot3(V[0], V[1], V[2]) / (a * c);
 
   /* When this is enabled, the internal velocity variable is
    * the spatial component of the 4-velocity U^i, multiplied by a^2,
@@ -68,6 +77,32 @@ __attribute__((always_inline)) INLINE static double relat_corr_kick(
    */
 
   return (2 * v * v + 1.) / hypot(v, 1.);
+}
+
+/**
+ * @brief Calculate the relativistic correction to the 3-acceleration, i.e.
+ * the second time derivative of the particle coordinates. This is only used
+ * in get_gpart_timestep, to correct the Gadget timestep criterion ~1/sqrt(a)
+ *
+ * @param e The engine
+ * @param V The scale factor
+ */
+__attribute__((always_inline)) INLINE static double relat_corr_3accel(
+    const struct engine *e, const float *V) {
+
+  /* Perform a relativistic correction */
+  double a = e->cosmology->a;
+  double c = e->physical_constants->const_speed_light_c;
+  float vv = (V[0] * V[0] + V[1] * V[1] + V[2] * V[2]) / (a * a * c * c);
+
+  /* When this is enabled, the internal velocity variable is
+   * the spatial component of the 4-velocity U^i, multiplied by a^2,
+   * which reduces to the usual comoving velocity times a^2 in the
+   * limit of c --> infinity.
+   */
+
+  /* Derivative of v / sqrt(v^2 + 1), using v' = (2v^2 + 1)a / sqrt(v^2 + 1) */
+  return (2 * vv + 1.) / ((vv + 1.0) * (vv + 1.0));
 }
 
 #endif /* SWIFT_RELATIVITY_H */
