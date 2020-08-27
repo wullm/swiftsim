@@ -781,6 +781,9 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
     /* All massless case */
     const double fermi_factor = 7. / 8. * pow(4. / 11., 4. / 3.);
     c->Omega_nu = c->Omega_g * c->N_eff * fermi_factor;
+
+    /* Avoid double counting */
+    c->Omega_nu -= c->Omega_ur;
   }
 
   /* Curvature density (for closure) */
