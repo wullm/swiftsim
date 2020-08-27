@@ -777,12 +777,13 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
     c->neutrino_density_interp_table = NULL;
     cosmology_init_neutrino_tables(c, phys_const);
     c->Omega_nu = cosmology_get_neutrino_density_param(c, 1);  // scale-factor 1
-  } else if (c->Omega_ur == 0) {
+  } else if (c->N_nu > 0) {
     /* All massless case */
     const double fermi_factor = 7. / 8. * pow(4. / 11., 4. / 3.);
-    c->Omega_nu = c->Omega_g * c->N_eff * fermi_factor;
+    const double N_eff_from_nu = c->N_eff - c->N_ur;
+    c->Omega_nu = c->Omega_g * N_eff_from_nu * fermi_factor;
   } else {
-    /* Should be explicitly included in the ultra-relativistic component */
+    /* No massless/massive neutrinos present (e.g. included in Omega_ur) */
     c->Omega_nu = 0.;
   }
 
