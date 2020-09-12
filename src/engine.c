@@ -4018,9 +4018,11 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->neutrino_dt_switch_threshold = parser_get_opt_param_double(
       params, "TimeIntegration:neutrino_dt_switch_threshold", 0.001);
 
+  e->neutrino_max_dt_factor = parser_get_opt_param_double(
+      params, "TimeIntegration:neutrino_max_dt_factor", 100);
   if (e->nodeID == 0) {
-    message("The neutrino dt switch threshold is I > %e.",
-            e->neutrino_dt_switch_threshold);
+    message("The neutrino dt switch threshold is I > %e and max_dt_factor = %e.",
+            e->neutrino_dt_switch_threshold, e->neutrino_max_dt_factor);
   }
 #endif
 
@@ -5464,20 +5466,8 @@ void engine_recompute_displacement_constraint(struct engine *e) {
 
     /* Time-step based on maximum displacement */
     dt_nu = a * a * min(r_s, d_nu) / sqrtf(rms_vel_nu);
-
-#ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
-#ifndef WITH_DF_DIAGNOSTICS
+    /* We no longer use the max displacement time-step for neutrinos */
     dt_nu = FLT_MAX;
-    // error("Running with neutrino dt-switch but without df-diagnostics.");
-#else
-
-    /* Disable the neutrino displacement limited timestep if weights are low */
-    if (e->neutrino_I_df < e->neutrino_dt_switch_threshold) {
-      dt_nu = FLT_MAX;
-    }
-
-#endif
-#endif
   }
 
   /* Use the minimum */
@@ -5493,6 +5483,16 @@ void engine_recompute_displacement_constraint(struct engine *e) {
   if (e->verbose)
     message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
             clocks_getunit());
+
+#ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
+  /* Determine whether the neutrinos should be evolved accurately or not */
+  if (e->neutrino_I_df < e->neutrino_dt_switch_threshold &&
+      e->neutrino_I_df > 0.0) {
+    e->neutrino_dt_boost = 1;
+  } else {
+    e->neutrino_dt_boost = 0;
+  }
+#endif
 }
 
 /**

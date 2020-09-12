@@ -580,6 +580,10 @@ void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
 
   tic = getticks();
 
+  /* If running with neutrino linear theory delta-f, copy the density grid
+   * before applying the Green's function */
+  memcpy(s->e->rend->density_grid, rho, N * N * N * sizeof(double));
+
   /* Fourier transform to go to magic-land */
   fftw_execute(forward_plan);
 

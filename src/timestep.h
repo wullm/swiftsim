@@ -125,6 +125,13 @@ __attribute__((always_inline)) INLINE static integertime_t get_gpart_timestep(
     error("gpart (id=%lld) wants a time-step (%e) below dt_min (%e)",
           gp->id_or_neg_offset, new_dt, e->dt_min);
 
+#ifdef WITH_NEUTRINO_TIMESTEP_SWITCH
+  /* Significantly boost neutrino time steps when the noise is low */
+  if (gp->type == swift_type_neutrino && e->neutrino_dt_boost) {
+    new_dt *= e->neutrino_max_dt_factor;
+  }
+#endif
+
   /* Convert to integer time */
   const integertime_t new_dti = make_integer_timestep(
       new_dt, gp->time_bin, num_time_bins, e->ti_current, e->time_base_inv);

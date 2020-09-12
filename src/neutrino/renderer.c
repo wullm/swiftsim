@@ -147,17 +147,24 @@ void rend_init(struct renderer *rend, struct swift_params *params,
 void rend_grids_alloc(struct renderer *rend) {
   /* Allocate memory for the perturbation theory grids */
   const int N = rend->primordial_grid_N;
-  const int Nf = rend->transfer.n_functions;
-  const int bytes = N * N * N * Nf * sizeof(double);
-  rend->the_grids = (double *)swift_malloc("the_grids", bytes);
+  // const int Nf = rend->transfer.n_functions;
+  // const int bytes = N * N * N * Nf * sizeof(double);
+  // rend->the_grids = (double *)swift_malloc("the_grids", bytes);
 
-  if (rend->the_grids == NULL) {
-    error("Error allocating memory for perturbation theory grids.");
+  // if (rend->the_grids == NULL) {
+  //   error("Error allocating memory for perturbation theory grids.");
+  // }
+
+  /* Allocate memory for the neutrino density grid */
+  rend->density_grid = (double *)fftw_malloc(sizeof(double) * N * N * N);
+
+  if (rend->density_grid == NULL) {
+    error("Error allocating memory for neutrino density grid.");
   }
 
-  /* Create pointer to the density grid, which is the first field in
-     the array */
-  rend->density_grid = rend->the_grids;
+  // /* Create pointer to the density grid, which is the first field in
+  //    the array */
+  // rend->density_grid = rend->the_grids;
 }
 
 void rend_load_primordial_field(struct renderer *rend, const char *fname) {
@@ -312,6 +319,7 @@ void rend_clean(struct renderer *rend) {
   free(rend->transfer.titles);
 
   /* Free density & perturbation theory grids */
+  free(rend->density_grid);
 // #ifdef RENDERER_FULL_GR
 //   free(rend->the_grids);
 // #endif
@@ -354,15 +362,12 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
   const double bg_density_ratio = (Omega_nu / cosmo->a) / Omega_m;
 
-  /* Long-range potential smoothing length */
-  const double r_s = e->gravity_properties->a_smooth * box_len / N;
-
   /* Boxes in configuration and momentum space */
   double *restrict potential;
   fftw_complex *restrict fp;
 
-  /* Allocate memory for the rendered field */
-  potential = (double *)fftw_malloc(sizeof(double) * N * N * N);
+  /* Memory space for the density/potential field and Fourier transform */
+  potential = rend->density_grid;
   fp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 + 1));
 
   if (potential == NULL || fp == NULL) {
@@ -378,11 +383,6 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   /* Start a timer */
   ticks tic = getticks();
-
-  /* First, copy the matter potential from SWIFT into the array */
-  double *source_address = e->mesh->potential;
-  double *destination = potential;
-  memcpy(destination, source_address, N * N * N * sizeof(double));
 
   /* Transform to momentum space */
   fftw_execute(pr2c);
@@ -400,7 +400,7 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   /* Time the next stage */
   tic = getticks();
 
-  /* Apply the transfer function */
+  /* Apply the transfer function ratio */
   for (int x = 0; x < N; x++) {
     for (int y = 0; y < N; y++) {
       for (int z = 0; z <= N / 2; z++) {
@@ -423,12 +423,8 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
           double Trc = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
                                         rend->index_transfer_delta_cdm);
 
-          /* The long-range kernel */
-          double K = 1.;
-          fourier_kernel_long_grav_eval(k * k * r_s * r_s, &K);
-
-          fp[half_box_idx(N, x, y, z)][0] *= (Trn / Trc) * bg_density_ratio / K;
-          fp[half_box_idx(N, x, y, z)][1] *= (Trn / Trc) * bg_density_ratio / K;
+          fp[half_box_idx(N, x, y, z)][0] *= (Trn / Trc) * bg_density_ratio;
+          fp[half_box_idx(N, x, y, z)][1] *= (Trn / Trc) * bg_density_ratio;
         } else {
           fp[half_box_idx(N, x, y, z)][0] = 0;
           fp[half_box_idx(N, x, y, z)][1] = 0;
@@ -439,6 +435,87 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
   if (e->verbose)
     message("Applying transfer function took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
+
+  /* Time the next stage */
+  tic = getticks();
+
+  /* Transform back */
+  fftw_execute(pc2r);
+
+  /* Normalization */
+  for (int i = 0; i < N * N * N; i++) {
+    potential[i] /= box_volume;
+  }
+
+  if (e->verbose)
+    message("Backward Fourier transform took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
+
+  /* Time the next stage */
+  tic = getticks();
+
+  /* Export the density grid if necessary */
+  if (e->nodeID == 0) {
+    /* Are we also exporting snapshots? */
+    if (e->step % 50 == 0) {
+      char one[40];
+      double z = e->cosmology->z;
+      sprintf(one, "scaled_nu_density_z_%.2f.hdf5", z);
+      writeGRF_H5(potential, N, box_len, one);
+    }
+  }
+
+  /* Transform once again to momentum space */
+  fftw_execute(pr2c);
+
+  /* Normalization */
+  for (int i = 0; i < N * N * (N / 2 + 1); i++) {
+    fp[i][0] *= box_volume / (N * N * N);
+    fp[i][1] *= box_volume / (N * N * N);
+  }
+
+  if (e->verbose)
+    message("Forward Fourier transform took %.3f %s.",
+            clocks_from_ticks(getticks() - tic), clocks_getunit());
+
+  /* Time the next stage */
+  tic = getticks();
+
+  /* Convert to a density grid */
+  for (int x = 0; x < N; x++) {
+    for (int y = 0; y < N; y++) {
+      for (int z = 0; z <= N / 2; z++) {
+        double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
+        double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
+        double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+
+        double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
+
+        /* Ignore the DC mode */
+        if (k > 0) {
+          /* The inverse Poisson kernel */
+          double K = -4 * M_PI / k / k;
+
+          /* The CIC Window function in Fourier space */
+          const double sqrt_W_x = sinc(0.5 * k_x * box_len / N);
+          const double sqrt_W_y = sinc(0.5 * k_y * box_len / N);
+          const double sqrt_W_z = sinc(0.5 * k_z * box_len / N);
+          const double sqrt_W = sqrt_W_x * sqrt_W_y * sqrt_W_z;
+          const double W = sqrt_W * sqrt_W;
+
+          fp[half_box_idx(N, x, y, z)][0] *= K / (W * W);
+          fp[half_box_idx(N, x, y, z)][1] *= K / (W * W);
+        } else {
+          fp[half_box_idx(N, x, y, z)][0] = 0;
+          fp[half_box_idx(N, x, y, z)][1] = 0;
+        }
+      }
+    }
+  }
+
+  if (e->verbose)
+    message("Undoing Poisson kernel took %.3f %s.",
             clocks_from_ticks(getticks() - tic), clocks_getunit());
 
   /* Time the next stage */
@@ -494,7 +571,6 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
   }
 
   /* Free memory */
-  fftw_free(potential);
   fftw_free(fp);
   fftw_destroy_plan(pr2c);
   fftw_destroy_plan(pc2r);
@@ -1572,7 +1648,7 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
                             lookup_k_max);
 
 // #ifdef RENDERER_FULL_GR
-//     rend_grids_alloc(rend);
+    rend_grids_alloc(rend);
 // #endif
   }
 
@@ -1666,7 +1742,7 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
                             lookup_k_max);
 
 // #ifdef RENDERER_FULL_GR
-//     rend_grids_alloc(rend);
+    rend_grids_alloc(rend);
 // #endif
   }
 #endif

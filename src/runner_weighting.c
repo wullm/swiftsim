@@ -41,7 +41,7 @@
 /* For convert_gpart_vel() */
 #include "gravity_io.h"
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef RENDERER_RESCALED_NEUTRINOS
 /**
  * @brief Returns 1D index of a 3D NxNxN array using row-major style.
  *
@@ -185,7 +185,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   if (!with_cosmology)
     error("Phase space weighting without cosmology not implemented.");
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef RENDERER_RESCALED_NEUTRINOS
 #ifdef RENDERER_USED
   /* Locate the linear theory density grid */
   const int N = e->rend->primordial_grid_N;
@@ -226,12 +226,11 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
       if (gp->type == swift_type_neutrino && true) {
         if (gpart_is_active(gp, e)) {
 
-          double temperature_factor = 1.0;
+          double overdensity = 0.0;
 
-#ifdef NEUTRINO_DELTA_F_LINEAR_THEORY
+#ifdef RENDERER_RESCALED_NEUTRINOS
 #ifdef RENDERER_USED
-          double overdensity = grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
-          temperature_factor = cbrt(1.0 + overdensity);
+          overdensity = grid_to_gparts_CIC(gp, grid, N, cell_fac, dim);
 #else
           error("Running with linear theory delta-f, but no renderer.");
 #endif
@@ -243,7 +242,8 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             double f;
 
             /* Store the initial mass & phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0);
+            f = (1 + overdensity/3) * f;
             gp->mass_i = gp->mass;
             gp->f_phase = f;
             gp->f_phase_i = f;
@@ -254,7 +254,8 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             double f;
 
             /* Compute the phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            f = fermi_dirac_density(e, gp->v_full, m_eV, 1.0);
+            f = (1 + overdensity/3) * f;
             gp->f_phase = f;
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
