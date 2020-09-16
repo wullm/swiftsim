@@ -1,80 +1,68 @@
-# Define the system of units to use internally.
 InternalUnitSystem:
-  UnitMass_in_cgs:     1.98848e43    # 10^10 M_sun
-  UnitLength_in_cgs:   3.08567758e24 # 1 Mpc
-  UnitVelocity_in_cgs: 9.785e7       # 1 Mpc/Gyr
-  UnitCurrent_in_cgs:  1   	     # Amperes
-  UnitTemp_in_cgs:     1   	     # Kelvin
+  UnitMass_in_cgs:	1.9884350000e+43
+  UnitLength_in_cgs:	3.0856775815e+24
+  UnitVelocity_in_cgs:	9.7846194238e+07
+  UnitCurrent_in_cgs:	1.0000000000e+00
+  UnitTemp_in_cgs:	1.0000000000e+00
 
 Cosmology:
-  Omega_m: 0.31205
-  Omega_lambda: 0.6737588 #chosen to close the universe
-  Omega_b: 0.048275
-  h: 0.67556
-  a_begin: 0.0243902	# z_ini = 40.
-  a_end: 1.0		# z_end = 0.
-  T_CMB: 2.7255
-  N_eff: 3.046
-  N_nu: 3
-  M_nu: 0.2, 0.2, 0.2
+  Omega_m:	0.3122685143
+  Omega_b:	0.0491989267
+  Omega_lambda:	0.6853646238
+  Omega_k:	0.0000000000
+  Omega_ur:	0.0000126168
+  h:		0.6737000000
+  a_begin:	0.0099009901 # z = 100.000000
+  a_end:	1.0000000000
+  T_CMB:	2.7255000000
+  N_nu:		1
+  T_nu:		1.9517578050
+  M_nu:		0.0486000000
 
-# Boltzmann solver parameters
-Boltzmann:
-  field_file_name: ./gaussian_pure.hdf5 # file containing the primordial fluctuations
-#  in_perturb_file_name: ./perturb.hdf5
-  in_perturb_file_name: ./perturb_big.hdf5
-#  class_ini_file: ./neutrino_example.ini
-#  class_pre_file: ./neutrino_example.pre
-#  k_bins: 25
-#  file_name: ./multipoles_0.h5
-
-#The time unit used in the Boltzmann initial conditions, in internal units
-#  boltz_time_unit: 0.003264 # 1 Mpc/c in Gyr
-
-# Parameters governing the time integration
 TimeIntegration:
-  dt_min:     1e-6
-  dt_max:     2e-2
-  neutrino_dt_switch_threshold: 1e-4
+  dt_min:	1.0000e-10
+  dt_max:	1.0000e-02
+  neutrino_dt_switch_threshold:	 1.00000e+02
 
-# Parameters governing the snapshots
-Snapshots:
-  basename:	       box
-  delta_time:          1.04
-  scale_factor_first:  0.0243902
-  compression:         4
-
-# Parameters governing the conserved quantities statistics
-Statistics:
-  scale_factor_first:  0.0243902
-  delta_time:          1.1
-
-# Parameters for the hydrodynamics scheme
-#SPH:
-#  resolution_eta:        1.2348   # "48 ngb" for the 3D cubic spline
-#  CFL_condition:         0.1
-
-# Parameters related to the initial conditions
-InitialConditions:
-  file_name:  ./particles.hdf5
-  periodic:   1
+Boltzmann:
+  field_file_name: gaussian_small.hdf5
+  in_perturb_file_name: perturb_100mev_production.hdf5
+  l_max: 1000
+  k_size: 50
+  q_min: 0.01
+  q_max: 15
+  q_size: 10
+  tol: 1e-6
 
 Scheduler:
-  max_top_level_cells: 8
-  cell_split_size:     50
+  max_top_level_cells:	16
+  cell_split_size:	100
 
-Gravity:
-  mesh_side_length: 64 
-  eta: 0.025
-  theta_cr: 0.5
-  MAC: geometric
-  dithering: 0
-  comoving_DM_softening: 0.08 # in internal units
-  max_physical_DM_softening: 0.08 # in internal units
-  comoving_nu_softening: 0.08 # in internal units
-  max_physical_nu_softening: 0.08 # in internal units
-  comoving_baryon_softening: 0.08 # in internal units
-  max_physical_baryon_softening: 0.08  # 80 kpc = 1/25 of mean inter-particle separation
+Snapshots:
+  scale_factor_first:	0.0099009901 # z = 100.000000
+  delta_time:		1.2500
+  basename:		box
+  compression:		4
+
+Statistics:
+  scale_factor_first:	0.0099009901 # z = 100.000000
+  delta_time:		1.2500
 
 Restarts:
-    delta_hours: 1
+  delta_hours:	1.00
+
+InitialConditions:
+  file_name:	particles.hdf5
+  periodic:	1
+
+Gravity:
+  mesh_side_length:	64
+  dithering:		0
+  MAC:			geometric
+  eta:			0.02500
+  theta_cr:		0.50000
+  rebuild_frequency:	0.00 # rebuild always
+  comoving_DM_softening:		0.0800000000 	# 0.0400 of the mean inter-particle separation
+  max_physical_DM_softening:		0.0800000000 	# 0.0400 of the mean inter-particle separation
+  comoving_nu_softening:		0.0800000000 	# 0.0400 of the mean inter-particle separation
+  max_physical_nu_softening:		0.0800000000 	# 0.0400 of the mean inter-particle separation

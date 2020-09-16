@@ -61,10 +61,11 @@ struct renderer {
 
   /*! Array containing sequency of perturbation theory grids */
   double *the_grids;
+  double rho_avg;
 
   /*! Pointer to the neutrino over-density field, corresponding to the first
       N * N * N doubles in the_grids */
-  double *density_grid;
+  fftw_complex *density_grid;
 
   /* File name of the perturbation data */
   char *in_perturb_fname;
@@ -76,6 +77,7 @@ struct renderer {
 
   /* Commonly used indices of transfer functions */
   int index_transfer_delta_cdm;
+  int index_transfer_delta_b;
   int index_transfer_delta_ncdm;
   int index_transfer_delta_g;
   int index_transfer_delta_ur;
@@ -83,6 +85,8 @@ struct renderer {
   int index_transfer_psi;
   int index_transfer_H_T_Nb_prime;
   int index_transfer_H_T_Nb_pprime;
+  int index_transfer_h_prime;
+  int index_transfer_eta_prime;
 
   /*! Neutrino transfer functions */
   struct transfer {
@@ -92,6 +96,8 @@ struct renderer {
     double *delta;
     double *k;
     double *log_tau;
+    double *redshift;
+    double *Omegas;
     char **titles;
   } transfer;
 
@@ -104,6 +110,18 @@ struct renderer {
   double lookup_k_min; //not necessarily the same as k_min
   double lookup_k_max; //not necessarily the same as k_max
   int k_acc_prev_index;
+
+  /*! Boltzmann solver properties */
+  struct boltzmann {
+    int k_size;
+    double k_min;
+    double k_max;
+    double *P_cdm_prev;
+    double *P_cdm_prime;
+    double *k;
+    double tol;
+    int verbose;
+  } boltzmann;
 
 // #ifdef HAVE_LIBGSL
 //   /* GSL interpolation objects */
@@ -143,6 +161,7 @@ void rend_interp_locate_k(struct renderer *rend, double k, int *index,
                           double *w);
 double rend_custom_interp(struct renderer *rend, int k_index, int tau_index,
                           double u_tau, double u_k, int index_src);
+double rend_perturb_z_at_log_tau(struct renderer *rend, double log_tau);
 
 /* Input and output for the perturbation data */
 void rend_read_perturb(struct renderer *rend, const struct engine *e,

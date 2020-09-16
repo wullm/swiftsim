@@ -25,7 +25,7 @@ AM_LDFLAGS = $(HDF5_LDFLAGS) $(FFTW_LIBS)
 GIT_CMD = @GIT_CMD@
 
 # Additional dependencies for shared libraries.
-EXTRA_LIBS = $(HDF5_LIBS) $(FFTW_LIBS) $(NUMA_LIBS) $(PROFILER_LIBS) $(TCMALLOC_LIBS) $(JEMALLOC_LIBS) $(TBBMALLOC_LIBS) $(GRACKLE_LIBS) $(GSL_LIBS) $(CLASS_LIBS)
+EXTRA_LIBS = $(HDF5_LIBS) $(FFTW_LIBS) $(NUMA_LIBS) $(PROFILER_LIBS) $(TCMALLOC_LIBS) $(JEMALLOC_LIBS) $(TBBMALLOC_LIBS) $(GRACKLE_LIBS) $(GSL_LIBS) $(CLASS_LIBS) $(FIREBOLT_LIBS)
 
 # MPI libraries.
 MPI_LIBS = $(PARMETIS_LIBS) $(METIS_LIBS) $(MPI_THREAD_LIBS)
@@ -101,6 +101,11 @@ endif
 if WITH_CLASS_INTERFACE
 DELTA_F_SOURCES += neutrino/class_interface.c
 AM_CFLAGS += $(CLASS_INCS)		# interface with CLASS
+endif
+
+if WITH_FIREBOLT_INTERFACE
+DELTA_F_SOURCES += neutrino/firebolt_interface.c
+AM_CFLAGS += $(FIREBOLT_INCS)		# interface with Firebolt
 endif
 
 # source files for GRACKLE cooling

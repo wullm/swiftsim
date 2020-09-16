@@ -23,6 +23,11 @@
 /* This object's header. */
 #include "renderer.h"
 
+/* We use Firebolt for linear theory neutrino calculations */
+#ifdef WITH_FIREBOLT_INTERFACE
+#include "firebolt_interface.h"
+#endif
+
 /* We use GSL for accelerated 2D interpolation */
 //#ifdef HAVE_LIBGSL
 //#include <gsl/gsl_spline2d.h>
@@ -87,6 +92,78 @@ int writeGRF_H5(const double *box, int N, double boxlen, const char *fname) {
     return 0;
 }
 
+void calc_cross_powerspec(int N, double boxlen, const fftw_complex *box1,
+                          const fftw_complex *box2, int bins, double *k_in_bins,
+                          double *power_in_bins, int *obs_in_bins) {
+
+    const double boxvol = boxlen*boxlen*boxlen;
+    const double delta_k = 2*M_PI/boxlen;
+    const double max_k = sqrt(3)*delta_k*N/2;
+    const double min_k = delta_k;
+
+    const double log_max_k = log(max_k);
+    const double log_min_k = log(min_k);
+
+    /* Reset the bins */
+    for (int i=0; i<bins; i++) {
+        k_in_bins[i] = 0;
+        power_in_bins[i] = 0;
+        obs_in_bins[i] = 0;
+    }
+
+    /* Calculate the power spectrum */
+    for (int x=0; x<N; x++) {
+        for (int y=0; y<N; y++) {
+            for (int z=0; z<=N/2; z++) {
+                /* Calculate the wavevector */
+                double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
+                double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
+                double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+
+                double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
+
+                if (k==0) continue; //skip the DC mode
+
+                /* Compute the bin */
+                const float u = (log(k) - log_min_k) / (log_max_k - log_min_k);
+                const int bin = floor((bins - 1) * u);
+                const int id = half_box_idx(N, x, y, z);
+
+                assert(bin >= 0 && bin < bins);
+
+                /* Compute the power <X,Y> with X,Y complex */
+                double a1 = box1[id][0], a2 = box2[id][0];
+                double b1 = box1[id][1], b2 = box2[id][1];
+                double Power = a1*a2 + b1*b2;
+
+                /* Undo the CIC window function */
+                double W_x = sinc(0.5 * k_x * boxlen / N);
+                double W_y = sinc(0.5 * k_y * boxlen / N);
+                double W_z = sinc(0.5 * k_z * boxlen / N);
+                double W = pow(W_x * W_y * W_z, 2);
+
+                Power /= W;
+
+
+                /* All except the z=0 and the z=N/2 planes count double */
+                int multiplicity = (z==0 || z==N/2) ? 1 : 2;
+
+                /* Add to the tables */
+                k_in_bins[bin] += multiplicity * k;
+				power_in_bins[bin] += multiplicity * Power;
+				obs_in_bins[bin] += multiplicity;
+            }
+        }
+    }
+
+    /* Divide to obtain averages */
+	for (int i=0; i<bins; i++) {
+		k_in_bins[i] /= obs_in_bins[i];
+		power_in_bins[i] /= obs_in_bins[i];
+		power_in_bins[i] /= boxvol;
+	}
+}
+
 void rend_init(struct renderer *rend, struct swift_params *params,
                const struct engine *e) {
 
@@ -134,11 +211,11 @@ void rend_init(struct renderer *rend, struct swift_params *params,
           rend->primordial_grid_N, e->mesh->N);
   }
 
-  // /* Allocate memory for the rendered density grid */
-  // const int N = e->mesh->N;
-  // const int bytes = sizeof(double) * N * N * N;
-  // rend->density_grid = (double *)swift_malloc("density_grid", bytes);
-  //
+  /* Allocate memory for the rendered density grid */
+  const int N = e->mesh->N;
+  const int bytes = sizeof(fftw_complex) * N * N * (N / 2 + 1);
+  rend->density_grid = (fftw_complex *)swift_malloc("density_grid", bytes);
+
   // if (rend->density_grid == NULL) {
   //   error("Error allocating memory for density grid.");
   // }
@@ -157,7 +234,7 @@ void rend_grids_alloc(struct renderer *rend) {
 
   /* Create pointer to the density grid, which is the first field in
      the array */
-  rend->density_grid = rend->the_grids;
+  // rend->density_grid = rend->the_grids;
 }
 
 void rend_load_primordial_field(struct renderer *rend, const char *fname) {
@@ -304,6 +381,8 @@ void rend_clean(struct renderer *rend) {
   free(rend->transfer.delta);
   free(rend->transfer.k);
   free(rend->transfer.log_tau);
+  free(rend->transfer.redshift);
+  free(rend->transfer.Omegas);
 
   /* Free function title strings */
   for (int i = 0; i < rend->transfer.n_functions; i++) {
@@ -318,9 +397,15 @@ void rend_clean(struct renderer *rend) {
 
   /* Free the index table */
   free(rend->k_acc_table);
+  free(rend->density_grid);
 
   /* Clean up the interpolation spline */
   // rend_interp_free(rend);
+
+#ifdef WITH_FIREBOLT_INTERFACE
+  /* Clean up the Firebolt interface */
+  firebolt_free();
+#endif
 }
 
 /* Add neutrinos using the Bird & Ali-Haïmoud method */
@@ -1260,6 +1345,11 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
  * to the long-range potential mesh. */
 void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
 
+#ifdef WITH_FIREBOLT_INTERFACE
+  /* Make sure that Firebolt has updated all the multipoles */
+  firebolt_update(rend, e);
+#endif
+
 #ifdef RENDERER_NEUTRINOS
   /* Compute the neutrino contribution by applying the linear transfer function
    * to the primordial phases. */
@@ -1277,6 +1367,105 @@ void rend_add_to_mesh(struct renderer *rend, const struct engine *e) {
    * by applying the linear transfer function to the primordial phases. */
   rend_add_gr_potential_mesh(rend, e);
 #endif
+
+  /* Compute the power spectrum */
+  int bins = rend->boltzmann.k_size;
+  double *k_in_bins = malloc(bins * sizeof(double));
+  double *power_in_bins = malloc(bins * sizeof(double));
+  int *obs_in_bins = calloc(bins, sizeof(int));
+
+  /* Normalization */
+  int N = rend->primordial_grid_N;
+  double boxlen = rend->primordial_dims[0];
+  double box_volume = boxlen * boxlen * boxlen;
+  for (int i = 0; i < N * N * (N / 2 + 1); i++) {
+    rend->density_grid[i][0] *= box_volume / (N * N * N);
+    rend->density_grid[i][1] *= box_volume / (N * N * N);
+  }
+
+  /* Turn into overdensity field */
+  for (int i = 0; i < N * N * (N / 2 + 1); i++) {
+    rend->density_grid[i][0] /= rend->rho_avg;
+    rend->density_grid[i][1] /= rend->rho_avg;
+  }
+
+  calc_cross_powerspec(N, boxlen, rend->density_grid, rend->density_grid,
+                       bins, k_in_bins, power_in_bins, obs_in_bins);
+
+  /* Current conformal time */
+  const struct cosmology *cosmo = e->cosmology;
+  const double tau = cosmo->conformal_time;
+
+  /* Prevent out of interpolation range error */
+  const int tau_size = rend->transfer.tau_size;
+  const double final_log_tau = rend->transfer.log_tau[tau_size - 1];
+  const double log_tau = min(log(tau), final_log_tau);
+
+  /* Bilinear interpolation indices in (log_tau, k) space */
+  int tau_index = 0, k_index = 0;
+  double u_tau = 0.f, u_k = 0.f;
+
+  double n_s = 0.9652;
+  double k_pivot = 0.05;
+  double A_s = 2.097e-9;
+
+  /* Find the time index */
+  rend_interp_locate_tau(rend, log_tau, &tau_index, &u_tau);
+
+  for (int i=0; i<bins; i++) {
+    if (obs_in_bins[i] > 1) {
+      double k = k_in_bins[i];
+
+      /* Find the k-space interpolation index */
+      rend_interp_locate_k(rend, k, &k_index, &u_k);
+
+      /* Bilinear interpolation of the ncdm transfer function */
+      double Trc = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                      rend->index_transfer_delta_cdm);
+      double Trb = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                      rend->index_transfer_delta_b);
+      double Trn = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                      rend->index_transfer_delta_ncdm);
+      double hpri = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+                                      rend->index_transfer_h_prime);
+      double Ob = cosmo->Omega_b;
+      double Oc = cosmo->Omega_m - Ob;
+      double wb = Ob / (Ob + Oc);
+      double wc = Oc / (Ob + Oc);
+      double Trcb = wb * Trb + wc * Trc;
+
+      double P_lin = A_s * pow(k / k_pivot, n_s) * Trcb * Trcb;
+
+      printf("%f %e %e %e %e %e\n", k_in_bins[i], power_in_bins[i], Trc, P_lin, Trn, hpri);
+    }
+  }
+  printf("%d %e\n", N, boxlen);
+
+  /* Compute the conformal time derivative of the power spectrum */
+  if (e->step > 0) {
+      for (int i=0; i<bins; i++) {
+          double k = k_in_bins[i];
+
+          /* Convert to transfer functions */
+          double d_c = sqrt(power_in_bins[i] / (A_s * pow(k / k_pivot, n_s)));
+          double d_c_prev = sqrt(rend->boltzmann.P_cdm_prev[i] / (A_s * pow(k / k_pivot, n_s)));
+
+          rend->boltzmann.P_cdm_prime[i] = (d_c - d_c_prev) / (cosmo->conformal_time - cosmology_get_conformal_time(cosmo, cosmo->a_old));
+
+          if (obs_in_bins[i] > 1) {
+              printf("Derivative %f %e\n", k_in_bins[i], -2*rend->boltzmann.P_cdm_prime[i]);
+          }
+      }
+  }
+
+  /* Store the previous power spectrum */
+  for (int i=0; i<bins; i++) {
+      rend->boltzmann.P_cdm_prev[i] = power_in_bins[i];
+  }
+
+  free(k_in_bins);
+  free(power_in_bins);
+  free(obs_in_bins);
 }
 
 /* Read the perturbation data from a file */
@@ -1349,8 +1538,12 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
   tr->k = (double *)swift_calloc("k", tr->k_size, sizeof(double));
   tr->log_tau =
       (double *)swift_malloc("log_tau", tr->tau_size * sizeof(double));
+  tr->redshift =
+      (double *)swift_malloc("redshift", tr->tau_size * sizeof(double));
   tr->delta = (double *)swift_malloc(
       "delta", tr->n_functions * tr->k_size * tr->tau_size * sizeof(double));
+  tr->Omegas = (double *)swift_malloc(
+      "Omegas", tr->n_functions * tr->tau_size * sizeof(double));
 
   message("We read the perturbation size %d * %d * %d", tr->n_functions,
           tr->k_size, tr->tau_size);
@@ -1379,6 +1572,32 @@ void rend_read_perturb(struct renderer *rend, const struct engine *e,
                   tr->log_tau);
   if (h_err < 0)
     error("Error while reading data array '%s'.", "Log conformal times");
+
+  /* Close the dataset */
+  H5Dclose(h_data);
+
+  /* Read the redshifts */
+  h_data = H5Dopen2(h_grp, "Redshifts", H5P_DEFAULT);
+  if (h_data < 0)
+    error("Error while opening data space '%s'.", "Redshifts");
+
+  h_err = H5Dread(h_data, io_hdf5_type(DOUBLE), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                  tr->redshift);
+  if (h_err < 0)
+    error("Error while reading data array '%s'.", "Redshifts");
+
+  /* Close the dataset */
+  H5Dclose(h_data);
+
+  /* Read the Omegas */
+  h_data = H5Dopen2(h_grp, "Omegas", H5P_DEFAULT);
+  if (h_data < 0)
+    error("Error while opening data space '%s'.", "Omegas");
+
+  h_err = H5Dread(h_data, io_hdf5_type(DOUBLE), H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                  tr->Omegas);
+  if (h_err < 0)
+    error("Error while reading data array '%s'.", "Omegas");
 
   /* Close the dataset */
   H5Dclose(h_data);
@@ -1594,11 +1813,18 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
     tr->k = (double *)swift_malloc("k", tr->k_size * sizeof(double));
     tr->log_tau =
         (double *)swift_malloc("log_tau", tr->tau_size * sizeof(double));
+    tr->redshift =
+        (double *)swift_malloc("redshift", tr->tau_size * sizeof(double));
+    tr->Omegas =
+        (double *)swift_malloc("Omegas", tr->tau_size * sizeof(double));
   }
 
   /* Broadcast the perturbation to the other ranks */
   MPI_Bcast(tr->k, tr->k_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   MPI_Bcast(tr->log_tau, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(tr->redshift, tr->tau_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(tr->Omegas, tr->tau_size * tr->n_functions, MPI_DOUBLE, 0,
+            MPI_COMM_WORLD);
   MPI_Bcast(tr->delta, tr->k_size * tr->tau_size * tr->n_functions, MPI_DOUBLE,
             0, MPI_COMM_WORLD);
 
@@ -1608,6 +1834,7 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
   if (myrank == 0) {
     /* Initialize the transfer function indices */
     rend->index_transfer_delta_cdm = -1;
+    rend->index_transfer_delta_b = -1;
     rend->index_transfer_delta_ncdm = -1;
     rend->index_transfer_delta_g = -1;
     rend->index_transfer_delta_ur = -1;
@@ -1615,12 +1842,17 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
     rend->index_transfer_psi = -1;
     rend->index_transfer_H_T_Nb_prime = -1;
     rend->index_transfer_H_T_Nb_pprime = -1;
+    rend->index_transfer_h_prime = -1;
+    rend->index_transfer_eta_prime = -1;
 
     /* Find the indices */
     for (int i = 0; i < tr->n_functions; i++) {
       if (strcmp(tr->titles[i], "d_ncdm[0]") == 0) {
         rend->index_transfer_delta_ncdm = i;
         message("Identified ncdm density vector '%s'.", tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "d_b") == 0) {
+        rend->index_transfer_delta_b = i;
+        message("Identified b density vector '%s'.", tr->titles[i]);
       } else if (strcmp(tr->titles[i], "d_cdm") == 0) {
         rend->index_transfer_delta_cdm = i;
         message("Identified cdm density vector '%s'.", tr->titles[i]);
@@ -1644,6 +1876,12 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
         rend->index_transfer_H_T_Nb_pprime = i;
         message("Identified N-body gauge H_T_prime_prime vector '%s'.",
                 tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "h_prime") == 0) {
+        rend->index_transfer_h_prime = i;
+        message("Identified metric derivative h_prime vector '%s'.", tr->titles[i]);
+      } else if (strcmp(tr->titles[i], "eta_prime") == 0) {
+        rend->index_transfer_eta_prime = i;
+        message("Identified metric derivative eta_prime vector '%s'.", tr->titles[i]);
       }
     }
   }
@@ -1652,12 +1890,15 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
   /* Broadcast the indices to the other ranks */
   MPI_Bcast(&rend->index_transfer_delta_ncdm, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&rend->index_transfer_delta_cdm, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_delta_b, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&rend->index_transfer_delta_g, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&rend->index_transfer_delta_ur, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&rend->index_transfer_phi, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&rend->index_transfer_psi, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&rend->index_transfer_H_T_Nb_prime, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&rend->index_transfer_H_T_Nb_pprime, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_h_prime, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&rend->index_transfer_eta_prime, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   /* Initialize the interpolation spline on the other ranks */
   if (myrank != 0) {
@@ -1669,6 +1910,11 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
 //     rend_grids_alloc(rend);
 // #endif
   }
+#endif
+
+#ifdef WITH_FIREBOLT_INTERFACE
+  /* Initialize the Firebolt interface */
+  firebolt_init(params, rend, e);
 #endif
 }
 
@@ -1810,4 +2056,17 @@ double rend_custom_interp(struct renderer *rend, int k_index, int tau_index,
 
   return (1 - u_tau) * ((1 - u_k) * T11 + u_k * T21)
              + u_tau * ((1 - u_k) * T12 + u_k * T22);
+}
+
+double rend_perturb_z_at_log_tau(struct renderer *rend, double log_tau) {
+    /* Indices in the tau directions */
+    int tau_index = 0;
+    /* Spacing (0 <= u <= 1) between subsequent indices */
+    double u_tau;
+
+    /* Find the index and spacing */
+    rend_interp_locate_tau(rend, log_tau, &tau_index, &u_tau);
+
+    return (1 - u_tau) * rend->transfer.redshift[tau_index]
+               + u_tau * rend->transfer.redshift[tau_index + 1];
 }

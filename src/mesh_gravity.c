@@ -580,6 +580,15 @@ void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
 
   tic = getticks();
 
+#ifdef WITH_FIREBOLT_INTERFACE
+  /* Compute average density */
+  double rho_tot = 0;
+  for (int i=0; i<N*N*N; i++) {
+      rho_tot += rho[i];
+  }
+  s->e->rend->rho_avg = rho_tot / (N * N * N);
+#endif
+
   /* Fourier transform to go to magic-land */
   fftw_execute(forward_plan);
 
@@ -591,6 +600,11 @@ void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
   /* frho contains NxNx(N/2+1) complex numbers */
 
   tic = getticks();
+
+#ifdef WITH_FIREBOLT_INTERFACE
+  /* Copy into Boltzmann code */
+  memcpy(s->e->rend->density_grid, frho, N * N * (N/2 + 1) * sizeof(fftw_complex));
+#endif
 
   /* Now de-convolve the CIC kernel and apply the Green function */
   mesh_apply_Green_function(tp, frho, N, r_s, box_size);
