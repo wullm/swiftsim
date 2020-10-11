@@ -1284,7 +1284,7 @@ double cosmology_get_delta_time_from_scale_factors(const struct cosmology *c,
  * @param t time since the big bang
  * @return The scale factor.
  */
-double cosmology_get_timebase(const struct cosmology *c,
+double cosmology_get_scale_factor(const struct cosmology *c,
                               const double t) {
 
   /* Use a bisection search on the whole table to find the
