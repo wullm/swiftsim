@@ -135,7 +135,7 @@ void output_list_read_file(struct output_list *output_list,
     if (type == OUTPUT_LIST_REDSHIFT) *time = 1. / (1. + *time);
 
     if (cosmo && type == OUTPUT_LIST_AGE)
-      *time = cosmology_get_scale_factor_from_time(cosmo, *time);
+      *time = cosmology_get_scale_factor(cosmo, *time);
 
     /* Search to find index for select output - select_output_index is the index
      * in the select_output_names array that corresponds to this select output
@@ -243,7 +243,8 @@ void output_list_read_next_time(struct output_list *t, const struct engine *e,
    * or a=1 is found in output_list.txt set the flag `final_step_dump`
    * to 1 - this is not special behaviour that is controlled by a
    * parameter file flag. */
-  if (time == time_end) {
+  if (time == time_end ||
+      (time > time_end && time - time_end < OUTPUT_LIST_EPS_TIME_END)) {
     t->final_step_dump = 1;
     if (e->verbose) {
       if (is_cosmo) {

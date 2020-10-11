@@ -24,6 +24,7 @@
 
 /* Local includes. */
 #include "cosmology.h"
+#include "error.h"
 #include "gravity_properties.h"
 #include "kernel_gravity.h"
 #include "minmax.h"
@@ -269,6 +270,9 @@ __attribute__((always_inline)) INLINE static void gravity_first_init_gpart(
 
   gp->time_bin = 0;
   gp->old_a_grav_norm = 0.f;
+#ifdef HAVE_VELOCIRAPTOR_ORPHANS
+  gp->has_been_most_bound = 0;
+#endif
 
   gravity_init_gpart(gp);
 }

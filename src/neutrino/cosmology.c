@@ -1005,8 +1005,8 @@ void cosmology_init_no_cosmo(struct cosmology *c) {
  * @param ti Integer time step
  * @return The scale factor.
  */
-double cosmology_get_scale_factor(const struct cosmology *c,
-                                  const integertime_t ti) {
+double cosmology_get_timebase(struct cosmology *c,
+                              const integertime_t ti) {
 
   const double log_a = c->log_a_begin + ti * c->time_base;
   return exp(log_a);
@@ -1284,8 +1284,8 @@ double cosmology_get_delta_time_from_scale_factors(const struct cosmology *c,
  * @param t time since the big bang
  * @return The scale factor.
  */
-double cosmology_get_scale_factor_from_time(const struct cosmology *c,
-                                            const double t) {
+double cosmology_get_timebase(const struct cosmology *c,
+                              const double t) {
 
   /* Use a bisection search on the whole table to find the
      interval where the time lies */

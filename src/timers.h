@@ -125,6 +125,11 @@ enum {
   timer_fof_self,
   timer_fof_pair,
   timer_weight,
+  timer_drift_sink,
+  timer_doself_rt_inject,
+  timer_dopair_rt_inject,
+  timer_dosub_self_rt_inject,
+  timer_dosub_pair_rt_inject,
   timer_count,
 };
 
