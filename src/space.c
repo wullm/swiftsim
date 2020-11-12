@@ -2664,6 +2664,23 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
     double pos_y = box_wrap(old_pos_y, 0.0, dim_y);
     double pos_z = box_wrap(old_pos_z, 0.0, dim_z);
 
+    /* Wrap neutrino particles in the smaller central sphere */
+    if (gp->type == swift_type_neutrino) {
+      double R_nu = s->dim_nu;
+      if (R_nu > 0) {
+        double central_x = 0.5 * (dim_x + 0.);
+        double central_y = 0.5 * (dim_y + 0.);
+        double central_z = 0.5 * (dim_z + 0.);
+
+        pos_x = box_wrap(pos_x, central_x - R_nu, central_x + R_nu);
+        pos_y = box_wrap(pos_x, central_x - R_nu, central_y + R_nu);
+        pos_z = box_wrap(pos_x, central_x - R_nu, central_z + R_nu);
+
+        if (pos_x != old_pos_x || pos_y != old_pos_y || pos_z != old_pos_z)
+        message("Wrapped neutrino particle (%f,%f,%f) to (%f,%f,%f)", old_pos_x, old_pos_y, old_pos_z, pos_x, pos_y, pos_z);
+      }
+    }
+
     /* Treat the case where a particle was wrapped back exactly onto
      * the edge because of rounding issues (more accuracy around 0
      * than around dim) */

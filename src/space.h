@@ -93,6 +93,9 @@ struct space {
   /*! Spatial extent. */
   double dim[3];
 
+  /*! Radius of the central neutrino sphere */
+  double dim_nu;
+
   /*! Is the space periodic? */
   int periodic;
 

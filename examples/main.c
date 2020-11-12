@@ -1213,6 +1213,9 @@ int main(int argc, char *argv[]) {
                with_self_gravity, with_star_formation,
                with_DM_background_particles, talking, dry_run, nr_nodes);
 
+    /*  */
+    s.dim_nu = parser_get_opt_param_double(params, "InitialConditions:dim_nu", 0.);
+
     /* Initialise the line of sight properties. */
     if (with_line_of_sight) los_init(s.dim, &los_properties, params);
 
