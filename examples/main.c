@@ -963,6 +963,8 @@ int main(int argc, char *argv[]) {
         params, "InitialConditions:generate_neutrinos_in_ics", 0);
     const double generate_neutrinos_fraction = parser_get_opt_param_double(
         params, "InitialConditions:generate_neutrinos_fraction", 0.);
+    const double neutrino_sphere_radius = parser_get_opt_param_double(
+        params, "InitialConditions:neutrino_sphere_radius", 0.);
     const int remap_ids =
         parser_get_opt_param_int(params, "InitialConditions:remap_ids", 0);
 
@@ -1217,9 +1219,9 @@ int main(int argc, char *argv[]) {
                gparts, sinks, sparts, bparts, Ngas, Ngpart, Nsink, Nspart,
                Nbpart, Nnupart, periodic, replicate, remap_ids,
                generate_gas_in_ics, generate_neutrinos_in_ics,
-               generate_neutrinos_fraction, with_hydro, with_self_gravity,
-               with_star_formation, with_DM_background_particles, talking,
-               dry_run, nr_nodes);
+               generate_neutrinos_fraction, neutrino_sphere_radius, with_hydro,
+               with_self_gravity, with_star_formation,
+               with_DM_background_particles, talking, dry_run, nr_nodes);
 
     /* Initialise the line of sight properties. */
     if (with_line_of_sight) los_init(s.dim, &los_properties, params);
@@ -1266,6 +1268,7 @@ int main(int argc, char *argv[]) {
 
     /* Also update the total counts (in case of changes due to replication) */
     Nbaryons = s.nr_parts + s.nr_sparts + s.nr_bparts + s.nr_sinks;
+    Nnupart = s.nr_nuparts;
 #if defined(WITH_MPI)
     N_long[swift_type_gas] = s.nr_parts;
     N_long[swift_type_dark_matter] =

@@ -338,6 +338,9 @@ struct space {
   /*! Structure dealing with the computation of a unique ID */
   struct unique_id unique_id;
 
+  /*! Optional radius of the central neutrino sphere (U_L) */
+  double neutrino_sphere_radius;
+
 #ifdef WITH_MPI
 
   /*! Buffers for parts that we will receive from foreign cells. */
@@ -383,7 +386,8 @@ void space_init(struct space *s, struct swift_params *params,
                 size_t Nspart, size_t Nbpart, size_t Nnupart, int periodic,
                 int replicate, int remap_ids, int generate_gas_in_ics,
                 int generate_neutrinos_in_ics,
-                double generate_neutrinos_fraction, int hydro, int gravity,
+                double generate_neutrinos_fraction,
+                double neutrino_sphere_radius, int hydro, int gravity,
                 int star_formation, int DM_background, int verbose, int dry_run,
                 int nr_nodes);
 void space_sanitize(struct space *s);

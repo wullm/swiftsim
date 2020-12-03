@@ -4104,6 +4104,11 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   }
 #endif
 
+  if (e->nodeID == 0 && e->s->neutrino_sphere_radius > 0) {
+    message("The centrla neutrino sphere has radius %e U_L.",
+            e->s->neutrino_sphere_radius);
+  }
+
 #if defined(WITH_LOGGER)
   if (e->policy & engine_policy_logger) {
     e->logger = (struct logger_writer *)malloc(sizeof(struct logger_writer));
@@ -4198,8 +4203,18 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   }
 
 #ifdef NEUTRINO_DELTA_F
+  /* Do neutrinos live in a central ball of radius R_nu or in the periodic
+   * hyperrectangle with dimensions s->dim[3]? */
+  double R_nu = s->neutrino_sphere_radius;
+  double neutrino_volume;
+  if (R_nu > 0.) {
+    neutrino_volume = (4. / 3.) * M_PI * R_nu * R_nu * R_nu;
+  } else {
+    neutrino_volume = s->dim[0] * s->dim[1] * s->dim[2];
+  }
   /* Initialize the neutrino mass conversion factor */
-  e->neutrino_mass_conversion_factor = neutrino_mass_factor(e);
+  e->neutrino_mass_conversion_factor =
+      e->total_nr_nuparts / neutrino_volume * cosmo->bare_nu_mass_factor;
 #endif
 
   engine_init_output_lists(e, params);

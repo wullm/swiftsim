@@ -116,6 +116,8 @@ int space_expected_max_nr_strays = space_expected_max_nr_strays_default;
 int last_cell_id;
 #endif
 
+struct sampler fermi_dirac_sampler;
+
 /**
  * @brief Interval stack necessary for parallel particle sorting.
  */
@@ -2635,6 +2637,11 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
   float ww_sum = 0.f;
 #endif
 
+  /* Optional radius of the central neutrino sphere */
+  const double R_nu = s->neutrino_sphere_radius;
+  const double R2_nu = R_nu * R_nu;
+  const double nu_mass_mult = s->e->neutrino_mass_conversion_factor;
+
   for (int k = 0; k < nr_gparts; k++) {
 
     /* Get the particle */
@@ -2665,6 +2672,47 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
     double pos_x = box_wrap(old_pos_x, 0.0, dim_x);
     double pos_y = box_wrap(old_pos_y, 0.0, dim_y);
     double pos_z = box_wrap(old_pos_z, 0.0, dim_z);
+
+    /* If used, wrap neutrino particles in the smaller central sphere */
+    if (R_nu > 0. && gp->type == swift_type_neutrino) {
+      /* Distance from the centre */
+      double r_x = pos_x - 0.5 * dim_x;
+      double r_y = pos_y - 0.5 * dim_y;
+      double r_z = pos_z - 0.5 * dim_z;
+      double r2 = (r_x * r_x) + (r_y * r_y) + (r_z * r_z);
+
+      /* If the particle left the central region */
+      if (r2 > R2_nu) {
+        /* Map the point to its antipodal point */
+        pos_x = 0.5 * dim_x - r_x;
+        pos_y = 0.5 * dim_y - r_y;
+        pos_z = 0.5 * dim_z - r_z;
+
+        /* Generate new magnitude for the particle velocity */
+        double u = random_unit_interval(gp->id_or_neg_offset, s->e->ti_current,
+                                        random_number_neutrino_resample);
+        double p0_eV = draw_sampler(&fermi_dirac_sampler, u);
+        double p_eV = p0_eV / s->e->cosmology->a;  // redshifted momentum
+        double M_eV = nu_mass_mult * gp->mass_i;
+        double V = p_eV / M_eV * s->e->physical_constants->const_speed_light_c;
+
+        /* Update the particle velocity with the new magnitude */
+        double cur_vel2 = (gp->v_full[0] * gp->v_full[0]) +
+                          (gp->v_full[1] * gp->v_full[1]) +
+                          (gp->v_full[2] * gp->v_full[2]);
+        double cur_V = sqrt(cur_vel2) / s->e->cosmology->a;
+        gp->v_full[0] *= V / cur_V;
+        gp->v_full[1] *= V / cur_V;
+        gp->v_full[2] *= V / cur_V;
+
+#ifdef NEUTRINO_DELTA_F
+        /* Reset neutrino delta-f properties */
+        gp->mass = FLT_MIN;
+        gp->f_phase_i = fermi_dirac_density(s->e, gp->v_full, M_eV, 1.0);
+        gp->f_phase = gp->f_phase_i;
+#endif
+      }
+    }
 
     /* Treat the case where a particle was wrapped back exactly onto
      * the edge because of rounding issues (more accuracy around 0
@@ -5714,7 +5762,8 @@ void space_init(struct space *s, struct swift_params *params,
                 size_t Nspart, size_t Nbpart, size_t Nnupart, int periodic,
                 int replicate, int remap_ids, int generate_gas_in_ics,
                 int generate_neutrinos_in_ics,
-                double generate_neutrinos_fraction, int hydro, int self_gravity,
+                double generate_neutrinos_fraction,
+                double neutrino_sphere_radius, int hydro, int self_gravity,
                 int star_formation, int DM_background, int verbose, int dry_run,
                 int nr_nodes) {
 
@@ -5778,6 +5827,7 @@ void space_init(struct space *s, struct swift_params *params,
   s->sum_nupart_ww = 0.f;
 #endif
   s->nr_queues = 1; /* Temporary value until engine construction */
+  s->neutrino_sphere_radius = neutrino_sphere_radius;
 
   /* Initiate some basic randomness */
   srand(42);
@@ -5786,6 +5836,18 @@ void space_init(struct space *s, struct swift_params *params,
   if (remap_ids) {
     space_remap_ids(s, nr_nodes, verbose);
   }
+
+  /* Intitialize the sampler for Fermi-Dirac momenta */
+  const double T_nu_eV = cosmo->T_nu * phys_const->const_boltzmann_k /
+                         phys_const->const_electron_volt;
+  const double xl = THERMAL_MIN_MOMENTUM * T_nu_eV;
+  const double xr = THERMAL_MAX_MOMENTUM * T_nu_eV;
+  const double mu_nu_eV = 0.0;  // no chemical potential
+  double thermal_params[2] = {T_nu_eV, mu_nu_eV};
+
+  /* Initialize the Fermi-Dirac sampler when needed for neutrinos */
+  if (s->nr_nuparts > 0 || generate_neutrinos_in_ics)
+    init_sampler(&fermi_dirac_sampler, fd_pdf, xl, xr, thermal_params);
 
   /* Are we generating neutrino DM particles? */
   if (generate_neutrinos_in_ics) {
@@ -6613,9 +6675,22 @@ void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
   /* And zero the parts */
   bzero(gparts, s->nr_gparts * sizeof(struct gpart));
 
+  /* Neutrinos can either be generated in the periodic hyperrectangle
+   * with dimensions dim[3] or in a central ball with radius
+   * s->neutrino_sphere_radius. */
+
+  /* Volume occupied by neutrinos */
+  double neutrino_volume;
+  double R_nu = s->neutrino_sphere_radius;
+  if (R_nu > 0.) {
+    neutrino_volume = (4. / 3.) * M_PI * R_nu * R_nu * R_nu;
+  } else {
+    neutrino_volume = dim[0] * dim[1] * dim[2];
+  }
+
   /* A constant mass factor between macro particle mass and eV mass */
-  const double mass_factor = cosmo->bare_nu_mass_factor *
-                             nr_new_neutrino_parts / (dim[0] * dim[1] * dim[2]);
+  const double mass_factor =
+      cosmo->bare_nu_mass_factor * nr_new_neutrino_parts / neutrino_volume;
 
   message("%zd", current_nr_gparts);
 
@@ -6633,17 +6708,6 @@ void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
       memcpy(&gparts[i], &s->gparts[i], sizeof(struct gpart));
     }
   }
-
-  /* Intitialize the sampler for Fermi-Dirac momenta */
-  struct sampler fermi_dirac_sampler;
-  const double T_nu_eV = cosmo->T_nu * phys_const->const_boltzmann_k /
-                         phys_const->const_electron_volt;
-  const double xl = THERMAL_MIN_MOMENTUM * T_nu_eV;
-  const double xr = THERMAL_MAX_MOMENTUM * T_nu_eV;
-  const double mu_nu_eV = 0.0;  // no chemical potential
-  double thermal_params[2] = {T_nu_eV, mu_nu_eV};
-
-  init_sampler(&fermi_dirac_sampler, fd_pdf, xl, xr, thermal_params);
 
   /* We will divide the neutrino particles equally over all neutrino masses
    * present in the cosmology. */
@@ -6663,14 +6727,93 @@ void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
     if (gp_nu->id_or_neg_offset < 0)
       error("DM particle ID overflowd (DM id=%lld)", gp_nu->id_or_neg_offset);
 
-    /* Generate random position */
-    double x = rand() * 1.0 / RAND_MAX * dim[0];
-    double y = rand() * 1.0 / RAND_MAX * dim[1];
-    double z = rand() * 1.0 / RAND_MAX * dim[2];
-
     /* Set the mass */
     double nu_mass_eV = mass_array_eV[i % nr_massive_species];
     gp_nu->mass = nu_mass_eV / mass_factor;
+
+    /* We will need 8 uniform random numbers */
+    double uniforms[8];
+    for (int j = 0; j < 8; j++) {
+      uniforms[j] = random_unit_interval(gp_nu->id_or_neg_offset, 1 + j,
+                                         random_number_neutrino_generate);
+    }
+
+    /* Generate a random momentum */
+    double u = uniforms[0];
+    double p0_eV = draw_sampler(&fermi_dirac_sampler, u);
+    double p_eV = p0_eV / cosmo->a_begin;  // redshifted momentum
+
+    /* Convert to speed in internal units. Note that this is
+     * the spatial part of the relativistic 4-velocity. */
+    double V = p_eV / nu_mass_eV * phys_const->const_speed_light_c;
+
+    /* For the direction, generate a random point on the sphere with Gaussians
+     */
+
+    /* Generate three standard Gaussian variables */
+    const double sqrt_2logu1 = sqrt(-2 * log(uniforms[1] + 1e-10));
+    const double sqrt_2logu2 = sqrt(-2 * log(uniforms[2] + 1e-10));
+
+    /* Map to three Gaussians */
+    double nx = sqrt_2logu1 * cos(2 * M_PI * uniforms[3]);
+    double ny = sqrt_2logu1 * sin(2 * M_PI * uniforms[3]);
+    double nz = sqrt_2logu2 * cos(2 * M_PI * uniforms[4]);
+
+    /* And normalize */
+    const double n_length = hypot(nx, hypot(ny, nz));
+    if (n_length > 0) {
+      nx /= n_length;
+      ny /= n_length;
+      nz /= n_length;
+    }
+
+    /* Set the velocities */
+    gp_nu->v_full[0] = nx * V;
+    gp_nu->v_full[1] = ny * V;
+    gp_nu->v_full[2] = nz * V;
+
+    /* Generate random position */
+    double x, y, z;
+    if (R_nu > 0.) {
+      /* Generate a random point in the central ball with radius R_nu */
+
+      /* We first generate a random point on the sphere using Gaussians */
+
+      /* Generate two more standard Gaussian variables and reuse the fourth
+       * one from the momentum direction */
+      const double sqrt_2logu3 = sqrt(-2 * log(uniforms[5] + 1e-10));
+
+      /* Map to three Gaussians */
+      x = sqrt_2logu2 * cos(2 * M_PI * uniforms[4]);
+      y = sqrt_2logu3 * cos(2 * M_PI * uniforms[6]);
+      z = sqrt_2logu3 * sin(2 * M_PI * uniforms[6]);
+
+      /* And normalize */
+      const double r_length = hypot(x, hypot(y, z));
+      if (r_length > 0) {
+        x /= r_length;
+        y /= r_length;
+        z /= r_length;
+      }
+
+      /* Next, use the last uniform random variate for the radial coordinate */
+      double r = uniforms[7] * R_nu;
+
+      /* Apply the radial coordinate */
+      x *= r;
+      y *= r;
+      z *= r;
+
+      /* Finally, add the coordinates to the centre of the hyperrectangle */
+      x += dim[0] * 0.5;
+      y += dim[1] * 0.5;
+      z += dim[2] * 0.5;
+    } else {
+      /* Generate a random point in the periodic hyperrectangle */
+      x = uniforms[5] * dim[0];
+      y = uniforms[6] * dim[1];
+      z = uniforms[7] * dim[2];
+    }
 
     /* Set the new positions */
     gp_nu->x[0] = x;
@@ -6683,47 +6826,7 @@ void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
       gp_nu->x[1] = box_wrap(gp_nu->x[1], 0., dim[1]);
       gp_nu->x[2] = box_wrap(gp_nu->x[2], 0., dim[2]);
     }
-
-    /* Generate a random momentum */
-    double u = rand() * 1.0 / RAND_MAX;
-    double p0_eV = draw_sampler(&fermi_dirac_sampler, u);
-    double p_eV = p0_eV / cosmo->a_begin;  // redshifted momentum
-
-    /* Convert to speed in internal units. Note that this is
-     * the spatial part of the relativistic 4-velocity. */
-    double V = p_eV / nu_mass_eV * phys_const->const_speed_light_c;
-
-    /* We generate a random point on the sphere using Gaussians */
-
-    /* Generate three standard Gaussian variables */
-    /* (Two uniforms give two Gaussians, so we get one for free)*/
-    const double u1 = ((double)rand() + 0.5) / RAND_MAX;
-    const double u2 = ((double)rand() + 0.5) / RAND_MAX;
-    const double v1 = ((double)rand() + 0.5) / RAND_MAX;
-    const double v2 = ((double)rand() + 0.5) / RAND_MAX;
-
-    /* Map to three Gaussians (the second is not used - inefficient) */
-    double z0 = sqrt(-2 * log(u1)) * cos(2 * M_PI * v1);
-    double z1 = sqrt(-2 * log(u1)) * sin(2 * M_PI * v1);
-    double z2 = sqrt(-2 * log(u2)) * cos(2 * M_PI * v2);
-    // double z3 = sqrt(-2 * log(u2)) * sin(2 * M_PI * v2); //not needed
-
-    /* And normalize */
-    const double length = hypot(z0, hypot(z1, z2));
-    if (length > 0) {
-      z0 /= length;
-      z1 /= length;
-      z2 /= length;
-    }
-
-    /* Set the velocities (and convert from peculiar to internal velocities) */
-    gp_nu->v_full[0] = z0 * V;
-    gp_nu->v_full[1] = z1 * V;
-    gp_nu->v_full[2] = z2 * V;
   }
-
-  /* Clean up the Fermi-Dirac sampler */
-  clean_sampler(&fermi_dirac_sampler);
 
   /* Replace the content of the space */
   swift_free("gparts", s->gparts);
@@ -7076,6 +7179,9 @@ void space_clean(struct space *s) {
   swift_free("gparts_foreign", s->gparts_foreign);
   swift_free("bparts_foreign", s->bparts_foreign);
 #endif
+
+  /* Clean up the Fermi-Dirac sampler if used */
+  if (s->nr_nuparts > 0) clean_sampler(&fermi_dirac_sampler);
 
   if (lock_destroy(&s->unique_id.lock) != 0)
     error("Failed to destroy spinlocks.");

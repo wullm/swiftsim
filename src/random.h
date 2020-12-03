@@ -42,8 +42,6 @@
  * generator.
  * In case new numbers need to be added other possible
  * numbers could be:
- * 59969537
- * 65610001
  * 126247697
  * 193877777
  * 303595777
@@ -58,7 +56,9 @@ enum random_number_type {
   random_number_stellar_feedback_2 = 6977309513LL,
   random_number_stellar_enrichment = 2936881973LL,
   random_number_BH_feedback = 1640531371LL,
-  random_number_BH_swallow = 4947009007LL
+  random_number_BH_swallow = 4947009007LL,
+  random_number_neutrino_generate = 59969537LL,
+  random_number_neutrino_resample = 65610001LL
 };
 
 #ifndef __APPLE__
