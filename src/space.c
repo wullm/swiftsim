@@ -6873,7 +6873,7 @@ void space_generate_neutrino_properties(
 
         /* Next, use the last uniform random variate for the radial coordinate
          */
-        double r = uniforms[7] * R_nu;
+        double r = cbrt(uniforms[7]) * R_nu;
 
         /* Apply the radial coordinate */
         x *= r;
