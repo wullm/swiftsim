@@ -21,7 +21,6 @@
 
 /* Config parameters. */
 #include "../config.h"
-
 #include "engine.h"
 
 /* Calculation of sqrt(x^2 + y^2 + z^2), without undue overflow or underflow. */
@@ -31,7 +30,6 @@ __attribute__((always_inline, const)) INLINE static double hypot3(double x,
 
   return hypot(x, hypot(y, z));
 }
-
 
 /**
  * @brief Calculate the relativistic correction to the 'drift' timestep

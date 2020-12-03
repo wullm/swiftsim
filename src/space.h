@@ -34,6 +34,7 @@
 #include "lock.h"
 #include "parser.h"
 #include "part.h"
+#include "physical_constants.h"
 #include "space_unique_id.h"
 #include "velociraptor_struct.h"
 
@@ -188,6 +189,9 @@ struct space {
   /*! The total number of #bpart in the space. */
   size_t nr_bparts;
 
+  /*! The total number of #nupart in the space. */
+  size_t nr_nuparts;
+
   /*! The total number of #sink in the space. */
   size_t nr_sinks;
 
@@ -202,6 +206,9 @@ struct space {
 
   /*! The total number of #bpart we allocated memory for */
   size_t size_bparts;
+
+  /*! The total number of #nupart we allocated memory for */
+  size_t size_nuparts;
 
   /*! The total number of #sink we allocated memory for. */
   size_t size_sinks;
@@ -368,12 +375,15 @@ void space_sinks_sort(struct sink *sinks, int *ind, int *counts, int num_bins,
                       ptrdiff_t sinks_offset);
 void space_getcells(struct space *s, int nr_cells, struct cell **cells);
 void space_init(struct space *s, struct swift_params *params,
-                const struct cosmology *cosmo, double dim[3],
+                const struct cosmology *cosmo,
+                const struct phys_const *phys_const, double dim[3],
                 const struct hydro_props *hydro_properties, struct part *parts,
                 struct gpart *gparts, struct sink *sinks, struct spart *sparts,
                 struct bpart *bparts, size_t Npart, size_t Ngpart, size_t Nsink,
-                size_t Nspart, size_t Nbpart, int periodic, int replicate,
-                int remap_ids, int generate_gas_in_ics, int hydro, int gravity,
+                size_t Nspart, size_t Nbpart, size_t Nnupart, int periodic,
+                int replicate, int remap_ids, int generate_gas_in_ics,
+                int generate_neutrinos_in_ics,
+                double generate_neutrinos_fraction, int hydro, int gravity,
                 int star_formation, int DM_background, int verbose, int dry_run,
                 int nr_nodes);
 void space_sanitize(struct space *s);
@@ -436,6 +446,11 @@ void space_check_sort_flags(struct space *s);
 void space_remap_ids(struct space *s, int nr_nodes, int verbose);
 long long space_get_max_parts_id(struct space *s);
 void space_replicate(struct space *s, int replicate, int verbose);
+void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
+                              const struct phys_const *phys_const,
+                              const int periodic, const int with_DM_background,
+                              const double generate_neutrinos_fraction,
+                              const double dim[3], const int verbose);
 void space_generate_gas(struct space *s, const struct cosmology *cosmo,
                         const struct hydro_props *hydro_properties,
                         const int periodic, const int with_DM_background,

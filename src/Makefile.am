@@ -95,7 +95,7 @@ COSMOLOGY_SOURCES += cosmology.c
 endif
 
 # delta f sources (for neutrino weighting)
-DELTA_F_SOURCES =
+DELTA_F_SOURCES = neutrino/fermi_dirac_sampler.c
 if NEUTRINO_WITH_DELTA_F
 DELTA_F_SOURCES += runner_weighting.c neutrino/phase_space.c
 endif

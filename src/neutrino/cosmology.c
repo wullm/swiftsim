@@ -38,6 +38,7 @@
 #include "../memuse.h"
 #include "../minmax.h"
 #include "../restart.h"
+#include "phase_space.h"
 
 #ifdef HAVE_LIBGSL
 #include <gsl/gsl_integration.h>
@@ -810,6 +811,8 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
   c->time_begin = cosmology_get_time_since_big_bang(c, c->a_begin);
   c->time_end = cosmology_get_time_since_big_bang(c, c->a_end);
 
+  c->bare_nu_mass_factor = bare_neutrino_mass_factor(c, us, phys_const);
+
   /* Initialise the old values to a valid state */
   c->a_old = c->a_begin;
   c->z_old = 1. / c->a_old - 1.;
@@ -1005,8 +1008,7 @@ void cosmology_init_no_cosmo(struct cosmology *c) {
  * @param ti Integer time step
  * @return The scale factor.
  */
-double cosmology_get_timebase(struct cosmology *c,
-                              const integertime_t ti) {
+double cosmology_get_timebase(struct cosmology *c, const integertime_t ti) {
 
   const double log_a = c->log_a_begin + ti * c->time_base;
   return exp(log_a);
@@ -1284,8 +1286,7 @@ double cosmology_get_delta_time_from_scale_factors(const struct cosmology *c,
  * @param t time since the big bang
  * @return The scale factor.
  */
-double cosmology_get_scale_factor(const struct cosmology *c,
-                              const double t) {
+double cosmology_get_scale_factor(const struct cosmology *c, const double t) {
 
   /* Use a bisection search on the whole table to find the
      interval where the time lies */

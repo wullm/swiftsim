@@ -101,17 +101,17 @@ struct renderer {
   /* Search table for interpolation acceleration in the k direction */
   int k_acc_table_size;
   double *k_acc_table;
-  double lookup_k_min; //not necessarily the same as k_min
-  double lookup_k_max; //not necessarily the same as k_max
+  double lookup_k_min;  // not necessarily the same as k_min
+  double lookup_k_max;  // not necessarily the same as k_max
   int k_acc_prev_index;
 
-// #ifdef HAVE_LIBGSL
-//   /* GSL interpolation objects */
-//   const gsl_interp2d_type *interp_type;
-//   gsl_interp_accel *k_acc;
-//   gsl_interp_accel *tau_acc;
-//   gsl_spline2d *spline;
-// #endif
+  // #ifdef HAVE_LIBGSL
+  //   /* GSL interpolation objects */
+  //   const gsl_interp2d_type *interp_type;
+  //   gsl_interp_accel *k_acc;
+  //   gsl_interp_accel *tau_acc;
+  //   gsl_spline2d *spline;
+  // #endif
 };
 
 /* The renderer object renders transfer functions onto the grid */
@@ -137,8 +137,8 @@ void rend_grids_alloc(struct renderer *rend);
 /* Custom interpolation functions */
 void rend_custom_interp_init(struct renderer *rend, int table_size,
                              double lookup_k_min, double lookup_k_max);
-void rend_interp_locate_tau(struct renderer *rend, double log_tau,
-                            int *index, double *w);
+void rend_interp_locate_tau(struct renderer *rend, double log_tau, int *index,
+                            double *w);
 void rend_interp_locate_k(struct renderer *rend, double k, int *index,
                           double *w);
 double rend_custom_interp(struct renderer *rend, int k_index, int tau_index,

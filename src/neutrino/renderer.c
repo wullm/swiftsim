@@ -41,50 +41,53 @@ inline double sinc(double x) { return x == 0 ? 1. : sin(x) / x; }
 
 /* Write binary boxes in HDF5 format */
 int writeGRF_H5(const double *box, int N, double boxlen, const char *fname) {
-    /* Create the hdf5 file */
-    hid_t h_file = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  /* Create the hdf5 file */
+  hid_t h_file = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-    /* Create the Header group */
-    hid_t h_grp = H5Gcreate(h_file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  /* Create the Header group */
+  hid_t h_grp =
+      H5Gcreate(h_file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-    /* Create dataspace for BoxSize attribute */
-    const hsize_t arank = 1;
-    const hsize_t adims[1] = {3}; //3D space
-    hid_t h_aspace = H5Screate_simple(arank, adims, NULL);
+  /* Create dataspace for BoxSize attribute */
+  const hsize_t arank = 1;
+  const hsize_t adims[1] = {3};  // 3D space
+  hid_t h_aspace = H5Screate_simple(arank, adims, NULL);
 
-    /* Create the BoxSize attribute and write the data */
-    hid_t h_attr = H5Acreate1(h_grp, "BoxSize", H5T_NATIVE_DOUBLE, h_aspace, H5P_DEFAULT);
-    double boxsize[3] = {boxlen, boxlen, boxlen};
-    H5Awrite(h_attr, H5T_NATIVE_DOUBLE, boxsize);
+  /* Create the BoxSize attribute and write the data */
+  hid_t h_attr =
+      H5Acreate1(h_grp, "BoxSize", H5T_NATIVE_DOUBLE, h_aspace, H5P_DEFAULT);
+  double boxsize[3] = {boxlen, boxlen, boxlen};
+  H5Awrite(h_attr, H5T_NATIVE_DOUBLE, boxsize);
 
-    /* Close the attribute, corresponding dataspace, and the Header group */
-    H5Aclose(h_attr);
-    H5Sclose(h_aspace);
-    H5Gclose(h_grp);
+  /* Close the attribute, corresponding dataspace, and the Header group */
+  H5Aclose(h_attr);
+  H5Sclose(h_aspace);
+  H5Gclose(h_grp);
 
-    /* Create the Field group */
-    h_grp = H5Gcreate(h_file, "/Field", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  /* Create the Field group */
+  h_grp = H5Gcreate(h_file, "/Field", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-    /* Create dataspace for the field */
-    const hsize_t frank = 3;
-    const hsize_t fdims[3] = {N, N, N}; //3D space
-    hid_t h_fspace = H5Screate_simple(frank, fdims, NULL);
+  /* Create dataspace for the field */
+  const hsize_t frank = 3;
+  const hsize_t fdims[3] = {N, N, N};  // 3D space
+  hid_t h_fspace = H5Screate_simple(frank, fdims, NULL);
 
-    /* Create the dataset for the field */
-    hid_t h_data = H5Dcreate(h_grp, "Field", H5T_NATIVE_DOUBLE, h_fspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  /* Create the dataset for the field */
+  hid_t h_data = H5Dcreate(h_grp, "Field", H5T_NATIVE_DOUBLE, h_fspace,
+                           H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-    /* Write the data */
-    H5Dwrite(h_data, H5T_NATIVE_DOUBLE, h_fspace, h_fspace, H5P_DEFAULT, box);
+  /* Write the data */
+  H5Dwrite(h_data, H5T_NATIVE_DOUBLE, h_fspace, h_fspace, H5P_DEFAULT, box);
 
-    /* Close the dataset, corresponding dataspace, and the Field group */
-    H5Dclose(h_data);
-    H5Sclose(h_fspace);
-    H5Gclose(h_grp);
+  /* Close the dataset, corresponding dataspace, and the Field group */
+  H5Dclose(h_data);
+  H5Sclose(h_fspace);
+  H5Gclose(h_grp);
 
-    /* Close the file */
-    H5Fclose(h_file);
+  /* Close the file */
+  H5Fclose(h_file);
 
-    return 0;
+  return 0;
 }
 
 void rend_init(struct renderer *rend, struct swift_params *params,
@@ -123,8 +126,10 @@ void rend_init(struct renderer *rend, struct swift_params *params,
   /* Verify that the physical dimensions of the primordial field match the
      cosmology */
   // for (int i = 0; i < 3; i++) {
-  //   if (fabs(rend->primordial_dims[i] - e->s->dim[i]) / e->s->dim[i] > 1e-3) {
-  //     error("Dimensions[%i] of primordial field do not agree with space.", i);
+  //   if (fabs(rend->primordial_dims[i] - e->s->dim[i]) / e->s->dim[i] > 1e-3)
+  //   {
+  //     error("Dimensions[%i] of primordial field do not agree with space.",
+  //     i);
   //   }
   // }
 
@@ -219,7 +224,8 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
   rend->primordial_grid = (double *)swift_malloc("primordial_grid", bytes);
 
   /* Read the data */
-  H5Dread(h_data, H5T_NATIVE_DOUBLE, space, space, H5P_DEFAULT, rend->primordial_grid);
+  H5Dread(h_data, H5T_NATIVE_DOUBLE, space, space, H5P_DEFAULT,
+          rend->primordial_grid);
 
   /* Close the dataset */
   H5Dclose(h_data);
@@ -242,7 +248,8 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
 //     rend->spline =
 //         gsl_spline2d_alloc(rend->interp_type, tr->k_size, tr->tau_size);
 //     /* Note: this only copies the first transfer function from tr->delta */
-//     gsl_spline2d_init(rend->spline, tr->k, tr->log_tau, tr->delta, tr->k_size,
+//     gsl_spline2d_init(rend->spline, tr->k, tr->log_tau, tr->delta,
+//     tr->k_size,
 //                       tr->tau_size);
 //
 //
@@ -264,7 +271,8 @@ void rend_load_primordial_field(struct renderer *rend, const char *fname) {
 //   /* The memory for the transfer functions is located here */
 //   struct transfer *tr = &rend->transfer;
 //
-//   /* The array tr->delta contains a sequence of all transfer functions T(k,tau),
+//   /* The array tr->delta contains a sequence of all transfer functions
+//   T(k,tau),
 //    * each of size tr->k_size * tr->tau_size doubles */
 //   int chunk_size = tr->k_size * tr->tau_size;
 //
@@ -312,9 +320,9 @@ void rend_clean(struct renderer *rend) {
   free(rend->transfer.titles);
 
   /* Free density & perturbation theory grids */
-// #ifdef RENDERER_FULL_GR
-//   free(rend->the_grids);
-// #endif
+  // #ifdef RENDERER_FULL_GR
+  //   free(rend->the_grids);
+  // #endif
 
   /* Free the index table */
   free(rend->k_acc_table);
@@ -421,7 +429,7 @@ void rend_add_rescaled_nu_mesh(struct renderer *rend, const struct engine *e) {
 
           /* Bilinear interpolation of the cdm transfer function */
           double Trc = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
-                                        rend->index_transfer_delta_cdm);
+                                          rend->index_transfer_delta_cdm);
 
           /* The long-range kernel */
           double K = 1.;
@@ -602,7 +610,6 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
           double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
                                          rend->index_transfer_delta_ncdm);
 
-
           /* The CIC Window function in Fourier space */
           const double sqrt_W_x = sinc(0.5 * k_x * box_len / N);
           const double sqrt_W_y = sinc(0.5 * k_y * box_len / N);
@@ -616,7 +623,8 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
           /* Convert from overdensity to density (we can ignore the k=0 mode) */
           Tr *= neutrino_density;
 
-          /* Convert from density to potential by applying the -4 pi/k^2 kernel */
+          /* Convert from density to potential by applying the -4 pi/k^2 kernel
+           */
           Tr *= -4 * M_PI / k / k;
 
           fp[half_box_idx(N, x, y, z)][0] *= Tr;
@@ -695,8 +703,6 @@ void rend_add_linear_nu_mesh(struct renderer *rend, const struct engine *e) {
   error("No FFTW library found. Cannot compute periodic long-range forces.");
 #endif
 }
-
-
 
 /* Add all the linear theory transfer functions for relativistic components */
 void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
@@ -969,9 +975,8 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 #endif
 }
 
-// void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
-// #ifdef HAVE_FFTW
-// #ifdef HAVE_LIBGSL
+// void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine
+// *e) { #ifdef HAVE_FFTW #ifdef HAVE_LIBGSL
 //   /* Grid size */
 //   const int N = rend->primordial_grid_N;
 //   const double box_len = e->s->dim[0];
@@ -1003,18 +1008,21 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 //
 //   /* Allocate memory for the rendered field */
 //   potential = (double *)fftw_malloc(sizeof(double) * N * N * N);
-//   fp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 + 1));
+//   fp = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N * N * (N / 2 +
+//   1));
 //
 //   if (potential == NULL || fp == NULL) {
 //     error("Error allocating memory for rendering.");
 //   }
 //
-//   memuse_log_allocation("potential", potential, 1, sizeof(double) * N * N * N);
-//   memuse_log_allocation("f", fp, 1, sizeof(fftw_complex) * N * N * (N / 2 + 1));
+//   memuse_log_allocation("potential", potential, 1, sizeof(double) * N * N *
+//   N); memuse_log_allocation("f", fp, 1, sizeof(fftw_complex) * N * N * (N / 2
+//   + 1));
 //
 //   /* Prepare the FFTW plans */
-//   fftw_plan pr2c = fftw_plan_dft_r2c_3d(N, N, N, potential, fp, FFTW_ESTIMATE);
-//   fftw_plan pc2r = fftw_plan_dft_c2r_3d(N, N, N, fp, potential, FFTW_ESTIMATE);
+//   fftw_plan pr2c = fftw_plan_dft_r2c_3d(N, N, N, potential, fp,
+//   FFTW_ESTIMATE); fftw_plan pc2r = fftw_plan_dft_c2r_3d(N, N, N, fp,
+//   potential, FFTW_ESTIMATE);
 //
 //   /* Realize all the perturbation theory grids */
 //   for (int index_f = 0; index_f < rend->transfer.n_functions; index_f++) {
@@ -1030,8 +1038,9 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 //     memcpy(destination, source_address, N * N * N * sizeof(double));
 //
 //     /* Create plans */
-//     fftw_plan r2c_grid = fftw_plan_dft_r2c_3d(N, N, N, grid, fp, FFTW_ESTIMATE);
-//     fftw_plan c2r_grid = fftw_plan_dft_c2r_3d(N, N, N, fp, grid, FFTW_ESTIMATE);
+//     fftw_plan r2c_grid = fftw_plan_dft_r2c_3d(N, N, N, grid, fp,
+//     FFTW_ESTIMATE); fftw_plan c2r_grid = fftw_plan_dft_c2r_3d(N, N, N, fp,
+//     grid, FFTW_ESTIMATE);
 //
 //     /* Transform to momentum space */
 //     fftw_execute(r2c_grid);
@@ -1046,22 +1055,25 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 //     for (int x = 0; x < N; x++) {
 //       for (int y = 0; y < N; y++) {
 //         for (int z = 0; z <= N / 2; z++) {
-//           double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
-//           double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
-//           double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+//           double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  //
+//           U_L^-1 double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;
+//           // U_L^-1 double k_z = (z > N / 2) ? (z - N) * delta_k : z *
+//           delta_k;  // U_L^-1
 //
 //           double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
 //
 //           /* Ignore the DC mode */
 //           if (k > 0) {
-//             // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau, rend->k_acc,
+//             // double Tr = gsl_spline2d_eval(rend->spline, k, log_tau,
+//             rend->k_acc,
 //             //                               rend->tau_acc);
 //
 //             /* Find the k-space interpolation index */
 //             rend_interp_locate_k(rend, k, &k_index, &u_k);
 //
 //             /* Bilinear interpolation of the ncdm transfer function */
-//             double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+//             double Tr = rend_custom_interp(rend, k_index, tau_index, u_tau,
+//             u_k,
 //                                          index_f);
 //
 //             /* The CIC Window function in Fourier space */
@@ -1071,8 +1083,8 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 //             const double sqrt_W = sqrt_W_x * sqrt_W_y * sqrt_W_z;
 //             const double W = sqrt_W * sqrt_W;
 //
-//             /* Only deconvolve once for the interpolation (no gpart assignment) */
-//             Tr /= W;
+//             /* Only deconvolve once for the interpolation (no gpart
+//             assignment) */ Tr /= W;
 //
 //             fp[half_box_idx(N, x, y, z)][0] *= Tr;
 //             fp[half_box_idx(N, x, y, z)][1] *= Tr;
@@ -1108,10 +1120,9 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 //   /* Next, compute the potential due to neutrinos (modulo a factor G_newt) */
 //
 //   /* Calculate the background neutrino density at the present time */
-//   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
-//   const double Omega_g = cosmo->Omega_g;
-//   const double Omega_ur = cosmo->Omega_ur;
-//   const double rho_crit0 = cosmo->critical_density_0;
+//   const double Omega_nu = cosmology_get_neutrino_density_param(cosmo,
+//   cosmo->a); const double Omega_g = cosmo->Omega_g; const double Omega_ur =
+//   cosmo->Omega_ur; const double rho_crit0 = cosmo->critical_density_0;
 //   /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
 //   const double neutrino_density = Omega_nu * rho_crit0 / cosmo->a;
 //   const double photon_density = Omega_g * rho_crit0 / cosmo->a;
@@ -1128,8 +1139,9 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 //       rend->density_grid + rend->index_transfer_H_T_Nb_prime * N * N * N;
 //   double *HT_prime_prime_grid =
 //       rend->density_grid + rend->index_transfer_H_T_Nb_pprime * N * N * N;
-//   double *phi_grid = rend->density_grid + rend->index_transfer_phi * N * N * N;
-//   double *psi_grid = rend->density_grid + rend->index_transfer_psi * N * N * N;
+//   double *phi_grid = rend->density_grid + rend->index_transfer_phi * N * N *
+//   N; double *psi_grid = rend->density_grid + rend->index_transfer_psi * N * N
+//   * N;
 //
 //   /* The potential is multiplied by G_newton later, so for phi, psi & H_T_Nb,
 //    * which should not be multiplied by G_newton, we need to divide now.
@@ -1155,7 +1167,8 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 //     /* Photon contribution (gamma) */
 //     double rho_g = (1.0 + g_grid[i]) * photon_density;
 //     /* H_T_Nb term = (H*a + d/dtau) * (d/dtau) * H_T_Nb */
-//     double H_T_term = HT_prime_grid[i] * H_conformal + HT_prime_prime_grid[i];
+//     double H_T_term = HT_prime_grid[i] * H_conformal +
+//     HT_prime_prime_grid[i];
 //
 //     /* We will apply the 1/k^2 kernel to the Fourier transform of this */
 //     potential[i] = -4 * M_PI * (rho_ncdm + rho_g + rho_ur) + H_T_term;
@@ -1188,9 +1201,10 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
 //   for (int x = 0; x < N; x++) {
 //     for (int y = 0; y < N; y++) {
 //       for (int z = 0; z <= N / 2; z++) {
-//         double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  // U_L^-1
-//         double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k;  // U_L^-1
-//         double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k;  // U_L^-1
+//         double k_x = (x > N / 2) ? (x - N) * delta_k : x * delta_k;  //
+//         U_L^-1 double k_y = (y > N / 2) ? (y - N) * delta_k : y * delta_k; //
+//         U_L^-1 double k_z = (z > N / 2) ? (z - N) * delta_k : z * delta_k; //
+//         U_L^-1
 //
 //         double k = sqrt(k_x * k_x + k_y * k_y + k_z * k_z);
 //
@@ -1552,9 +1566,9 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
   const double box_len = rend->primordial_dims[0];
 
   /* Determine the maximum and minimum wavenumbers we will ever need */
-  const double margin = 1.2; //ensure a safe error margin
-  const double dk = 2*M_PI/box_len;
-  const double lookup_k_max = sqrt(3)*dk*N/2 * margin;
+  const double margin = 1.2;  // ensure a safe error margin
+  const double dk = 2 * M_PI / box_len;
+  const double lookup_k_max = sqrt(3) * dk * N / 2 * margin;
   const double lookup_k_min = dk / margin;
 
   if (myrank == 0) {
@@ -1571,9 +1585,9 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
     rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH, lookup_k_min,
                             lookup_k_max);
 
-// #ifdef RENDERER_FULL_GR
-//     rend_grids_alloc(rend);
-// #endif
+    // #ifdef RENDERER_FULL_GR
+    //     rend_grids_alloc(rend);
+    // #endif
   }
 
   /* The memory for the transfer functions is located here */
@@ -1639,7 +1653,8 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
         message("Identified scalar potential psi vector '%s'.", tr->titles[i]);
       } else if (strcmp(tr->titles[i], "H_T_Nb_prime") == 0) {
         rend->index_transfer_H_T_Nb_prime = i;
-        message("Identified N-body gauge H_T_prime vector '%s'.", tr->titles[i]);
+        message("Identified N-body gauge H_T_prime vector '%s'.",
+                tr->titles[i]);
       } else if (strcmp(tr->titles[i], "H_T_Nb_prime_prime") == 0) {
         rend->index_transfer_H_T_Nb_pprime = i;
         message("Identified N-body gauge H_T_prime_prime vector '%s'.",
@@ -1665,17 +1680,17 @@ void rend_init_perturb_vec(struct renderer *rend, struct swift_params *params,
     rend_custom_interp_init(rend, LOOKUP_TABLE_LENGTH, lookup_k_min,
                             lookup_k_max);
 
-// #ifdef RENDERER_FULL_GR
-//     rend_grids_alloc(rend);
-// #endif
+    // #ifdef RENDERER_FULL_GR
+    //     rend_grids_alloc(rend);
+    // #endif
   }
 #endif
 }
 
 /* Locate the index such that log_tau[index] <= log_tau < log_tau[index+1] and
  *  the fractional distance w = (y - y[index]) / (y[index+1] - y[index]). */
-void rend_interp_locate_tau(struct renderer *rend, double log_tau,
-                            int *index, double *w) {
+void rend_interp_locate_tau(struct renderer *rend, double log_tau, int *index,
+                            double *w) {
   /* The memory for the transfer functions is located here */
   struct transfer *tr = &rend->transfer;
 
@@ -1692,9 +1707,9 @@ void rend_interp_locate_tau(struct renderer *rend, double log_tau,
   }
 
   /* Run through the array in strides of 10 for initial scan */
-  for (int i=1; i<tau_size; i++) {
+  for (int i = 1; i < tau_size; i++) {
     if (tr->log_tau[i] >= log_tau) {
-      *index = i-1;
+      *index = i - 1;
       break;
     }
   }
@@ -1707,45 +1722,44 @@ void rend_interp_locate_tau(struct renderer *rend, double log_tau,
   *w = (log_tau - left) / (right - left);
 }
 
-
 void rend_custom_interp_init(struct renderer *rend, int table_size,
                              double lookup_k_min, double lookup_k_max) {
 
-    /* Allocate the search table */
-    rend->k_acc_table = malloc(table_size * sizeof(double));
-    rend->k_acc_table_size = table_size;
-    rend->k_acc_prev_index = 0; //updated later
+  /* Allocate the search table */
+  rend->k_acc_table = malloc(table_size * sizeof(double));
+  rend->k_acc_table_size = table_size;
+  rend->k_acc_prev_index = 0;  // updated later
 
-    /* Bounding values for the look-up table */
-    rend->lookup_k_min = lookup_k_min;
-    rend->lookup_k_max = lookup_k_max;
+  /* Bounding values for the look-up table */
+  rend->lookup_k_min = lookup_k_min;
+  rend->lookup_k_max = lookup_k_max;
 
-    /* The perturbation structure containing the vector that is to be searched */
-    struct transfer *tr = &rend->transfer;
-    const int k_size = tr->k_size;
+  /* The perturbation structure containing the vector that is to be searched */
+  struct transfer *tr = &rend->transfer;
+  const int k_size = tr->k_size;
 
-    /* Make the index table */
-    for (int i=0; i<table_size; i++) {
-        double u = (double) i/table_size;
-        double v = lookup_k_min + u * (lookup_k_max - lookup_k_min);
+  /* Make the index table */
+  for (int i = 0; i < table_size; i++) {
+    double u = (double)i / table_size;
+    double v = lookup_k_min + u * (lookup_k_max - lookup_k_min);
 
-        /* Find the largest bin such that w > k */
-        double maxJ = 0;
-        for(int j=0; j<k_size; j++) {
-            if (tr->k[j] < v) {
-                maxJ = j;
-            }
-        }
-        rend->k_acc_table[i] = maxJ;
+    /* Find the largest bin such that w > k */
+    double maxJ = 0;
+    for (int j = 0; j < k_size; j++) {
+      if (tr->k[j] < v) {
+        maxJ = j;
+      }
     }
+    rend->k_acc_table[i] = maxJ;
+  }
 }
 
 /* Locate the index such that k[index] <= k < k[index+1] and the fractional
  * distance w = (k - k[index]) / (k[index+1] - k[index]).
  * To limit the number of branches, we do not check if the value is in bounds!
  */
-void rend_interp_locate_k(struct renderer *rend, double k,
-                          int *index, double *w) {
+void rend_interp_locate_k(struct renderer *rend, double k, int *index,
+                          double *w) {
 
   /* The transfer functions structure */
   struct transfer *tr = &rend->transfer;
@@ -1808,6 +1822,6 @@ double rend_custom_interp(struct renderer *rend, int k_index, int tau_index,
   double T12 = arr[k_size * (tau_index + 1) + k_index];
   double T22 = arr[k_size * (tau_index + 1) + k_index + 1];
 
-  return (1 - u_tau) * ((1 - u_k) * T11 + u_k * T21)
-             + u_tau * ((1 - u_k) * T12 + u_k * T22);
+  return (1 - u_tau) * ((1 - u_k) * T11 + u_k * T21) +
+         u_tau * ((1 - u_k) * T12 + u_k * T22);
 }

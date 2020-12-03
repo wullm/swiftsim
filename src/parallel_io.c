@@ -747,13 +747,14 @@ void read_ic_parallel(char* fileName, const struct unit_system* internal_units,
                       double dim[3], struct part** parts, struct gpart** gparts,
                       struct sink** sinks, struct spart** sparts,
                       struct bpart** bparts, size_t* Ngas, size_t* Ngparts,
-                      size_t* Ngparts_background, size_t* Nnuparts, size_t* Nsinks,
-                      size_t* Nstars, size_t* Nblackholes, int* flag_entropy,
-                      int with_hydro, int with_gravity, int with_sink,
-                      int with_stars, int with_black_holes, int with_cosmology,
-                      int cleanup_h, int cleanup_sqrt_a, double h, double a,
-                      int mpi_rank, int mpi_size, MPI_Comm comm, MPI_Info info,
-                      int n_threads, int dry_run, int remap_ids) {
+                      size_t* Ngparts_background, size_t* Nnuparts,
+                      size_t* Nsinks, size_t* Nstars, size_t* Nblackholes,
+                      int* flag_entropy, int with_hydro, int with_gravity,
+                      int with_sink, int with_stars, int with_black_holes,
+                      int with_cosmology, int cleanup_h, int cleanup_sqrt_a,
+                      double h, double a, int mpi_rank, int mpi_size,
+                      MPI_Comm comm, MPI_Info info, int n_threads, int dry_run,
+                      int remap_ids) {
 
   hid_t h_file = 0, h_grp = 0;
   /* GADGET has only cubic boxes (in cosmological mode) */
@@ -1086,9 +1087,9 @@ void read_ic_parallel(char* fileName, const struct unit_system* internal_units,
 
     /* Duplicate the stars particles into gparts */
     if (with_stars)
-      io_duplicate_stars_gparts(&tp, *sparts, *gparts, *Nstars,
-                                Ndm + Ndm_background + Ndm_neutrino + *Ngas +
-                                *Nsinks);
+      io_duplicate_stars_gparts(
+          &tp, *sparts, *gparts, *Nstars,
+          Ndm + Ndm_background + Ndm_neutrino + *Ngas + *Nsinks);
 
     /* Duplicate the stars particles into gparts */
     if (with_black_holes)
@@ -1493,10 +1494,9 @@ void write_output_parallel(struct engine* e,
           : 0;
 
   /* Compute offset in the file and total number of particles */
-  size_t N[swift_type_count] = {Ngas_written,   Ndm_written,
-                                Ndm_background, Nsinks_written,
-                                Nstars_written, Nblackholes_written,
-                                Ndm_neutrino};
+  size_t N[swift_type_count] = {
+      Ngas_written,   Ndm_written,         Ndm_background, Nsinks_written,
+      Nstars_written, Nblackholes_written, Ndm_neutrino};
   long long N_total[swift_type_count] = {0};
   long long offset[swift_type_count] = {0};
   MPI_Exscan(N, offset, swift_type_count, MPI_LONG_LONG_INT, MPI_SUM, comm);

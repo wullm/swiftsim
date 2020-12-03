@@ -25,6 +25,8 @@
 #include "../config.h"
 
 /* Some standard headers. */
+#include "neutrino/fermi_dirac_sampler.h"
+
 #include <float.h>
 #include <limits.h>
 #include <math.h>
@@ -5704,14 +5706,17 @@ void space_convert_quantities(struct space *s, int verbose) {
  * recursively.
  */
 void space_init(struct space *s, struct swift_params *params,
-                const struct cosmology *cosmo, double dim[3],
+                const struct cosmology *cosmo,
+                const struct phys_const *phys_const, double dim[3],
                 const struct hydro_props *hydro_properties, struct part *parts,
                 struct gpart *gparts, struct sink *sinks, struct spart *sparts,
                 struct bpart *bparts, size_t Npart, size_t Ngpart, size_t Nsink,
-                size_t Nspart, size_t Nbpart, int periodic, int replicate,
-                int remap_ids, int generate_gas_in_ics, int hydro,
-                int self_gravity, int star_formation, int DM_background,
-                int verbose, int dry_run, int nr_nodes) {
+                size_t Nspart, size_t Nbpart, size_t Nnupart, int periodic,
+                int replicate, int remap_ids, int generate_gas_in_ics,
+                int generate_neutrinos_in_ics,
+                double generate_neutrinos_fraction, int hydro, int self_gravity,
+                int star_formation, int DM_background, int verbose, int dry_run,
+                int nr_nodes) {
 
   /* Clean-up everything */
   bzero(s, sizeof(struct space));
@@ -5730,11 +5735,13 @@ void space_init(struct space *s, struct swift_params *params,
   s->nr_sparts = Nspart;
   s->nr_bparts = Nbpart;
   s->nr_sinks = Nsink;
+  s->nr_nuparts = Nnupart;
   s->size_parts = Npart;
   s->size_gparts = Ngpart;
   s->size_sparts = Nspart;
   s->size_bparts = Nbpart;
   s->size_sinks = Nsink;
+  s->size_nuparts = Nnupart;
   s->nr_inhibited_parts = 0;
   s->nr_inhibited_gparts = 0;
   s->nr_inhibited_sparts = 0;
@@ -5778,6 +5785,16 @@ void space_init(struct space *s, struct swift_params *params,
   /* Are we remapping the IDs to the range [1, NumPart]? */
   if (remap_ids) {
     space_remap_ids(s, nr_nodes, verbose);
+  }
+
+  /* Are we generating neutrino DM particles? */
+  if (generate_neutrinos_in_ics) {
+    space_generate_neutrinos(s, cosmo, phys_const, periodic, DM_background,
+                             generate_neutrinos_fraction, dim, verbose);
+    parts = s->parts;
+    gparts = s->gparts;
+    Npart = s->nr_parts;
+    Ngpart = s->nr_gparts;
   }
 
   /* Are we generating gas from the DM-only ICs? */
@@ -6513,6 +6530,203 @@ void space_generate_gas(struct space *s, const struct cosmology *cosmo,
   /* Replace the content of the space */
   swift_free("gparts", s->gparts);
   s->parts = parts;
+  s->gparts = gparts;
+}
+
+/**
+ * @brief Add a number of neutrino dark matter particles and update the cold
+ * dark matter masses in accordance with the cosmology.
+ *
+ * Note that this function alters the dark matter particle masses and positions.
+ * Velocities are unchanged.
+ *
+ * Background DM particles are not duplicated.
+ *
+ * @param s The #space to create the particles in.
+ * @param cosmo The current #cosmology model.
+ * @param periodic Are we using periodic boundary conditions?
+ * @param with_background Are we using background DM particles?
+ * @param dim The size of the box (for periodic wrapping).
+ * @param verbose Are we talkative?
+ */
+void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
+                              const struct phys_const *phys_const,
+                              const int periodic, const int with_background,
+                              const double generate_neutrinos_fraction,
+                              const double dim[3], const int verbose) {
+
+  /* Check that this is a sensible thing to do */
+  // if (!s->with_hydro)
+  //   error(
+  //       "Cannot generate gas from ICs if we are running without "
+  //       "hydrodynamics. Need to run with -s and the corresponding "
+  //       "hydrodynamics parameters in the YAML file.");
+
+  if (verbose) message("Generating neutrino particles from gparts");
+
+  /* Store the current values */
+  const size_t current_nr_gparts = s->nr_gparts;
+
+  /* Start by counting the number of background, nu, and zoom DM particles */
+  size_t nr_background_gparts = 0;
+  size_t nr_neutrino_gparts = 0;
+  if (with_background) {
+    for (size_t i = 0; i < current_nr_gparts; ++i)
+      if (s->gparts[i].type == swift_type_dark_matter_background)
+        ++nr_background_gparts;
+  }
+  for (size_t i = 0; i < current_nr_gparts; ++i)
+    if (s->gparts[i].type == swift_type_neutrino) ++nr_neutrino_gparts;
+
+  const size_t nr_zoom_gparts = current_nr_gparts - nr_background_gparts;
+
+  if (nr_neutrino_gparts > 0)
+    error(
+        "Generating neutrino particles from ICs, but neutrinos already exist");
+
+  if (nr_zoom_gparts == 0)
+    error(
+        "Can't generate neutrinos from ICs if there are no high res. "
+        "particles");
+
+  /* Ratio of neutrino particles to zoom dark matter particles */
+  double nu_ratio = generate_neutrinos_fraction;
+  /* Number of new neutrino particles */
+  size_t nr_new_neutrino_parts = (size_t)(nu_ratio * nr_zoom_gparts);
+
+  message("Generating %zd new neutrino particles", nr_new_neutrino_parts);
+
+  /* New particle counts after replication */
+  s->size_nuparts = s->nr_nuparts = nr_new_neutrino_parts;
+  s->size_gparts = s->nr_gparts =
+      nr_zoom_gparts + nr_new_neutrino_parts + nr_background_gparts;
+
+  message("We will have %zd gravity particles", s->nr_gparts);
+
+  /* Allocate space for new particles */
+  struct gpart *gparts = NULL;
+
+  if (swift_memalign("gparts", (void **)&gparts, gpart_align,
+                     s->nr_gparts * sizeof(struct gpart)) != 0)
+    error("Failed to allocate new gpart array.");
+
+  /* And zero the parts */
+  bzero(gparts, s->nr_gparts * sizeof(struct gpart));
+
+  /* A constant mass factor between macro particle mass and eV mass */
+  const double mass_factor = cosmo->bare_nu_mass_factor *
+                             nr_new_neutrino_parts / (dim[0] * dim[1] * dim[2]);
+
+  message("%zd", current_nr_gparts);
+
+  /* Update the existing particle properties */
+  for (size_t i = 0; i < current_nr_gparts; ++i) {
+
+    /* For the background DM particles, just copy the data */
+    if (s->gparts[i].type == swift_type_dark_matter_background) {
+
+      memcpy(&gparts[i], &s->gparts[i], sizeof(struct gpart));
+
+    } else {
+
+      /* Copy the zoom DM particles over too, for now */
+      memcpy(&gparts[i], &s->gparts[i], sizeof(struct gpart));
+    }
+  }
+
+  /* Intitialize the sampler for Fermi-Dirac momenta */
+  struct sampler fermi_dirac_sampler;
+  const double T_nu_eV = cosmo->T_nu * phys_const->const_boltzmann_k /
+                         phys_const->const_electron_volt;
+  const double xl = THERMAL_MIN_MOMENTUM * T_nu_eV;
+  const double xr = THERMAL_MAX_MOMENTUM * T_nu_eV;
+  const double mu_nu_eV = 0.0;  // no chemical potential
+  double thermal_params[2] = {T_nu_eV, mu_nu_eV};
+
+  init_sampler(&fermi_dirac_sampler, fd_pdf, xl, xr, thermal_params);
+
+  /* We will divide the neutrino particles equally over all neutrino masses
+   * present in the cosmology. */
+  double *mass_array_eV = cosmo->M_nu;
+  int nr_massive_species = cosmo->N_nu;
+
+  /* Add the new neutrino particles */
+  for (size_t i = 0; i < nr_new_neutrino_parts; ++i) {
+
+    /* For the zoom DM particles, there is a lot of work to do */
+    struct gpart *gp_nu = &gparts[current_nr_gparts + i];
+
+    /* Set the type and ID */
+    gp_nu->type = swift_type_neutrino;
+    gp_nu->id_or_neg_offset = current_nr_gparts + 1 + i;
+
+    if (gp_nu->id_or_neg_offset < 0)
+      error("DM particle ID overflowd (DM id=%lld)", gp_nu->id_or_neg_offset);
+
+    /* Generate random position */
+    double x = rand() * 1.0 / RAND_MAX * dim[0];
+    double y = rand() * 1.0 / RAND_MAX * dim[1];
+    double z = rand() * 1.0 / RAND_MAX * dim[2];
+
+    /* Set the mass */
+    double nu_mass_eV = mass_array_eV[i % nr_massive_species];
+    gp_nu->mass = nu_mass_eV / mass_factor;
+
+    /* Set the new positions */
+    gp_nu->x[0] = x;
+    gp_nu->x[1] = y;
+    gp_nu->x[2] = z;
+
+    /* Box-wrap the whole thing to be safe */
+    if (periodic) {
+      gp_nu->x[0] = box_wrap(gp_nu->x[0], 0., dim[0]);
+      gp_nu->x[1] = box_wrap(gp_nu->x[1], 0., dim[1]);
+      gp_nu->x[2] = box_wrap(gp_nu->x[2], 0., dim[2]);
+    }
+
+    /* Generate a random momentum */
+    double u = rand() * 1.0 / RAND_MAX;
+    double p0_eV = draw_sampler(&fermi_dirac_sampler, u);
+    double p_eV = p0_eV / cosmo->a_begin;  // redshifted momentum
+
+    /* Convert to speed in internal units. Note that this is
+     * the spatial part of the relativistic 4-velocity. */
+    double V = p_eV / nu_mass_eV * phys_const->const_speed_light_c;
+
+    /* We generate a random point on the sphere using Gaussians */
+
+    /* Generate three standard Gaussian variables */
+    /* (Two uniforms give two Gaussians, so we get one for free)*/
+    const double u1 = ((double)rand() + 0.5) / RAND_MAX;
+    const double u2 = ((double)rand() + 0.5) / RAND_MAX;
+    const double v1 = ((double)rand() + 0.5) / RAND_MAX;
+    const double v2 = ((double)rand() + 0.5) / RAND_MAX;
+
+    /* Map to three Gaussians (the second is not used - inefficient) */
+    double z0 = sqrt(-2 * log(u1)) * cos(2 * M_PI * v1);
+    double z1 = sqrt(-2 * log(u1)) * sin(2 * M_PI * v1);
+    double z2 = sqrt(-2 * log(u2)) * cos(2 * M_PI * v2);
+    // double z3 = sqrt(-2 * log(u2)) * sin(2 * M_PI * v2); //not needed
+
+    /* And normalize */
+    const double length = hypot(z0, hypot(z1, z2));
+    if (length > 0) {
+      z0 /= length;
+      z1 /= length;
+      z2 /= length;
+    }
+
+    /* Set the velocities (and convert from peculiar to internal velocities) */
+    gp_nu->v_full[0] = z0 * V;
+    gp_nu->v_full[1] = z1 * V;
+    gp_nu->v_full[2] = z2 * V;
+  }
+
+  /* Clean up the Fermi-Dirac sampler */
+  clean_sampler(&fermi_dirac_sampler);
+
+  /* Replace the content of the space */
+  swift_free("gparts", s->gparts);
   s->gparts = gparts;
 }
 

@@ -989,8 +989,7 @@ double cosmology_get_timebase(struct cosmology *c,
  * @param t time since the big bang
  * @return The scale factor.
  */
-double cosmology_get_scale_factor(const struct cosmology *c,
-                                  const double t) {
+double cosmology_get_scale_factor(const struct cosmology *c, const double t) {
 
   /* Use a bisection search on the whole table to find the
      interval where the time lies */

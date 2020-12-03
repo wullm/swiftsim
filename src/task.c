@@ -153,7 +153,7 @@ const char *subtaskID_names[task_subtype_count] = {
 const char *task_category_names[task_category_count] = {
     "drift",       "sort",    "hydro",          "gravity", "feedback",
     "black holes", "cooling", "star formation", "limiter", "time integration",
-    "mpi",         "fof",     "others",     "weight",    "sink"};
+    "mpi",         "fof",     "others",         "weight",  "sink"};
 
 #ifdef WITH_MPI
 /* MPI communicators for the subtypes. */

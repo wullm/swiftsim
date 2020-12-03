@@ -959,6 +959,10 @@ int main(int argc, char *argv[]) {
         params, "InitialConditions:cleanup_velocity_factors", 0);
     const int generate_gas_in_ics = parser_get_opt_param_int(
         params, "InitialConditions:generate_gas_in_ics", 0);
+    const int generate_neutrinos_in_ics = parser_get_opt_param_int(
+        params, "InitialConditions:generate_neutrinos_in_ics", 0);
+    const double generate_neutrinos_fraction = parser_get_opt_param_double(
+        params, "InitialConditions:generate_neutrinos_fraction", 0.);
     const int remap_ids =
         parser_get_opt_param_int(params, "InitialConditions:remap_ids", 0);
 
@@ -1089,28 +1093,28 @@ int main(int argc, char *argv[]) {
 #if defined(WITH_MPI)
 #if defined(HAVE_PARALLEL_HDF5)
     read_ic_parallel(ICfileName, &us, dim, &parts, &gparts, &sinks, &sparts,
-                     &bparts, &Ngas, &Ngpart, &Ngpart_background, &Nnupart, &Nsink,
-                     &Nspart, &Nbpart, &flag_entropy_ICs, with_hydro,
+                     &bparts, &Ngas, &Ngpart, &Ngpart_background, &Nnupart,
+                     &Nsink, &Nspart, &Nbpart, &flag_entropy_ICs, with_hydro,
                      with_gravity, with_sink, with_stars, with_black_holes,
                      with_cosmology, cleanup_h, cleanup_sqrt_a, cosmo.h,
                      cosmo.a, myrank, nr_nodes, MPI_COMM_WORLD, MPI_INFO_NULL,
                      nr_threads, dry_run, remap_ids);
 #else
     read_ic_serial(ICfileName, &us, dim, &parts, &gparts, &sinks, &sparts,
-                   &bparts, &Ngas, &Ngpart, &Ngpart_background, &Nnupart, &Nsink, &Nspart,
-                   &Nbpart, &flag_entropy_ICs, with_hydro, with_gravity,
-                   with_sink, with_stars, with_black_holes, with_cosmology,
-                   cleanup_h, cleanup_sqrt_a, cosmo.h, cosmo.a, myrank,
-                   nr_nodes, MPI_COMM_WORLD, MPI_INFO_NULL, nr_threads, dry_run,
-                   remap_ids);
+                   &bparts, &Ngas, &Ngpart, &Ngpart_background, &Nnupart,
+                   &Nsink, &Nspart, &Nbpart, &flag_entropy_ICs, with_hydro,
+                   with_gravity, with_sink, with_stars, with_black_holes,
+                   with_cosmology, cleanup_h, cleanup_sqrt_a, cosmo.h, cosmo.a,
+                   myrank, nr_nodes, MPI_COMM_WORLD, MPI_INFO_NULL, nr_threads,
+                   dry_run, remap_ids);
 #endif
 #else
     read_ic_single(ICfileName, &us, dim, &parts, &gparts, &sinks, &sparts,
-                   &bparts, &Ngas, &Ngpart, &Ngpart_background, &Nnupart, &Nsink, &Nspart,
-                   &Nbpart, &flag_entropy_ICs, with_hydro, with_gravity,
-                   with_sink, with_stars, with_black_holes, with_cosmology,
-                   cleanup_h, cleanup_sqrt_a, cosmo.h, cosmo.a, nr_threads,
-                   dry_run, remap_ids);
+                   &bparts, &Ngas, &Ngpart, &Ngpart_background, &Nnupart,
+                   &Nsink, &Nspart, &Nbpart, &flag_entropy_ICs, with_hydro,
+                   with_gravity, with_sink, with_stars, with_black_holes,
+                   with_cosmology, cleanup_h, cleanup_sqrt_a, cosmo.h, cosmo.a,
+                   nr_threads, dry_run, remap_ids);
 #endif
 #endif
 
@@ -1203,15 +1207,19 @@ int main(int argc, char *argv[]) {
         N_total[swift_type_dark_matter_background] > 0;
 
     /* Do we have neutrino particles? */
-    const int with_neutrino_particles = N_total[swift_type_neutrino] > 0;
+    const int with_neutrino_particles =
+        (N_total[swift_type_neutrino] > 0) ||
+        (with_DM_particles && generate_neutrinos_in_ics);
 
     /* Initialize the space with these data. */
     if (myrank == 0) clocks_gettime(&tic);
-    space_init(&s, params, &cosmo, dim, &hydro_properties, parts, gparts, sinks,
-               sparts, bparts, Ngas, Ngpart, Nsink, Nspart, Nbpart, periodic,
-               replicate, remap_ids, generate_gas_in_ics, with_hydro,
-               with_self_gravity, with_star_formation,
-               with_DM_background_particles, talking, dry_run, nr_nodes);
+    space_init(&s, params, &cosmo, &prog_const, dim, &hydro_properties, parts,
+               gparts, sinks, sparts, bparts, Ngas, Ngpart, Nsink, Nspart,
+               Nbpart, Nnupart, periodic, replicate, remap_ids,
+               generate_gas_in_ics, generate_neutrinos_in_ics,
+               generate_neutrinos_fraction, with_hydro, with_self_gravity,
+               with_star_formation, with_DM_background_particles, talking,
+               dry_run, nr_nodes);
 
     /* Initialise the line of sight properties. */
     if (with_line_of_sight) los_init(s.dim, &los_properties, params);
@@ -1226,11 +1234,11 @@ int main(int argc, char *argv[]) {
     /* Initialise the gravity properties */
     bzero(&gravity_properties, sizeof(struct gravity_props));
     if (with_self_gravity)
-      gravity_props_init(
-          &gravity_properties, params, &prog_const, &cosmo, with_cosmology,
-          with_external_gravity, with_baryon_particles, with_DM_particles,
-          with_neutrino_particles, with_DM_background_particles, periodic,
-          s.dim);
+      gravity_props_init(&gravity_properties, params, &prog_const, &cosmo,
+                         with_cosmology, with_external_gravity,
+                         with_baryon_particles, with_DM_particles,
+                         with_neutrino_particles, with_DM_background_particles,
+                         periodic, s.dim);
 
     /* Initialise the external potential properties */
     bzero(&potential, sizeof(struct external_potential));
@@ -1262,7 +1270,7 @@ int main(int argc, char *argv[]) {
     N_long[swift_type_gas] = s.nr_parts;
     N_long[swift_type_dark_matter] =
         with_gravity ? s.nr_gparts - Ngpart_background - Nbaryons - Nnupart : 0;
-    // N_long[swift_type_neutrino] = s.nr_nuparts;
+    N_long[swift_type_neutrino] = s.nr_nuparts;
     N_long[swift_type_count] = s.nr_gparts;
     N_long[swift_type_stars] = s.nr_sparts;
     N_long[swift_type_sink] = s.nr_sinks;
@@ -1273,7 +1281,7 @@ int main(int argc, char *argv[]) {
     N_total[swift_type_gas] = s.nr_parts;
     N_total[swift_type_dark_matter] =
         with_gravity ? s.nr_gparts - Ngpart_background - Nbaryons - Nnupart : 0;
-    // N_total[swift_type_neutrino] = s.nr_nuparts;
+    N_total[swift_type_neutrino] = s.nr_nuparts;
     N_total[swift_type_count] = s.nr_gparts;
     N_total[swift_type_stars] = s.nr_sparts;
     N_total[swift_type_sink] = s.nr_sinks;
@@ -1354,12 +1362,13 @@ int main(int argc, char *argv[]) {
     engine_init(&e, &s, params, output_options, N_total[swift_type_gas],
                 N_total[swift_type_count], N_total[swift_type_sink],
                 N_total[swift_type_stars], N_total[swift_type_black_hole],
-                N_total[swift_type_dark_matter_background], N_total[swift_type_neutrino], engine_policies,
-                talking, &reparttype, &us, &prog_const, &cosmo,
-                &hydro_properties, &entropy_floor, &gravity_properties,
-                &stars_properties, &black_holes_properties, &sink_properties,
-                &feedback_properties, &mesh, &potential, &cooling_func,
-                &starform, &chemistry, &fof_properties, &rend, &los_properties);
+                N_total[swift_type_dark_matter_background],
+                N_total[swift_type_neutrino], engine_policies, talking,
+                &reparttype, &us, &prog_const, &cosmo, &hydro_properties,
+                &entropy_floor, &gravity_properties, &stars_properties,
+                &black_holes_properties, &sink_properties, &feedback_properties,
+                &mesh, &potential, &cooling_func, &starform, &chemistry,
+                &fof_properties, &rend, &los_properties);
     engine_config(/*restart=*/0, /*fof=*/0, &e, params, nr_nodes, myrank,
                   nr_threads, with_aff, talking, restart_file);
 

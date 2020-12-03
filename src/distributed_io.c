@@ -306,8 +306,9 @@ void write_output_distributed(struct engine* e,
   const size_t Nbaryons_written =
       Ngas_written + Nstars_written + Nblackholes_written + Nsinks_written;
   const size_t Ndm_written =
-      Ntot_written > 0 ? Ntot_written - Nbaryons_written - Ndm_background
-                                      - Ndm_neutrino : 0;
+      Ntot_written > 0
+          ? Ntot_written - Nbaryons_written - Ndm_background - Ndm_neutrino
+          : 0;
 
   int snap_count = -1;
   if (e->snapshot_int_time_label_on)
@@ -349,10 +350,9 @@ void write_output_distributed(struct engine* e,
   MPI_Barrier(comm);
 
   /* Compute offset in the file and total number of particles */
-  const long long N[swift_type_count] = {Ngas_written,   Ndm_written,
-                                         Ndm_background, Nsinks_written,
-                                         Nstars_written, Nblackholes_written,
-                                         Ndm_neutrino};
+  const long long N[swift_type_count] = {
+      Ngas_written,   Ndm_written,         Ndm_background, Nsinks_written,
+      Nstars_written, Nblackholes_written, Ndm_neutrino};
 
   /* Gather the total number of particles to write */
   long long N_total[swift_type_count] = {0};
@@ -692,9 +692,9 @@ void write_output_distributed(struct engine* e,
         }
 
         /* Collect the non-inhibited DM particles from gpart */
-        io_collect_nuparts_to_write(
-            gparts, e->s->gpart_group_data, gparts_written,
-            gpart_group_data_written, Ntot, Ndm_neutrino, with_stf);
+        io_collect_nuparts_to_write(gparts, e->s->gpart_group_data,
+                                    gparts_written, gpart_group_data_written,
+                                    Ntot, Ndm_neutrino, with_stf);
 
         /* Select the fields to write */
         darkmatter_write_particles(gparts_written, list, &num_fields);

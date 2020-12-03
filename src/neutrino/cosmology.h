@@ -28,6 +28,8 @@ struct cosmology {
   /*! Current expansion factor of the Universe */
   double a;
 
+  double bare_nu_mass_factor;
+
   /*! Inverse of the current expansion factor of the Universe */
   double a_inv;
 

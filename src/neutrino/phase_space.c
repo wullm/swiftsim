@@ -149,3 +149,39 @@ double neutrino_mass_factor(const struct engine *e) {
 
   return mass_factor_eV;
 }
+
+/* Same as neutrino_mass_factor, but still needs to be multiplied by
+ * nr_nuparts / volume */
+double bare_neutrino_mass_factor(const struct cosmology *cosmo,
+                                 const struct unit_system *internal_units,
+                                 const struct phys_const *physical_constants) {
+  /* Some constants */
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double hbar = physical_constants->const_planck_hbar;
+  const double c = physical_constants->const_speed_light_c;
+  const double eV = physical_constants->const_electron_volt;
+  const double eV_mass = eV / (c * c);  // 1 eV/c^2 in internal mass units
+  const double prefactor = (1.5 * M_ZETA_3) / (M_PI * M_PI);
+
+/* Retrieve the neutrino temperature today & number of flavours */
+#ifdef NEUTRINO_BACKGROUND
+  const double T_nu = cosmo->T_nu;
+  const double flavours = cosmo->N_nu;
+#else
+  /* No neutrino cosmology module, use the fiducial values */
+  const double T_nu_K = NEUTRINO_FIDUCIAL_TEMPERATURE_KELVIN;
+  const double T_nu = T_nu_K * internal_units->UnitTemperature_in_cgs;
+  const double flavours = NEUTRINO_FIDUCIAL_FLAVOURS_NUMBER;
+#endif
+
+  /* Compute the comoving number density per flavour */
+  const double n = prefactor * pow(k_b * T_nu / (hbar * c), 3);
+
+  /* Compute the conversion factor */
+  const double mass_factor = 1.0 / (flavours * n);
+
+  /* Convert to eV */
+  const double mass_factor_eV = mass_factor / eV_mass;
+
+  return mass_factor_eV;
+}

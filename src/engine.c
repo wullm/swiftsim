@@ -1800,7 +1800,6 @@ void engine_rebuild(struct engine *e, const int repartitioned,
     /* Add the perturbation theory contributions to the mesh forces */
     rend_add_to_mesh(e->rend, e);
 #endif
-
   }
 
   /* Re-compute the maximal RMS displacement constraint */
@@ -2096,8 +2095,7 @@ void engine_skip_force_and_kick(struct engine *e) {
         t->type == task_type_stars_ghost_out || t->type == task_type_sink_in ||
         t->type == task_type_sink_out || t->type == task_type_sink_formation ||
         t->type == task_type_bh_swallow_ghost1 ||
-        t->type == task_type_bh_swallow_ghost2 ||
-        t->type == task_type_weight ||
+        t->type == task_type_bh_swallow_ghost2 || t->type == task_type_weight ||
         t->type == task_type_bh_swallow_ghost3 || t->type == task_type_bh_in ||
         t->type == task_type_bh_out || t->subtype == task_subtype_force ||
         t->subtype == task_subtype_limiter ||
@@ -3983,8 +3981,9 @@ static void engine_dumper_init(struct engine *e) {
 void engine_init(struct engine *e, struct space *s, struct swift_params *params,
                  struct output_options *output_options, long long Ngas,
                  long long Ngparts, long long Nsinks, long long Nstars,
-                 long long Nblackholes, long long Nbackground_gparts, long long Nnuparts,
-                 int policy, int verbose, struct repartition *reparttype,
+                 long long Nblackholes, long long Nbackground_gparts,
+                 long long Nnuparts, int policy, int verbose,
+                 struct repartition *reparttype,
                  const struct unit_system *internal_units,
                  const struct phys_const *physical_constants,
                  struct cosmology *cosmo, struct hydro_props *hydro,
@@ -5421,8 +5420,8 @@ void engine_recompute_displacement_constraint(struct engine *e) {
 
   /* Start by reducing the minimal mass of each particle type */
   float min_mass[swift_type_count] = {
-      e->s->min_part_mass, e->s->min_gpart_mass, FLT_MAX,
-      e->s->min_sink_mass, e->s->min_spart_mass, e->s->min_bpart_mass,
+      e->s->min_part_mass,  e->s->min_gpart_mass, FLT_MAX,
+      e->s->min_sink_mass,  e->s->min_spart_mass, e->s->min_bpart_mass,
       e->s->min_nupart_mass};
 
 #ifdef WITH_MPI
