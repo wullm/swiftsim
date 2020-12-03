@@ -6407,7 +6407,8 @@ void space_remap_ids(struct space *s, int nr_nodes, int verbose) {
   }
   for (size_t i = 0; i < local_nr_dm; ++i) {
     if (s->gparts[i].type == swift_type_dark_matter ||
-        s->gparts[i].type == swift_type_dark_matter_background)
+        s->gparts[i].type == swift_type_dark_matter_background ||
+        s->gparts[i].type == swift_type_neutrino)
       s->gparts[i].id_or_neg_offset = offset_dm + i;
   }
 }
