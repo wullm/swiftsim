@@ -454,7 +454,13 @@ void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
                               const struct phys_const *phys_const,
                               const int periodic, const int with_DM_background,
                               const double generate_neutrinos_fraction,
-                              const double dim[3], const int verbose);
+                              const double dim[3], const int verbose,
+                              int nr_nodes);
+void space_generate_neutrino_properties(
+    struct space *s, const struct cosmology *cosmo,
+    const struct phys_const *phys_const, const int periodic,
+    const int with_background, const double generate_neutrinos_fraction,
+    const double dim[3], const int verbose, int nr_nodes);
 void space_generate_gas(struct space *s, const struct cosmology *cosmo,
                         const struct hydro_props *hydro_properties,
                         const int periodic, const int with_DM_background,

@@ -5832,11 +5832,6 @@ void space_init(struct space *s, struct swift_params *params,
   /* Initiate some basic randomness */
   srand(42);
 
-  /* Are we remapping the IDs to the range [1, NumPart]? */
-  if (remap_ids) {
-    space_remap_ids(s, nr_nodes, verbose);
-  }
-
   /* Intitialize the sampler for Fermi-Dirac momenta */
   const double T_nu_eV = cosmo->T_nu * phys_const->const_boltzmann_k /
                          phys_const->const_electron_volt;
@@ -5852,11 +5847,24 @@ void space_init(struct space *s, struct swift_params *params,
   /* Are we generating neutrino DM particles? */
   if (generate_neutrinos_in_ics) {
     space_generate_neutrinos(s, cosmo, phys_const, periodic, DM_background,
-                             generate_neutrinos_fraction, dim, verbose);
+                             generate_neutrinos_fraction, dim, verbose,
+                             nr_nodes);
     parts = s->parts;
     gparts = s->gparts;
     Npart = s->nr_parts;
     Ngpart = s->nr_gparts;
+  }
+
+  /* Are we remapping the IDs to the range [1, NumPart]? */
+  if (remap_ids) {
+    space_remap_ids(s, nr_nodes, verbose);
+  }
+
+  /* Are we generating neutrino DM particles? Now set positions & velocities */
+  if (generate_neutrinos_in_ics) {
+    space_generate_neutrino_properties(
+        s, cosmo, phys_const, periodic, DM_background,
+        generate_neutrinos_fraction, dim, verbose, nr_nodes);
   }
 
   /* Are we generating gas from the DM-only ICs? */
@@ -6615,7 +6623,8 @@ void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
                               const struct phys_const *phys_const,
                               const int periodic, const int with_background,
                               const double generate_neutrinos_fraction,
-                              const double dim[3], const int verbose) {
+                              const double dim[3], const int verbose,
+                              int nr_nodes) {
 
   /* Check that this is a sensible thing to do */
   // if (!s->with_hydro)
@@ -6689,8 +6698,8 @@ void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
   }
 
   /* A constant mass factor between macro particle mass and eV mass */
-  const double mass_factor =
-      cosmo->bare_nu_mass_factor * nr_new_neutrino_parts / neutrino_volume;
+  const double mass_factor = cosmo->bare_nu_mass_factor *
+                             nr_new_neutrino_parts * nr_nodes / neutrino_volume;
 
   message("%zd", current_nr_gparts);
 
@@ -6731,106 +6740,169 @@ void space_generate_neutrinos(struct space *s, const struct cosmology *cosmo,
     double nu_mass_eV = mass_array_eV[i % nr_massive_species];
     gp_nu->mass = nu_mass_eV / mass_factor;
 
-    /* We will need 8 uniform random numbers */
-    double uniforms[8];
-    for (int j = 0; j < 8; j++) {
-      uniforms[j] = random_unit_interval(gp_nu->id_or_neg_offset, 1 + j,
-                                         random_number_neutrino_generate);
-    }
-
-    /* Generate a random momentum */
-    double u = uniforms[0];
-    double p0_eV = draw_sampler(&fermi_dirac_sampler, u);
-    double p_eV = p0_eV / cosmo->a_begin;  // redshifted momentum
-
-    /* Convert to speed in internal units. Note that this is
-     * the spatial part of the relativistic 4-velocity. */
-    double V = p_eV / nu_mass_eV * phys_const->const_speed_light_c;
-
-    /* For the direction, generate a random point on the sphere with Gaussians
-     */
-
-    /* Generate three standard Gaussian variables */
-    const double sqrt_2logu1 = sqrt(-2 * log(uniforms[1] + 1e-10));
-    const double sqrt_2logu2 = sqrt(-2 * log(uniforms[2] + 1e-10));
-
-    /* Map to three Gaussians */
-    double nx = sqrt_2logu1 * cos(2 * M_PI * uniforms[3]);
-    double ny = sqrt_2logu1 * sin(2 * M_PI * uniforms[3]);
-    double nz = sqrt_2logu2 * cos(2 * M_PI * uniforms[4]);
-
-    /* And normalize */
-    const double n_length = hypot(nx, hypot(ny, nz));
-    if (n_length > 0) {
-      nx /= n_length;
-      ny /= n_length;
-      nz /= n_length;
-    }
-
-    /* Set the velocities */
-    gp_nu->v_full[0] = nx * V;
-    gp_nu->v_full[1] = ny * V;
-    gp_nu->v_full[2] = nz * V;
-
-    /* Generate random position */
-    double x, y, z;
-    if (R_nu > 0.) {
-      /* Generate a random point in the central ball with radius R_nu */
-
-      /* We first generate a random point on the sphere using Gaussians */
-
-      /* Generate two more standard Gaussian variables and reuse the fourth
-       * one from the momentum direction */
-      const double sqrt_2logu3 = sqrt(-2 * log(uniforms[5] + 1e-10));
-
-      /* Map to three Gaussians */
-      x = sqrt_2logu2 * cos(2 * M_PI * uniforms[4]);
-      y = sqrt_2logu3 * cos(2 * M_PI * uniforms[6]);
-      z = sqrt_2logu3 * sin(2 * M_PI * uniforms[6]);
-
-      /* And normalize */
-      const double r_length = hypot(x, hypot(y, z));
-      if (r_length > 0) {
-        x /= r_length;
-        y /= r_length;
-        z /= r_length;
-      }
-
-      /* Next, use the last uniform random variate for the radial coordinate */
-      double r = uniforms[7] * R_nu;
-
-      /* Apply the radial coordinate */
-      x *= r;
-      y *= r;
-      z *= r;
-
-      /* Finally, add the coordinates to the centre of the hyperrectangle */
-      x += dim[0] * 0.5;
-      y += dim[1] * 0.5;
-      z += dim[2] * 0.5;
-    } else {
-      /* Generate a random point in the periodic hyperrectangle */
-      x = uniforms[5] * dim[0];
-      y = uniforms[6] * dim[1];
-      z = uniforms[7] * dim[2];
-    }
-
-    /* Set the new positions */
-    gp_nu->x[0] = x;
-    gp_nu->x[1] = y;
-    gp_nu->x[2] = z;
-
-    /* Box-wrap the whole thing to be safe */
-    if (periodic) {
-      gp_nu->x[0] = box_wrap(gp_nu->x[0], 0., dim[0]);
-      gp_nu->x[1] = box_wrap(gp_nu->x[1], 0., dim[1]);
-      gp_nu->x[2] = box_wrap(gp_nu->x[2], 0., dim[2]);
-    }
+    /* Position and velocity will be set later */
   }
 
   /* Replace the content of the space */
   swift_free("gparts", s->gparts);
   s->gparts = gparts;
+}
+
+/**
+ * @brief Add a number of neutrino dark matter particles and update the cold
+ * dark matter masses in accordance with the cosmology.
+ *
+ * Note that this function alters the dark matter particle masses and positions.
+ * Velocities are unchanged.
+ *
+ * Background DM particles are not duplicated.
+ *
+ * @param s The #space to create the particles in.
+ * @param cosmo The current #cosmology model.
+ * @param periodic Are we using periodic boundary conditions?
+ * @param with_background Are we using background DM particles?
+ * @param dim The size of the box (for periodic wrapping).
+ * @param verbose Are we talkative?
+ */
+void space_generate_neutrino_properties(
+    struct space *s, const struct cosmology *cosmo,
+    const struct phys_const *phys_const, const int periodic,
+    const int with_background, const double generate_neutrinos_fraction,
+    const double dim[3], const int verbose, int nr_nodes) {
+
+  /* Check that this is a sensible thing to do */
+  // if (!s->with_hydro)
+  //   error(
+  //       "Cannot generate gas from ICs if we are running without "
+  //       "hydrodynamics. Need to run with -s and the corresponding "
+  //       "hydrodynamics parameters in the YAML file.");
+
+  if (verbose) message("Generating neutrino particle properties");
+
+  /* Neutrinos can either be generated in the periodic hyperrectangle
+   * with dimensions dim[3] or in a central ball with radius
+   * s->neutrino_sphere_radius. */
+
+  /* Volume occupied by neutrinos */
+  double neutrino_volume;
+  double R_nu = s->neutrino_sphere_radius;
+  if (R_nu > 0.) {
+    neutrino_volume = (4. / 3.) * M_PI * R_nu * R_nu * R_nu;
+  } else {
+    neutrino_volume = dim[0] * dim[1] * dim[2];
+  }
+
+  /* A constant mass factor between macro particle mass and eV mass */
+  const double mass_factor =
+      cosmo->bare_nu_mass_factor * s->nr_nuparts * nr_nodes / neutrino_volume;
+
+  /* Add the new neutrino particles */
+  for (size_t i = 0; i < s->size_gparts; ++i) {
+
+    /* For the zoom DM particles, there is a lot of work to do */
+    struct gpart *gp_nu = &s->gparts[i];
+
+    if (gp_nu->type == swift_type_neutrino) {
+
+      /* We will need 8 uniform random numbers */
+      double uniforms[8];
+      for (int j = 0; j < 8; j++) {
+        uniforms[j] = random_unit_interval(gp_nu->id_or_neg_offset, 1 + j,
+                                           random_number_neutrino_generate);
+      }
+
+      /* Generate a random momentum */
+      double u = uniforms[0];
+      double p0_eV = draw_sampler(&fermi_dirac_sampler, u);
+      double p_eV = p0_eV / cosmo->a_begin;  // redshifted momentum
+
+      /* Convert to speed in internal units. Note that this is
+       * the spatial part of the relativistic 4-velocity. */
+      double nu_mass_eV = gp_nu->mass * mass_factor;
+      double V = p_eV / nu_mass_eV * phys_const->const_speed_light_c;
+
+      /* For the direction, generate a random point on the sphere with Gaussians
+       */
+
+      /* Generate three standard Gaussian variables */
+      const double sqrt_2logu1 = sqrt(-2 * log(uniforms[1] + 1e-10));
+      const double sqrt_2logu2 = sqrt(-2 * log(uniforms[2] + 1e-10));
+
+      /* Map to three Gaussians */
+      double nx = sqrt_2logu1 * cos(2 * M_PI * uniforms[3]);
+      double ny = sqrt_2logu1 * sin(2 * M_PI * uniforms[3]);
+      double nz = sqrt_2logu2 * cos(2 * M_PI * uniforms[4]);
+
+      /* And normalize */
+      const double n_length = hypot(nx, hypot(ny, nz));
+      if (n_length > 0) {
+        nx /= n_length;
+        ny /= n_length;
+        nz /= n_length;
+      }
+
+      /* Set the velocities */
+      gp_nu->v_full[0] = nx * V;
+      gp_nu->v_full[1] = ny * V;
+      gp_nu->v_full[2] = nz * V;
+
+      /* Generate random position */
+      double x, y, z;
+      if (R_nu > 0.) {
+        /* Generate a random point in the central ball with radius R_nu */
+
+        /* We first generate a random point on the sphere using Gaussians */
+
+        /* Generate two more standard Gaussian variables and reuse the fourth
+         * one from the momentum direction */
+        const double sqrt_2logu3 = sqrt(-2 * log(uniforms[5] + 1e-10));
+
+        /* Map to three Gaussians */
+        x = sqrt_2logu2 * cos(2 * M_PI * uniforms[4]);
+        y = sqrt_2logu3 * cos(2 * M_PI * uniforms[6]);
+        z = sqrt_2logu3 * sin(2 * M_PI * uniforms[6]);
+
+        /* And normalize */
+        const double r_length = hypot(x, hypot(y, z));
+        if (r_length > 0) {
+          x /= r_length;
+          y /= r_length;
+          z /= r_length;
+        }
+
+        /* Next, use the last uniform random variate for the radial coordinate
+         */
+        double r = uniforms[7] * R_nu;
+
+        /* Apply the radial coordinate */
+        x *= r;
+        y *= r;
+        z *= r;
+
+        /* Finally, add the coordinates to the centre of the hyperrectangle */
+        x += dim[0] * 0.5;
+        y += dim[1] * 0.5;
+        z += dim[2] * 0.5;
+      } else {
+        /* Generate a random point in the periodic hyperrectangle */
+        x = uniforms[5] * dim[0];
+        y = uniforms[6] * dim[1];
+        z = uniforms[7] * dim[2];
+      }
+
+      /* Set the new positions */
+      gp_nu->x[0] = x;
+      gp_nu->x[1] = y;
+      gp_nu->x[2] = z;
+
+      /* Box-wrap the whole thing to be safe */
+      if (periodic) {
+        gp_nu->x[0] = box_wrap(gp_nu->x[0], 0., dim[0]);
+        gp_nu->x[1] = box_wrap(gp_nu->x[1], 0., dim[1]);
+        gp_nu->x[2] = box_wrap(gp_nu->x[2], 0., dim[2]);
+      }
+    }
+  }
 }
 
 /**
