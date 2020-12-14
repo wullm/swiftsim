@@ -56,6 +56,9 @@ void gravity_props_init(struct gravity_props *p, struct swift_params *params,
   if (p->rebuild_frequency < 0.f || p->rebuild_frequency > 1.f)
     error("Invalid tree rebuild frequency. Must be in [0., 1.]");
 
+  p->rebuild_trigger_when_all_active = parser_get_opt_param_int(
+      params, "Gravity:rebuild_trigger_when_all_active", 0);
+
   /* Tree-PM parameters */
   if (periodic) {
     p->mesh_size = parser_get_param_int(params, "Gravity:mesh_side_length");

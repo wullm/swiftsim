@@ -2695,6 +2695,28 @@ void engine_step(struct engine *e) {
        ((double)e->total_nr_gparts) * e->gravity_properties->rebuild_frequency))
     e->forcerebuild = 1;
 
+  /* If enabled, trigger a tree-rebuild if all gparts are active */
+  if (e->gravity_properties->rebuild_trigger_when_all_active) {
+    /* Check whether all gparts are active */
+    size_t nr_gparts = e->s->nr_gparts;
+    int all_gparts_active = 1;
+
+    /* Look for inactive gparts */
+    for (size_t i = 0; i < nr_gparts; ++i) {
+      struct gpart *gp = &e->s->gparts[i];
+
+      /* If one gpart is inactive we can stop. */
+      if (!gpart_is_active(gp, e)) {
+        all_gparts_active = 0;
+        break;
+      }
+    }
+
+    /* MPI reduction not necessary; this is done through e->forcerebuild. */
+
+    if (all_gparts_active) e->forcerebuild = 1;
+  }
+
   /* Trigger a FOF black hole seeding? */
   if (e->policy & engine_policy_fof) {
     if (e->ti_end_min > e->ti_next_fof && e->ti_next_fof > 0) {

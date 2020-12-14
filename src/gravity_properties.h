@@ -108,6 +108,9 @@ struct gravity_props {
   /*! Frequency of tree-rebuild in units of #gpart updates. */
   float rebuild_frequency;
 
+  /*! Whether to force a tree-rebuild when all #gpart are active. */
+  int rebuild_trigger_when_all_active;
+
   /*! Time integration dimensionless multiplier */
   float eta;
 
