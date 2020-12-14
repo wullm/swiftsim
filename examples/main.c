@@ -1264,6 +1264,169 @@ int main(int argc, char *argv[]) {
     N_total[swift_type_black_hole] = s.nr_bparts;
 #endif
 
+    /* Collect the minimum and maximum extent of the high resolution DM parts */
+    double min_x[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+    double max_x[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+    double mass = 0;
+    long long total = 0;
+    for (size_t i = 0; i < s.nr_gparts; ++i) {
+      const struct gpart *gp = &s.gparts[i];
+      if ((gp->type == swift_type_dark_matter &&
+           gp->time_bin != time_bin_inhibited &&
+           gp->time_bin != time_bin_not_created) ||
+          true) {
+
+        min_x[0] = min(min_x[0], gp->x[0]);
+        min_x[1] = min(min_x[1], gp->x[1]);
+        min_x[2] = min(min_x[2], gp->x[2]);
+        max_x[0] = max(max_x[0], gp->x[0]);
+        max_x[1] = max(max_x[1], gp->x[1]);
+        max_x[2] = max(max_x[2], gp->x[2]);
+
+        mass = gp->mass;
+        total++;
+      }
+    }
+
+#if defined(WITH_MPI)
+    MPI_Allreduce(MPI_IN_PLACE, min_x, 3, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, max_x, 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+#endif
+
+    double delta_x[3] = {max_x[0] - min_x[0], max_x[1] - min_x[1],
+                         max_x[2] - min_x[2]};
+
+    message("Extent along the dimensions (%f,%f) (%f,%f) (%f,%f)", min_x[0],
+            max_x[0], min_x[1], max_x[1], min_x[2], max_x[2]);
+
+    /* Determine the volume occupied by the particles by filling a grid */
+    const int bins = 10, half = 5, half3 = half * half * half;
+    int fill[125] = {0};
+    for (size_t i = 0; i < s.nr_gparts; ++i) {
+      const struct gpart *gp = &s.gparts[i];
+      if ((gp->type == swift_type_dark_matter &&
+           gp->time_bin != time_bin_inhibited &&
+           gp->time_bin != time_bin_not_created) ||
+          true) {
+        int X = (int)((gp->x[0] - min_x[0]) / delta_x[0] * bins);
+        int Y = (int)((gp->x[1] - min_x[1]) / delta_x[1] * bins);
+        int Z = (int)((gp->x[2] - min_x[2]) / delta_x[2] * bins);
+
+        int bit = X % 2 + 2 * (Y % 2) + 4 * (Z % 2);
+        fill[(X / 2) * half * half + (Y / 2) * half + Z / 2] |= (1 << bit);
+      }
+    }
+
+#if defined(WITH_MPI)
+    MPI_Allreduce(MPI_IN_PLACE, fill, half3, MPI_INT, MPI_BOR, MPI_COMM_WORLD);
+#endif
+
+    /* Calculate the volume by counting the number of bits in fill that are 1 */
+    double volume = 0;
+    for (int i = 0; i < half3; i++) {
+      int f = fill[i];
+      volume += f - f / 2 - f / 4 - f / 8 - f / 16 - f / 32 - f / 64 - f / 128;
+    }
+    /* Convert to dimensionful volume with units U_L^3 */
+    volume *= delta_x[0] * delta_x[1] * delta_x[2] / (bins * bins * bins);
+
+    message("The volume is %f %f", volume,
+            volume / (s.dim[0] * s.dim[1] * s.dim[2]));
+    message("The volume expected from masses is %f",
+            mass * total / (cosmo.Omega_b * cosmo.critical_density_0));
+
+    // /* Do the bucket search */
+    // const int maxR = 10;
+    // double radial_distances[8000] = {0.};
+    // long long number_gparts_counter = 0;
+    // for (size_t i = 0; i < s.nr_gparts; ++i) {
+    //   const struct gpart *gp = &s.gparts[i];
+    //   if ((gp->type == swift_type_dark_matter &&
+    //       gp->time_bin != time_bin_inhibited &&
+    //       gp->time_bin != time_bin_not_created) || true) {
+    //
+    //     /* Unit vector from the center point, normalized by maxR */
+    //     double rx = gp->x[0] - center_x[0];
+    //     double ry = gp->x[1] - center_x[1];
+    //     double rz = gp->x[2] - center_x[2];
+    //     double r2 = rx*rx + ry*ry + rz*rz;
+    //     double r = sqrt(r2);
+    //
+    //     int ID = 0;
+    //     if (r2 > 0) {
+    //         double rn = maxR / r;
+    //         int X = (int) (rx * rn + maxR);
+    //         int Y = (int) (ry * rn + maxR);
+    //         int Z = (int) (rz * rn + maxR);
+    //
+    //         ID = X * (2*maxR) * (2*maxR) + Y * (2*maxR) + Z;
+    //
+    //         // message("%d %d %d %d %f %f", X, Y, Z, ID,
+    //         radial_distances[ID], r); message("(%f %f) (%f %f) (%f %f) %f",
+    //         center_x[0], gp->x[0], center_x[1], gp->x[1], center_x[2],
+    //         gp->x[2], r);
+    //     }
+    //
+    //     radial_distances[ID] = max(radial_distances[ID], r);
+    //     number_gparts_counter++;
+    //   }
+    // }
+    //
+    // /* Now estimate the volume by summing over the solid angles */
+    // double vol = 0;
+    // double vol_factor = 4.0 * M_PI / 3.0;
+    // int non_empty = 0;
+    //
+    // for (int X=0; X<2*maxR; X++) {
+    //     for (int Y=0; Y<2*maxR; Y++) {
+    //         for (int Z=0; Z<2*maxR; Z++) {
+    //             double x = (double) (X - maxR) / maxR;
+    //             double y = (double) (Y - maxR) / maxR;
+    //             double z = (double) (Z - maxR) / maxR;
+    //             double r = sqrt(x*x + y*y + z*z);
+    //
+    //             if (r > 0) {
+    //                 double theta = acos(z / r);
+    //                 double phi = asin(y / (r * sin(theta)));
+    //
+    //                 double dphi = (x - y) / (x*x + y*y) / maxR;
+    //                 double dtheta = (-x*x + x*z + y*z - y*y) / sqrt(x*x +
+    //                 y*y) / (r*r) / maxR;
+    //
+    //
+    //                 int ID = X * (2*maxR) * (2*maxR) + Y * (2*maxR) + Z;
+    //
+    //                 double r_max = radial_distances[ID];
+    //
+    //                 if ((x*x + y*y) > 0)
+    //                 vol += r_max * r_max * r_max * fabs(sin(theta) * dtheta *
+    //                 dphi); (void) phi;
+    //
+    //                 non_empty++;
+    //
+    //                 message("%f %f %f %f %f %f %f %f", x, y, z, theta, phi,
+    //                 fabs(dtheta), fabs(dphi), vol);
+    //             }
+    //         }
+    //     }
+    //
+    // }
+    //
+    // // for (int i=0; i<(2*maxR)*(2*maxR)*(2*maxR); i++) {
+    // //     double r = radial_distances[i];
+    // //     if (r > 0) {
+    // //         vol += r * r *r;
+    // //         non_empty++;
+    // //     }
+    // //
+    // //     // message("%d %f", i, r);
+    // // }
+    // vol *= vol_factor;
+    //
+    // message("The volume is %f^3 U_L^3 (percentage %f) %f", cbrt(vol), vol /
+    // (s.dim[0] * s.dim[1] * s.dim[2]), (double) number_gparts_counter /
+    // non_empty);
+
     /* Say a few nice things about the space we just created. */
     if (myrank == 0) {
       message("space dimensions are [ %.3f %.3f %.3f ].", s.dim[0], s.dim[1],
