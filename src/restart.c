@@ -195,7 +195,8 @@ void restart_read(struct engine *e, const char *filename) {
 
   /* Re-initialize the Fermi-Dirac sampler if needed for neutrinos */
   if (e->s->nr_nuparts > 0) {
-    space_init_neutrino_sampler(e->s);
+    space_init_neutrino_sampler(e->s, e->cosmology, e->physical_constants,
+                                e->verbose);
   }
 
   if (e->verbose)

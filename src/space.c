@@ -5834,7 +5834,7 @@ void space_init(struct space *s, struct swift_params *params,
 
   /* Initialize the Fermi-Dirac sampler when needed for neutrinos */
   if (s->nr_nuparts > 0 || generate_neutrinos_in_ics) {
-    space_init_neutrino_sampler(s);
+    space_init_neutrino_sampler(s, cosmo, phys_const, verbose);
   }
 
   /* Are we generating neutrino DM particles? */
@@ -7493,10 +7493,9 @@ void space_struct_restore(struct space *s, FILE *stream) {
 }
 
 /* Initialize the Fermi-Dirac sampler when needed for neutrinos */
-void space_init_neutrino_sampler(struct space *s) {
-  /* The needed structs from the engine (hopefully have been restored) */
-  struct cosmology *cosmo = s->e->cosmology;
-  const struct phys_const *phys_const = s->e->physical_constants;
+void space_init_neutrino_sampler(struct space *s, const struct cosmology *cosmo,
+                                 const struct phys_const *phys_const,
+                                 int verbose) {
 
   /* Retrieve the relevant neutrino parameters */
   const double T_nu_eV = cosmo->T_nu * phys_const->const_boltzmann_k /
@@ -7506,7 +7505,7 @@ void space_init_neutrino_sampler(struct space *s) {
   const double mu_nu_eV = 0.0;  // no chemical potential
   double thermal_params[2] = {T_nu_eV, mu_nu_eV};
 
-  if (s->e->verbose)
+  if (verbose)
     message("Initializing Fermi-Dirac sampler with (T, mu) = (%e, %e) eV",
             T_nu_eV, mu_nu_eV);
 
