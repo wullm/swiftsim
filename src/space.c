@@ -5832,17 +5832,10 @@ void space_init(struct space *s, struct swift_params *params,
   /* Initiate some basic randomness */
   srand(42);
 
-  /* Intitialize the sampler for Fermi-Dirac momenta */
-  const double T_nu_eV = cosmo->T_nu * phys_const->const_boltzmann_k /
-                         phys_const->const_electron_volt;
-  const double xl = THERMAL_MIN_MOMENTUM * T_nu_eV;
-  const double xr = THERMAL_MAX_MOMENTUM * T_nu_eV;
-  const double mu_nu_eV = 0.0;  // no chemical potential
-  double thermal_params[2] = {T_nu_eV, mu_nu_eV};
-
   /* Initialize the Fermi-Dirac sampler when needed for neutrinos */
-  if (s->nr_nuparts > 0 || generate_neutrinos_in_ics)
-    init_sampler(&fermi_dirac_sampler, fd_pdf, xl, xr, thermal_params);
+  if (s->nr_nuparts > 0 || generate_neutrinos_in_ics) {
+    space_init_neutrino_sampler(s);
+  }
 
   /* Are we generating neutrino DM particles? */
   if (generate_neutrinos_in_ics) {
@@ -7497,6 +7490,27 @@ void space_struct_restore(struct space *s, FILE *stream) {
                     s->nr_parts, s->nr_gparts, s->nr_sinks, s->nr_sparts,
                     s->nr_bparts, 1);
 #endif
+}
+
+/* Initialize the Fermi-Dirac sampler when needed for neutrinos */
+void space_init_neutrino_sampler(struct space *s) {
+  /* The needed structs from the engine (hopefully have been restored) */
+  struct cosmology *cosmo = s->e->cosmology;
+  const struct phys_const *phys_const = s->e->physical_constants;
+
+  /* Retrieve the relevant neutrino parameters */
+  const double T_nu_eV = cosmo->T_nu * phys_const->const_boltzmann_k /
+                         phys_const->const_electron_volt;
+  const double xl = THERMAL_MIN_MOMENTUM * T_nu_eV;
+  const double xr = THERMAL_MAX_MOMENTUM * T_nu_eV;
+  const double mu_nu_eV = 0.0;  // no chemical potential
+  double thermal_params[2] = {T_nu_eV, mu_nu_eV};
+
+  if (s->e->verbose)
+    message("Initializing Fermi-Dirac sampler with (T, mu) = (%e, %e) eV",
+            T_nu_eV, mu_nu_eV);
+
+  init_sampler(&fermi_dirac_sampler, fd_pdf, xl, xr, thermal_params);
 }
 
 #define root_cell_id 0

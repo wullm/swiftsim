@@ -193,6 +193,11 @@ void restart_read(struct engine *e, const char *filename) {
   engine_struct_restore(e, stream);
   fclose(stream);
 
+  /* Re-initialize the Fermi-Dirac sampler if needed for neutrinos */
+  if (e->s->nr_nuparts > 0) {
+    space_init_neutrino_sampler(e->s);
+  }
+
   if (e->verbose)
     message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
             clocks_getunit());

@@ -390,6 +390,7 @@ void space_init(struct space *s, struct swift_params *params,
                 double neutrino_sphere_radius, int hydro, int gravity,
                 int star_formation, int DM_background, int verbose, int dry_run,
                 int nr_nodes);
+void space_init_neutrino_sampler(struct space *s);
 void space_sanitize(struct space *s);
 void space_map_cells_pre(struct space *s, int full,
                          void (*fun)(struct cell *c, void *data), void *data);
