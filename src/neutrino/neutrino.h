@@ -27,9 +27,8 @@
  * needs to be multiplied by nr_nuparts / volume.
  */
 INLINE static double neutrino_mass_factor(
-                                 const struct cosmology *cosmo,
-                                 const struct unit_system *internal_units,
-                                 const struct phys_const *physical_constants) {
+    const struct cosmology *cosmo, const struct unit_system *internal_units,
+    const struct phys_const *physical_constants) {
   /* Some constants */
   const double k_b = physical_constants->const_boltzmann_k;
   const double hbar = physical_constants->const_planck_hbar;

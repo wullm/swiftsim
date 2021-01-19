@@ -2169,6 +2169,29 @@ case "$with_sink" in
    ;;
 esac
 
+#  Neutrino delta-f method
+AC_ARG_WITH([neutrino-df],
+    [AS_HELP_STRING([--with-neutrino-df=<model>],
+       [neutrino delta-f model @<:@none, DEGENERATE, MULTIPLE, default: none@:>@]
+    )],
+    [with_neutrino_df="$withval"],
+    [with_neutrino_df="none"]
+)
+
+case "$with_neutrino_df" in
+   none)
+      AC_DEFINE([NEUTRINO_DELTA_F_NONE], [1], [No delta-f step for neutrinos])
+   ;;
+   DEGENERATE)
+      AC_DEFINE([NEUTRINO_DELTA_F], [1], [Include a delta-f step for neutrinos])
+      AC_DEFINE([NEUTRINO_DELTA_F_DEGENERATE], [1], [Assume degerate neutrino mass hierarchy (less memory)])
+   ;;
+   MULTIPLE)
+      AC_DEFINE([NEUTRINO_DELTA_F], [1], [Include a delta-f step for neutrinos])
+      AC_DEFINE([NEUTRINO_DELTA_F_MULTIPLE], [1], [Support arbitrary neutrino mass hierarchy])
+   ;;
+esac
+
 #  External potential
 AC_ARG_WITH([ext-potential],
    [AS_HELP_STRING([--with-ext-potential=<pot>],
@@ -2492,6 +2515,7 @@ AC_MSG_RESULT([
    Sink particle model  : $with_sink
    Black holes model    : $with_black_holes
    Radiative transfer   : $with_rt
+   Neutrino delta-f     : $with_neutrino_df
 
    Atomic operations in tasks  : $enable_atomics_within_tasks
    Individual timers           : $enable_timers

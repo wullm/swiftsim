@@ -96,6 +96,15 @@ struct gpart {
   long long num_interacted;
 #endif
 
+#ifdef NEUTRINO_DELTA_F
+  /*! Initial phase space density used in delta-f weighting of particles */
+  float initial_phase_space_density;
+#endif
+#ifdef NEUTRINO_DELTA_F_MULTIPLE
+  /*! Initial particle mass used for non-degenerate mass hierarchies */
+  float initial_mass;
+#endif
+
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
 
   /* Acceleration taken from each component of the tree */

@@ -178,7 +178,7 @@ void engine_config(int restart, int fof, struct engine *e,
   /* Welcome message */
   if (e->nodeID == 0) message("Running simulation '%s'.", e->run_name);
 
-  if (e->total_nr_neutrino_gparts > 0) {
+  if (!restart && e->total_nr_neutrino_gparts > 0) {
     /* For diagnostics, collect the range of neutrino masses in eV */
     float neutrino_mass_min = FLT_MAX;
     float neutrino_mass_max = -FLT_MAX;
