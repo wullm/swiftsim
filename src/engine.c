@@ -77,6 +77,7 @@
 #include "minmax.h"
 #include "mpiuse.h"
 #include "multipole_struct.h"
+#include "neutrino/neutrino.h"
 #include "output_list.h"
 #include "output_options.h"
 #include "partition.h"
@@ -2669,6 +2670,7 @@ void engine_unpin(void) {
  * @param Nstars total number of star particles in the simulation.
  * @param Nblackholes total number of black holes in the simulation.
  * @param Nbackground_gparts Total number of background DM particles.
+ * @param Nnuparts Total number of neutrino DM particles.
  * @param policy The queuing policy to use.
  * @param verbose Is this #engine talkative ?
  * @param reparttype What type of repartition algorithm are we using ?
@@ -2690,25 +2692,23 @@ void engine_unpin(void) {
  * @param fof_properties The #fof_props of this run.
  * @param los_properties the #los_props of this run.
  */
-void engine_init(struct engine *e, struct space *s, struct swift_params *params,
-                 struct output_options *output_options, long long Ngas,
-                 long long Ngparts, long long Nsinks, long long Nstars,
-                 long long Nblackholes, long long Nbackground_gparts,
-                 int policy, int verbose, struct repartition *reparttype,
-                 const struct unit_system *internal_units,
-                 const struct phys_const *physical_constants,
-                 struct cosmology *cosmo, struct hydro_props *hydro,
-                 const struct entropy_floor_properties *entropy_floor,
-                 struct gravity_props *gravity, const struct stars_props *stars,
-                 const struct black_holes_props *black_holes,
-                 const struct sink_props *sinks,
-                 struct feedback_props *feedback, struct pm_mesh *mesh,
-                 const struct external_potential *potential,
-                 struct cooling_function_data *cooling_func,
-                 const struct star_formation *starform,
-                 const struct chemistry_global_data *chemistry,
-                 struct fof_props *fof_properties,
-                 struct los_props *los_properties) {
+void engine_init(
+    struct engine *e, struct space *s, struct swift_params *params,
+    struct output_options *output_options, long long Ngas, long long Ngparts,
+    long long Nsinks, long long Nstars, long long Nblackholes,
+    long long Nbackground_gparts, long long Nnuparts, int policy, int verbose,
+    struct repartition *reparttype, const struct unit_system *internal_units,
+    const struct phys_const *physical_constants, struct cosmology *cosmo,
+    struct hydro_props *hydro,
+    const struct entropy_floor_properties *entropy_floor,
+    struct gravity_props *gravity, const struct stars_props *stars,
+    const struct black_holes_props *black_holes, const struct sink_props *sinks,
+    struct feedback_props *feedback, struct pm_mesh *mesh,
+    const struct external_potential *potential,
+    struct cooling_function_data *cooling_func,
+    const struct star_formation *starform,
+    const struct chemistry_global_data *chemistry,
+    struct fof_props *fof_properties, struct los_props *los_properties) {
 
   /* Clean-up everything */
   bzero(e, sizeof(struct engine));
@@ -2723,6 +2723,7 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
   e->total_nr_sinks = Nsinks;
   e->total_nr_bparts = Nblackholes;
   e->total_nr_DM_background_gparts = Nbackground_gparts;
+  e->total_nr_neutrino_gparts = Nnuparts;
   e->proxy_ind = NULL;
   e->nr_proxies = 0;
   e->reparttype = reparttype;
@@ -2908,6 +2909,17 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
     star_formation_logger_accumulator_init(&e->sfh);
   }
 
+  /* Initialize the neutrino mass conversion factor */
+  if (Nnuparts > 0) {
+    const double neutrino_volume = s->dim[0] * s->dim[1] * s->dim[2];
+    const double bare_mass_factor =
+        neutrino_mass_factor(cosmo, internal_units, physical_constants);
+    e->neutrino_mass_conversion_factor =
+        e->total_nr_neutrino_gparts / neutrino_volume * bare_mass_factor;
+  } else {
+    e->neutrino_mass_conversion_factor = 0.f;
+  }
+
   engine_init_output_lists(e, params);
 }
 
@@ -2960,9 +2972,13 @@ void engine_recompute_displacement_constraint(struct engine *e) {
   if (with_cosmology) {
 
     /* Start by reducing the minimal mass of each particle type */
-    float min_mass[swift_type_count] = {
-        e->s->min_part_mass, e->s->min_gpart_mass, FLT_MAX,
-        e->s->min_sink_mass, e->s->min_spart_mass, e->s->min_bpart_mass};
+    float min_mass[swift_type_count] = {e->s->min_part_mass,
+                                        e->s->min_gpart_mass,
+                                        FLT_MAX,
+                                        e->s->min_sink_mass,
+                                        e->s->min_spart_mass,
+                                        e->s->min_bpart_mass,
+                                        FLT_MAX};
 
 #ifdef WITH_MPI
     MPI_Allreduce(MPI_IN_PLACE, min_mass, swift_type_count, MPI_FLOAT, MPI_MIN,
@@ -2987,7 +3003,8 @@ void engine_recompute_displacement_constraint(struct engine *e) {
                                         0.f,
                                         e->s->sum_sink_vel_norm,
                                         e->s->sum_spart_vel_norm,
-                                        e->s->sum_spart_vel_norm};
+                                        e->s->sum_spart_vel_norm,
+                                        0.f};
 #ifdef WITH_MPI
     MPI_Allreduce(MPI_IN_PLACE, vel_norm, swift_type_count, MPI_FLOAT, MPI_SUM,
                   MPI_COMM_WORLD);
@@ -2996,16 +3013,17 @@ void engine_recompute_displacement_constraint(struct engine *e) {
     /* Get the counts of each particle types */
     const long long total_nr_baryons =
         e->total_nr_parts + e->total_nr_sparts + e->total_nr_bparts;
-    const long long total_nr_dm_gparts = e->total_nr_gparts -
-                                         e->total_nr_DM_background_gparts -
-                                         total_nr_baryons;
+    const long long total_nr_dm_gparts =
+        e->total_nr_gparts - e->total_nr_DM_background_gparts -
+        e->total_nr_neutrino_gparts - total_nr_baryons;
     float count_parts[swift_type_count] = {
         (float)e->total_nr_parts,
         (float)total_nr_dm_gparts,
         (float)e->total_nr_DM_background_gparts,
         (float)e->total_nr_sinks,
         (float)e->total_nr_sparts,
-        (float)e->total_nr_bparts};
+        (float)e->total_nr_bparts,
+        (float)e->total_nr_neutrino_gparts};
 
     /* Count of particles for the two species */
     const float N_dm = count_parts[1];

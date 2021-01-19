@@ -123,6 +123,13 @@ int io_get_ptype_fields(const int ptype, struct io_props* list,
         num_fields += velociraptor_write_gparts(NULL, list + num_fields);
       break;
 
+    case swift_type_neutrino:
+      darkmatter_write_particles(NULL, list, &num_fields);
+      if (with_fof) num_fields += fof_write_gparts(NULL, list + num_fields);
+      if (with_stf)
+        num_fields += velociraptor_write_gparts(NULL, list + num_fields);
+      break;
+
     case swift_type_stars:
       stars_write_particles(NULL, list, &num_fields, with_cosmology);
       num_fields +=
