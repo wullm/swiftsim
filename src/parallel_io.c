@@ -1081,23 +1081,24 @@ void read_ic_parallel(char* fileName, const struct unit_system* internal_units,
     /* Duplicate the hydro particles into gparts */
     if (with_hydro)
       io_duplicate_hydro_gparts(&tp, *parts, *gparts, *Ngas,
-                                Ndm + Ndm_background);
+                                Ndm + Ndm_background + Ndm_neutrino);
 
     /* Duplicate the sink particles into gparts */
     if (with_sink)
       io_duplicate_sinks_gparts(&tp, *sinks, *gparts, *Nsinks,
-                                Ndm + Ndm_background + *Ngas);
+                                Ndm + Ndm_background + Ndm_neutrino + *Ngas);
 
     /* Duplicate the stars particles into gparts */
     if (with_stars)
-      io_duplicate_stars_gparts(&tp, *sparts, *gparts, *Nstars,
-                                Ndm + Ndm_background + *Ngas + *Nsinks);
+      io_duplicate_stars_gparts(
+          &tp, *sparts, *gparts, *Nstars,
+          Ndm + Ndm_background + Ndm_neutrino + *Ngas + *Nsinks);
 
     /* Duplicate the stars particles into gparts */
     if (with_black_holes)
       io_duplicate_black_holes_gparts(
           &tp, *bparts, *gparts, *Nblackholes,
-          Ndm + Ndm_background + *Ngas + *Nsinks + *Nstars);
+          Ndm + Ndm_background + Ndm_neutrino + *Ngas + *Nsinks + *Nstars);
 
     threadpool_clean(&tp);
   }
