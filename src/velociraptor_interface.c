@@ -240,7 +240,7 @@ struct velociraptor_copy_data {
 };
 
 /**
- * @brief Mapper function to convert the #gpart into VELOCIraptor Particles.
+ * @brief Mapper function to conver the #gpart into VELOCIraptor Particles.
  *
  * @param map_data The array of #gpart.
  * @param nr_gparts The number of #gpart.
@@ -280,24 +280,21 @@ void velociraptor_convert_particles_mapper(void *map_data, int nr_gparts,
    * - Physical internal energy (for the gas),
    * - Temperatures (for the gas).
    */
-  int j = 0;
   for (int i = 0; i < nr_gparts; i++) {
-    /* Skip neutrino particles */
-    if (gparts[i].type == swift_type_neutrino) continue;
 
 #ifndef HAVE_VELOCIRAPTOR_WITH_NOMASS
-    swift_parts[j].mass = gravity_get_mass(&gparts[i]);
+    swift_parts[i].mass = gravity_get_mass(&gparts[i]);
 #endif
 
-    swift_parts[j].potential = gravity_get_comoving_potential(&gparts[i]);
+    swift_parts[i].potential = gravity_get_comoving_potential(&gparts[i]);
 
-    swift_parts[j].type = gparts[i].type;
+    swift_parts[i].type = gparts[i].type;
 
-    swift_parts[j].index = i + index_offset;
+    swift_parts[i].index = i + index_offset;
 #ifdef WITH_MPI
-    swift_parts[j].task = e->nodeID;
+    swift_parts[i].task = e->nodeID;
 #else
-    swift_parts[j].task = 0;
+    swift_parts[i].task = 0;
 #endif
 
     /* Set gas particle IDs from their hydro counterparts and set internal
@@ -308,50 +305,59 @@ void velociraptor_convert_particles_mapper(void *map_data, int nr_gparts,
         const struct part *p = &parts[-gparts[i].id_or_neg_offset];
         const struct xpart *xp = &xparts[-gparts[i].id_or_neg_offset];
 
-        convert_part_pos(e, p, xp, swift_parts[j].x);
-        convert_part_vel(e, p, xp, swift_parts[j].v);
-        swift_parts[j].id = parts[-gparts[i].id_or_neg_offset].id;
-        swift_parts[j].u = hydro_get_drifted_physical_internal_energy(p, cosmo);
-        swift_parts[j].T = cooling_get_temperature(phys_const, hydro_props, us,
+        convert_part_pos(e, p, xp, swift_parts[i].x);
+        convert_part_vel(e, p, xp, swift_parts[i].v);
+        swift_parts[i].id = parts[-gparts[i].id_or_neg_offset].id;
+        swift_parts[i].u = hydro_get_drifted_physical_internal_energy(p, cosmo);
+        swift_parts[i].T = cooling_get_temperature(phys_const, hydro_props, us,
                                                    cosmo, cool_func, p, xp);
       } break;
 
       case swift_type_stars: {
         const struct spart *sp = &sparts[-gparts[i].id_or_neg_offset];
 
-        convert_spart_pos(e, sp, swift_parts[j].x);
-        convert_spart_vel(e, sp, swift_parts[j].v);
-        swift_parts[j].id = sparts[-gparts[i].id_or_neg_offset].id;
-        swift_parts[j].u = 0.f;
-        swift_parts[j].T = 0.f;
+        convert_spart_pos(e, sp, swift_parts[i].x);
+        convert_spart_vel(e, sp, swift_parts[i].v);
+        swift_parts[i].id = sparts[-gparts[i].id_or_neg_offset].id;
+        swift_parts[i].u = 0.f;
+        swift_parts[i].T = 0.f;
       } break;
 
       case swift_type_black_hole: {
         const struct bpart *bp = &bparts[-gparts[i].id_or_neg_offset];
 
-        convert_bpart_pos(e, bp, swift_parts[j].x);
-        convert_bpart_vel(e, bp, swift_parts[j].v);
-        swift_parts[j].id = bparts[-gparts[i].id_or_neg_offset].id;
-        swift_parts[j].u = 0.f;
-        swift_parts[j].T = 0.f;
+        convert_bpart_pos(e, bp, swift_parts[i].x);
+        convert_bpart_vel(e, bp, swift_parts[i].v);
+        swift_parts[i].id = bparts[-gparts[i].id_or_neg_offset].id;
+        swift_parts[i].u = 0.f;
+        swift_parts[i].T = 0.f;
       } break;
 
       case swift_type_dark_matter:
 
-        convert_gpart_pos(e, &(gparts[i]), swift_parts[j].x);
-        convert_gpart_vel(e, &(gparts[i]), swift_parts[j].v);
-        swift_parts[j].id = gparts[i].id_or_neg_offset;
-        swift_parts[j].u = 0.f;
-        swift_parts[j].T = 0.f;
+        convert_gpart_pos(e, &(gparts[i]), swift_parts[i].x);
+        convert_gpart_vel(e, &(gparts[i]), swift_parts[i].v);
+        swift_parts[i].id = gparts[i].id_or_neg_offset;
+        swift_parts[i].u = 0.f;
+        swift_parts[i].T = 0.f;
         break;
 
       case swift_type_dark_matter_background:
 
-        convert_gpart_pos(e, &(gparts[i]), swift_parts[j].x);
-        convert_gpart_vel(e, &(gparts[i]), swift_parts[j].v);
-        swift_parts[j].id = gparts[i].id_or_neg_offset;
-        swift_parts[j].u = 0.f;
-        swift_parts[j].T = 0.f;
+        convert_gpart_pos(e, &(gparts[i]), swift_parts[i].x);
+        convert_gpart_vel(e, &(gparts[i]), swift_parts[i].v);
+        swift_parts[i].id = gparts[i].id_or_neg_offset;
+        swift_parts[i].u = 0.f;
+        swift_parts[i].T = 0.f;
+        break;
+
+      case swift_type_neutrino:
+
+        convert_gpart_pos(e, &(gparts[i]), swift_parts[i].x);
+        convert_gpart_vel(e, &(gparts[i]), swift_parts[i].v);
+        swift_parts[i].id = gparts[i].id_or_neg_offset;
+        swift_parts[i].u = 0.f;
+        swift_parts[i].T = 0.f;
         break;
 
       default:
@@ -414,7 +420,7 @@ void velociraptor_init(struct engine *e) {
   }
 
   /* Tell VELOCIraptor what we have in the simulation */
-  sim_info.idarkmatter = (e->total_nr_gparts - e->total_nr_neutrino_gparts - e->total_nr_parts > 0);
+  sim_info.idarkmatter = (e->total_nr_gparts - e->total_nr_parts > 0);
   sim_info.igas = (e->policy & engine_policy_hydro);
   sim_info.istar = (e->policy & engine_policy_stars);
   sim_info.ibh = (e->policy & engine_policy_black_holes);
@@ -751,7 +757,6 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   /* Handle on the particles */
   const struct space *s = e->s;
   const size_t nr_gparts = s->nr_gparts;
-  const size_t nr_gparts_send = s->nr_gparts - s->nr_nuparts;
   const size_t nr_parts = s->nr_parts;
   const size_t nr_sparts = s->nr_sparts;
   const int nr_cells = s->nr_cells;
@@ -951,7 +956,7 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   if (e->verbose)
     message(
         "VELOCIraptor conf: MPI rank %d sending %zu gparts to VELOCIraptor.",
-        engine_rank, nr_gparts_send);
+        engine_rank, nr_gparts);
 
   /* Generate directory name for this output - start with snapshot directory, if
    * specified */
@@ -1000,7 +1005,7 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
    * VELOCIraptor. */
   struct swift_vel_part *swift_parts = NULL;
   if (swift_memalign("VR.parts", (void **)&swift_parts, part_align,
-                     nr_gparts_send * sizeof(struct swift_vel_part)) != 0)
+                     nr_gparts * sizeof(struct swift_vel_part)) != 0)
     error("Failed to allocate array of particles for VELOCIraptor.");
 
   struct velociraptor_copy_data copy_data = {e, swift_parts};
@@ -1031,7 +1036,7 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
 
   /* Call VELOCIraptor. */
   struct vr_return_data return_data = InvokeVelociraptor(
-      e->stf_output_count, outputFileName, cosmo_info, sim_info, nr_gparts_send,
+      e->stf_output_count, outputFileName, cosmo_info, sim_info, nr_gparts,
       nr_parts, nr_sparts, swift_parts, cell_node_ids, e->nr_threads,
       linked_with_snap, return_most_bound);
 
@@ -1074,13 +1079,13 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
 
     if (swift_memalign("VR.group_data", (void **)&s->gpart_group_data,
                        part_align,
-                       nr_gparts_send * sizeof(struct velociraptor_gpart_data)) != 0)
+                       nr_gparts * sizeof(struct velociraptor_gpart_data)) != 0)
       error("Failed to allocate array of gpart data for VELOCIraptor i/o.");
 
     struct velociraptor_gpart_data *data = s->gpart_group_data;
 
     /* Zero the array (gparts not in groups have an ID of 0) */
-    bzero(data, nr_gparts_send * sizeof(struct velociraptor_gpart_data));
+    bzero(data, nr_gparts * sizeof(struct velociraptor_gpart_data));
 
     /* Copy the data at the right place */
     for (int i = 0; i < num_gparts_in_groups; i++) {
