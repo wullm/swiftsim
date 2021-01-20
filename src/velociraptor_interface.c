@@ -357,7 +357,6 @@ void velociraptor_convert_particles_mapper(void *map_data, int nr_gparts,
       default:
         error("Particle type not handled by VELOCIraptor.");
     }
-    j++;
   }
 }
 
@@ -1075,13 +1074,13 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
 
     if (swift_memalign("VR.group_data", (void **)&s->gpart_group_data,
                        part_align,
-                       nr_gparts * sizeof(struct velociraptor_gpart_data)) != 0)
+                       nr_gparts_send * sizeof(struct velociraptor_gpart_data)) != 0)
       error("Failed to allocate array of gpart data for VELOCIraptor i/o.");
 
     struct velociraptor_gpart_data *data = s->gpart_group_data;
 
     /* Zero the array (gparts not in groups have an ID of 0) */
-    bzero(data, nr_gparts * sizeof(struct velociraptor_gpart_data));
+    bzero(data, nr_gparts_send * sizeof(struct velociraptor_gpart_data));
 
     /* Copy the data at the right place */
     for (int i = 0; i < num_gparts_in_groups; i++) {
