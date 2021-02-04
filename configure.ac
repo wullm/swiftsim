@@ -366,6 +366,34 @@ elif test "$gravity_force_checks" != "no"; then
    AC_DEFINE_UNQUOTED([SWIFT_GRAVITY_FORCE_CHECKS], [$enableval] ,[Enable gravity brute-force checks])
 fi
 
+# Check if hydro density checks are on for some particles.
+AC_ARG_ENABLE([hydro-density-checks],
+   [AS_HELP_STRING([--enable-hydro-density-checks],
+     [Activate expensive brute-force hydro density checks for a fraction 1/N of all particles @<:@N@:>@]
+   )],
+   [hydro_density_checks="$enableval"],
+   [hydro_density_checks="no"]
+)
+if test "$hydro_density_checks" == "yes"; then
+   AC_MSG_ERROR(Need to specify the fraction of particles to check when using --enable-hydro-density-checks!)
+elif test "$hydro_density_checks" != "no"; then
+   AC_DEFINE_UNQUOTED([SWIFT_HYDRO_DENSITY_CHECKS], [$enableval] ,[Enable hydro density brute-force checks])
+fi
+
+# Check if stars density checks are on for some particles.
+AC_ARG_ENABLE([stars-density-checks],
+   [AS_HELP_STRING([--enable-stars-density-checks],
+     [Activate expensive brute-force stars density checks for a fraction 1/N of all particles @<:@N@:>@]
+   )],
+   [stars_density_checks="$enableval"],
+   [stars_density_checks="no"]
+)
+if test "$stars_density_checks" == "yes"; then
+   AC_MSG_ERROR(Need to specify the fraction of particles to check when using --enable-stars-density-checks!)
+elif test "$stars_density_checks" != "no"; then
+   AC_DEFINE_UNQUOTED([SWIFT_STARS_DENSITY_CHECKS], [$enableval] ,[Enable stars density brute-force checks])
+fi
+
 # Check whether we want to switch on glass making
 AC_ARG_ENABLE([glass-making],
    [AS_HELP_STRING([--enable-glass-making],
@@ -2051,14 +2079,14 @@ esac
 # Stellar model.
 AC_ARG_WITH([stars],
    [AS_HELP_STRING([--with-stars=<model>],
-      [Stellar model to use @<:@none, EAGLE, GEAR, debug default: none@:>@]
+      [Stellar model to use @<:@none, basic, EAGLE, GEAR, default: basic@:>@]
    )],
    [with_stars="$withval"],
-   [with_stars="none"]
+   [with_stars="basic"]
 )
 
 if test "$with_subgrid" != "none"; then
-   if test "$with_stars" != "none"; then
+   if test "$with_stars" != "basic"; then
       AC_MSG_ERROR([Cannot provide with-subgrid and with-stars together])
    else
       with_stars="$with_subgrid_stars"
@@ -2072,10 +2100,12 @@ case "$with_stars" in
    GEAR)
       AC_DEFINE([STARS_GEAR], [1], [GEAR stellar model])
    ;;
-   none)
-      AC_DEFINE([STARS_NONE], [1], [Basic stellar model])
+   basic)
+      AC_DEFINE([STARS_BASIC], [1], [Basic stellar model])
    ;;
-
+   none)
+      AC_DEFINE([STARS_NONE], [1], [No stellar model])
+   ;;
    *)
       AC_MSG_ERROR([Unknown stellar model: $with_stars])
    ;;
@@ -2396,7 +2426,7 @@ AM_CONDITIONAL([HAVE_CHEMISTRY_NONE], [test "$with_chemistry" = "none"])
 AM_CONDITIONAL([HAVE_CHEMISTRY_GEAR], [test "${with_chemistry:0:5}" = "GEAR_"])
 
 # check if using default stars
-AM_CONDITIONAL([HAVE_STARS_DEFAULT], [test "$with_stars" = "none"])
+AM_CONDITIONAL([HAVE_STARS_BASIC], [test "$with_stars" = "basic"])
 
 # check if using GEAR stars
 AM_CONDITIONAL([HAVE_STARS_GEAR], [test "$with_stars" = "GEAR"])

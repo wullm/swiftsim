@@ -101,10 +101,10 @@ struct threadpool;
 #endif
 
 /* Import the right star particle definition */
-#if defined(FEEDBACK_CONST)
-#include "./stars/const/stars_part.h"
-#elif defined(STARS_NONE)
-#include "./stars/Default/stars_part.h"
+#if defined(STARS_NONE)
+#include "./stars/None/stars_part.h"
+#elif defined(STARS_BASIC)
+#include "./stars/Basic/stars_part.h"
 #elif defined(STARS_EAGLE)
 #include "./stars/EAGLE/stars_part.h"
 #elif defined(STARS_GEAR)

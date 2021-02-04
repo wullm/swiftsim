@@ -155,7 +155,6 @@ Snapshots:
   invoke_fof: 0           # (Optional) Call FOF every time a snapshot is written
   compression: 0          # (Optional) Set the level of GZIP compression of the HDF5 datasets [0-9]. 0 does no compression. The lossless compression is applied to *all* the fields.
   distributed: 0          # (Optional) When running over MPI, should each rank write a partial snapshot or do we want a single file? 1 implies one file per MPI rank.
-  int_time_label_on:   0  # (Optional) Enable to label the snapshots using the time rounded to an integer (in internal units)
   UnitMass_in_cgs:     1  # (Optional) Unit system for the outputs (Grams)
   UnitLength_in_cgs:   1  # (Optional) Unit system for the outputs (Centimeters)
   UnitVelocity_in_cgs: 1  # (Optional) Unit system for the outputs (Centimeters per second)
@@ -568,6 +567,7 @@ EAGLEAGN:
   with_angmom_limiter:                1          # Are we applying the Rosas-Guevara et al. (2015) viscous time-scale reduction term?
   viscous_alpha:                      1e6        # Normalisation constant of the viscous time-scale in the accretion reduction term
   with_boost_factor:                  0          # Are we using the model from Booth & Schaye (2009)?
+  boost_alpha_only:                   0          # If using the boost factor, are we using a constant boost only?
   boost_alpha:                        1.         # Lowest value for the accretion effeciency for the Booth & Schaye 2009 accretion model.
   boost_beta:                         2.         # Slope of the power law for the Booth & Schaye 2009 model, set beta to zero for constant alpha models.
   boost_n_h_star_H_p_cm3:             0.1        # Normalization of the power law for the Booth & Schaye 2009 model in cgs (cm^-3).

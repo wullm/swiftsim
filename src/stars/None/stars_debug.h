@@ -1,6 +1,6 @@
 /*******************************************************************************
  * This file is part of SWIFT.
- * Coypright (c) 2016 Matthieu Schaller (matthieu.schaller@durham.ac.uk)
+ * Coypright (c) 2020 Matthieu Schaller (schaller@strw.leidenuniv.nl)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ******************************************************************************/
-#ifndef SWIFT_DEFAULT_STARS_DEBUG_H
-#define SWIFT_DEFAULT_STARS_DEBUG_H
+#ifndef SWIFT_NONE_STARS_DEBUG_H
+#define SWIFT_NONE_STARS_DEBUG_H
 
 __attribute__((always_inline)) INLINE static void stars_debug_particle(
     const struct spart* p) {
@@ -28,4 +28,4 @@ __attribute__((always_inline)) INLINE static void stars_debug_particle(
       p->mass, p->ti_begin, p->ti_end);
 }
 
-#endif /* SWIFT_DEFAULT_STARS_DEBUG_H */
+#endif /* SWIFT_NONE_STARS_DEBUG_H */

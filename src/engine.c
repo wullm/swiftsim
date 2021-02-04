@@ -1257,9 +1257,11 @@ void engine_rebuild(struct engine *e, const int repartitioned,
   if (clean_smoothing_length_values) space_sanitize(e->s);
 
 /* If in parallel, exchange the cell structure, top-level and neighbouring
- * multipoles. */
+ * multipoles. To achieve this, free the foreign particle buffers first. */
 #ifdef WITH_MPI
   if (e->policy & engine_policy_self_gravity) engine_exchange_top_multipoles(e);
+
+  space_free_foreign_parts(e->s, /*clear_cell_pointers=*/1);
 
   engine_exchange_cells(e);
 #endif
@@ -1772,6 +1774,16 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
   engine_launch(e, "tasks");
   TIMER_TOC(timer_runners);
 
+#ifdef SWIFT_HYDRO_DENSITY_CHECKS
+  /* Run the brute-force hydro calculation for some parts */
+  if (e->policy & engine_policy_hydro)
+    hydro_exact_density_compute(e->s, e, /*check_force=*/0);
+
+  /* Check the accuracy of the hydro calculation */
+  if (e->policy & engine_policy_hydro)
+    hydro_exact_density_check(e->s, e, /*rel_tol=*/1e-3, /*check_force=*/0);
+#endif
+
   /* Apply some conversions (e.g. internal energy -> entropy) */
   if (!flag_entropy_ICs) {
 
@@ -1856,6 +1868,25 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
     engine_launch(e, "timesteps");
 #endif
   }
+
+#ifdef SWIFT_HYDRO_DENSITY_CHECKS
+  /* Run the brute-force hydro calculation for some parts */
+  if (e->policy & engine_policy_hydro)
+    hydro_exact_density_compute(e->s, e, /*check_force=*/1);
+
+  /* Check the accuracy of the hydro calculation */
+  if (e->policy & engine_policy_hydro)
+    hydro_exact_density_check(e->s, e, /*rel_tol=*/1e-3, /*check_force=*/1);
+#endif
+
+#ifdef SWIFT_STARS_DENSITY_CHECKS
+  /* Run the brute-force stars calculation for some parts */
+  if (e->policy & engine_policy_stars) stars_exact_density_compute(e->s, e);
+
+  /* Check the accuracy of the stars calculation */
+  if (e->policy & engine_policy_stars)
+    stars_exact_density_check(e->s, e, /*rel_tol=*/1e-3);
+#endif
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   /* Check the accuracy of the gravity calculation */
@@ -2281,6 +2312,25 @@ void engine_step(struct engine *e) {
     engine_launch(e, "timesteps");
 #endif
   }
+
+#ifdef SWIFT_HYDRO_DENSITY_CHECKS
+  /* Run the brute-force hydro calculation for some parts */
+  if (e->policy & engine_policy_hydro)
+    hydro_exact_density_compute(e->s, e, /*check_force=*/1);
+
+  /* Check the accuracy of the hydro calculation */
+  if (e->policy & engine_policy_hydro)
+    hydro_exact_density_check(e->s, e, /*rel_tol=*/1e-3, /*check_force=*/1);
+#endif
+
+#ifdef SWIFT_STARS_DENSITY_CHECKS
+  /* Run the brute-force stars calculation for some parts */
+  if (e->policy & engine_policy_stars) stars_exact_density_compute(e->s, e);
+
+  /* Check the accuracy of the stars calculation */
+  if (e->policy & engine_policy_stars)
+    stars_exact_density_check(e->s, e, /*rel_tol=*/1e-2);
+#endif
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   /* Check if we want to run force checks this timestep. */
@@ -2758,8 +2808,6 @@ void engine_init(
       parser_get_opt_param_int(params, "Snapshots:compression", 0);
   e->snapshot_distributed =
       parser_get_opt_param_int(params, "Snapshots:distributed", 0);
-  e->snapshot_int_time_label_on =
-      parser_get_opt_param_int(params, "Snapshots:int_time_label_on", 0);
   e->snapshot_invoke_stf =
       parser_get_opt_param_int(params, "Snapshots:invoke_stf", 0);
   e->snapshot_invoke_fof =
@@ -3286,12 +3334,10 @@ void engine_struct_dump(struct engine *e, FILE *stream) {
   los_struct_dump(e->los_properties, stream);
   parser_struct_dump(e->parameter_file, stream);
   output_options_struct_dump(e->output_options, stream);
-  if (e->output_list_snapshots)
-    output_list_struct_dump(e->output_list_snapshots, stream);
-  if (e->output_list_stats)
-    output_list_struct_dump(e->output_list_stats, stream);
-  if (e->output_list_stf) output_list_struct_dump(e->output_list_stf, stream);
-  if (e->output_list_los) output_list_struct_dump(e->output_list_los, stream);
+  if (e->output_list_snapshots) output_list_clean(&e->output_list_snapshots);
+  if (e->output_list_stats) output_list_clean(&e->output_list_stats);
+  if (e->output_list_stf) output_list_clean(&e->output_list_stf);
+  if (e->output_list_los) output_list_clean(&e->output_list_los);
 
 #ifdef WITH_LOGGER
   if (e->policy & engine_policy_logger) {
@@ -3436,34 +3482,6 @@ void engine_struct_restore(struct engine *e, FILE *stream) {
       (struct output_options *)malloc(sizeof(struct output_options));
   output_options_struct_restore(output_options, stream);
   e->output_options = output_options;
-
-  if (e->output_list_snapshots) {
-    struct output_list *output_list_snapshots =
-        (struct output_list *)malloc(sizeof(struct output_list));
-    output_list_struct_restore(output_list_snapshots, stream);
-    e->output_list_snapshots = output_list_snapshots;
-  }
-
-  if (e->output_list_stats) {
-    struct output_list *output_list_stats =
-        (struct output_list *)malloc(sizeof(struct output_list));
-    output_list_struct_restore(output_list_stats, stream);
-    e->output_list_stats = output_list_stats;
-  }
-
-  if (e->output_list_stf) {
-    struct output_list *output_list_stf =
-        (struct output_list *)malloc(sizeof(struct output_list));
-    output_list_struct_restore(output_list_stf, stream);
-    e->output_list_stf = output_list_stf;
-  }
-
-  if (e->output_list_los) {
-    struct output_list *output_list_los =
-        (struct output_list *)malloc(sizeof(struct output_list));
-    output_list_struct_restore(output_list_los, stream);
-    e->output_list_los = output_list_los;
-  }
 
 #ifdef WITH_LOGGER
   if (e->policy & engine_policy_logger) {
