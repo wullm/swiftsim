@@ -224,6 +224,9 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
       /* Mark the particle has not being swallowed */
       black_holes_mark_part_as_not_swallowed(&p->black_holes_data);
 
+      /* Reset the gas particle-carried feedback fields */
+      feedback_reset_part(p, xp);
+
       /* Get ready for a density calculation */
       if (part_is_active(p, e)) {
         hydro_init_part(p, &e->s->hs);
@@ -891,8 +894,7 @@ void cell_drift_sink(struct cell *c, const struct engine *e, int force) {
 #endif
 
             /* Remove the particle entirely */
-            // cell_remove_sink(e, c, bp);
-            error("TODO: loic implement cell_remove_sink");
+            cell_remove_sink(e, c, sink);
           }
 
           if (lock_unlock(&e->s->lock) != 0)

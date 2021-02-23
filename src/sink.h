@@ -22,6 +22,19 @@
 /* Config parameters. */
 #include "../config.h"
 
+/**
+ * @brief Defines which sink particle should be removed.
+ *
+ * In the iact function of the merger, we return this enum in order
+ * to define if the none, the first or the second sink particle should be
+ * removed (in the order of the arguments)
+ */
+enum sink_merger_remove {
+  sink_merger_remove_none,
+  sink_merger_remove_first,
+  sink_merger_remove_second
+};
+
 /* Select the correct sink model */
 #if defined(SINK_NONE)
 #include "./sink/Default/sink.h"

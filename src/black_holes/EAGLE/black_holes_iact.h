@@ -193,8 +193,9 @@ runner_iact_nonsym_bh_gas_density(
             random_number_isotropic_AGN_feedback_ray_phi);
 
         /* Compute arc length */
-        ray_minimise_arclength(dx, r, bi->rays + i, /*switch=*/-1, gas_id,
-                               rand_theta, rand_phi, pj->mass, /*ray_ext=*/NULL,
+        ray_minimise_arclength(dx, r, bi->rays + i,
+                               /*ray_type=*/ray_feedback_thermal, gas_id,
+                               rand_theta, rand_phi, mj, /*ray_ext=*/NULL,
                                /*v=*/NULL);
       }
       break;
@@ -210,7 +211,7 @@ runner_iact_nonsym_bh_gas_density(
       /* Minimise separation between the gas particles and the BH. The rays
        * structs with smaller ids in the ray array will refer to the particles
        * with smaller distances to the BH. */
-      ray_minimise_distance(r, bi->rays, arr_size, gas_id, pj->mass);
+      ray_minimise_distance(r, bi->rays, arr_size, gas_id, mj);
       break;
     }
     case AGN_minimum_density_model: {
@@ -224,7 +225,7 @@ runner_iact_nonsym_bh_gas_density(
       /* Minimise separation between the gas particles and the BH. The rays
        * structs with smaller ids in the ray array will refer to the particles
        * with smaller distances to the BH. */
-      ray_minimise_distance(pj->rho, bi->rays, arr_size, gas_id, pj->mass);
+      ray_minimise_distance(pj->rho, bi->rays, arr_size, gas_id, mj);
       break;
     }
     case AGN_random_ngb_model: {
@@ -244,7 +245,7 @@ runner_iact_nonsym_bh_gas_density(
       /* Minimise separation between the gas particles and the BH. The rays
        * structs with smaller ids in the ray array will refer to the particles
        * with smaller 'fake' distances to the BH. */
-      ray_minimise_distance(dist, bi->rays, arr_size, gas_id, pj->mass);
+      ray_minimise_distance(dist, bi->rays, arr_size, gas_id, mj);
       break;
     }
   }

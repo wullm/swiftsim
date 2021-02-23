@@ -1549,6 +1549,8 @@ void engine_skip_force_and_kick(struct engine *e) {
         t->type == task_type_stars_ghost_in ||
         t->type == task_type_stars_ghost_out || t->type == task_type_sink_in ||
         t->type == task_type_sink_out || t->type == task_type_sink_formation ||
+        t->type == task_type_stars_prep_ghost1 ||
+        t->type == task_type_stars_prep_ghost2 ||
         t->type == task_type_bh_swallow_ghost1 ||
         t->type == task_type_bh_swallow_ghost2 ||
         t->type == task_type_bh_swallow_ghost3 || t->type == task_type_bh_in ||
@@ -1557,6 +1559,8 @@ void engine_skip_force_and_kick(struct engine *e) {
         t->subtype == task_subtype_force ||
         t->subtype == task_subtype_limiter ||
         t->subtype == task_subtype_gradient ||
+        t->subtype == task_subtype_stars_prep1 ||
+        t->subtype == task_subtype_stars_prep2 ||
         t->subtype == task_subtype_stars_feedback ||
         t->subtype == task_subtype_bh_feedback ||
         t->subtype == task_subtype_bh_swallow ||
@@ -1567,6 +1571,8 @@ void engine_skip_force_and_kick(struct engine *e) {
         t->subtype == task_subtype_bpart_merger ||
         t->subtype == task_subtype_bpart_swallow ||
         t->subtype == task_subtype_bpart_feedback ||
+        t->subtype == task_subtype_sink_compute_formation ||
+        t->subtype == task_subtype_sink_merger ||
         t->subtype == task_subtype_tend_part ||
         t->subtype == task_subtype_tend_gpart ||
         t->subtype == task_subtype_tend_spart ||
@@ -3212,6 +3218,7 @@ void engine_clean(struct engine *e, const int fof, const int restart) {
   output_list_clean(&e->output_list_snapshots);
   output_list_clean(&e->output_list_stats);
   output_list_clean(&e->output_list_stf);
+  output_list_clean(&e->output_list_los);
 
   output_options_clean(e->output_options);
 
@@ -3334,10 +3341,6 @@ void engine_struct_dump(struct engine *e, FILE *stream) {
   los_struct_dump(e->los_properties, stream);
   parser_struct_dump(e->parameter_file, stream);
   output_options_struct_dump(e->output_options, stream);
-  if (e->output_list_snapshots) output_list_clean(&e->output_list_snapshots);
-  if (e->output_list_stats) output_list_clean(&e->output_list_stats);
-  if (e->output_list_stf) output_list_clean(&e->output_list_stf);
-  if (e->output_list_los) output_list_clean(&e->output_list_los);
 
 #ifdef WITH_LOGGER
   if (e->policy & engine_policy_logger) {

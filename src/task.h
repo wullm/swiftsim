@@ -85,7 +85,9 @@ enum task_types {
   task_type_stars_out,      /* Implicit */
   task_type_stars_ghost_in, /* Implicit */
   task_type_stars_ghost,
-  task_type_stars_ghost_out, /* Implicit */
+  task_type_stars_ghost_out,   /* Implicit */
+  task_type_stars_prep_ghost1, /* Implicit */
+  task_type_stars_prep_ghost2, /* Implicit */
   task_type_stars_sort,
   task_type_stars_resort,
   task_type_bh_in,  /* Implicit */
@@ -132,6 +134,8 @@ enum task_subtypes {
   task_subtype_multipole,
   task_subtype_spart,
   task_subtype_stars_density,
+  task_subtype_stars_prep1,
+  task_subtype_stars_prep2,
   task_subtype_stars_feedback,
   task_subtype_sf_counts,
   task_subtype_bpart_rho,
@@ -142,7 +146,7 @@ enum task_subtypes {
   task_subtype_do_gas_swallow,
   task_subtype_do_bh_swallow,
   task_subtype_bh_feedback,
-  task_subtype_sink,
+  task_subtype_sink_merger,
   task_subtype_rt_inject,
   task_subtype_sink_compute_formation,
   task_subtype_rt_gradient,

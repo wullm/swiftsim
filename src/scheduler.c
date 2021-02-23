@@ -1536,10 +1536,14 @@ void scheduler_reweight(struct scheduler *s, int verbose) {
         } else if (t->subtype == task_subtype_external_grav)
           cost = 1.f * wscale * gcount_i;
         else if (t->subtype == task_subtype_stars_density ||
+                 t->subtype == task_subtype_stars_prep1 ||
+                 t->subtype == task_subtype_stars_prep2 ||
                  t->subtype == task_subtype_stars_feedback)
           cost = 1.f * wscale * scount_i * count_i;
         else if (t->subtype == task_subtype_sink_compute_formation)
           cost = 1.f * wscale * count_i * sink_count_i;
+        else if (t->subtype == task_subtype_sink_merger)
+          cost = 1.f * wscale * sink_count_i * sink_count_i;
         else if (t->subtype == task_subtype_bh_density ||
                  t->subtype == task_subtype_bh_swallow ||
                  t->subtype == task_subtype_bh_feedback)
@@ -1572,6 +1576,8 @@ void scheduler_reweight(struct scheduler *s, int verbose) {
             cost = 2.f * (wscale * gcount_i) * gcount_j;
 
         } else if (t->subtype == task_subtype_stars_density ||
+                   t->subtype == task_subtype_stars_prep1 ||
+                   t->subtype == task_subtype_stars_prep2 ||
                    t->subtype == task_subtype_stars_feedback) {
           if (t->ci->nodeID != nodeID)
             cost = 3.f * wscale * count_i * scount_j * sid_scale[t->flags];
@@ -1589,6 +1595,18 @@ void scheduler_reweight(struct scheduler *s, int verbose) {
           else
             cost = 2.f * wscale *
                    (sink_count_i * count_j + sink_count_j * count_i) *
+                   sid_scale[t->flags];
+
+        } else if (t->subtype == task_subtype_sink_merger) {
+          if (t->ci->nodeID != nodeID)
+            cost = 3.f * wscale * sink_count_i * sink_count_j *
+                   sid_scale[t->flags];
+          else if (t->cj->nodeID != nodeID)
+            cost = 3.f * wscale * sink_count_i * sink_count_j *
+                   sid_scale[t->flags];
+          else
+            cost = 2.f * wscale *
+                   (sink_count_i * sink_count_j + sink_count_j * sink_count_i) *
                    sid_scale[t->flags];
 
         } else if (t->subtype == task_subtype_bh_density ||
@@ -1634,6 +1652,8 @@ void scheduler_reweight(struct scheduler *s, int verbose) {
         if (t->flags < 0) error("Negative flag value!");
 #endif
         if (t->subtype == task_subtype_stars_density ||
+            t->subtype == task_subtype_stars_prep1 ||
+            t->subtype == task_subtype_stars_prep2 ||
             t->subtype == task_subtype_stars_feedback) {
           if (t->ci->nodeID != nodeID) {
             cost = 3.f * (wscale * count_i) * scount_j * sid_scale[t->flags];
@@ -1654,6 +1674,19 @@ void scheduler_reweight(struct scheduler *s, int verbose) {
           } else {
             cost = 2.f * wscale *
                    (sink_count_i * count_j + sink_count_j * count_i) *
+                   sid_scale[t->flags];
+          }
+
+        } else if (t->subtype == task_subtype_sink_merger) {
+          if (t->ci->nodeID != nodeID) {
+            cost = 3.f * (wscale * sink_count_i) * sink_count_j *
+                   sid_scale[t->flags];
+          } else if (t->cj->nodeID != nodeID) {
+            cost = 3.f * (wscale * sink_count_i) * sink_count_j *
+                   sid_scale[t->flags];
+          } else {
+            cost = 2.f * wscale *
+                   (sink_count_i * sink_count_j + sink_count_j * sink_count_i) *
                    sid_scale[t->flags];
           }
         } else if (t->subtype == task_subtype_bh_density ||
@@ -1697,10 +1730,14 @@ void scheduler_reweight(struct scheduler *s, int verbose) {
 
       case task_type_sub_self:
         if (t->subtype == task_subtype_stars_density ||
+            t->subtype == task_subtype_stars_prep1 ||
+            t->subtype == task_subtype_stars_prep2 ||
             t->subtype == task_subtype_stars_feedback) {
           cost = 1.f * (wscale * scount_i) * count_i;
         } else if (t->subtype == task_subtype_sink_compute_formation) {
           cost = 1.f * (wscale * sink_count_i) * count_i;
+        } else if (t->subtype == task_subtype_sink_merger) {
+          cost = 1.f * (wscale * sink_count_i) * sink_count_i;
         } else if (t->subtype == task_subtype_bh_density ||
                    t->subtype == task_subtype_bh_swallow ||
                    t->subtype == task_subtype_bh_feedback) {

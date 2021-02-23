@@ -85,8 +85,11 @@ endif
 
 # source files for EAGLE feedback
 EAGLE_FEEDBACK_SOURCES =
-if HAVEEAGLEFEEDBACK
-EAGLE_FEEDBACK_SOURCES += feedback/EAGLE/feedback.c
+if HAVEEAGLETHERMALFEEDBACK
+EAGLE_FEEDBACK_SOURCES += feedback/EAGLE_thermal/feedback.c
+endif
+if HAVEEAGLEKINETICFEEDBACK
+EAGLE_FEEDBACK_SOURCES += feedback/EAGLE_kinetic/feedback.c
 endif
 
 # source files for GRACKLE cooling
@@ -152,7 +155,7 @@ AM_SOURCES += runner_main.c runner_doiact_hydro.c runner_doiact_limiter.c
 AM_SOURCES += runner_doiact_stars.c runner_doiact_black_holes.c runner_ghost.c runner_recv.c 
 AM_SOURCES += runner_sort.c runner_drift.c runner_black_holes.c runner_time_integration.c 
 AM_SOURCES += runner_doiact_hydro_vec.c runner_others.c runner_doiact_sinks.c 
-AM_SOURCES += runner_doiact_rt.c 
+AM_SOURCES += runner_doiact_rt.c runner_doiact_sinks_merger.c
 AM_SOURCES += cell.c cell_convert_part.c cell_drift.c cell_lock.c cell_pack.c cell_split.c 
 AM_SOURCES += cell_unskip.c 
 AM_SOURCES += engine.c engine_maketasks.c engine_split_particles.c engine_strays.c 
@@ -186,6 +189,7 @@ nobase_noinst_HEADERS += runner_doiact_nosort.h runner_doiact_hydro.h runner_doi
 nobase_noinst_HEADERS += runner_doiact_functions_hydro.h runner_doiact_functions_stars.h runner_doiact_functions_black_holes.h 
 nobase_noinst_HEADERS += runner_doiact_functions_limiter.h runner_doiact_limiter.h units.h intrinsics.h minmax.h 
 nobase_noinst_HEADERS += runner_doiact_rt.h runner_doiact_functions_rt.h runner_doiact_sinks.h runner_doiact_functions_sinks.h
+nobase_noinst_HEADERS += runner_doiact_sinks_merger.h runner_doiact_functions_sinks_merger.h
 nobase_noinst_HEADERS += kick.h timestep.h drift.h adiabatic_index.h io_properties.h dimension.h part_type.h periodic.h memswap.h 
 nobase_noinst_HEADERS += timestep_limiter.h timestep_limiter_iact.h timestep_sync.h timestep_sync_part.h timestep_limiter_struct.h 
 nobase_noinst_HEADERS += dump.h logger.h sign.h logger_io.h hashmap.h gravity.h gravity_io.h gravity_logger.h  gravity_cache.h output_options.h
@@ -366,9 +370,12 @@ nobase_noinst_HEADERS += tracers/EAGLE/tracers.h tracers/EAGLE/tracers_struct.h
 nobase_noinst_HEADERS += tracers/EAGLE/tracers_io.h 
 nobase_noinst_HEADERS += feedback/none/feedback.h feedback/none/feedback_struct.h feedback/none/feedback_iact.h 
 nobase_noinst_HEADERS += feedback/none/feedback_properties.h 
-nobase_noinst_HEADERS += feedback/EAGLE/feedback.h feedback/EAGLE/feedback_struct.h feedback/EAGLE/feedback_iact.h 
-nobase_noinst_HEADERS += feedback/EAGLE/feedback_properties.h feedback/EAGLE/imf.h feedback/EAGLE/interpolate.h 
-nobase_noinst_HEADERS += feedback/EAGLE/yield_tables.h 
+nobase_noinst_HEADERS += feedback/EAGLE_kinetic/feedback.h feedback/EAGLE_kinetic/feedback_struct.h 
+nobase_noinst_HEADERS += feedback/EAGLE_kinetic/feedback_properties.h feedback/EAGLE_kinetic/feedback_iact.h 
+nobase_noinst_HEADERS += feedback/EAGLE_thermal/feedback.h feedback/EAGLE_thermal/feedback_struct.h 
+nobase_noinst_HEADERS += feedback/EAGLE_thermal/feedback_properties.h feedback/EAGLE_thermal/feedback_iact.h 
+nobase_noinst_HEADERS += feedback/EAGLE/yield_tables.h feedback/EAGLE/imf.h feedback/EAGLE/interpolate.h
+nobase_noinst_HEADERS += feedback/EAGLE/enrichment.h
 nobase_noinst_HEADERS += feedback/GEAR/stellar_evolution_struct.h feedback/GEAR/stellar_evolution.h 
 nobase_noinst_HEADERS += feedback/GEAR/feedback.h feedback/GEAR/feedback_iact.h 
 nobase_noinst_HEADERS += feedback/GEAR/feedback_properties.h feedback/GEAR/feedback_struct.h 
