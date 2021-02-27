@@ -63,12 +63,15 @@ __attribute__((always_inline)) INLINE static double relat_corr_drift(
  * @param V The scale factor
  */
 __attribute__((always_inline)) INLINE static double relat_corr_kick(
-    const struct engine *e, const float *V) {
+    const struct engine *e, const float *V, const float V_i) {
 
   /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
   double a = e->cosmology->a;
   double c = e->physical_constants->const_speed_light_c;
   float v = hypot3(V[0], V[1], V[2]) / (a * c);
+  (void) v;
+
+  float v_i = V_i / (a * c);
 
   /* When this is enabled, the internal velocity variable is
    * the spatial component of the 4-velocity U^i, multiplied by a^2,
@@ -76,7 +79,7 @@ __attribute__((always_inline)) INLINE static double relat_corr_kick(
    * limit of c --> infinity.
    */
 
-  return (2 * v * v + 1.) / hypot(v, 1.);
+  return (2 * v_i * v_i + 1.) / hypot(v_i, 1.);
 }
 
 /**
@@ -88,12 +91,16 @@ __attribute__((always_inline)) INLINE static double relat_corr_kick(
  * @param V The scale factor
  */
 __attribute__((always_inline)) INLINE static double relat_corr_3accel(
-    const struct engine *e, const float *V) {
+    const struct engine *e, const float *V, const double V_i) {
 
   /* Perform a relativistic correction */
   double a = e->cosmology->a;
   double c = e->physical_constants->const_speed_light_c;
   float vv = (V[0] * V[0] + V[1] * V[1] + V[2] * V[2]) / (a * a * c * c);
+  (void) vv;
+
+  float v_i = V_i / (a * c);
+  float vv_i = v_i * v_i;
 
   /* When this is enabled, the internal velocity variable is
    * the spatial component of the 4-velocity U^i, multiplied by a^2,
@@ -102,7 +109,7 @@ __attribute__((always_inline)) INLINE static double relat_corr_3accel(
    */
 
   /* Derivative of v / sqrt(v^2 + 1), using v' = (2v^2 + 1)a / sqrt(v^2 + 1) */
-  return (2 * vv + 1.) / ((vv + 1.0) * (vv + 1.0));
+  return (2 * vv_i + 1.) / ((vv_i + 1.0) * (vv_i + 1.0));
 }
 
 #endif /* SWIFT_RELATIVITY_H */

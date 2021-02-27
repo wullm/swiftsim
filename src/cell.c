@@ -4669,7 +4669,7 @@ void cell_drift_part(struct cell *c, const struct engine *e, int force) {
 
 #ifdef WITH_RELATIVISTIC_KICK
       /* Perform a relativistic correction */
-      double correction2 = relat_corr_kick(e, xp->v_full);
+      double correction2 = relat_corr_kick(e, xp->v_full, 0);
       dt_kick_grav_k *= correction2;
       dt_kick_hydro_k *= correction2;
 #endif

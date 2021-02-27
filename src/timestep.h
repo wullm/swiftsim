@@ -109,7 +109,7 @@ __attribute__((always_inline)) INLINE static integertime_t get_gpart_timestep(
 
 #ifdef WITH_RELATIVISTIC_KICK
   /* Perform a relativistic correction, using dt ~ 1/sqrt(three-accel) */
-  double accel_correction = relat_corr_3accel(e, gp->v_full);
+  double accel_correction = relat_corr_3accel(e, gp->v_full, gp->v_i);
   new_dt /= sqrtf(accel_correction);
 #endif
 
@@ -171,7 +171,7 @@ __attribute__((always_inline)) INLINE static integertime_t get_part_timestep(
 
 #ifdef WITH_RELATIVISTIC_KICK
     /* Perform a relativistic correction, using dt ~ 1/sqrt(accel) */
-    double accel_correction = relat_corr_3accel(e, p->v);
+    double accel_correction = relat_corr_3accel(e, p->v, 0);
     new_dt_grav /= sqrtf(accel_correction);
 #endif
   }
@@ -240,7 +240,7 @@ __attribute__((always_inline)) INLINE static integertime_t get_spart_timestep(
 
 #ifdef WITH_RELATIVISTIC_KICK
   /* Perform a relativistic correction, using dt ~ 1/sqrt(accel) */
-  double accel_correction = relat_corr_3accel(e, sp->v);
+  double accel_correction = relat_corr_3accel(e, sp->v, 0);
   new_dt_ext /= sqrtf(accel_correction);
   new_dt_self /= sqrtf(accel_correction);
 #endif
@@ -294,7 +294,7 @@ __attribute__((always_inline)) INLINE static integertime_t get_bpart_timestep(
 
 #ifdef WITH_RELATIVISTIC_KICK
   /* Perform a relativistic correction, using dt ~ 1/sqrt(accel) */
-  double accel_correction = relat_corr_3accel(e, bp->v);
+  double accel_correction = relat_corr_3accel(e, bp->v, 0);
   new_dt_ext /= sqrtf(accel_correction);
   new_dt_self /= sqrtf(accel_correction);
 #endif

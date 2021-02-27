@@ -118,6 +118,8 @@ struct gpart {
 
 #endif
 
+  float v_i;
+
 } SWIFT_STRUCT_ALIGN;
 
 #endif /* SWIFT_MULTI_SOFTENING_GRAVITY_PART_H */

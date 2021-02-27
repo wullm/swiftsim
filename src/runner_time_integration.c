@@ -166,7 +166,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, xp->v_full);
+        double correction = relat_corr_kick(e, xp->v_full, 0);
         dt_kick_hydro *= correction;
         dt_kick_grav *= correction;
         dt_kick_therm *= correction;
@@ -226,7 +226,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, gp->v_full);
+        double correction = relat_corr_kick(e, gp->v_full, gp->v_i);
         dt_kick_grav *= correction;
 #endif
 
@@ -270,7 +270,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, sp->v);
+        double correction = relat_corr_kick(e, sp->v, 0);
         dt_kick_grav *= correction;
 #endif
 
@@ -314,7 +314,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, bp->v);
+        double correction = relat_corr_kick(e, bp->v, 0);
         dt_kick_grav *= correction;
 #endif
 
@@ -418,7 +418,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, xp->v_full);
+        double correction = relat_corr_kick(e, xp->v_full, 0);
         dt_kick_hydro *= correction;
         dt_kick_grav *= correction;
         dt_kick_therm *= correction;
@@ -472,7 +472,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, gp->v_full);
+        double correction = relat_corr_kick(e, gp->v_full, gp->v_i);
         dt_kick_grav *= correction;
 #endif
 
@@ -520,7 +520,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, sp->v);
+        double correction = relat_corr_kick(e, sp->v, 0);
         dt_kick_grav *= correction;
 #endif
 
@@ -568,7 +568,7 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
 
 #ifdef WITH_RELATIVISTIC_KICK
         /* Perform a relativistic correction */
-        double correction = relat_corr_kick(e, bp->v);
+        double correction = relat_corr_kick(e, bp->v, 0);
         dt_kick_grav *= correction;
 #endif
 

@@ -95,12 +95,14 @@ double fermi_dirac_momentum(const struct engine *e, float *v, double m_eV) {
 }
 
 /* Compute the energy E=sqrt(p^2+m^2) of a micrscopic neutrino in eV */
-double fermi_dirac_energy(const struct engine *e, float *v, double m_eV) {
-  /* Compute the present-day 3-momentum in eV */
-  double p0_eV = fermi_dirac_momentum(e, v, m_eV);
+double fermi_dirac_energy(const struct engine *e, float vi, double m_eV) {
+  const struct cosmology *cosmo = e->cosmology;
+  const struct phys_const *physical_constants = e->physical_constants;
+  const double c = physical_constants->const_speed_light_c;
+  const double a = cosmo->a;
 
   /* Compute the momentum and energy at scale-factor a in eV */
-  double p_eV = p0_eV / e->cosmology->a;
+  double p_eV = vi * m_eV / (a * c);
   double energy_eV = hypot(m_eV, p_eV);
 
   return energy_eV;

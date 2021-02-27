@@ -222,6 +222,12 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
       /* Get a handle on the part. */
       struct gpart *restrict gp = &gparts[k];
 
+      if (e->step == 0) {
+        gp->v_i = sqrt(gp->v_full[0] * gp->v_full[0] +
+                       gp->v_full[1] * gp->v_full[1] +
+                       gp->v_full[2] * gp->v_full[2]);
+      }
+
       /* If the g-particle is a neutrino and needs to be weighted */
       if (gp->type == swift_type_neutrino && true) {
         if (gpart_is_active(gp, e)) {
@@ -258,7 +264,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             gp->f_phase = f;
 
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
-            double energy_eV = fermi_dirac_energy(e, gp->v_full, m_eV);
+            double energy_eV = fermi_dirac_energy(e, gp->v_i, m_eV);
             double energy = energy_eV / mult;  // energy in internal mass units
 
             /* Use the weighted energy instead of the mass */
