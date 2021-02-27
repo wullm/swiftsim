@@ -736,12 +736,12 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
   rend_interp_locate_tau(rend, log_tau, &tau_index, &u_tau);
 
   /* Calculate the background neutrino density at the present time */
-  const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
+  // const double Omega_nu = cosmology_get_neutrino_density_param(cosmo, cosmo->a);
   const double Omega_g = cosmo->Omega_g;
   const double Omega_ur = cosmo->Omega_ur;
   const double rho_crit0 = cosmo->critical_density_0;
   /* The comoving density is (Omega_nu * a^-4) * a^3  = Omega_nu / a */
-  const double neutrino_density = Omega_nu * rho_crit0 / cosmo->a;
+  // const double neutrino_density = Omega_nu * rho_crit0 / cosmo->a;
   const double photon_density = Omega_g * rho_crit0 / cosmo->a;
   const double ultra_relativistic_density = Omega_ur * rho_crit0 / cosmo->a;
 
@@ -811,15 +811,15 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
           rend_interp_locate_k(rend, k, &k_index, &u_k);
 
           /* Interpolate relativistic species density transfer functions */
-          double Tr_nu = 0;
+          // double Tr_nu = 0;
           double Tr_g = 0;
           double Tr_ur = 0;
 
           /* Bilinear interpolation of the ncdm transfer function */
-          if (rend->index_transfer_delta_ncdm > -1) {
-            Tr_nu = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
-                                       rend->index_transfer_delta_ncdm);
-          }
+          // if (rend->index_transfer_delta_ncdm > -1) {
+          //   Tr_nu = rend_custom_interp(rend, k_index, tau_index, u_tau, u_k,
+          //                              rend->index_transfer_delta_ncdm);
+          // }
 
           /* Bilinear interpolation of the photon transfer function */
           if (rend->index_transfer_delta_g > -1) {
@@ -834,12 +834,12 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
           }
 
           /* Convert from overdensity to density (we ignore the k=0 mode) */
-          Tr_nu *= neutrino_density;
+          // Tr_nu *= neutrino_density;
           Tr_g *= photon_density;
           Tr_ur *= ultra_relativistic_density;
 
           /* Collect the relativistic fluid contributions to the potential */
-          double Tr_pot = -4 * M_PI * (Tr_nu + Tr_g + Tr_ur);
+          double Tr_pot = -4 * M_PI * (Tr_g + Tr_ur);
 
           /* Interpolate metric derivative transfer functions */
           double Tr_HT_p = 0;
