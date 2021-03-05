@@ -26,6 +26,8 @@
 /* Phase space density functions needed */
 #include "neutrino/phase_space.h"
 
+#include "neutrino/delta_f.h"
+
 /* Local headers. */
 #include "active.h"
 #include "cell.h"
@@ -197,17 +199,17 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 #endif
 #endif
 
-  // const struct phys_const *physical_constants = e->physical_constants;
-  // const struct cosmology *cosmo = e->cosmology;
+  const struct phys_const *physical_constants = e->physical_constants;
+  const struct cosmology *cosmo = e->cosmology;
   // const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
   // const double H_ratio = cosmo->H0 / cosmo->H;
   // const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
   // const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
   // const double particle_mass = neutrino_mass / e->total_nr_nuparts;
-  // const double T_nu = cosmo->T_nu;
-  // const double k_b = physical_constants->const_boltzmann_k;
-  // const double eV = physical_constants->const_electron_volt;
-  // const double T_eV = k_b * T_nu / eV; // temperature in eV
+  const double T_nu = cosmo->T_nu;
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double eV = physical_constants->const_electron_volt;
+  const double T_eV = k_b * T_nu / eV; // temperature in eV
 
   /* Conversion factor from macro particle mass to neutrino mass in eV */
   const double mult = e->neutrino_mass_conversion_factor;
@@ -247,9 +249,20 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             /* The mass of a microscopic neutrino in eV */
             double m_eV = gp->mass * mult;
             double f;
+            (void) m_eV;
+
+            /* Use the particle ID as seed */
+            uint64_t seed = gp->id_or_neg_offset;
+
+            /* A unique uniform random number for this neutrino */
+            const double w = sampleUniform(&seed);
+            /* The corresponding initial Fermi-Dirac momentum */
+            const double p_eV = fermi_dirac_transform(w) * T_eV;
+            /* The corresponding initial density */
+            const double f_i = fermi_dirac_density2(p_eV, T_eV);
 
             /* Store the initial mass & phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            f = f_i;
             gp->mass_i = gp->mass;
             gp->f_phase = f;
             gp->f_phase_i = f;
