@@ -261,10 +261,11 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             /* The corresponding initial density */
             const double f_i = fermi_dirac_density2(p_eV, T_eV);
 
-            double p_eV_alt = fermi_dirac_momentum(e, gp->v_full, m_eV);
-
-            if (gp->id_or_neg_offset == 1073741824 || gp->id_or_neg_offset == 1073741824 + 100)
-            message("NNNNNN %e %e %e", p_eV, p_eV_alt, cosmo->M_nu[0]);
+            /* Do a simple check for two neutrinos during the first step */
+            if (gp->id_or_neg_offset == 1073741824 || gp->id_or_neg_offset == 1073741824 + 100) {
+              double p_eV_alt = fermi_dirac_momentum(e, gp->v_full, m_eV);
+              message("NNNNNN %e %e %e", p_eV, p_eV_alt, cosmo->M_nu[0]);
+            }
 
             /* Store the initial mass & phase space density */
             f = f_i;
@@ -284,9 +285,6 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
             double energy_eV = fermi_dirac_energy(e, gp->v_i, m_eV);
             double energy = energy_eV / mult;  // energy in internal mass units
-            double mass = m_eV / mult;
-            (void) energy;
-            (void) mass;
 
             /* Use the weighted energy instead of the mass */
             gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
@@ -296,15 +294,6 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
               gp->mass = FLT_MIN;
             }
 
-            // if (gp->id_or_neg_offset >= 114688-4096 &&
-            //     gp->id_or_neg_offset < 114688-4096 + 5) {
-            //         message("%f %f %f %f", linear_overdensity,
-            //         temperature_factor, f, energy);
-            // //         double p = fermi_dirac_momentum(e, gp->v_full, m_eV) /
-            // //         e->cosmology->a; message("%.10e %.10e %.10e %f", p,
-            // m_eV,
-            // //         energy_eV, energy / gp->mass_i);
-            //     }
           }
         }
       }
