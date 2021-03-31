@@ -247,7 +247,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           /* Is it the first time step? */
           if (e->step == 0) {
             /* The mass of a microscopic neutrino in eV */
-            double m_eV = gp->mass * mult;
+            double m_eV = cosmo->M_nu[0]; //gp->mass * mult;
             double f;
             (void) m_eV;
 
@@ -261,6 +261,11 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             /* The corresponding initial density */
             const double f_i = fermi_dirac_density2(p_eV, T_eV);
 
+            double p_eV_alt = fermi_dirac_momentum(e, gp->v_full, m_eV);
+
+            if (gp->id_or_neg_offset == 1073741824 || gp->id_or_neg_offset == 1073741824 + 100)
+            message("NNNNNN %e %e %e", p_eV, p_eV_alt, cosmo->M_nu[0]);
+
             /* Store the initial mass & phase space density */
             f = f_i;
             gp->mass_i = gp->mass;
@@ -269,7 +274,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             gp->mass = FLT_MIN;  // dither in the first time step
           } else {
             /* The mass of a microscopic neutrino in eV */
-            double m_eV = gp->mass_i * mult;
+            double m_eV = cosmo->M_nu[0];//gp->mass_i * mult;
             double f;
 
             /* Compute the phase space density */
@@ -279,6 +284,9 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
             double energy_eV = fermi_dirac_energy(e, gp->v_i, m_eV);
             double energy = energy_eV / mult;  // energy in internal mass units
+            double mass = m_eV / mult;
+            (void) energy;
+            (void) mass;
 
             /* Use the weighted energy instead of the mass */
             gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);

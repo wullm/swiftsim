@@ -66,12 +66,12 @@ __attribute__((always_inline)) INLINE static double relat_corr_kick(
     const struct engine *e, const float *V, const float V_i) {
 
   /* Perform a relativistic correction, see eq. (5.14) in 1604.06065 */
-  double a = e->cosmology->a;
-  double c = e->physical_constants->const_speed_light_c;
-  float v = hypot3(V[0], V[1], V[2]) / (a * c);
-  (void) v;
+  //double a = e->cosmology->a;
+  //double c = e->physical_constants->const_speed_light_c;
+  //float v = hypot3(V[0], V[1], V[2]) / (a * c);
+  //(void) v;
 
-  float v_i = V_i / (a * c);
+  //float v_i = V_i / (a * c);
 
   /* When this is enabled, the internal velocity variable is
    * the spatial component of the 4-velocity U^i, multiplied by a^2,
@@ -79,7 +79,9 @@ __attribute__((always_inline)) INLINE static double relat_corr_kick(
    * limit of c --> infinity.
    */
 
-  return (2 * v_i * v_i + 1.) / hypot(v_i, 1.);
+  return 1.0;
+  //return (2 * v_i * v_i + 1.) / hypot(v_i, 1.);
+  //return (v_i * v_i + 1.) / hypot(v_i, 1.);
 }
 
 /**
