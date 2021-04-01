@@ -26,6 +26,8 @@
 /* Phase space density functions needed */
 #include "neutrino/phase_space.h"
 
+#include "neutrino/delta_f.h"
+
 /* Local headers. */
 #include "active.h"
 #include "cell.h"
@@ -197,17 +199,17 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 #endif
 #endif
 
-  // const struct phys_const *physical_constants = e->physical_constants;
-  // const struct cosmology *cosmo = e->cosmology;
+  const struct phys_const *physical_constants = e->physical_constants;
+  const struct cosmology *cosmo = e->cosmology;
   // const double volume = e->s->dim[0] * e->s->dim[1] * e->s->dim[2];
   // const double H_ratio = cosmo->H0 / cosmo->H;
   // const double rho_crit0 = cosmo->critical_density * H_ratio * H_ratio;
   // const double neutrino_mass = cosmo->Omega_nu * volume * rho_crit0;
   // const double particle_mass = neutrino_mass / e->total_nr_nuparts;
-  // const double T_nu = cosmo->T_nu;
-  // const double k_b = physical_constants->const_boltzmann_k;
-  // const double eV = physical_constants->const_electron_volt;
-  // const double T_eV = k_b * T_nu / eV; // temperature in eV
+  const double T_nu = cosmo->T_nu;
+  const double k_b = physical_constants->const_boltzmann_k;
+  const double eV = physical_constants->const_electron_volt;
+  const double T_eV = k_b * T_nu / eV; // temperature in eV
 
   /* Conversion factor from macro particle mass to neutrino mass in eV */
   const double mult = e->neutrino_mass_conversion_factor;
@@ -245,18 +247,34 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
           /* Is it the first time step? */
           if (e->step == 0) {
             /* The mass of a microscopic neutrino in eV */
-            double m_eV = gp->mass * mult;
+            double m_eV = cosmo->M_nu[0]; //gp->mass * mult;
             double f;
+            (void) m_eV;
+
+            /* Use the particle ID as seed */
+            uint64_t seed = gp->id_or_neg_offset;
+
+            /* A unique uniform random number for this neutrino */
+            const double w = sampleUniform(&seed);
+            /* The corresponding initial Fermi-Dirac momentum */
+            const double p_eV = fermi_dirac_transform(w) * T_eV;
+            /* The corresponding initial density */
+            const double f_i = fermi_dirac_density2(p_eV, T_eV);
+
+            double p_eV_alt = fermi_dirac_momentum(e, gp->v_full, m_eV);
+
+            if (gp->id_or_neg_offset == 134217728 || gp->id_or_neg_offset == 134217728 + 100)
+            message("NNNNNN %e %e %e", p_eV, p_eV_alt, cosmo->M_nu[0]);
 
             /* Store the initial mass & phase space density */
-            f = fermi_dirac_density(e, gp->v_full, m_eV, temperature_factor);
+            f = f_i;
             gp->mass_i = gp->mass;
             gp->f_phase = f;
             gp->f_phase_i = f;
             gp->mass = FLT_MIN;  // dither in the first time step
           } else {
             /* The mass of a microscopic neutrino in eV */
-            double m_eV = gp->mass_i * mult;
+            double m_eV = cosmo->M_nu[0];//gp->mass_i * mult;
             double f;
 
             /* Compute the phase space density */
@@ -266,6 +284,9 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
             /* We use the energy instead of the mass: M -> sqrt(M^2 + P^2) */
             double energy_eV = fermi_dirac_energy(e, gp->v_i, m_eV);
             double energy = energy_eV / mult;  // energy in internal mass units
+            double mass = m_eV / mult;
+            (void) energy;
+            (void) mass;
 
             /* Use the weighted energy instead of the mass */
             gp->mass = energy * (1.0 - gp->f_phase / gp->f_phase_i);
