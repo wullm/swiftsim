@@ -34,7 +34,6 @@ struct neutrino_props {
 
   /* Random seed for the neutrino weighting task */
   long long neutrino_seed;
-
 };
 
 /**
@@ -53,9 +52,10 @@ INLINE static void neutrino_props_init(struct neutrino_props *np,
                                        const struct cosmology *cosmo) {
 
   np->use_delta_f = parser_get_opt_param_int(params, "Neutrino:use_delta_f", 0);
-  np->generate_ics = parser_get_opt_param_int(params, "Neutrino:generate_ics", 0);
-  np->neutrino_seed = parser_get_opt_param_int(params, "Neutrino:neutrino_seed", 0);
-
+  np->generate_ics =
+      parser_get_opt_param_int(params, "Neutrino:generate_ics", 0);
+  np->neutrino_seed =
+      parser_get_opt_param_int(params, "Neutrino:neutrino_seed", 0);
 }
 
 /**
@@ -67,7 +67,7 @@ INLINE static void neutrino_props_init(struct neutrino_props *np,
  */
 INLINE static void neutrino_struct_dump(const struct neutrino_props *props,
                                         FILE *stream) {
-                                            message("sadasd");
+
   restart_write_blocks((void *)props, sizeof(struct neutrino_props), 1, stream,
                        "neutrino props", "Neutrino props");
 }

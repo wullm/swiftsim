@@ -34,20 +34,20 @@
 
 /* Fast approximate log10 with a maximum error of 0.005 */
 float optimized_log10f(float val) {
-    union {
-      int32_t i;
-      float f;
-    } e;
-    e.f = val;
+  union {
+    int32_t i;
+    float f;
+  } e;
+  e.f = val;
 
-    /* Isolate the exponent */
-    float log_2 = (float)(((e.i >> 23) & 255) - 128);
-    e.i   &= ~(255 << 23);
-    e.i   += 127 << 23;
-    /* Approximation based on https://stackoverflow.com/a/28730362 comment */
-    log_2 += ((-0.34484843f) * e.f + 2.02466578f) * e.f  - 0.67487759f;
-    /* Return the base-10 log */
-    return log_2 * 0.301029996f;
+  /* Isolate the exponent */
+  float log_2 = (float)(((e.i >> 23) & 255) - 128);
+  e.i &= ~(255 << 23);
+  e.i += 127 << 23;
+  /* Approximation based on https://stackoverflow.com/a/28730362 comment */
+  log_2 += ((-0.34484843f) * e.f + 2.02466578f) * e.f - 0.67487759f;
+  /* Return the base-10 log */
+  return log_2 * 0.301029996f;
 }
 
 static double endpoints[118] = {

@@ -51,11 +51,11 @@ int main(int argc, char *argv[]) {
   double sum = 0;
   double min = FLT_MAX, max = 0;
   long long seed = 290009001901;
-  for (int i = 0;  i <N; i++) {
-      double x = neutrino_seed_to_fermi_dirac(seed + i);
-      sum += x;
-      if (x < min) min = x;
-      if (x > max) max = x;
+  for (int i = 0; i < N; i++) {
+    double x = neutrino_seed_to_fermi_dirac(seed + i);
+    sum += x;
+    if (x < min) min = x;
+    if (x > max) max = x;
   }
 
   /* Do a second pass for the sample variance and skewness */
@@ -69,12 +69,12 @@ int main(int argc, char *argv[]) {
 
   /* Generate the same numbers again and compute statistics and histogram */
   for (int i = 0; i < N; i++) {
-      double x = neutrino_seed_to_fermi_dirac(seed + i);
-      ss_sum += (x - mean) * (x - mean);
-      sss_sum += (x - mean) * (x - mean) * (x - mean);
+    double x = neutrino_seed_to_fermi_dirac(seed + i);
+    ss_sum += (x - mean) * (x - mean);
+    sss_sum += (x - mean) * (x - mean) * (x - mean);
 
-      int bin = (int)((x - min) / (max - min) * bins);
-      histogram1[bin]++;
+    int bin = (int)((x - min) / (max - min) * bins);
+    histogram1[bin]++;
   }
 
   /* Sample statistics */
@@ -99,20 +99,20 @@ int main(int argc, char *argv[]) {
   double sum_empirical = 0.;
   double sum_analytical = 0.;
   double KS_statistic = 0.;
-  double dx = (max - min)/bins;
+  double dx = (max - min) / bins;
   for (int bin = 0; bin < bins; bin++) {
-      double x = min + (bin + 0.5) * dx;
-      sum_empirical += histogram1[bin] * 1. / N;
-      sum_analytical += fermi_dirac_density(x) * x * x * dx / integral2;
+    double x = min + (bin + 0.5) * dx;
+    sum_empirical += histogram1[bin] * 1. / N;
+    sum_analytical += fermi_dirac_density(x) * x * x * dx / integral2;
 
-      double delta = fabs(sum_empirical - sum_analytical);
-      if (delta > KS_statistic) {
-          KS_statistic = delta;
-      }
+    double delta = fabs(sum_empirical - sum_analytical);
+    if (delta > KS_statistic) {
+      KS_statistic = delta;
+    }
   }
 
   /* Can we reject the hypothesis that these numbers are FD distributed? */
-  double crit_val = 5.146991e-05 * sqrt(1e9 / N); // 99% confidence level
+  double crit_val = 5.146991e-05 * sqrt(1e9 / N);  // 99% confidence level
   message("KS statistic = %e (99%% that KS < %e)\n", KS_statistic, crit_val);
 
   /* We should not reject this */
