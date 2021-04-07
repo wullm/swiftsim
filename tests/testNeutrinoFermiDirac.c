@@ -33,11 +33,12 @@
 #define M_ZETA_5 1.0369277551433699263314
 
 int main(int argc, char *argv[]) {
-  /* Exact values */
+  /* Exact integrals of x^n / (exp(x) + 1) on (0, infinity) */
   double integral2 = M_ZETA_3 * 1.5;
   double integral3 = M_PI * M_PI * M_PI * M_PI * 7.0 / 120.0;
   double integral4 = M_ZETA_5 * 22.5;
   double integral5 = M_PI * M_PI * M_PI * M_PI * M_PI * M_PI * 31. / 252.0;
+  /* Exact moments */
   double mu = integral3 / integral2;
   double mu2 = mu * mu;
   double sigma2 = integral4 / integral2 - mu2;
@@ -46,7 +47,7 @@ int main(int argc, char *argv[]) {
   double skewns = (integral5 / integral2 - 3 * mu * sigma2 - mu2 * mu) / sigma3;
 
   /* Generate Fermi-Dirac numbers and compute the sum, min, and max */
-  int N = 2e6;
+  int N = 1e7;
   double sum = 0;
   double min = FLT_MAX, max = 0;
   long long seed = 290009001901;
@@ -62,25 +63,18 @@ int main(int argc, char *argv[]) {
   double ss_sum = 0;
   double sss_sum = 0;
 
-  /* We also construct histograms, covering the logarithmic and regular parts */
+  /* We also construct a histogram */
   int bins = 1000;
   int *histogram1 = calloc(bins, sizeof(int));
-  int *histogram2 = calloc(bins, sizeof(int));
 
-  /* Generate the same numbers again and process them */
+  /* Generate the same numbers again and compute statistics and histogram */
   for (int i = 0; i < N; i++) {
       double x = neutrino_seed_to_fermi_dirac(seed + i);
       ss_sum += (x - mean) * (x - mean);
       sss_sum += (x - mean) * (x - mean) * (x - mean);
 
-      /* Are we in the logarithmic part? */
-      if (x < 1e-1) {
-          int bin = (int)((log(x) - log(min)) / (log(1e-1) - log(min)) * bins);
-          histogram1[bin]++;
-      } else {
-          int bin = (int)((x - 1e-1) / (max - 1e-1) * bins);
-          histogram2[bin]++;
-      }
+      int bin = (int)((x - min) / (max - min) * bins);
+      histogram1[bin]++;
   }
 
   /* Sample statistics */
@@ -88,7 +82,7 @@ int main(int argc, char *argv[]) {
   double sdev = sqrt(var);
   double mu3 = sss_sum / (N - 2) / (var * sdev);
 
-  /* Relative errors */
+  /* Relative errors with the exact moments */
   double err_mu = mean / mu - 1.;
   double err_sig = var / sigma2 - 1.;
   double err_skew = mu3 / skewns - 1.;
@@ -98,24 +92,17 @@ int main(int argc, char *argv[]) {
   message("Sample skewness is %f, exact: %f (rel. %e).", mu3, skewns, err_skew);
 
   assert(fabs(err_mu) < 1e-3);
-  assert(fabs(err_sig) < 1e-3);
+  assert(fabs(err_sig) < 1e-2);
   assert(fabs(err_skew) < 1e-2);
 
-  /* Construct Kolmogorov-Smirnov statistic by integrating the histograms */
-  double dlogx = (log(1e-1) - log(min)) / bins;
-  double dx = (max - 1e-1)/bins;
+  /* Construct Kolmogorov-Smirnov statistic by integrating the histogram */
   double sum_empirical = 0.;
   double sum_analytical = 0.;
   double KS_statistic = 0.;
+  double dx = (max - min)/bins;
   for (int bin = 0; bin < bins; bin++) {
-      double x;
-      /* First part */
-      x =  exp(log(min) + (bin + 0.5) * dlogx);
+      double x = min + (bin + 0.5) * dx;
       sum_empirical += histogram1[bin] * 1. / N;
-      sum_analytical += fermi_dirac_density(x) * x * x * x * dlogx / integral2;
-      /* Second part */
-      x = 1e-1 + (bin + 0.5) * dx;
-      sum_empirical += histogram2[bin] * 1. / N;
       sum_analytical += fermi_dirac_density(x) * x * x * dx / integral2;
 
       double delta = fabs(sum_empirical - sum_analytical);
@@ -123,7 +110,6 @@ int main(int argc, char *argv[]) {
           KS_statistic = delta;
       }
   }
-
 
   /* Can we reject the hypothesis that these numbers are FD distributed? */
   double crit_val = 5.146991e-05 * sqrt(1e9 / N); // 99% confidence level
@@ -133,7 +119,6 @@ int main(int argc, char *argv[]) {
   assert(KS_statistic < crit_val);
 
   free(histogram1);
-  free(histogram2);
 
   message("Success.");
 
