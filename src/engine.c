@@ -78,6 +78,7 @@
 #include "mpiuse.h"
 #include "multipole_struct.h"
 #include "neutrino/neutrino.h"
+#include "neutrino_properties.h"
 #include "output_list.h"
 #include "output_options.h"
 #include "partition.h"
@@ -1569,7 +1570,7 @@ void engine_skip_force_and_kick(struct engine *e) {
         t->type == task_type_bh_swallow_ghost3 || t->type == task_type_bh_in ||
         t->type == task_type_bh_out || t->type == task_type_rt_ghost1 ||
         t->type == task_type_rt_ghost2 || t->type == task_type_rt_tchem ||
-        t->subtype == task_subtype_force ||
+        t->type == task_type_weight || t->subtype == task_subtype_force ||
         t->subtype == task_subtype_limiter ||
         t->subtype == task_subtype_gradient ||
         t->subtype == task_subtype_stars_prep1 ||
@@ -2759,6 +2760,7 @@ void engine_unpin(void) {
  * @param stars The #stars_props used for this run.
  * @param black_holes The #black_holes_props used for this run.
  * @param sinks The #sink_props used for this run.
+ * @param neutrinos The #neutrino_props used for this run.
  * @param feedback The #feedback_props used for this run.
  * @param mesh The #pm_mesh used for the long-range periodic forces.
  * @param potential The properties of the external potential.
@@ -2779,7 +2781,8 @@ void engine_init(
     const struct entropy_floor_properties *entropy_floor,
     struct gravity_props *gravity, const struct stars_props *stars,
     const struct black_holes_props *black_holes, const struct sink_props *sinks,
-    struct feedback_props *feedback, struct rt_props *rt, struct pm_mesh *mesh,
+    const struct neutrino_props *neutrinos, struct feedback_props *feedback,
+    struct rt_props *rt, struct pm_mesh *mesh,
     const struct external_potential *potential,
     struct cooling_function_data *cooling_func,
     const struct star_formation *starform,
@@ -2868,6 +2871,7 @@ void engine_init(
   e->stars_properties = stars;
   e->black_holes_properties = black_holes;
   e->sink_properties = sinks;
+  e->neutrino_properties = neutrinos;
   e->mesh = mesh;
   e->external_potential = potential;
   e->cooling_func = cooling_func;
@@ -3353,6 +3357,7 @@ void engine_struct_dump(struct engine *e, FILE *stream) {
   rt_struct_dump(e->rt_props, stream);
   black_holes_struct_dump(e->black_holes_properties, stream);
   sink_struct_dump(e->sink_properties, stream);
+  neutrino_struct_dump(e->neutrino_properties, stream);
   chemistry_struct_dump(e->chemistry, stream);
 #ifdef WITH_FOF
   fof_struct_dump(e->fof_properties, stream);
@@ -3481,6 +3486,11 @@ void engine_struct_restore(struct engine *e, FILE *stream) {
       (struct sink_props *)malloc(sizeof(struct sink_props));
   sink_struct_restore(sink_properties, stream);
   e->sink_properties = sink_properties;
+
+  struct neutrino_props *neutrino_properties =
+      (struct neutrino_props *)malloc(sizeof(struct neutrino_props));
+  neutrino_struct_restore(neutrino_properties, stream);
+  e->neutrino_properties = neutrino_properties;
 
   struct chemistry_global_data *chemistry =
       (struct chemistry_global_data *)malloc(

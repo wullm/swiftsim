@@ -100,6 +100,8 @@ enum task_types {
   task_type_bh_swallow_ghost3, /* Implicit */
   task_type_fof_self,
   task_type_fof_pair,
+  task_type_weight,
+  task_type_weight_out, /* Implicit */
   task_type_sink_in,    /* Implicit */
   task_type_sink_ghost, /* Implicit */
   task_type_sink_out,   /* Implicit */
@@ -194,6 +196,7 @@ enum task_categories {
   task_category_mpi,
   task_category_fof,
   task_category_others,
+  task_category_neutrino,
   task_category_sink,
   task_category_rt,
   task_category_count

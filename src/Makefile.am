@@ -175,6 +175,8 @@ AM_SOURCES += collectgroup.c hydro_space.c equation_of_state.c io_compression.c
 AM_SOURCES += chemistry.c cosmology.c mesh_gravity.c velociraptor_interface.c 
 AM_SOURCES += output_list.c velociraptor_dummy.c logger_io.c memuse.c mpiuse.c memuse_rnodes.c fof.c 
 AM_SOURCES += hashmap.c pressure_floor.c logger_history.c
+AM_SOURCES += runner_weighting.c
+AM_SOURCES += neutrino/fermi_dirac.c
 AM_SOURCES += $(QLA_COOLING_SOURCES) 
 AM_SOURCES += $(EAGLE_COOLING_SOURCES) $(EAGLE_FEEDBACK_SOURCES) 
 AM_SOURCES += $(GRACKLE_COOLING_SOURCES) $(GEAR_FEEDBACK_SOURCES) 
@@ -398,7 +400,7 @@ nobase_noinst_HEADERS += pressure_floor/GEAR/pressure_floor_struct.h pressure_fl
 nobase_noinst_HEADERS += sink/Default/sink.h sink/Default/sink_io.h sink/Default/sink_part.h sink/Default/sink_properties.h 
 nobase_noinst_HEADERS += sink/Default/sink_iact.h
 nobase_noinst_HEADERS += sink.h sink_io.h sink_properties.h
-nobase_noinst_HEADERS += neutrino/neutrino.h
+nobase_noinst_HEADERS += neutrino/neutrino.h neutrino/fermi_dirac.h neutrino_properties.h neutrino/neutrino_properties.h
 
 # Sources and special flags for the gravity library
 libgrav_la_SOURCES = runner_doiact_grav.c
