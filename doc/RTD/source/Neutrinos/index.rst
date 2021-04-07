@@ -7,7 +7,7 @@ Neutrino implementation
 =======================
 
 SWIFT can also be used for cosmological simulations that accurately
-account for the effects of massive neutrinos. At the background level,
+model the effects of massive neutrinos. At the background level,
 massive neutrinos and other relativistic species can be included by
 specifying their number and masses in the cosmology section of the
 parameter file (see :ref:`Parameters_cosmology`).
@@ -23,11 +23,11 @@ and initial momenta. The method can be activated by specifying
 
 The implementation of the :math:`\delta f` method in SWIFT assumes a
 specific method for generating the initial neutrino momenta (see below).
-If initial perturbations are not needed, the initial momenta can be generated
-internally by specifying ``Neutrino:generate_ics`` in the parameter file.
-This will assign ``/PartType6/`` particles to each neutrino mass specified
-in the cosmology and generate new velocities based on the homogeneous
-(unperturbed) Fermi-Dirac distribution.
+If perturbed initial conditions are not needed, the initial momenta can
+be generated internally by specifying ``Neutrino:generate_ics`` in the
+parameter file. This will assign ``/PartType6/`` particles to each
+neutrino mass specified in the cosmology and generate new velocities
+based on the homogeneous (unperturbed) Fermi-Dirac distribution.
 
 Generating Fermi-Dirac momenta
 ------------------------------
@@ -35,8 +35,8 @@ Generating Fermi-Dirac momenta
 The implementation of the :math:`\delta f` method in SWIFT assumes that
 neutrinos were initially assigned a Fermi-Dirac momentum using the following
 method. Each particle has a unique 64-bit unsigned integer :math:`\ell` given
-by the particle ID (plus an optional seed ``Neutrino:neutrino_seed``). This number
-is transformed into a floating point number :math:`u\in(0,1)`, using the
+by the particle ID (plus an optional seed: ``Neutrino:neutrino_seed``). This
+number is transformed into a floating point number :math:`u\in(0,1)`, using the
 following pseudo-code based on splitmix64:
 
 .. code-block:: none
@@ -53,7 +53,7 @@ neutrino particle initial conditions with perturbations, one first generates
 momenta from the unperturbed Fermi-Dirac distribution using the above method
 and then applies perturbations in any suitable manner.
 
-SWIFT also assumes that ``/PartType6/`` particles are assigned to all
-:math:`N_\nu` massive species present in the cosmology, such that the
-particle with unique integer :math:`\ell` corresponds to species
-:math:`\ell\; \% \;N_\nu`.
+When using the :math:`\delta f` method, SWIFT also assumes that ``/PartType6/``
+particles are assigned to all :math:`N_\nu` massive species present in the
+cosmology, such that the particle with unique integer :math:`\ell` corresponds
+to species :math:`i = \ell\; \% \;N_\nu\in[0,N_\nu-1]`.
