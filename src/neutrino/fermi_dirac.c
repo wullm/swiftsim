@@ -239,7 +239,6 @@ static struct anyrng anyrng = {118,           endpoints,     splines,      165,
 double neutrino_seed_to_fermi_dirac(uint64_t seed) {
   /* Scramble the bits with splitmix64 */
   uint64_t A = seed;
-  A = A + 0x9E3779B97f4A7C15;
   A = (A ^ (A >> 30)) * 0xBF58476D1CE4E5B9;
   A = (A ^ (A >> 27)) * 0x94D049BB133111EB;
   A = A ^ (A >> 31);
@@ -279,9 +278,6 @@ double neutrino_seed_to_fermi_dirac(uint64_t seed) {
  * @param seed Random seed to be transformed
  */
 void neutrino_seed_to_direction(uint64_t seed, double *n) {
-  /* Skip the first draw, which is used for the magnitude */
-  seed += 0x9E3779B97f4A7C15;
-
   /* Draw three numbers for the orientation of the momentum vector */
   double u[3];
   for (int i = 0; i < 3; i++) {

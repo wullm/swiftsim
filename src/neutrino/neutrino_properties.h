@@ -33,7 +33,7 @@ struct neutrino_props {
   char generate_ics;
 
   /* Random seed for the neutrino weighting task */
-  long long random_seed;
+  long long neutrino_seed;
 
 };
 
@@ -54,7 +54,7 @@ INLINE static void neutrino_props_init(struct neutrino_props *np,
 
   np->use_delta_f = parser_get_opt_param_int(params, "Neutrino:use_delta_f", 0);
   np->generate_ics = parser_get_opt_param_int(params, "Neutrino:generate_ics", 0);
-  np->random_seed = parser_get_opt_param_int(params, "Neutrino:random_seed", 0);
+  np->neutrino_seed = parser_get_opt_param_int(params, "Neutrino:neutrino_seed", 0);
 
 }
 

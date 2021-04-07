@@ -75,7 +75,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   const double fac = 1.0 / (c_vel * T_eV);
   const double inv_fac = 1. / fac;
   const double inv_mass_factor = 1. / e->neutrino_mass_conversion_factor;
-  const long long neutrino_seed = e->neutrino_properties->random_seed;
+  const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
 
   /* Recurse? */
   if (c->split) {
