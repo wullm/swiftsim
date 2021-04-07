@@ -41,7 +41,7 @@ following pseudo-code based on splitmix64:
 
 .. code-block:: none
 
-    m = l
+    m = l + 0x9E3779B97f4A7C15
     m = (m ^ (m >> 30)) * 0xBF58476D1CE4E5B9;
     m = (m ^ (m >> 27)) * 0x94D049BB133111EB;
     m = m ^ (m >> 31);
