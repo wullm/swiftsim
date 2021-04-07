@@ -13,7 +13,7 @@ specifying their number and masses in the cosmology section of the
 parameter file (see :ref:`Parameters_cosmology`).
 
 At the perturbation level, neutrinos can be included as a separate particle
-species (``/PartType6/``). SWIFT implements the :math:`\delta f` method for
+species (``PartType6``). SWIFT implements the :math:`\delta f` method for
 shot noise suppression (`Elbers et al. 2020
 <https://ui.adsabs.harvard.edu/abs/2020arXiv201007321E/>`_). The method
 works by statistically weighting the particles during the simulation,
@@ -25,7 +25,7 @@ The implementation of the :math:`\delta f` method in SWIFT assumes a
 specific method for generating the initial neutrino momenta (see below).
 If perturbed initial conditions are not needed, the initial momenta can
 be generated internally by specifying ``Neutrino:generate_ics`` in the
-parameter file. This will assign ``/PartType6/`` particles to each
+parameter file. This will assign ``PartType6`` particles to each
 neutrino mass specified in the cosmology and generate new velocities
 based on the homogeneous (unperturbed) Fermi-Dirac distribution.
 
@@ -53,7 +53,7 @@ neutrino particle initial conditions with perturbations, one first generates
 momenta from the unperturbed Fermi-Dirac distribution using the above method
 and then applies perturbations in any suitable manner.
 
-When using the :math:`\delta f` method, SWIFT also assumes that ``/PartType6/``
+When using the :math:`\delta f` method, SWIFT also assumes that ``PartType6``
 particles are assigned to all :math:`N_\nu` massive species present in the
 cosmology, such that the particle with unique integer :math:`\ell` corresponds
 to species :math:`i = \ell\; \% \;N_\nu\in[0,N_\nu-1]`.
