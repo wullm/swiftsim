@@ -1,4 +1,4 @@
-.. Snapshots
+.. Neutrinos
    Willem Elbers, 7 April 2021
 
 .. _neutrinos:
@@ -17,7 +17,7 @@ species (``PartType6``). SWIFT implements the :math:`\delta f` method for
 shot noise suppression (`Elbers et al. 2020
 <https://ui.adsabs.harvard.edu/abs/2020arXiv201007321E/>`_). The method
 works by statistically weighting the particles during the simulation,
-with weights computed from Liouville's equation using their current
+with weights computed from Liouville\'s equation using their current
 and initial momenta. The method can be activated by specifying
 ``Neutrino:use_delta_f`` in the parameter file.
 
