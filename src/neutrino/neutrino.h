@@ -69,10 +69,10 @@ INLINE static double neutrino_mass_factor(
  * @param m_eV The neutrino mass in electron-volts
  * @param fac Conversion factor = 1. / (speed_of_light * T_nu_eV)
  */
-INLINE static double neutrino_momentum(float *v, float m_eV, float fac) {
+INLINE static double neutrino_momentum(float *v, double m_eV, double fac) {
 
-  double v2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-  double vmag = sqrtf(v2);
+  float v2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+  float vmag = sqrtf(v2);
   double p = vmag * fac * m_eV;
   return p;
 }

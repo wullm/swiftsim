@@ -22,7 +22,7 @@
 /* Config parameters. */
 #include "../config.h"
 
-/* Select the correct sink model */
+/* Select the correct neutrino model */
 #include "./neutrino/neutrino_properties.h"
 
 #endif /* SWIFT_NEUTRINO_PROPERTIES_H */

@@ -40,9 +40,6 @@
 #include "timestep_sync.h"
 #include "tracers.h"
 
-/* For convert_gpart_vel() */
-#include "gravity_io.h"
-
 /**
  * @brief Weight the active neutrino particles in a cell using the delta-f
  * method.
