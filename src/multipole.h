@@ -305,8 +305,7 @@ __attribute__((nonnull)) INLINE static void gravity_multipole_print(
   printf("M_000= %12.5e\n", m->M_000);
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
   printf("-------------------------\n");
-  printf("M_100= %12.5e M_010= %12.5e M_001= %12.5e\n", m->M_100, m->M_010,
-         m->M_001);
+  printf("M_100= %12.5e M_010= %12.5e M_001= %12.5e\n", 0., 0., 0.);
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
   printf("-------------------------\n");
@@ -364,10 +363,10 @@ __attribute__((nonnull)) INLINE static void gravity_multipole_add(
   ma->M_000 += mb->M_000;
 
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
-  /* Add 1st order terms (all 0 if we expand around CoM) */
-  ma->M_100 += mb->M_100;
-  ma->M_010 += mb->M_010;
-  ma->M_001 += mb->M_001;
+  /* Add 1st order terms (all 0 since we expand around CoM) */
+  /* ma->M_100 += mb->M_100; */
+  /* ma->M_010 += mb->M_010; */
+  /* ma->M_001 += mb->M_001; */
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
   /* Add 2nd order terms */
@@ -528,28 +527,8 @@ __attribute__((nonnull)) INLINE static int gravity_multipole_equal(
   }
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
   /* Manhattan Norm of 1st order terms */
-  /* Nothing to do here usually: the 1st order terms are 0 if we expand around
-   * CoM, but included anyway in case we don't */
-  const float order1_norm = fabsf(ma->M_001) + fabsf(mb->M_001) +
-                            fabsf(ma->M_010) + fabsf(mb->M_010) +
-                            fabsf(ma->M_100) + fabsf(mb->M_100);
-
-  /* Compare 1st order terms above 1% of norm */
-  if (fabsf(ma->M_001 + mb->M_001) > 0.01f * order1_norm &&
-      fabsf(ma->M_001 - mb->M_001) / fabsf(ma->M_001 + mb->M_001) > tolerance) {
-    message("M_001 term different");
-    return 0;
-  }
-  if (fabsf(ma->M_010 + mb->M_010) > 0.01f * order1_norm &&
-      fabsf(ma->M_010 - mb->M_010) / fabsf(ma->M_010 + mb->M_010) > tolerance) {
-    message("M_010 term different");
-    return 0;
-  }
-  if (fabsf(ma->M_100 + mb->M_100) > 0.01f * order1_norm &&
-      fabsf(ma->M_100 - mb->M_100) / fabsf(ma->M_100 + mb->M_100) > tolerance) {
-    message("M_100 term different");
-    return 0;
-  }
+  /* Nothing to do here all the 1st order terms are 0 since we expand around
+   * CoM */
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
   /* Manhattan Norm of 2nd order terms */
@@ -905,13 +884,13 @@ __attribute__((nonnull)) INLINE static void gravity_multipole_compute_power(
   m->power[0] = m->M_000;
 
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
-  /* 1st order terms (all 0 if we expand around CoM) */
-  power[1] += m->M_001 * m->M_001;
-  power[1] += m->M_010 * m->M_010;
-  power[1] += m->M_100 * m->M_100;
+  /* 1st order terms (all 0 since we expand around CoM) */
+  // power[1] += m->M_001 * m->M_001;
+  // power[1] += m->M_010 * m->M_010;
+  // power[1] += m->M_100 * m->M_100;
 
-  m->power[1] = sqrt(power[1]);
-  // m->power[1] = 0.;
+  // m->power[1] = sqrt(power[1]);
+  m->power[1] = 0.;
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
   /* 2nd order terms */
@@ -1009,14 +988,12 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   float epsilon_max = 0.f;
   float min_old_a_grav_norm = FLT_MAX;
   double mass = 0.0;
-  double abs_mass = 0.0;
   double com[3] = {0.0, 0.0, 0.0};
   double vel[3] = {0.f, 0.f, 0.f};
 
   /* Collect the particle data for CoM. */
   for (int k = 0; k < gcount; k++) {
     const double m = gparts[k].mass;
-    const double abs_m = fabs(m);
     const float epsilon = gravity_get_softening(&gparts[k], grav_props);
 
 #ifdef SWIFT_DEBUG_CHECKS
@@ -1027,23 +1004,22 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
     epsilon_max = max(epsilon_max, epsilon);
     min_old_a_grav_norm = min(min_old_a_grav_norm, gparts[k].old_a_grav_norm);
     mass += m;
-    abs_mass += abs_m;
-    com[0] += gparts[k].x[0] * abs_m;
-    com[1] += gparts[k].x[1] * abs_m;
-    com[2] += gparts[k].x[2] * abs_m;
-    vel[0] += gparts[k].v_full[0] * abs_m;
-    vel[1] += gparts[k].v_full[1] * abs_m;
-    vel[2] += gparts[k].v_full[2] * abs_m;
+    com[0] += gparts[k].x[0] * m;
+    com[1] += gparts[k].x[1] * m;
+    com[2] += gparts[k].x[2] * m;
+    vel[0] += gparts[k].v_full[0] * m;
+    vel[1] += gparts[k].v_full[1] * m;
+    vel[2] += gparts[k].v_full[2] * m;
   }
 
   /* Final operation on CoM */
-  const double iabs_mass = 1.0 / abs_mass;
-  com[0] *= iabs_mass;
-  com[1] *= iabs_mass;
-  com[2] *= iabs_mass;
-  vel[0] *= iabs_mass;
-  vel[1] *= iabs_mass;
-  vel[2] *= iabs_mass;
+  const double imass = 1.0 / mass;
+  com[0] *= imass;
+  com[1] *= imass;
+  com[2] *= imass;
+  vel[0] *= imass;
+  vel[1] *= imass;
+  vel[2] *= imass;
 
   /* Prepare some local counters */
   double r_max2 = 0.;
@@ -1203,10 +1179,10 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
 
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
 
-  /* 1st order terms (all 0 if we expand around CoM) */
-  multi->m_pole.M_100 = M_100;
-  multi->m_pole.M_010 = M_010;
-  multi->m_pole.M_001 = M_001;
+  /* 1st order terms (all 0 since we expand around CoM) */
+  // multi->m_pole.M_100 = M_100;
+  // multi->m_pole.M_010 = M_010;
+  // multi->m_pole.M_001 = M_001;
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
 
@@ -1312,231 +1288,291 @@ __attribute__((nonnull)) INLINE static void gravity_M2M(
   const double dx[3] = {pos_a[0] - pos_b[0], pos_a[1] - pos_b[1],
                         pos_a[2] - pos_b[2]};
 
-  /* Shift 1st order term (all 0 (after add) if we expand around CoM) */
-  m_a->M_100 = m_b->M_100 + X_100(dx) * m_b->M_000;
-  m_a->M_010 = m_b->M_010 + X_010(dx) * m_b->M_000;
-  m_a->M_001 = m_b->M_001 + X_001(dx) * m_b->M_000;
+  /* Shift 1st order term (all 0 (after add) since we expand around CoM) */
+  // m_a->M_100 = m_b->M_100 + X_100(dx) * m_b->M_000;
+  // m_a->M_010 = m_b->M_010 + X_010(dx) * m_b->M_000;
+  // m_a->M_001 = m_b->M_001 + X_001(dx) * m_b->M_000;
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
 
-  /* Shift 2nd order terms */
-  m_a->M_002 = m_b->M_002 + X_001(dx) * m_b->M_001 + X_002(dx) * m_b->M_000;
-  m_a->M_011 = m_b->M_011 + X_001(dx) * m_b->M_010 + X_010(dx) * m_b->M_001 +
-               X_011(dx) * m_b->M_000;
-  m_a->M_020 = m_b->M_020 + X_010(dx) * m_b->M_010 + X_020(dx) * m_b->M_000;
-  m_a->M_101 = m_b->M_101 + X_001(dx) * m_b->M_100 + X_100(dx) * m_b->M_001 +
-               X_101(dx) * m_b->M_000;
-  m_a->M_110 = m_b->M_110 + X_010(dx) * m_b->M_100 + X_100(dx) * m_b->M_010 +
-               X_110(dx) * m_b->M_000;
-  m_a->M_200 = m_b->M_200 + X_100(dx) * m_b->M_100 + X_200(dx) * m_b->M_000;
+  /* Shift 2nd order terms (1st order mpole (all 0) commented out) */
+  m_a->M_002 =
+      m_b->M_002 /* + X_001(dx) * m_b->M_001 */ + X_002(dx) * m_b->M_000;
+  m_a->M_011 =
+      m_b->M_011 /* + X_001(dx) * m_b->M_010 */ /* + X_010(dx) * m_b->M_001 */ +
+      X_011(dx) * m_b->M_000;
+  m_a->M_020 =
+      m_b->M_020 /* + X_010(dx) * m_b->M_010 */ + X_020(dx) * m_b->M_000;
+  m_a->M_101 =
+      m_b->M_101 /* + X_001(dx) * m_b->M_100 */ /* + X_100(dx) * m_b->M_001 */ +
+      X_101(dx) * m_b->M_000;
+  m_a->M_110 =
+      m_b->M_110 /* + X_010(dx) * m_b->M_100 */ /* + X_100(dx) * m_b->M_010 */ +
+      X_110(dx) * m_b->M_000;
+  m_a->M_200 =
+      m_b->M_200 /* + X_100(dx) * m_b->M_100 */ + X_200(dx) * m_b->M_000;
 #endif
 
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 2
 
-  /* Shift 3rd order terms */
-  m_a->M_003 = m_b->M_003 + X_001(dx) * m_b->M_002 + X_002(dx) * m_b->M_001 +
+  /* Shift 3rd order terms (1st order mpole (all 0) commented out) */
+  m_a->M_003 = m_b->M_003 +
+               X_001(dx) * m_b->M_002 /* + X_002(dx) * m_b->M_001 */ +
                X_003(dx) * m_b->M_000;
-  m_a->M_012 = m_b->M_012 + X_001(dx) * m_b->M_011 + X_002(dx) * m_b->M_010 +
-               X_010(dx) * m_b->M_002 + X_011(dx) * m_b->M_001 +
+  m_a->M_012 = m_b->M_012 +
+               X_001(dx) * m_b->M_011 /* + X_002(dx) * m_b->M_010 */ +
+               X_010(dx) * m_b->M_002 /* + X_011(dx) * m_b->M_001 */ +
                X_012(dx) * m_b->M_000;
-  m_a->M_021 = m_b->M_021 + X_001(dx) * m_b->M_020 + X_010(dx) * m_b->M_011 +
-               X_011(dx) * m_b->M_010 + X_020(dx) * m_b->M_001 +
-               X_021(dx) * m_b->M_000;
-  m_a->M_030 = m_b->M_030 + X_010(dx) * m_b->M_020 + X_020(dx) * m_b->M_010 +
+  m_a->M_021 = m_b->M_021 + X_001(dx) * m_b->M_020 +
+               X_010(dx) * m_b->M_011 /* + X_011(dx) * m_b->M_010 */
+                                      /* + X_020(dx) * m_b->M_001 */
+               + X_021(dx) * m_b->M_000;
+  m_a->M_030 = m_b->M_030 +
+               X_010(dx) * m_b->M_020 /* + X_020(dx) * m_b->M_010 */ +
                X_030(dx) * m_b->M_000;
-  m_a->M_102 = m_b->M_102 + X_001(dx) * m_b->M_101 + X_002(dx) * m_b->M_100 +
-               X_100(dx) * m_b->M_002 + X_101(dx) * m_b->M_001 +
+  m_a->M_102 = m_b->M_102 +
+               X_001(dx) * m_b->M_101 /* + X_002(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_002 /* + X_101(dx) * m_b->M_001 */ +
                X_102(dx) * m_b->M_000;
-  m_a->M_111 = m_b->M_111 + X_001(dx) * m_b->M_110 + X_010(dx) * m_b->M_101 +
-               X_011(dx) * m_b->M_100 + X_100(dx) * m_b->M_011 +
-               X_101(dx) * m_b->M_010 + X_110(dx) * m_b->M_001 +
-               X_111(dx) * m_b->M_000;
-  m_a->M_120 = m_b->M_120 + X_010(dx) * m_b->M_110 + X_020(dx) * m_b->M_100 +
-               X_100(dx) * m_b->M_020 + X_110(dx) * m_b->M_010 +
+  m_a->M_111 = m_b->M_111 + X_001(dx) * m_b->M_110 +
+               X_010(dx) * m_b->M_101 /* + X_011(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_011 /* + X_101(dx) * m_b->M_010 */
+                                      /* + X_110(dx) * m_b->M_001 */
+               + X_111(dx) * m_b->M_000;
+  m_a->M_120 = m_b->M_120 +
+               X_010(dx) * m_b->M_110 /* + X_020(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_020 /* + X_110(dx) * m_b->M_010 */ +
                X_120(dx) * m_b->M_000;
-  m_a->M_201 = m_b->M_201 + X_001(dx) * m_b->M_200 + X_100(dx) * m_b->M_101 +
-               X_101(dx) * m_b->M_100 + X_200(dx) * m_b->M_001 +
-               X_201(dx) * m_b->M_000;
-  m_a->M_210 = m_b->M_210 + X_010(dx) * m_b->M_200 + X_100(dx) * m_b->M_110 +
-               X_110(dx) * m_b->M_100 + X_200(dx) * m_b->M_010 +
-               X_210(dx) * m_b->M_000;
-  m_a->M_300 = m_b->M_300 + X_100(dx) * m_b->M_200 + X_200(dx) * m_b->M_100 +
+  m_a->M_201 = m_b->M_201 + X_001(dx) * m_b->M_200 +
+               X_100(dx) * m_b->M_101 /* + X_101(dx) * m_b->M_100 */
+                                      /* + X_200(dx) * m_b->M_001 */
+               + X_201(dx) * m_b->M_000;
+  m_a->M_210 = m_b->M_210 + X_010(dx) * m_b->M_200 +
+               X_100(dx) * m_b->M_110 /* + X_110(dx) * m_b->M_100 */
+                                      /* + X_200(dx) * m_b->M_010 */
+               + X_210(dx) * m_b->M_000;
+  m_a->M_300 = m_b->M_300 +
+               X_100(dx) * m_b->M_200 /* + X_200(dx) * m_b->M_100 */ +
                X_300(dx) * m_b->M_000;
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 3
 
-  /* Shift 4th order terms */
-  m_a->M_004 = m_b->M_004 + X_001(dx) * m_b->M_003 + X_002(dx) * m_b->M_002 +
-               X_003(dx) * m_b->M_001 + X_004(dx) * m_b->M_000;
-  m_a->M_013 = m_b->M_013 + X_001(dx) * m_b->M_012 + X_002(dx) * m_b->M_011 +
-               X_003(dx) * m_b->M_010 + X_010(dx) * m_b->M_003 +
-               X_011(dx) * m_b->M_002 + X_012(dx) * m_b->M_001 +
+  /* Shift 4th order terms (1st order mpole (all 0) commented out) */
+  m_a->M_004 = m_b->M_004 + X_001(dx) * m_b->M_003 +
+               X_002(dx) * m_b->M_002 /* + X_003(dx) * m_b->M_001 */ +
+               X_004(dx) * m_b->M_000;
+  m_a->M_013 = m_b->M_013 + X_001(dx) * m_b->M_012 +
+               X_002(dx) * m_b->M_011 /* + X_003(dx) * m_b->M_010 */ +
+               X_010(dx) * m_b->M_003 +
+               X_011(dx) * m_b->M_002 /* + X_012(dx) * m_b->M_001 */ +
                X_013(dx) * m_b->M_000;
   m_a->M_022 = m_b->M_022 + X_001(dx) * m_b->M_021 + X_002(dx) * m_b->M_020 +
-               X_010(dx) * m_b->M_012 + X_011(dx) * m_b->M_011 +
-               X_012(dx) * m_b->M_010 + X_020(dx) * m_b->M_002 +
-               X_021(dx) * m_b->M_001 + X_022(dx) * m_b->M_000;
+               X_010(dx) * m_b->M_012 +
+               X_011(dx) * m_b->M_011 /* + X_012(dx) * m_b->M_010 */ +
+               X_020(dx) * m_b->M_002 /* + X_021(dx) * m_b->M_001 */ +
+               X_022(dx) * m_b->M_000;
   m_a->M_031 = m_b->M_031 + X_001(dx) * m_b->M_030 + X_010(dx) * m_b->M_021 +
-               X_011(dx) * m_b->M_020 + X_020(dx) * m_b->M_011 +
-               X_021(dx) * m_b->M_010 + X_030(dx) * m_b->M_001 +
-               X_031(dx) * m_b->M_000;
-  m_a->M_040 = m_b->M_040 + X_010(dx) * m_b->M_030 + X_020(dx) * m_b->M_020 +
-               X_030(dx) * m_b->M_010 + X_040(dx) * m_b->M_000;
-  m_a->M_103 = m_b->M_103 + X_001(dx) * m_b->M_102 + X_002(dx) * m_b->M_101 +
-               X_003(dx) * m_b->M_100 + X_100(dx) * m_b->M_003 +
-               X_101(dx) * m_b->M_002 + X_102(dx) * m_b->M_001 +
+               X_011(dx) * m_b->M_020 +
+               X_020(dx) * m_b->M_011 /* + X_021(dx) * m_b->M_010 */
+                                      /* + X_030(dx) * m_b->M_001 */
+               + X_031(dx) * m_b->M_000;
+  m_a->M_040 = m_b->M_040 + X_010(dx) * m_b->M_030 +
+               X_020(dx) * m_b->M_020 /* + X_030(dx) * m_b->M_010 */ +
+               X_040(dx) * m_b->M_000;
+  m_a->M_103 = m_b->M_103 + X_001(dx) * m_b->M_102 +
+               X_002(dx) * m_b->M_101 /* + X_003(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_003 +
+               X_101(dx) * m_b->M_002 /* + X_102(dx) * m_b->M_001 */ +
                X_103(dx) * m_b->M_000;
-  m_a->M_112 =
-      m_b->M_112 + X_001(dx) * m_b->M_111 + X_002(dx) * m_b->M_110 +
-      X_010(dx) * m_b->M_102 + X_011(dx) * m_b->M_101 + X_012(dx) * m_b->M_100 +
-      X_100(dx) * m_b->M_012 + X_101(dx) * m_b->M_011 + X_102(dx) * m_b->M_010 +
-      X_110(dx) * m_b->M_002 + X_111(dx) * m_b->M_001 + X_112(dx) * m_b->M_000;
-  m_a->M_121 =
-      m_b->M_121 + X_001(dx) * m_b->M_120 + X_010(dx) * m_b->M_111 +
-      X_011(dx) * m_b->M_110 + X_020(dx) * m_b->M_101 + X_021(dx) * m_b->M_100 +
-      X_100(dx) * m_b->M_021 + X_101(dx) * m_b->M_020 + X_110(dx) * m_b->M_011 +
-      X_111(dx) * m_b->M_010 + X_120(dx) * m_b->M_001 + X_121(dx) * m_b->M_000;
-  m_a->M_130 = m_b->M_130 + X_010(dx) * m_b->M_120 + X_020(dx) * m_b->M_110 +
-               X_030(dx) * m_b->M_100 + X_100(dx) * m_b->M_030 +
-               X_110(dx) * m_b->M_020 + X_120(dx) * m_b->M_010 +
+  m_a->M_112 = m_b->M_112 + X_001(dx) * m_b->M_111 + X_002(dx) * m_b->M_110 +
+               X_010(dx) * m_b->M_102 +
+               X_011(dx) * m_b->M_101 /* + X_012(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_012 +
+               X_101(dx) * m_b->M_011 /* + X_102(dx) * m_b->M_010 */ +
+               X_110(dx) * m_b->M_002 /* + X_111(dx) * m_b->M_001 */ +
+               X_112(dx) * m_b->M_000;
+  m_a->M_121 = m_b->M_121 + X_001(dx) * m_b->M_120 + X_010(dx) * m_b->M_111 +
+               X_011(dx) * m_b->M_110 +
+               X_020(dx) * m_b->M_101 /* + X_021(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_021 + X_101(dx) * m_b->M_020 +
+               X_110(dx) * m_b->M_011 /* + X_111(dx) * m_b->M_010 */
+                                      /* + X_120(dx) * m_b->M_001 */
+               + X_121(dx) * m_b->M_000;
+  m_a->M_130 = m_b->M_130 + X_010(dx) * m_b->M_120 +
+               X_020(dx) * m_b->M_110 /* + X_030(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_030 +
+               X_110(dx) * m_b->M_020 /* + X_120(dx) * m_b->M_010 */ +
                X_130(dx) * m_b->M_000;
   m_a->M_202 = m_b->M_202 + X_001(dx) * m_b->M_201 + X_002(dx) * m_b->M_200 +
-               X_100(dx) * m_b->M_102 + X_101(dx) * m_b->M_101 +
-               X_102(dx) * m_b->M_100 + X_200(dx) * m_b->M_002 +
-               X_201(dx) * m_b->M_001 + X_202(dx) * m_b->M_000;
-  m_a->M_211 =
-      m_b->M_211 + X_001(dx) * m_b->M_210 + X_010(dx) * m_b->M_201 +
-      X_011(dx) * m_b->M_200 + X_100(dx) * m_b->M_111 + X_101(dx) * m_b->M_110 +
-      X_110(dx) * m_b->M_101 + X_111(dx) * m_b->M_100 + X_200(dx) * m_b->M_011 +
-      X_201(dx) * m_b->M_010 + X_210(dx) * m_b->M_001 + X_211(dx) * m_b->M_000;
+               X_100(dx) * m_b->M_102 +
+               X_101(dx) * m_b->M_101 /* + X_102(dx) * m_b->M_100 */ +
+               X_200(dx) * m_b->M_002 /* + X_201(dx) * m_b->M_001 */ +
+               X_202(dx) * m_b->M_000;
+  m_a->M_211 = m_b->M_211 + X_001(dx) * m_b->M_210 + X_010(dx) * m_b->M_201 +
+               X_011(dx) * m_b->M_200 + X_100(dx) * m_b->M_111 +
+               X_101(dx) * m_b->M_110 +
+               X_110(dx) * m_b->M_101 /* + X_111(dx) * m_b->M_100 */ +
+               X_200(dx) * m_b->M_011 /* + X_201(dx) * m_b->M_010 */
+                                      /* + X_210(dx) * m_b->M_001 */
+               + X_211(dx) * m_b->M_000;
   m_a->M_220 = m_b->M_220 + X_010(dx) * m_b->M_210 + X_020(dx) * m_b->M_200 +
-               X_100(dx) * m_b->M_120 + X_110(dx) * m_b->M_110 +
-               X_120(dx) * m_b->M_100 + X_200(dx) * m_b->M_020 +
-               X_210(dx) * m_b->M_010 + X_220(dx) * m_b->M_000;
+               X_100(dx) * m_b->M_120 +
+               X_110(dx) * m_b->M_110 /* + X_120(dx) * m_b->M_100 */ +
+               X_200(dx) * m_b->M_020 /* + X_210(dx) * m_b->M_010 */ +
+               X_220(dx) * m_b->M_000;
   m_a->M_301 = m_b->M_301 + X_001(dx) * m_b->M_300 + X_100(dx) * m_b->M_201 +
-               X_101(dx) * m_b->M_200 + X_200(dx) * m_b->M_101 +
-               X_201(dx) * m_b->M_100 + X_300(dx) * m_b->M_001 +
-               X_301(dx) * m_b->M_000;
+               X_101(dx) * m_b->M_200 +
+               X_200(dx) * m_b->M_101 /* + X_201(dx) * m_b->M_100 */
+                                      /* + X_300(dx) * m_b->M_001 */
+               + X_301(dx) * m_b->M_000;
   m_a->M_310 = m_b->M_310 + X_010(dx) * m_b->M_300 + X_100(dx) * m_b->M_210 +
-               X_110(dx) * m_b->M_200 + X_200(dx) * m_b->M_110 +
-               X_210(dx) * m_b->M_100 + X_300(dx) * m_b->M_010 +
-               X_310(dx) * m_b->M_000;
-  m_a->M_400 = m_b->M_400 + X_100(dx) * m_b->M_300 + X_200(dx) * m_b->M_200 +
-               X_300(dx) * m_b->M_100 + X_400(dx) * m_b->M_000;
+               X_110(dx) * m_b->M_200 +
+               X_200(dx) * m_b->M_110 /* + X_210(dx) * m_b->M_100 */
+                                      /* + X_300(dx) * m_b->M_010 */
+               + X_310(dx) * m_b->M_000;
+  m_a->M_400 = m_b->M_400 + X_100(dx) * m_b->M_300 +
+               X_200(dx) * m_b->M_200 /* + X_300(dx) * m_b->M_100 */ +
+               X_400(dx) * m_b->M_000;
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 4
 
-  /* Shift 5th order terms */
+  /* Shift 5th order terms (1st order mpole (all 0) commented out) */
   m_a->M_005 = m_b->M_005 + X_001(dx) * m_b->M_004 + X_002(dx) * m_b->M_003 +
-               X_003(dx) * m_b->M_002 + X_004(dx) * m_b->M_001 +
+               X_003(dx) * m_b->M_002 /* + X_004(dx) * m_b->M_001 */ +
                X_005(dx) * m_b->M_000;
   m_a->M_014 = m_b->M_014 + X_001(dx) * m_b->M_013 + X_002(dx) * m_b->M_012 +
-               X_003(dx) * m_b->M_011 + X_004(dx) * m_b->M_010 +
+               X_003(dx) * m_b->M_011 /* + X_004(dx) * m_b->M_010 */ +
                X_010(dx) * m_b->M_004 + X_011(dx) * m_b->M_003 +
-               X_012(dx) * m_b->M_002 + X_013(dx) * m_b->M_001 +
+               X_012(dx) * m_b->M_002 /* + X_013(dx) * m_b->M_001 */ +
                X_014(dx) * m_b->M_000;
-  m_a->M_023 =
-      m_b->M_023 + X_001(dx) * m_b->M_022 + X_002(dx) * m_b->M_021 +
-      X_003(dx) * m_b->M_020 + X_010(dx) * m_b->M_013 + X_011(dx) * m_b->M_012 +
-      X_012(dx) * m_b->M_011 + X_013(dx) * m_b->M_010 + X_020(dx) * m_b->M_003 +
-      X_021(dx) * m_b->M_002 + X_022(dx) * m_b->M_001 + X_023(dx) * m_b->M_000;
-  m_a->M_032 =
-      m_b->M_032 + X_001(dx) * m_b->M_031 + X_002(dx) * m_b->M_030 +
-      X_010(dx) * m_b->M_022 + X_011(dx) * m_b->M_021 + X_012(dx) * m_b->M_020 +
-      X_020(dx) * m_b->M_012 + X_021(dx) * m_b->M_011 + X_022(dx) * m_b->M_010 +
-      X_030(dx) * m_b->M_002 + X_031(dx) * m_b->M_001 + X_032(dx) * m_b->M_000;
+  m_a->M_023 = m_b->M_023 + X_001(dx) * m_b->M_022 + X_002(dx) * m_b->M_021 +
+               X_003(dx) * m_b->M_020 + X_010(dx) * m_b->M_013 +
+               X_011(dx) * m_b->M_012 +
+               X_012(dx) * m_b->M_011 /* + X_013(dx) * m_b->M_010 */ +
+               X_020(dx) * m_b->M_003 +
+               X_021(dx) * m_b->M_002 /* + X_022(dx) * m_b->M_001 */ +
+               X_023(dx) * m_b->M_000;
+  m_a->M_032 = m_b->M_032 + X_001(dx) * m_b->M_031 + X_002(dx) * m_b->M_030 +
+               X_010(dx) * m_b->M_022 + X_011(dx) * m_b->M_021 +
+               X_012(dx) * m_b->M_020 + X_020(dx) * m_b->M_012 +
+               X_021(dx) * m_b->M_011 /* + X_022(dx) * m_b->M_010 */ +
+               X_030(dx) * m_b->M_002 /* + X_031(dx) * m_b->M_001 */ +
+               X_032(dx) * m_b->M_000;
   m_a->M_041 = m_b->M_041 + X_001(dx) * m_b->M_040 + X_010(dx) * m_b->M_031 +
                X_011(dx) * m_b->M_030 + X_020(dx) * m_b->M_021 +
-               X_021(dx) * m_b->M_020 + X_030(dx) * m_b->M_011 +
-               X_031(dx) * m_b->M_010 + X_040(dx) * m_b->M_001 +
-               X_041(dx) * m_b->M_000;
+               X_021(dx) * m_b->M_020 +
+               X_030(dx) * m_b->M_011 /* + X_031(dx) * m_b->M_010 */
+                                      /* + X_040(dx) * m_b->M_001 */
+               + X_041(dx) * m_b->M_000;
   m_a->M_050 = m_b->M_050 + X_010(dx) * m_b->M_040 + X_020(dx) * m_b->M_030 +
-               X_030(dx) * m_b->M_020 + X_040(dx) * m_b->M_010 +
+               X_030(dx) * m_b->M_020 /* + X_040(dx) * m_b->M_010 */ +
                X_050(dx) * m_b->M_000;
   m_a->M_104 = m_b->M_104 + X_001(dx) * m_b->M_103 + X_002(dx) * m_b->M_102 +
-               X_003(dx) * m_b->M_101 + X_004(dx) * m_b->M_100 +
+               X_003(dx) * m_b->M_101 /* + X_004(dx) * m_b->M_100 */ +
                X_100(dx) * m_b->M_004 + X_101(dx) * m_b->M_003 +
-               X_102(dx) * m_b->M_002 + X_103(dx) * m_b->M_001 +
+               X_102(dx) * m_b->M_002 /* + X_103(dx) * m_b->M_001 */ +
                X_104(dx) * m_b->M_000;
-  m_a->M_113 =
-      m_b->M_113 + X_001(dx) * m_b->M_112 + X_002(dx) * m_b->M_111 +
-      X_003(dx) * m_b->M_110 + X_010(dx) * m_b->M_103 + X_011(dx) * m_b->M_102 +
-      X_012(dx) * m_b->M_101 + X_013(dx) * m_b->M_100 + X_100(dx) * m_b->M_013 +
-      X_101(dx) * m_b->M_012 + X_102(dx) * m_b->M_011 + X_103(dx) * m_b->M_010 +
-      X_110(dx) * m_b->M_003 + X_111(dx) * m_b->M_002 + X_112(dx) * m_b->M_001 +
-      X_113(dx) * m_b->M_000;
-  m_a->M_122 =
-      m_b->M_122 + X_001(dx) * m_b->M_121 + X_002(dx) * m_b->M_120 +
-      X_010(dx) * m_b->M_112 + X_011(dx) * m_b->M_111 + X_012(dx) * m_b->M_110 +
-      X_020(dx) * m_b->M_102 + X_021(dx) * m_b->M_101 + X_022(dx) * m_b->M_100 +
-      X_100(dx) * m_b->M_022 + X_101(dx) * m_b->M_021 + X_102(dx) * m_b->M_020 +
-      X_110(dx) * m_b->M_012 + X_111(dx) * m_b->M_011 + X_112(dx) * m_b->M_010 +
-      X_120(dx) * m_b->M_002 + X_121(dx) * m_b->M_001 + X_122(dx) * m_b->M_000;
-  m_a->M_131 =
-      m_b->M_131 + X_001(dx) * m_b->M_130 + X_010(dx) * m_b->M_121 +
-      X_011(dx) * m_b->M_120 + X_020(dx) * m_b->M_111 + X_021(dx) * m_b->M_110 +
-      X_030(dx) * m_b->M_101 + X_031(dx) * m_b->M_100 + X_100(dx) * m_b->M_031 +
-      X_101(dx) * m_b->M_030 + X_110(dx) * m_b->M_021 + X_111(dx) * m_b->M_020 +
-      X_120(dx) * m_b->M_011 + X_121(dx) * m_b->M_010 + X_130(dx) * m_b->M_001 +
-      X_131(dx) * m_b->M_000;
+  m_a->M_113 = m_b->M_113 + X_001(dx) * m_b->M_112 + X_002(dx) * m_b->M_111 +
+               X_003(dx) * m_b->M_110 + X_010(dx) * m_b->M_103 +
+               X_011(dx) * m_b->M_102 +
+               X_012(dx) * m_b->M_101 /* + X_013(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_013 + X_101(dx) * m_b->M_012 +
+               X_102(dx) * m_b->M_011 /* + X_103(dx) * m_b->M_010 */ +
+               X_110(dx) * m_b->M_003 +
+               X_111(dx) * m_b->M_002 /* + X_112(dx) * m_b->M_001 */ +
+               X_113(dx) * m_b->M_000;
+  m_a->M_122 = m_b->M_122 + X_001(dx) * m_b->M_121 + X_002(dx) * m_b->M_120 +
+               X_010(dx) * m_b->M_112 + X_011(dx) * m_b->M_111 +
+               X_012(dx) * m_b->M_110 + X_020(dx) * m_b->M_102 +
+               X_021(dx) * m_b->M_101 /* + X_022(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_022 + X_101(dx) * m_b->M_021 +
+               X_102(dx) * m_b->M_020 + X_110(dx) * m_b->M_012 +
+               X_111(dx) * m_b->M_011 /* + X_112(dx) * m_b->M_010 */ +
+               X_120(dx) * m_b->M_002 /* + X_121(dx) * m_b->M_001 */ +
+               X_122(dx) * m_b->M_000;
+  m_a->M_131 = m_b->M_131 + X_001(dx) * m_b->M_130 + X_010(dx) * m_b->M_121 +
+               X_011(dx) * m_b->M_120 + X_020(dx) * m_b->M_111 +
+               X_021(dx) * m_b->M_110 +
+               X_030(dx) * m_b->M_101 /* + X_031(dx) * m_b->M_100 */ +
+               X_100(dx) * m_b->M_031 + X_101(dx) * m_b->M_030 +
+               X_110(dx) * m_b->M_021 + X_111(dx) * m_b->M_020 +
+               X_120(dx) * m_b->M_011 /* + X_121(dx) * m_b->M_010 */
+                                      /* + X_130(dx) * m_b->M_001 */
+               + X_131(dx) * m_b->M_000;
   m_a->M_140 = m_b->M_140 + X_010(dx) * m_b->M_130 + X_020(dx) * m_b->M_120 +
-               X_030(dx) * m_b->M_110 + X_040(dx) * m_b->M_100 +
+               X_030(dx) * m_b->M_110 /* + X_040(dx) * m_b->M_100 */ +
                X_100(dx) * m_b->M_040 + X_110(dx) * m_b->M_030 +
-               X_120(dx) * m_b->M_020 + X_130(dx) * m_b->M_010 +
+               X_120(dx) * m_b->M_020 /* + X_130(dx) * m_b->M_010 */ +
                X_140(dx) * m_b->M_000;
-  m_a->M_203 =
-      m_b->M_203 + X_001(dx) * m_b->M_202 + X_002(dx) * m_b->M_201 +
-      X_003(dx) * m_b->M_200 + X_100(dx) * m_b->M_103 + X_101(dx) * m_b->M_102 +
-      X_102(dx) * m_b->M_101 + X_103(dx) * m_b->M_100 + X_200(dx) * m_b->M_003 +
-      X_201(dx) * m_b->M_002 + X_202(dx) * m_b->M_001 + X_203(dx) * m_b->M_000;
-  m_a->M_212 =
-      m_b->M_212 + X_001(dx) * m_b->M_211 + X_002(dx) * m_b->M_210 +
-      X_010(dx) * m_b->M_202 + X_011(dx) * m_b->M_201 + X_012(dx) * m_b->M_200 +
-      X_100(dx) * m_b->M_112 + X_101(dx) * m_b->M_111 + X_102(dx) * m_b->M_110 +
-      X_110(dx) * m_b->M_102 + X_111(dx) * m_b->M_101 + X_112(dx) * m_b->M_100 +
-      X_200(dx) * m_b->M_012 + X_201(dx) * m_b->M_011 + X_202(dx) * m_b->M_010 +
-      X_210(dx) * m_b->M_002 + X_211(dx) * m_b->M_001 + X_212(dx) * m_b->M_000;
-  m_a->M_221 =
-      m_b->M_221 + X_001(dx) * m_b->M_220 + X_010(dx) * m_b->M_211 +
-      X_011(dx) * m_b->M_210 + X_020(dx) * m_b->M_201 + X_021(dx) * m_b->M_200 +
-      X_100(dx) * m_b->M_121 + X_101(dx) * m_b->M_120 + X_110(dx) * m_b->M_111 +
-      X_111(dx) * m_b->M_110 + X_120(dx) * m_b->M_101 + X_121(dx) * m_b->M_100 +
-      X_200(dx) * m_b->M_021 + X_201(dx) * m_b->M_020 + X_210(dx) * m_b->M_011 +
-      X_211(dx) * m_b->M_010 + X_220(dx) * m_b->M_001 + X_221(dx) * m_b->M_000;
-  m_a->M_230 =
-      m_b->M_230 + X_010(dx) * m_b->M_220 + X_020(dx) * m_b->M_210 +
-      X_030(dx) * m_b->M_200 + X_100(dx) * m_b->M_130 + X_110(dx) * m_b->M_120 +
-      X_120(dx) * m_b->M_110 + X_130(dx) * m_b->M_100 + X_200(dx) * m_b->M_030 +
-      X_210(dx) * m_b->M_020 + X_220(dx) * m_b->M_010 + X_230(dx) * m_b->M_000;
-  m_a->M_302 =
-      m_b->M_302 + X_001(dx) * m_b->M_301 + X_002(dx) * m_b->M_300 +
-      X_100(dx) * m_b->M_202 + X_101(dx) * m_b->M_201 + X_102(dx) * m_b->M_200 +
-      X_200(dx) * m_b->M_102 + X_201(dx) * m_b->M_101 + X_202(dx) * m_b->M_100 +
-      X_300(dx) * m_b->M_002 + X_301(dx) * m_b->M_001 + X_302(dx) * m_b->M_000;
-  m_a->M_311 =
-      m_b->M_311 + X_001(dx) * m_b->M_310 + X_010(dx) * m_b->M_301 +
-      X_011(dx) * m_b->M_300 + X_100(dx) * m_b->M_211 + X_101(dx) * m_b->M_210 +
-      X_110(dx) * m_b->M_201 + X_111(dx) * m_b->M_200 + X_200(dx) * m_b->M_111 +
-      X_201(dx) * m_b->M_110 + X_210(dx) * m_b->M_101 + X_211(dx) * m_b->M_100 +
-      X_300(dx) * m_b->M_011 + X_301(dx) * m_b->M_010 + X_310(dx) * m_b->M_001 +
-      X_311(dx) * m_b->M_000;
-  m_a->M_320 =
-      m_b->M_320 + X_010(dx) * m_b->M_310 + X_020(dx) * m_b->M_300 +
-      X_100(dx) * m_b->M_220 + X_110(dx) * m_b->M_210 + X_120(dx) * m_b->M_200 +
-      X_200(dx) * m_b->M_120 + X_210(dx) * m_b->M_110 + X_220(dx) * m_b->M_100 +
-      X_300(dx) * m_b->M_020 + X_310(dx) * m_b->M_010 + X_320(dx) * m_b->M_000;
+  m_a->M_203 = m_b->M_203 + X_001(dx) * m_b->M_202 + X_002(dx) * m_b->M_201 +
+               X_003(dx) * m_b->M_200 + X_100(dx) * m_b->M_103 +
+               X_101(dx) * m_b->M_102 +
+               X_102(dx) * m_b->M_101 /* + X_103(dx) * m_b->M_100 */ +
+               X_200(dx) * m_b->M_003 +
+               X_201(dx) * m_b->M_002 /* + X_202(dx) * m_b->M_001 */ +
+               X_203(dx) * m_b->M_000;
+  m_a->M_212 = m_b->M_212 + X_001(dx) * m_b->M_211 + X_002(dx) * m_b->M_210 +
+               X_010(dx) * m_b->M_202 + X_011(dx) * m_b->M_201 +
+               X_012(dx) * m_b->M_200 + X_100(dx) * m_b->M_112 +
+               X_101(dx) * m_b->M_111 + X_102(dx) * m_b->M_110 +
+               X_110(dx) * m_b->M_102 +
+               X_111(dx) * m_b->M_101 /* + X_112(dx) * m_b->M_100 */ +
+               X_200(dx) * m_b->M_012 +
+               X_201(dx) * m_b->M_011 /* + X_202(dx) * m_b->M_010 */ +
+               X_210(dx) * m_b->M_002 /* + X_211(dx) * m_b->M_001 */ +
+               X_212(dx) * m_b->M_000;
+  m_a->M_221 = m_b->M_221 + X_001(dx) * m_b->M_220 + X_010(dx) * m_b->M_211 +
+               X_011(dx) * m_b->M_210 + X_020(dx) * m_b->M_201 +
+               X_021(dx) * m_b->M_200 + X_100(dx) * m_b->M_121 +
+               X_101(dx) * m_b->M_120 + X_110(dx) * m_b->M_111 +
+               X_111(dx) * m_b->M_110 +
+               X_120(dx) * m_b->M_101 /* + X_121(dx) * m_b->M_100 */ +
+               X_200(dx) * m_b->M_021 + X_201(dx) * m_b->M_020 +
+               X_210(dx) * m_b->M_011 /* + X_211(dx) * m_b->M_010 */
+                                      /* + X_220(dx) * m_b->M_001 */
+               + X_221(dx) * m_b->M_000;
+  m_a->M_230 = m_b->M_230 + X_010(dx) * m_b->M_220 + X_020(dx) * m_b->M_210 +
+               X_030(dx) * m_b->M_200 + X_100(dx) * m_b->M_130 +
+               X_110(dx) * m_b->M_120 +
+               X_120(dx) * m_b->M_110 /* + X_130(dx) * m_b->M_100 */ +
+               X_200(dx) * m_b->M_030 +
+               X_210(dx) * m_b->M_020 /* + X_220(dx) * m_b->M_010 */ +
+               X_230(dx) * m_b->M_000;
+  m_a->M_302 = m_b->M_302 + X_001(dx) * m_b->M_301 + X_002(dx) * m_b->M_300 +
+               X_100(dx) * m_b->M_202 + X_101(dx) * m_b->M_201 +
+               X_102(dx) * m_b->M_200 + X_200(dx) * m_b->M_102 +
+               X_201(dx) * m_b->M_101 /* + X_202(dx) * m_b->M_100 */ +
+               X_300(dx) * m_b->M_002 /* + X_301(dx) * m_b->M_001 */ +
+               X_302(dx) * m_b->M_000;
+  m_a->M_311 = m_b->M_311 + X_001(dx) * m_b->M_310 + X_010(dx) * m_b->M_301 +
+               X_011(dx) * m_b->M_300 + X_100(dx) * m_b->M_211 +
+               X_101(dx) * m_b->M_210 + X_110(dx) * m_b->M_201 +
+               X_111(dx) * m_b->M_200 + X_200(dx) * m_b->M_111 +
+               X_201(dx) * m_b->M_110 +
+               X_210(dx) * m_b->M_101 /* + X_211(dx) * m_b->M_100 */ +
+               X_300(dx) * m_b->M_011 /* + X_301(dx) * m_b->M_010 */
+                                      /* + X_310(dx) * m_b->M_001 */
+               + X_311(dx) * m_b->M_000;
+  m_a->M_320 = m_b->M_320 + X_010(dx) * m_b->M_310 + X_020(dx) * m_b->M_300 +
+               X_100(dx) * m_b->M_220 + X_110(dx) * m_b->M_210 +
+               X_120(dx) * m_b->M_200 + X_200(dx) * m_b->M_120 +
+               X_210(dx) * m_b->M_110 /* + X_220(dx) * m_b->M_100 */ +
+               X_300(dx) * m_b->M_020 /* + X_310(dx) * m_b->M_010 */ +
+               X_320(dx) * m_b->M_000;
   m_a->M_401 = m_b->M_401 + X_001(dx) * m_b->M_400 + X_100(dx) * m_b->M_301 +
                X_101(dx) * m_b->M_300 + X_200(dx) * m_b->M_201 +
-               X_201(dx) * m_b->M_200 + X_300(dx) * m_b->M_101 +
-               X_301(dx) * m_b->M_100 + X_400(dx) * m_b->M_001 +
-               X_401(dx) * m_b->M_000;
+               X_201(dx) * m_b->M_200 +
+               X_300(dx) * m_b->M_101 /* + X_301(dx) * m_b->M_100 */
+                                      /* + X_400(dx) * m_b->M_001 */
+               + X_401(dx) * m_b->M_000;
   m_a->M_410 = m_b->M_410 + X_010(dx) * m_b->M_400 + X_100(dx) * m_b->M_310 +
                X_110(dx) * m_b->M_300 + X_200(dx) * m_b->M_210 +
-               X_210(dx) * m_b->M_200 + X_300(dx) * m_b->M_110 +
-               X_310(dx) * m_b->M_100 + X_400(dx) * m_b->M_010 +
-               X_410(dx) * m_b->M_000;
+               X_210(dx) * m_b->M_200 +
+               X_300(dx) * m_b->M_110 /* + X_310(dx) * m_b->M_100 */
+                                      /* + X_400(dx) * m_b->M_010 */
+               + X_410(dx) * m_b->M_000;
   m_a->M_500 = m_b->M_500 + X_100(dx) * m_b->M_400 + X_200(dx) * m_b->M_300 +
-               X_300(dx) * m_b->M_200 + X_400(dx) * m_b->M_100 +
+               X_300(dx) * m_b->M_200 /* + X_400(dx) * m_b->M_100 */ +
                X_500(dx) * m_b->M_000;
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 5
@@ -1589,10 +1625,11 @@ __attribute__((nonnull)) INLINE static void gravity_M2L_apply(
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
 
   /* The dipole term is zero when using the CoM */
-  /* We keep them written to maintain the logical structure. */
-  const float M_100 = m_a->M_100;
-  const float M_010 = m_a->M_010;
-  const float M_001 = m_a->M_001;
+  /* The compiler will optimize out the terms in the equations */
+  /* below. We keep them written to maintain the logical structure. */
+  const float M_100 = 0.f;
+  const float M_010 = 0.f;
+  const float M_001 = 0.f;
 
   const float D_100 = pot->D_100;
   const float D_010 = pot->D_010;
@@ -2247,27 +2284,36 @@ __attribute__((always_inline, nonnull)) INLINE static void gravity_M2P(
   /* The dipole term is zero when using the CoM */
   /* We keep them written to maintain the logical structure. */
 
-  const float M_100 = m->M_100;
-  const float M_010 = m->M_010;
-  const float M_001 = m->M_001;
+  /* const float M_100 = 0.f; */
+  /* const float M_010 = 0.f; */
+  /* const float M_001 = 0.f; */
 
+  /* const float D_200 = d.D_200; */
+  /* const float D_020 = d.D_020; */
+  /* const float D_002 = d.D_002; */
+  /* const float D_110 = d.D_110; */
+  /* const float D_101 = d.D_101; */
+  /* const float D_011 = d.D_011; */
+
+  /*  1st order multipole term (addition to rank 0) */
+  /* l->F_000 += M_100 * D_100 + M_010 * D_010 + M_001 * D_001; */
+
+  /*  2nd order multipole term (addition to rank 1) */
+  /* l->F_100 += M_100 * D_200 + M_010 * D_110 + M_001 * D_101; */
+  /* l->F_010 += M_100 * D_110 + M_010 * D_020 + M_001 * D_011; */
+  /* l->F_001 += M_100 * D_101 + M_010 * D_011 + M_001 * D_002; */
+
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 1
+
+  /* To keep the logic these would be defined at order 1 but
+     since all the M terms are 0 we did not define them above */
   const float D_200 = d.D_200;
   const float D_020 = d.D_020;
   const float D_002 = d.D_002;
   const float D_110 = d.D_110;
   const float D_101 = d.D_101;
   const float D_011 = d.D_011;
-
-  /*  1st order multipole term (addition to rank 0) */
-  l->F_000 += M_100 * D_100 + M_010 * D_010 + M_001 * D_001;
-
-  /*  2nd order multipole term (addition to rank 1) */
-  l->F_100 += M_100 * D_200 + M_010 * D_110 + M_001 * D_101;
-  l->F_010 += M_100 * D_110 + M_010 * D_020 + M_001 * D_011;
-  l->F_001 += M_100 * D_101 + M_010 * D_011 + M_001 * D_002;
-
-#endif
-#if SELF_GRAVITY_MULTIPOLE_ORDER > 1
 
   const float M_200 = m->M_200;
   const float M_020 = m->M_020;
