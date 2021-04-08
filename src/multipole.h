@@ -364,9 +364,11 @@ __attribute__((nonnull)) INLINE static void gravity_multipole_add(
 
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
   /* Add 1st order terms (all 0 since we expand around CoM) */
-  /* ma->M_100 += mb->M_100; */
-  /* ma->M_010 += mb->M_010; */
-  /* ma->M_001 += mb->M_001; */
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 1
+  ma->M_100 += mb->M_100;
+  ma->M_010 += mb->M_010;
+  ma->M_001 += mb->M_001;
+#endif
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
   /* Add 2nd order terms */
@@ -885,12 +887,15 @@ __attribute__((nonnull)) INLINE static void gravity_multipole_compute_power(
 
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
   /* 1st order terms (all 0 since we expand around CoM) */
-  // power[1] += m->M_001 * m->M_001;
-  // power[1] += m->M_010 * m->M_010;
-  // power[1] += m->M_100 * m->M_100;
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 1
+  power[1] += m->M_001 * m->M_001;
+  power[1] += m->M_010 * m->M_010;
+  power[1] += m->M_100 * m->M_100;
 
-  // m->power[1] = sqrt(power[1]);
+  m->power[1] = sqrt(power[1]);
+#else
   m->power[1] = 0.;
+#endif
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
   /* 2nd order terms */
@@ -1180,9 +1185,11 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
 
   /* 1st order terms (all 0 since we expand around CoM) */
-  // multi->m_pole.M_100 = M_100;
-  // multi->m_pole.M_010 = M_010;
-  // multi->m_pole.M_001 = M_001;
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 1
+  multi->m_pole.M_100 = M_100;
+  multi->m_pole.M_010 = M_010;
+  multi->m_pole.M_001 = M_001;
+#endif
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
 
@@ -1289,9 +1296,11 @@ __attribute__((nonnull)) INLINE static void gravity_M2M(
                         pos_a[2] - pos_b[2]};
 
   /* Shift 1st order term (all 0 (after add) since we expand around CoM) */
-  // m_a->M_100 = m_b->M_100 + X_100(dx) * m_b->M_000;
-  // m_a->M_010 = m_b->M_010 + X_010(dx) * m_b->M_000;
-  // m_a->M_001 = m_b->M_001 + X_001(dx) * m_b->M_000;
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 1
+  m_a->M_100 = m_b->M_100 + X_100(dx) * m_b->M_000;
+  m_a->M_010 = m_b->M_010 + X_010(dx) * m_b->M_000;
+  m_a->M_001 = m_b->M_001 + X_001(dx) * m_b->M_000;
+#endif
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1
 
@@ -1311,6 +1320,16 @@ __attribute__((nonnull)) INLINE static void gravity_M2M(
       X_110(dx) * m_b->M_000;
   m_a->M_200 =
       m_b->M_200 /* + X_100(dx) * m_b->M_100 */ + X_200(dx) * m_b->M_000;
+
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 1
+  /* Add 1st order contributions */
+  m_a->M_002 += X_001(dx) * m_b->M_001;
+  m_a->M_011 += X_001(dx) * m_b->M_010 + X_010(dx) * m_b->M_001;
+  m_a->M_020 += X_010(dx) * m_b->M_010;
+  m_a->M_101 += X_001(dx) * m_b->M_100 + X_100(dx) * m_b->M_001;
+  m_a->M_110 += X_010(dx) * m_b->M_100 + X_100(dx) * m_b->M_010;
+  m_a->M_200 += X_100(dx) * m_b->M_100;
+#endif
 #endif
 
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 2
@@ -1354,6 +1373,21 @@ __attribute__((nonnull)) INLINE static void gravity_M2M(
   m_a->M_300 = m_b->M_300 +
                X_100(dx) * m_b->M_200 /* + X_200(dx) * m_b->M_100 */ +
                X_300(dx) * m_b->M_000;
+
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 1
+  /* Add 1st order contributions */
+  m_a->M_003 += X_002(dx) * m_b->M_001;
+  m_a->M_012 += X_002(dx) * m_b->M_010 + X_011(dx) * m_b->M_001;
+  m_a->M_021 += X_011(dx) * m_b->M_010 + X_020(dx) * m_b->M_001;
+  m_a->M_030 += X_020(dx) * m_b->M_010;
+  m_a->M_102 += X_002(dx) * m_b->M_100 + X_101(dx) * m_b->M_001;
+  m_a->M_111 +=
+      X_011(dx) * m_b->M_100 + X_101(dx) * m_b->M_010 + X_110(dx) * m_b->M_001;
+  m_a->M_120 += X_020(dx) * m_b->M_100 + X_110(dx) * m_b->M_010;
+  m_a->M_201 += X_101(dx) * m_b->M_100 + X_200(dx) * m_b->M_001;
+  m_a->M_210 += X_110(dx) * m_b->M_100 + X_200(dx) * m_b->M_010;
+  m_a->M_300 += X_200(dx) * m_b->M_100;
+#endif
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 3
 
@@ -1433,6 +1467,28 @@ __attribute__((nonnull)) INLINE static void gravity_M2M(
   m_a->M_400 = m_b->M_400 + X_100(dx) * m_b->M_300 +
                X_200(dx) * m_b->M_200 /* + X_300(dx) * m_b->M_100 */ +
                X_400(dx) * m_b->M_000;
+
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 1
+  /* Add 1st order contributions */
+  m_a->M_004 += X_003(dx) * m_b->M_001;
+  m_a->M_013 += X_003(dx) * m_b->M_010 + X_012(dx) * m_b->M_001;
+  m_a->M_022 += X_012(dx) * m_b->M_010 + X_021(dx) * m_b->M_001;
+  m_a->M_031 += X_021(dx) * m_b->M_010 + X_030(dx) * m_b->M_001;
+  m_a->M_040 += X_030(dx) * m_b->M_010;
+  m_a->M_103 += X_003(dx) * m_b->M_100 + X_102(dx) * m_b->M_001;
+  m_a->M_112 +=
+      X_012(dx) * m_b->M_100 + X_102(dx) * m_b->M_010 + X_111(dx) * m_b->M_001;
+  m_a->M_121 +=
+      X_021(dx) * m_b->M_100 + X_111(dx) * m_b->M_010 + X_120(dx) * m_b->M_001;
+  m_a->M_130 += X_030(dx) * m_b->M_100 + X_120(dx) * m_b->M_010;
+  m_a->M_202 += X_102(dx) * m_b->M_100 + X_201(dx) * m_b->M_001;
+  m_a->M_211 +=
+      X_111(dx) * m_b->M_100 + X_201(dx) * m_b->M_010 + X_210(dx) * m_b->M_001;
+  m_a->M_220 += X_120(dx) * m_b->M_100 + X_210(dx) * m_b->M_010;
+  m_a->M_301 += X_201(dx) * m_b->M_100 + X_300(dx) * m_b->M_001;
+  m_a->M_310 += X_210(dx) * m_b->M_100 + X_300(dx) * m_b->M_010;
+  m_a->M_400 += X_300(dx) * m_b->M_100;
+#endif
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 4
 
@@ -1574,6 +1630,37 @@ __attribute__((nonnull)) INLINE static void gravity_M2M(
   m_a->M_500 = m_b->M_500 + X_100(dx) * m_b->M_400 + X_200(dx) * m_b->M_300 +
                X_300(dx) * m_b->M_200 /* + X_400(dx) * m_b->M_100 */ +
                X_500(dx) * m_b->M_000;
+
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 1
+  /* Add 1st order contributions */
+  m_a->M_005 += X_004(dx) * m_b->M_001;
+  m_a->M_014 += X_004(dx) * m_b->M_010 + X_013(dx) * m_b->M_001;
+  m_a->M_023 += X_013(dx) * m_b->M_010 + X_022(dx) * m_b->M_001;
+  m_a->M_032 += X_022(dx) * m_b->M_010 + X_031(dx) * m_b->M_001;
+  m_a->M_041 += X_031(dx) * m_b->M_010 + X_040(dx) * m_b->M_001;
+  m_a->M_050 += X_040(dx) * m_b->M_010;
+  m_a->M_104 += X_004(dx) * m_b->M_100 + X_103(dx) * m_b->M_001;
+  m_a->M_113 +=
+      X_013(dx) * m_b->M_100 + X_103(dx) * m_b->M_010 + X_112(dx) * m_b->M_001;
+  m_a->M_122 +=
+      X_022(dx) * m_b->M_100 + X_112(dx) * m_b->M_010 + X_121(dx) * m_b->M_001;
+  m_a->M_131 +=
+      X_031(dx) * m_b->M_100 + X_121(dx) * m_b->M_010 + X_130(dx) * m_b->M_001;
+  m_a->M_140 += X_040(dx) * m_b->M_100 + X_130(dx) * m_b->M_010;
+  m_a->M_203 += X_103(dx) * m_b->M_100 + X_202(dx) * m_b->M_001;
+  m_a->M_212 +=
+      X_112(dx) * m_b->M_100 + X_202(dx) * m_b->M_010 + X_211(dx) * m_b->M_001;
+  m_a->M_221 +=
+      X_121(dx) * m_b->M_100 + X_211(dx) * m_b->M_010 + X_220(dx) * m_b->M_001;
+  m_a->M_230 += X_130(dx) * m_b->M_100 + X_220(dx) * m_b->M_010;
+  m_a->M_302 += X_202(dx) * m_b->M_100 + X_301(dx) * m_b->M_001;
+  m_a->M_311 +=
+      X_211(dx) * m_b->M_100 + X_301(dx) * m_b->M_010 + X_310(dx) * m_b->M_001;
+  m_a->M_320 += X_220(dx) * m_b->M_100 + X_310(dx) * m_b->M_010;
+  m_a->M_401 += X_301(dx) * m_b->M_100 + X_400(dx) * m_b->M_001;
+  m_a->M_410 += X_310(dx) * m_b->M_100 + X_400(dx) * m_b->M_010;
+  m_a->M_500 += X_400(dx) * m_b->M_100;
+#endif
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 5
 #error "Missing implementation for order >5"
@@ -2284,36 +2371,39 @@ __attribute__((always_inline, nonnull)) INLINE static void gravity_M2P(
   /* The dipole term is zero when using the CoM */
   /* We keep them written to maintain the logical structure. */
 
-  /* const float M_100 = 0.f; */
-  /* const float M_010 = 0.f; */
-  /* const float M_001 = 0.f; */
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 1
+  const float M_100 = 0.f;
+  const float M_010 = 0.f;
+  const float M_001 = 0.f;
 
-  /* const float D_200 = d.D_200; */
-  /* const float D_020 = d.D_020; */
-  /* const float D_002 = d.D_002; */
-  /* const float D_110 = d.D_110; */
-  /* const float D_101 = d.D_101; */
-  /* const float D_011 = d.D_011; */
-
-  /*  1st order multipole term (addition to rank 0) */
-  /* l->F_000 += M_100 * D_100 + M_010 * D_010 + M_001 * D_001; */
-
-  /*  2nd order multipole term (addition to rank 1) */
-  /* l->F_100 += M_100 * D_200 + M_010 * D_110 + M_001 * D_101; */
-  /* l->F_010 += M_100 * D_110 + M_010 * D_020 + M_001 * D_011; */
-  /* l->F_001 += M_100 * D_101 + M_010 * D_011 + M_001 * D_002; */
-
-#endif
-#if SELF_GRAVITY_MULTIPOLE_ORDER > 1
-
-  /* To keep the logic these would be defined at order 1 but
-     since all the M terms are 0 we did not define them above */
   const float D_200 = d.D_200;
   const float D_020 = d.D_020;
   const float D_002 = d.D_002;
   const float D_110 = d.D_110;
   const float D_101 = d.D_101;
   const float D_011 = d.D_011;
+
+  /*  1st order multipole term (addition to rank 0) */
+  l->F_000 += M_100 * D_100 + M_010 * D_010 + M_001 * D_001;
+
+  /*  2nd order multipole term (addition to rank 1) */
+  l->F_100 += M_100 * D_200 + M_010 * D_110 + M_001 * D_101;
+  l->F_010 += M_100 * D_110 + M_010 * D_020 + M_001 * D_011;
+  l->F_001 += M_100 * D_101 + M_010 * D_011 + M_001 * D_002;
+#endif
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 1
+
+  /* To keep the logic these would be defined at order 1 but
+     since all the M terms are 0 we did not define them above */
+#if EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1 == 0
+  const float D_200 = d.D_200;
+  const float D_020 = d.D_020;
+  const float D_002 = d.D_002;
+  const float D_110 = d.D_110;
+  const float D_101 = d.D_101;
+  const float D_011 = d.D_011;
+#endif
 
   const float M_200 = m->M_200;
   const float M_020 = m->M_020;

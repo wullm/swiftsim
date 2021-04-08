@@ -2416,6 +2416,19 @@ AC_ARG_WITH([multipole-order],
 )
 AC_DEFINE_UNQUOTED([SELF_GRAVITY_MULTIPOLE_ORDER], [$with_multipole_order], [Multipole order])
 
+#  Expand multipoles around centre of absolute mass
+AC_ARG_WITH([multipole-abs-mass],
+   [AS_HELP_STRING([--with-multipole-abs-mass],
+      [whether to expand around centre of absolute mass @<:@ default: no@:>@]
+   )],
+   [with_multipole_abs_mass="$withval"],
+   [with_multipole_abs_mass="no"]
+)
+if test "$with_multipole_abs_mass" = "yes"; then
+   AC_DEFINE([MULTIPOLE_CENTRE_ABS_MASS],1,[Expand multipoles around centre of absolute mass])
+   AC_DEFINE([EXPLICITLY_COMPUTE_MULTIPOLE_ORDER_1],1,[Explicitly compute the dipole])
+fi
+
 #  Radiative transfer scheme
 AC_ARG_WITH([rt],
    [AS_HELP_STRING([--with-rt=<scheme>],
@@ -2580,6 +2593,7 @@ AC_MSG_RESULT([
 
    Gravity scheme      : $with_gravity
    Multipole order     : $with_multipole_order
+   Use absolute mass   : $with_multipole_abs_mass
    Compute potential   : $enable_gravitational_potential
    No gravity below ID : $no_gravity_below_id
    Make gravity glass  : $gravity_glass_making
