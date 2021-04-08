@@ -1196,6 +1196,13 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
         scheduler_addunlock(s, c->parent->grav.init_out, c->grav.init_out);
         scheduler_addunlock(s, c->parent->grav.drift_out, c->grav.drift_out);
         scheduler_addunlock(s, c->grav.down_in, c->parent->grav.down_in);
+
+        /* Implicit weighting task for pseudo-particles (neutrinos) */
+        if (e->neutrino_properties->use_delta_f) {
+          c->grav.weight_out = scheduler_addtask(
+              s, task_type_weight_out, task_subtype_none, 0, 1, c, NULL);
+          scheduler_addunlock(s, c->parent->grav.weight_out, c->grav.weight_out);
+        }
       }
     }
   }

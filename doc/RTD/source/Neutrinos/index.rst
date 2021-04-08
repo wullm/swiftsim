@@ -6,10 +6,10 @@
 Neutrino implementation
 =======================
 
-SWIFT can also accurately include the effects of massive neutrinos in
-cosmological simulations. At the background level, massive neutrinos
-and other relativistic species can be included by specifying their
-number and masses in the cosmology section of the parameter file
+SWIFT can also be used for cosmological simulations with massive
+neutrinos. At the background level, massive neutrinos and other
+relativistic species can be included by specifying their number
+and masses in the cosmology section of the parameter file
 (see :ref:`Parameters_cosmology`).
 
 At the perturbation level, neutrinos can be included as a separate particle
