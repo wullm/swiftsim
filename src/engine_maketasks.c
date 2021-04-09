@@ -1136,7 +1136,7 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
         /* Implicit weighting task for pseudo-particles (neutrinos) */
         if (e->neutrino_properties->use_delta_f)
           c->grav.weight_out = scheduler_addtask(
-              s, task_type_weight_out, task_subtype_none, 0, 0, c, NULL);
+              s, task_type_weight_out, task_subtype_none, 0, 1, c, NULL);
 
         /* Initialisation of the multipoles */
         c->grav.init = scheduler_addtask(s, task_type_init_grav,
@@ -1169,8 +1169,10 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
         scheduler_addunlock(s, c->grav.down_in, c->grav.down);
 
         /* Neutrino weighting */
-        if (e->neutrino_properties->use_delta_f)
+        if (e->neutrino_properties->use_delta_f) {
           scheduler_addunlock(s, c->grav.weight, c->grav.weight_out);
+          scheduler_addunlock(s, c->grav.weight_out, c->grav.drift);
+        }
       }
     }
   }
