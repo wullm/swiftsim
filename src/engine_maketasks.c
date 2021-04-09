@@ -1005,7 +1005,7 @@ void engine_make_hierarchical_tasks_common(struct engine *e, struct cell *c) {
       c->kick2 = scheduler_addtask(s, task_type_kick2, task_subtype_none, 0, 0,
                                    c, NULL);
 
-      /* Weighting task for neutrinos */
+      /* Weighting task for neutrinos after the last kick */
       if (e->neutrino_properties->use_delta_f) {
         c->grav.weight = scheduler_addtask(s, task_type_weight,
                                            task_subtype_none, 0, 0, c, NULL);
@@ -1161,7 +1161,6 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
         scheduler_addunlock(s, c->grav.init, c->grav.init_out);
         scheduler_addunlock(s, c->grav.drift, c->grav.drift_out);
         scheduler_addunlock(s, c->grav.down_in, c->grav.down);
-
       }
     }
   }
@@ -1187,7 +1186,6 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
         scheduler_addunlock(s, c->parent->grav.init_out, c->grav.init_out);
         scheduler_addunlock(s, c->parent->grav.drift_out, c->grav.drift_out);
         scheduler_addunlock(s, c->grav.down_in, c->parent->grav.down_in);
-
       }
     }
   }
