@@ -1018,7 +1018,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   /* Handle cases where positive and negative masses almost cancel */
   if (fabsf(mass) < 0.99 * abs_mass) {
     /* Set the values to something sensible */
-    gravity_multipole_init(multi);
+    gravity_multipole_init(&multi->m_pole);
     multi->CoM[0] = gparts[0].x[0];
     multi->CoM[1] = gparts[0].x[1];
     multi->CoM[2] = gparts[0].x[2];
