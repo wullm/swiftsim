@@ -970,6 +970,110 @@ __attribute__((nonnull)) INLINE static void gravity_multipole_compute_power(
 }
 
 /**
+ * @brief Zero out a multipole.
+ *
+ * @param multi The #multipole (content will  be overwritten).
+ */
+__attribute__((nonnull)) INLINE static void gravity_clear_multipole(
+    struct gravity_tensors *multi) {
+  multi->r_max = 0.0;
+  multi->CoM[0] = 0.0;
+  multi->CoM[1] = 0.0;
+  multi->CoM[2] = 0.0;
+  multi->m_pole.max_softening = 0.0;
+  multi->m_pole.min_old_a_grav_norm = 0.0;
+  multi->m_pole.vel[0] = 0.0;
+  multi->m_pole.vel[1] = 0.0;
+  multi->m_pole.vel[2] = 0.0;
+  multi->m_pole.max_delta_vel[0] = 0.0;
+  multi->m_pole.max_delta_vel[1] = 0.0;
+  multi->m_pole.max_delta_vel[2] = 0.0;
+  multi->m_pole.min_delta_vel[0] = 0.0;
+  multi->m_pole.min_delta_vel[1] = 0.0;
+  multi->m_pole.min_delta_vel[2] = 0.0;
+  multi->m_pole.M_000 = 0.0;
+
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 0
+
+  /* 1st order terms (all 0 since we expand around CoM) */
+  // multi->m_pole.M_100 = 0.0;
+  // multi->m_pole.M_010 = 0.0;
+  // multi->m_pole.M_001 = 0.0;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 1
+
+  /* 2nd order terms */
+  multi->m_pole.M_200 = 0.0;
+  multi->m_pole.M_020 = 0.0;
+  multi->m_pole.M_002 = 0.0;
+  multi->m_pole.M_110 = 0.0;
+  multi->m_pole.M_101 = 0.0;
+  multi->m_pole.M_011 = 0.0;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 2
+
+  /* 3rd order terms */
+  multi->m_pole.M_300 = 0.0;
+  multi->m_pole.M_030 = 0.0;
+  multi->m_pole.M_003 = 0.0;
+  multi->m_pole.M_210 = 0.0;
+  multi->m_pole.M_201 = 0.0;
+  multi->m_pole.M_120 = 0.0;
+  multi->m_pole.M_021 = 0.0;
+  multi->m_pole.M_102 = 0.0;
+  multi->m_pole.M_012 = 0.0;
+  multi->m_pole.M_111 = 0.0;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 3
+
+  /* 4th order terms */
+  multi->m_pole.M_400 = 0.0;
+  multi->m_pole.M_040 = 0.0;
+  multi->m_pole.M_004 = 0.0;
+  multi->m_pole.M_310 = 0.0;
+  multi->m_pole.M_301 = 0.0;
+  multi->m_pole.M_130 = 0.0;
+  multi->m_pole.M_031 = 0.0;
+  multi->m_pole.M_103 = 0.0;
+  multi->m_pole.M_013 = 0.0;
+  multi->m_pole.M_220 = 0.0;
+  multi->m_pole.M_202 = 0.0;
+  multi->m_pole.M_022 = 0.0;
+  multi->m_pole.M_211 = 0.0;
+  multi->m_pole.M_121 = 0.0;
+  multi->m_pole.M_112 = 0.0;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 4
+
+  /* 5th order terms */
+  multi->m_pole.M_005 = 0.0;
+  multi->m_pole.M_014 = 0.0;
+  multi->m_pole.M_023 = 0.0;
+  multi->m_pole.M_032 = 0.0;
+  multi->m_pole.M_041 = 0.0;
+  multi->m_pole.M_050 = 0.0;
+  multi->m_pole.M_104 = 0.0;
+  multi->m_pole.M_113 = 0.0;
+  multi->m_pole.M_122 = 0.0;
+  multi->m_pole.M_131 = 0.0;
+  multi->m_pole.M_140 = 0.0;
+  multi->m_pole.M_203 = 0.0;
+  multi->m_pole.M_212 = 0.0;
+  multi->m_pole.M_221 = 0.0;
+  multi->m_pole.M_230 = 0.0;
+  multi->m_pole.M_302 = 0.0;
+  multi->m_pole.M_311 = 0.0;
+  multi->m_pole.M_320 = 0.0;
+  multi->m_pole.M_401 = 0.0;
+  multi->m_pole.M_410 = 0.0;
+  multi->m_pole.M_500 = 0.0;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 5
+#error "Missing implementation for order >5"
+#endif
+}
+
+/**
  * @brief Constructs the #multipole of a bunch of particles around their
  * centre of mass.
  *
@@ -988,6 +1092,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   float epsilon_max = 0.f;
   float min_old_a_grav_norm = FLT_MAX;
   double mass = 0.0;
+  double abs_mass = 0.0;
   double com[3] = {0.0, 0.0, 0.0};
   double vel[3] = {0.f, 0.f, 0.f};
 
@@ -995,6 +1100,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   for (int k = 0; k < gcount; k++) {
     const double m = gparts[k].mass;
     const float epsilon = gravity_get_softening(&gparts[k], grav_props);
+    const float absm = fabsf(gparts[k].mass);
 
 #ifdef SWIFT_DEBUG_CHECKS
     if (gparts[k].time_bin == time_bin_inhibited)
@@ -1004,12 +1110,19 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
     epsilon_max = max(epsilon_max, epsilon);
     min_old_a_grav_norm = min(min_old_a_grav_norm, gparts[k].old_a_grav_norm);
     mass += m;
+    abs_mass += absm;
     com[0] += gparts[k].x[0] * m;
     com[1] += gparts[k].x[1] * m;
     com[2] += gparts[k].x[2] * m;
     vel[0] += gparts[k].v_full[0] * m;
     vel[1] += gparts[k].v_full[1] * m;
     vel[2] += gparts[k].v_full[2] * m;
+  }
+
+  /* Terminate early if the positive and negative masses almost cancel */
+  if (fabsf(mass) < 0.01 * abs_mass) {
+    gravity_clear_multipole(multi);
+    return;
   }
 
   /* Final operation on CoM */
