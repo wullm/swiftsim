@@ -1016,10 +1016,9 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   }
 
   /* Handle cases where positive and negative masses almost cancel */
-  const double alpha = 1.0 - 0.01;
-  if (fabsf(mass) < alpha * abs_mass) {
+  if (fabsf(mass) < 0.99 * abs_mass) {
     /* Set the values to something sensible */
-    gravity_multipole_init(&c->grav.multipole->m_pole);
+    gravity_multipole_init(multi);
     c->grav.multipole->CoM[0] = gparts[0]->x[0];
     c->grav.multipole->CoM[1] = gparts[0]->x[1];
     c->grav.multipole->CoM[2] = gparts[0]->x[2];
