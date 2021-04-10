@@ -1001,15 +1001,10 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   double com[3] = {0.0, 0.0, 0.0};
   double vel[3] = {0.f, 0.f, 0.f};
 
-  double abs_mass = 0.0;
-  double abs_com[3] = {0.0, 0.0, 0.0};
-  double abs_vel[3] = {0.f, 0.f, 0.f};
-
   /* Collect the particle data for CoM. */
   for (int k = 0; k < gcount; k++) {
-    const double m = gparts[k].mass;
+    const double m = fabs(gparts[k].mass);
     const float epsilon = gravity_get_softening(&gparts[k], grav_props);
-    const float am = fabsf(m);
 
 #ifdef SWIFT_DEBUG_CHECKS
     if (gparts[k].time_bin == time_bin_inhibited)
@@ -1025,14 +1020,6 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
     vel[0] += gparts[k].v_full[0] * m;
     vel[1] += gparts[k].v_full[1] * m;
     vel[2] += gparts[k].v_full[2] * m;
-
-    abs_mass += am;
-    abs_com[0] += gparts[k].x[0] * am;
-    abs_com[1] += gparts[k].x[1] * am;
-    abs_com[2] += gparts[k].x[2] * am;
-    abs_vel[0] += gparts[k].v_full[0] * am;
-    abs_vel[1] += gparts[k].v_full[1] * am;
-    abs_vel[2] += gparts[k].v_full[2] * am;
   }
 
   /* Final operation on CoM */
@@ -1043,31 +1030,6 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   vel[0] *= imass;
   vel[1] *= imass;
   vel[2] *= imass;
-
-  const double abs_imass = 1.0 / abs_mass;
-  abs_com[0] *= abs_imass;
-  abs_com[1] *= abs_imass;
-  abs_com[2] *= abs_imass;
-  abs_vel[0] *= abs_imass;
-  abs_vel[1] *= abs_imass;
-  abs_vel[2] *= abs_imass;
-
-  /* Compute distance between CoM and pseudo-CoM */
-  const double dpx = com[0] - abs_com[0];
-  const double dpy = com[1] - abs_com[1];
-  const double dpz = com[2] - abs_com[2];
-  const double pd2 = dpx * dpx + dpy * dpy + dpz * dpz;
-
-  /* Switch over if the CoM is far removed from the particles */
-  const double alpha = 10.0;
-  if (pd2 > alpha * alpha * epsilon_max * epsilon_max) {
-    com[0] = abs_com[0];
-    com[1] = abs_com[1];
-    com[2] = abs_com[2];
-    vel[0] = abs_vel[0];
-    vel[1] = abs_vel[1];
-    vel[2] = abs_vel[2];
-  }
 
   /* Prepare some local counters */
   double r_max2 = 0.;
