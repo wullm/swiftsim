@@ -124,6 +124,11 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
 
         /* Set the weighted mass */
         gp->mass = mass * weight;
+
+        /* Prevent degeneracies */
+        if(gp->mass == 0.) {
+          gp->mass = FLT_MIN;
+        }
       }
     }
   }
