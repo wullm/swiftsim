@@ -1120,7 +1120,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   }
 
   /* Terminate early if the positive and negative masses almost cancel */
-  if (fabsf(mass) < 0.01 * abs_mass) {
+  if (abs_mass > 1.01 * fabsf(mass)) {
     gravity_clear_multipole(multi);
     return;
   }
