@@ -274,13 +274,14 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
   const int periodic = e->s->periodic;
   const double dim[3] = {e->s->dim[0], e->s->dim[1], e->s->dim[2]};
   const int with_cosmology = (e->policy & engine_policy_cosmology);
-  const int with_neutrinos = e->s->with_neutrinos;
   const integertime_t ti_old_gpart = c->grav.ti_old_part;
   const integertime_t ti_current = e->ti_current;
   struct gpart *const gparts = c->grav.parts;
   const struct gravity_props *grav_props = e->gravity_properties;
-  const double a = e->cosmology->a;  // = 1.0 if running without cosmology
+  const double a = e->cosmology->a;
   const double c_vel = e->physical_constants->const_speed_light_c;
+  const int with_neutrinos = e->s->with_neutrinos;
+  const int with_relat_drift = with_neutrinos && (a < e->cosmology->a_nu_nr);
 
   /* Drift irrespective of cell flags? */
   force = (force || cell_get_flag(c, cell_flag_do_grav_drift));
@@ -331,8 +332,6 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
     } else {
       dt_drift = (ti_current - ti_old_gpart) * e->time_base;
     }
-    /* Drift time step for particle k */
-    double dt_drift_k = dt_drift;
 
     /* Loop over all the g-particles in the cell */
     const size_t nr_gparts = c->grav.count;
@@ -344,11 +343,9 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
       if (gpart_is_inhibited(gp, e)) continue;
 
       /* Relativistic drift correction for neutrinos */
-      if (with_neutrinos) {
-        dt_drift_k = dt_drift;
-        if (gp->type == swift_type_neutrino) {
-          dt_drift_k *= relativistic_drift_factor(gp->v_full, a, c_vel);
-        }
+      double dt_drift_k = dt_drift;
+      if (with_relat_drift && gp->type == swift_type_neutrino) {
+        dt_drift_k *= relativistic_drift_factor(gp->v_full, a, c_vel);
       }
 
       /* Drift... */

@@ -30,9 +30,9 @@ INLINE static float relativistic_drift_factor(const float *v, float a,
                                               float c) {
   const float v2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
   const float ac = a * c;
-  const float u2 = v2 / (ac * ac);
+  const float ac2 = ac * ac;
 
-  return 1.0 / sqrtf(1.0 + u2);
+  return ac / sqrtf(ac2 + v2);
 }
 
 #endif /* SWIFT_DEFAULT_NEUTRINO_RELATIVITY_H */
