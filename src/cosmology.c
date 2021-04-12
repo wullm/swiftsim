@@ -35,7 +35,6 @@
 #include "inline.h"
 #include "memuse.h"
 #include "minmax.h"
-#include "neutrino/neutrino.h"
 #include "restart.h"
 
 #ifdef HAVE_LIBGSL
@@ -858,12 +857,18 @@ void cosmology_init(struct swift_params *params, const struct unit_system *us,
     c->Omega_nu_0 = cosmology_get_neutrino_density(c, 1);
     c->Omega_nu = c->Omega_nu_0;  // will be updated
 
-    /* Time when the relativistic drift correction is below 1% for all nu's */
-    double M_eV_min = c->M_nu_eV[0];
-    for (int i = 1; i < c->N_nu; i++) {
-      if (c->M_nu_eV[i] < M_eV_min) M_eV_min = c->M_nu_eV[i];
+    /* Find the smallest neutrino mass */
+    double M_eV_min = FLT_MAX;
+    for (int i = 0; i < c->N_nu; i++) {
+      M_eV_min = fmin(M_eV_min, c->M_nu_eV[i]);
     }
-    c->a_nu_nr = 157.0 * c->T_nu_0_eV / (M_eV_min + FLT_MIN);
+
+    /* Time when the relativistic drift correction is below 1% for all nu's */
+    if (c->N_nu > 0 && M_eV_min > 0.) {
+      c->a_nu_nr = 157. * c->T_nu_0_eV / M_eV_min;
+    } else {
+      c->a_nu_nr = 0.;
+    }
   }
 
   /* Cold dark matter density */
