@@ -29,6 +29,19 @@ parameter file. This will assign ``PartType6`` particles to each
 neutrino mass specified in the cosmology and generate new velocities
 based on the homogeneous (unperturbed) Fermi-Dirac distribution.
 
+Relativistic Drift
+------------------
+
+As neutrinos are relativistic at high redshift, they move faster
+than the speed of light if the usual Newtonian expressions are used.
+To rectify this, SWIFT implements a relativistic drift correction. In
+this convention, the internal velocity variable (see theory/Cosmology)
+is :math:`v^i=a^2u^i`, where :math:`u^i` is the spatial part of the
+4-velocity. The physical 3-velocity is :math:`u^i/\sqrt{a^2+u^2/c^2}`.
+This correction is applied so long as
+:math:`1-1/\sqrt{1+u^2/(ac)^2}>1\%` for any particle with momentum
+:math:`p\leq 20 k_b T`. 
+
 Generating Fermi-Dirac momenta
 ------------------------------
 
