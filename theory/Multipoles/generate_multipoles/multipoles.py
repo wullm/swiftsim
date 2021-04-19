@@ -245,7 +245,7 @@ print(
     % ordinal(order)
 )
 
-# Create all the terms relevent for this order
+# Create all the terms relevent for this order, with 1st order commented out
 for i in range(order + 1):
     for j in range(order + 1):
         for k in range(order + 1):
@@ -279,6 +279,43 @@ for i in range(order + 1):
                                                     )
 
                 print(";")
+
+# Create all the relevant first order terms for this order
+print("")
+print("#ifdef SELF_GRAVITY_EXPLICIT_MULTIPOLE_ORDER_1")
+print(
+    "/* Shift %s order terms (the 1st order mpole terms commented out above) */"
+    % ordinal(order)
+)
+for i in range(order + 1):
+    for j in range(order + 1):
+        for k in range(order + 1):
+            if i + j + k == order:
+                print("m_a->M_%d%d%d = m_b->M_%d%d%d" % (i, j, k, i, j, k), end=" ")
+
+                for ii in range(order + 1):
+                    for jj in range(order + 1):
+                        for kk in range(order + 1):
+
+                            if not (ii == 0 and jj == 0 and kk == 0):
+                                for iii in range(order + 1):
+                                    for jjj in range(order + 1):
+                                        for kkk in range(order + 1):
+                                            if (
+                                                ii + iii == i
+                                                and jj + jjj == j
+                                                and kk + kkk == k
+                                            ):
+                                                if iii + jjj + kkk == 1:
+                                                    print(
+                                                        "+ X_%d%d%d(dx) * m_b->M_%d%d%d"
+                                                        % (ii, jj, kk, iii, jjj, kkk),
+                                                        end=" ",
+                                                    )
+
+                print(";")
+print("#endif /* SELF_GRAVITY_EXPLICIT_MULTIPOLE_ORDER_1 */")
+print("")
 
 if order > 0:
     print("#endif")

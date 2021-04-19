@@ -133,7 +133,9 @@ struct multipole {
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 0
 
   /* 1st order terms (all 0 since we expand around CoM) */
-  // float M_100, M_010, M_001;
+#ifdef SELF_GRAVITY_EXPLICIT_MULTIPOLE_ORDER_1
+  float M_100, M_010, M_001;
+#endif
 
 #endif
 #if SELF_GRAVITY_MULTIPOLE_ORDER > 1

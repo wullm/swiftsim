@@ -2416,6 +2416,18 @@ AC_ARG_WITH([multipole-order],
 )
 AC_DEFINE_UNQUOTED([SELF_GRAVITY_MULTIPOLE_ORDER], [$with_multipole_order], [Multipole order])
 
+#  Explicitly compute the gravity dipole (usually exactly zero)
+AC_ARG_WITH([explicit-dipole],
+   [AS_HELP_STRING([--with-explicit-dipole=<mode>],
+      [Explicitly compute gravity dipole @<:@no, yes, default: no@:>@.]
+   )],
+   [with_explicit_dipole="$withval"],
+   [with_explicit_dipole="no"]
+)
+if test "$with_explicit_dipole" = "yes"; then
+   AC_DEFINE([SELF_GRAVITY_EXPLICIT_MULTIPOLE_ORDER_1],1,[Explicitly compute the gravity dipole])
+fi
+
 #  Radiative transfer scheme
 AC_ARG_WITH([rt],
    [AS_HELP_STRING([--with-rt=<scheme>],
@@ -2580,6 +2592,7 @@ AC_MSG_RESULT([
 
    Gravity scheme      : $with_gravity
    Multipole order     : $with_multipole_order
+   Explicit dipole     : $with_explicit_dipole
    Compute potential   : $enable_gravitational_potential
    No gravity below ID : $no_gravity_below_id
    Make gravity glass  : $gravity_glass_making
