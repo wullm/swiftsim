@@ -291,7 +291,8 @@ for i in range(order + 1):
     for j in range(order + 1):
         for k in range(order + 1):
             if i + j + k == order:
-                print("m_a->M_%d%d%d = m_b->M_%d%d%d" % (i, j, k, i, j, k), end=" ")
+                print("m_a->M_%d%d%d +=" % (i, j, k), end=" ")
+                first = True
 
                 for ii in range(order + 1):
                     for jj in range(order + 1):
@@ -307,8 +308,10 @@ for i in range(order + 1):
                                                 and kk + kkk == k
                                             ):
                                                 if iii + jjj + kkk == 1:
+                                                    print("+ " if not first else "", end="")
+                                                    first = False
                                                     print(
-                                                        "+ X_%d%d%d(dx) * m_b->M_%d%d%d"
+                                                        "X_%d%d%d(dx) * m_b->M_%d%d%d"
                                                         % (ii, jj, kk, iii, jjj, kkk),
                                                         end=" ",
                                                     )
