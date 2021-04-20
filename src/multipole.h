@@ -1029,7 +1029,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   }
 
   /* Catch cases where the CoM and the CoAM differ substationally */
-  if (fabsf(mass) < 0.9 * abs_mass) {
+  if (fabsf(mass) < 0.05 * abs_mass) {
     /* Compute the centre of absolute mass (CoAM) */
     double abs_com[3] = {0.0, 0.0, 0.0};
     double abs_vel[3] = {0.f, 0.f, 0.f};
