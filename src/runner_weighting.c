@@ -32,13 +32,7 @@
 #include "active.h"
 #include "cell.h"
 #include "engine.h"
-#include "feedback.h"
-#include "kick.h"
 #include "timers.h"
-#include "timestep.h"
-#include "timestep_limiter.h"
-#include "timestep_sync.h"
-#include "tracers.h"
 
 /**
  * @brief Weight the active neutrino particles in a cell using the delta-f
@@ -125,7 +119,7 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
         /* Set the statistically weighted mass */
         gp->mass = mass * weight;
 
-        /* Prevent deneracies */
+        /* Prevent degeneracies */
         if (gp->mass == 0.) {
           gp->mass = FLT_MIN;
         }
