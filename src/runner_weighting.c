@@ -122,8 +122,13 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
         double f = fermi_dirac_density(p);
         double weight = 1.0 - f / fi;
 
-        /* Set the weighted mass */
+        /* Set the statistically weighted mass */
         gp->mass = mass * weight;
+
+        /* Prevent deneracies */
+        if (gp->mass == 0.) {
+          gp->mass = FLT_MIN;
+        }
       }
     }
   }

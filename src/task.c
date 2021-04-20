@@ -108,7 +108,6 @@ const char *taskID_names[task_type_count] = {
     "fof_self",
     "fof_pair",
     "weight",
-    "weight_out",
     "sink_in",
     "sink_ghost",
     "sink_out",

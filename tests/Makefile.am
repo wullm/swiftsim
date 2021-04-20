@@ -73,7 +73,9 @@ testSymmetry_SOURCES = testSymmetry.c
 # Added because of issues using memcmp on clang 4.x
 testSymmetry_CFLAGS = $(AM_CFLAGS) -fno-builtin-memcmp
 
-testNeutrino_SOURCES = testNeutrinoCosmology.c testNeutrinoFermiDirac.c
+testNeutrinoCosmology_SOURCES = testNeutrinoCosmology.c
+
+testNeutrinoFermiDirac_SOURCES = testNeutrinoFermiDirac.c
 
 testTimeIntegration_SOURCES = testTimeIntegration.c
 

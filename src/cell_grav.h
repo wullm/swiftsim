@@ -80,9 +80,6 @@ struct cell_grav {
   /*! Task for weighting neutrino particles */
   struct task *weight;
 
-  /*! Implicit task for weighting neutrino particles */
-  struct task *weight_out;
-
   /*! Minimum end of (integer) time step in this cell for gravity tasks. */
   integertime_t ti_end_min;
 
