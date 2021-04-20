@@ -50,7 +50,6 @@
 #include "debug.h"
 #include "error.h"
 #include "feedback.h"
-#include "neutrino_properties.h"
 #include "proxy.h"
 #include "rt_properties.h"
 #include "timers.h"
@@ -107,10 +106,6 @@ void engine_addtasks_send_gravity(struct engine *e, struct cell *ci,
 
       /* Drift before you send */
       scheduler_addunlock(s, ci->grav.super->grav.drift, t_grav);
-
-      /* Neutrino weighting before sending */
-      if (e->neutrino_properties->use_delta_f)
-        scheduler_addunlock(s, ci->grav.super->grav.weight, t_grav);
 
       scheduler_addunlock(s, ci->super->timestep, t_ti);
     }
@@ -1127,16 +1122,7 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
 
       scheduler_addunlock(s, c->grav.end_force, c->super->kick2);
 
-      /* Weighting task for pseudo-particles (neutrinos) */
-      if (e->neutrino_properties->use_delta_f)
-        c->grav.weight = scheduler_addtask(s, task_type_weight,
-                                           task_subtype_none, 0, 0, c, NULL);
-
       if (is_self_gravity) {
-        /* Implicit weighting task for pseudo-particles (neutrinos) */
-        if (e->neutrino_properties->use_delta_f)
-          c->grav.weight_out = scheduler_addtask(
-              s, task_type_weight_out, task_subtype_none, 0, 0, c, NULL);
 
         /* Initialisation of the multipoles */
         c->grav.init = scheduler_addtask(s, task_type_init_grav,
@@ -1167,10 +1153,6 @@ void engine_make_hierarchical_tasks_gravity(struct engine *e, struct cell *c) {
         scheduler_addunlock(s, c->grav.init, c->grav.init_out);
         scheduler_addunlock(s, c->grav.drift, c->grav.drift_out);
         scheduler_addunlock(s, c->grav.down_in, c->grav.down);
-
-        /* Neutrino weighting */
-        if (e->neutrino_properties->use_delta_f)
-          scheduler_addunlock(s, c->grav.weight, c->grav.weight_out);
       }
     }
   }
@@ -1967,8 +1949,6 @@ void engine_link_gravity_tasks(struct engine *e) {
       scheduler_addunlock(sched, ci_parent->grav.drift_out, t);
       scheduler_addunlock(sched, ci_parent->grav.init_out, t);
       scheduler_addunlock(sched, t, ci_parent->grav.down_in);
-      if (e->neutrino_properties->use_delta_f)
-        scheduler_addunlock(sched, ci_parent->grav.weight_out, t);
     }
 
     /* Self-interaction for external gravity ? */
@@ -1981,8 +1961,6 @@ void engine_link_gravity_tasks(struct engine *e) {
       /* drift -----> gravity --> end_gravity_force */
       scheduler_addunlock(sched, ci->grav.super->grav.drift, t);
       scheduler_addunlock(sched, t, ci->grav.super->grav.end_force);
-      if (e->neutrino_properties->use_delta_f)
-        scheduler_addunlock(sched, ci->grav.super->grav.weight, t);
     }
 
     /* Otherwise, pair interaction? */
@@ -1995,8 +1973,6 @@ void engine_link_gravity_tasks(struct engine *e) {
         scheduler_addunlock(sched, ci_parent->grav.drift_out, t);
         scheduler_addunlock(sched, ci_parent->grav.init_out, t);
         scheduler_addunlock(sched, t, ci_parent->grav.down_in);
-        if (e->neutrino_properties->use_delta_f)
-          scheduler_addunlock(sched, ci_parent->grav.weight_out, t);
       }
       if (cj_nodeID == nodeID) {
 
@@ -2006,8 +1982,6 @@ void engine_link_gravity_tasks(struct engine *e) {
           scheduler_addunlock(sched, cj_parent->grav.drift_out, t);
           scheduler_addunlock(sched, cj_parent->grav.init_out, t);
           scheduler_addunlock(sched, t, cj_parent->grav.down_in);
-          if (e->neutrino_properties->use_delta_f)
-            scheduler_addunlock(sched, cj_parent->grav.weight_out, t);
         }
       }
     }
@@ -2023,8 +1997,6 @@ void engine_link_gravity_tasks(struct engine *e) {
       scheduler_addunlock(sched, ci_parent->grav.drift_out, t);
       scheduler_addunlock(sched, ci_parent->grav.init_out, t);
       scheduler_addunlock(sched, t, ci_parent->grav.down_in);
-      if (e->neutrino_properties->use_delta_f)
-        scheduler_addunlock(sched, ci_parent->grav.weight_out, t);
     }
 
     /* Sub-self-interaction for external gravity ? */
@@ -2038,8 +2010,6 @@ void engine_link_gravity_tasks(struct engine *e) {
       /* drift -----> gravity --> end_force */
       scheduler_addunlock(sched, ci->grav.super->grav.drift, t);
       scheduler_addunlock(sched, t, ci->grav.super->grav.end_force);
-      if (e->neutrino_properties->use_delta_f)
-        scheduler_addunlock(sched, ci->grav.super->grav.weight, t);
     }
 
     /* Otherwise, sub-pair interaction? */
@@ -2052,8 +2022,6 @@ void engine_link_gravity_tasks(struct engine *e) {
         scheduler_addunlock(sched, ci_parent->grav.drift_out, t);
         scheduler_addunlock(sched, ci_parent->grav.init_out, t);
         scheduler_addunlock(sched, t, ci_parent->grav.down_in);
-        if (e->neutrino_properties->use_delta_f)
-          scheduler_addunlock(sched, ci_parent->grav.weight_out, t);
       }
       if (cj_nodeID == nodeID) {
 
@@ -2063,8 +2031,6 @@ void engine_link_gravity_tasks(struct engine *e) {
           scheduler_addunlock(sched, cj_parent->grav.drift_out, t);
           scheduler_addunlock(sched, cj_parent->grav.init_out, t);
           scheduler_addunlock(sched, t, cj_parent->grav.down_in);
-          if (e->neutrino_properties->use_delta_f)
-            scheduler_addunlock(sched, cj_parent->grav.weight_out, t);
         }
       }
 
