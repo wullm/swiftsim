@@ -1004,8 +1004,6 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   double abs_mass = 0.0;
   double com[3] = {0.0, 0.0, 0.0};
   double vel[3] = {0.f, 0.f, 0.f};
-  double abs_com[3] = {0.0, 0.0, 0.0};
-  double abs_vel[3] = {0.f, 0.f, 0.f};
 
   /* Collect the particle data for CoM. */
   for (int k = 0; k < gcount; k++) {
@@ -1028,46 +1026,50 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
     vel[0] += gparts[k].v_full[0] * m;
     vel[1] += gparts[k].v_full[1] * m;
     vel[2] += gparts[k].v_full[2] * m;
-    abs_com[0] += gparts[k].x[0] * abs_m;
-    abs_com[1] += gparts[k].x[1] * abs_m;
-    abs_com[2] += gparts[k].x[2] * abs_m;
-    abs_vel[0] += gparts[k].v_full[0] * abs_m;
-    abs_vel[1] += gparts[k].v_full[1] * abs_m;
-    abs_vel[2] += gparts[k].v_full[2] * abs_m;
   }
 
-  /* Final operation on CoM */
-  const double imass = 1.0 / mass;
-  com[0] *= imass;
-  com[1] *= imass;
-  com[2] *= imass;
-  vel[0] *= imass;
-  vel[1] *= imass;
-  vel[2] *= imass;
+  /* Catch cases where the CoM and the CoAM differ substationally */
+  if (fabsf(mass) < 0.9 * abs_mass) {
+    /* Compute the centre of absolute mass (CoAM) */
+    double abs_com[3] = {0.0, 0.0, 0.0};
+    double abs_vel[3] = {0.f, 0.f, 0.f};
 
-  /* Final operations on CoAM */
-  const double abs_imass = 1.0 / abs_mass;
-  abs_com[0] *= abs_imass;
-  abs_com[1] *= abs_imass;
-  abs_com[2] *= abs_imass;
-  abs_vel[0] *= abs_imass;
-  abs_vel[1] *= abs_imass;
-  abs_vel[2] *= abs_imass;
+    /* Collect the particle data for CoAM. */
+    for (int k = 0; k < gcount; k++) {
+      const float abs_m = fabsf(gparts[k].mass);
+      abs_com[0] += gparts[k].x[0] * abs_m;
+      abs_com[1] += gparts[k].x[1] * abs_m;
+      abs_com[2] += gparts[k].x[2] * abs_m;
+      abs_vel[0] += gparts[k].v_full[0] * abs_m;
+      abs_vel[1] += gparts[k].v_full[1] * abs_m;
+      abs_vel[2] += gparts[k].v_full[2] * abs_m;
+    }
 
-  /* Compute distance between CoM and CoAM */
-  const double dpx = com[0] - abs_com[0];
-  const double dpy = com[1] - abs_com[1];
-  const double dpz = com[2] - abs_com[2];
-  const double pd2 = dpx * dpx + dpy * dpy + dpz * dpz;
+    /* Final operations on CoAM */
+    const double abs_imass = 1.0 / abs_mass;
+    abs_com[0] *= abs_imass;
+    abs_com[1] *= abs_imass;
+    abs_com[2] *= abs_imass;
+    abs_vel[0] *= abs_imass;
+    abs_vel[1] *= abs_imass;
+    abs_vel[2] *= abs_imass;
 
-  const double alpha = 10.0;
-  if (pd2 > alpha * alpha * epsilon_max * epsilon_max) {
+    /* Use the CoAM instead of the CoM */
     com[0] = abs_com[0];
     com[1] = abs_com[1];
     com[2] = abs_com[2];
     vel[0] = abs_vel[0];
     vel[1] = abs_vel[1];
     vel[2] = abs_vel[2];
+  } else {
+    /* Final operation on CoM */
+    const double imass = 1.0 / mass;
+    com[0] *= imass;
+    com[1] *= imass;
+    com[2] *= imass;
+    vel[0] *= imass;
+    vel[1] *= imass;
+    vel[2] *= imass;
   }
 
   /* Prepare some local counters */
