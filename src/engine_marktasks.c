@@ -1243,7 +1243,7 @@ void engine_marktasks_mapper(void *map_data, int num_elements,
       if (cell_is_active_gravity(t->ci, e)) scheduler_activate(s, t);
     }
 
-    /* Activate the weighting task for pseudo-particles (neutrinos) */
+    /* Activate the weighting task for neutrinos */
     else if (t_type == task_type_weight) {
       if (cell_is_active_gravity(t->ci, e)) {
         scheduler_activate(s, t);
