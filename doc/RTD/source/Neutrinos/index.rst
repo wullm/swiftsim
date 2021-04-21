@@ -6,7 +6,7 @@
 Neutrino implementation
 =======================
 
-SWIFT can also accurately include the effects of massive neutrinos in
+SWIFT can also accurately model the effects of massive neutrinos in
 cosmological simulations. At the background level, massive neutrinos
 and other relativistic species can be included by specifying their
 number and masses in the cosmology section of the parameter file
@@ -23,6 +23,8 @@ initial momenta. The method can be activated by specifying
 
 The implementation of the :math:`\delta f` method in SWIFT assumes a
 specific method for generating the initial neutrino momenta (see below).
+This makes it possible to reproduce the initial momentum when it is
+needed without increasing the memory footprint of the neutrino particles.
 If perturbed initial conditions are not needed, the initial momenta can
 be generated internally by specifying ``Neutrino:generate_ics`` in the
 parameter file. This will assign ``PartType6`` particles to each

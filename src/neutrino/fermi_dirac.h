@@ -64,7 +64,7 @@ struct anyrng {
  *
  * @param z Argument of the FD function: z = p/kbT
  */
-static inline float fermi_dirac_density(float z) {
+INLINE static float fermi_dirac_density(float z) {
   return 1.0 / (optimized_expf(z) + 1.0);
 }
 
