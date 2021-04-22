@@ -50,6 +50,37 @@ float optimized_log10f(float val) {
   return log_2 * 0.301029996f;
 }
 
+/* Cubic spline coefficients */
+struct spline {
+  double a0, a1, a2, a3;
+};
+
+/**
+ * @brief Interpolation and search tables for the Fermi-Dirac distribution
+ */
+struct anyrng {
+  /*! Number of intervals on which the interpolation is defined */
+  int intervalN;
+
+  /*! Endpoints of the intervals */
+  double *endpoints;
+
+  /*! Cubic splines of the Fermi-Dirac quantile function */
+  struct spline *splines;
+
+  /*! Length of the look up tables */
+  int tablelen;
+
+  /*! Search table to look up enclosing intervals for small u */
+  int *index_table_a;
+
+  /*! Search table to look up enclosing intervals for intermediate u */
+  int *index_table_b;
+
+  /*! Search table to look up enclosing intervals for large u */
+  int *index_table_c;
+};
+
 static double endpoints[118] = {
     0.000000e+00, 8.812220e-16, 3.490090e-15, 1.764874e-14, 1.080345e-13,
     7.475047e-13, 5.544411e-12, 4.267185e-11, 3.346975e-10, 2.649997e-09,

@@ -25,7 +25,6 @@
 
 /* Phase space density functions needed */
 #include "neutrino/fermi_dirac.h"
-#include "neutrino/neutrino.h"
 #include "neutrino_properties.h"
 
 /* Local headers. */
@@ -33,6 +32,20 @@
 #include "cell.h"
 #include "engine.h"
 #include "timers.h"
+
+/* Compute the dimensionless neutrino momentum (units of kb*T).
+ *
+ * @param v The internal 3-velocity
+ * @param m_eV The neutrino mass in electron-volts
+ * @param fac Conversion factor = 1. / (speed_of_light * T_nu_eV)
+ */
+INLINE static double neutrino_momentum(float *v, double m_eV, double fac) {
+
+  float v2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+  float vmag = sqrtf(v2);
+  double p = vmag * fac * m_eV;
+  return p;
+}
 
 /**
  * @brief Weight the active neutrino particles in a cell using the delta-f

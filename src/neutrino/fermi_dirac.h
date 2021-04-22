@@ -27,37 +27,6 @@
 /* Faster exponential */
 #include "exp.h"
 
-/* Cubic spline coefficients */
-struct spline {
-  double a0, a1, a2, a3;
-};
-
-/**
- * @brief Interpolation and search tables for the Fermi-Dirac distribution
- */
-struct anyrng {
-  /*! Number of intervals on which the interpolation is defined */
-  int intervalN;
-
-  /*! Endpoints of the intervals */
-  double *endpoints;
-
-  /*! Cubic splines of the Fermi-Dirac quantile function */
-  struct spline *splines;
-
-  /*! Length of the look up tables */
-  int tablelen;
-
-  /*! Search table to look up enclosing intervals for small u */
-  int *index_table_a;
-
-  /*! Search table to look up enclosing intervals for intermediate u */
-  int *index_table_b;
-
-  /*! Search table to look up enclosing intervals for large u */
-  int *index_table_c;
-};
-
 /**
  * @brief Calculate the neutrino density at the particle's location in phase
  * space, according to the 0th order background model: f_0(x,p,t).
