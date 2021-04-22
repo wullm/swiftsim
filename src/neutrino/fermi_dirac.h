@@ -48,13 +48,13 @@ struct anyrng {
   /*! Length of the look up tables */
   int tablelen;
 
-  /*! Search table to look up enclpsing intervals for small u */
+  /*! Search table to look up enclosing intervals for small u */
   int *index_table_a;
 
-  /*! Search table to look up enclpsing intervals for intermediate u */
+  /*! Search table to look up enclosing intervals for intermediate u */
   int *index_table_b;
 
-  /*! Search table to look up enclpsing intervals for large u */
+  /*! Search table to look up enclosing intervals for large u */
   int *index_table_c;
 };
 
