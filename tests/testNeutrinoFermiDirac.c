@@ -23,8 +23,8 @@
 
 /* Includes. */
 #include "../config.h"
-#include "swift.h"
 #include "neutrino/fermi_dirac.h"
+#include "swift.h"
 
 /* Riemann function zeta(3) and zeta(5) */
 #define M_ZETA_3 1.2020569031595942853997
