@@ -51,9 +51,8 @@ INLINE static void neutrino_props_init(struct neutrino_props *np,
                                        struct swift_params *params,
                                        const struct cosmology *cosmo) {
 
-  np->use_delta_f = parser_get_opt_param_int(params, "Neutrino:use_delta_f", 0);
-  np->generate_ics =
-      parser_get_opt_param_int(params, "Neutrino:generate_ics", 0);
+  np->use_delta_f = parser_get_param_int(params, "Neutrino:use_delta_f");
+  np->generate_ics = parser_get_param_int(params, "Neutrino:generate_ics");
   np->neutrino_seed =
       parser_get_opt_param_int(params, "Neutrino:neutrino_seed", 0);
 }
