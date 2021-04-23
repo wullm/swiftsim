@@ -610,7 +610,7 @@ void *runner_main(void *data) {
         case task_type_fof_pair:
           runner_do_fof_pair(r, t->ci, t->cj, 1);
           break;
-        case task_type_weight:
+        case task_type_neutrino_weight:
           runner_do_weighting(r, ci, 1);
           break;
         case task_type_rt_ghost1:

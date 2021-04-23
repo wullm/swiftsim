@@ -1007,9 +1007,9 @@ void engine_make_hierarchical_tasks_common(struct engine *e, struct cell *c) {
 
       /* Weighting task for neutrinos after the last kick */
       if (e->neutrino_properties->use_delta_f) {
-        c->grav.weight = scheduler_addtask(s, task_type_weight,
-                                           task_subtype_none, 0, 0, c, NULL);
-        scheduler_addunlock(s, c->kick1, c->grav.weight);
+        c->grav.neutrino_weight = scheduler_addtask(
+            s, task_type_neutrino_weight, task_subtype_none, 0, 0, c, NULL);
+        scheduler_addunlock(s, c->kick1, c->grav.neutrino_weight);
       }
 
 #if defined(WITH_LOGGER)

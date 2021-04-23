@@ -1244,7 +1244,7 @@ void engine_marktasks_mapper(void *map_data, int num_elements,
     }
 
     /* Activate the weighting task for neutrinos */
-    else if (t_type == task_type_weight) {
+    else if (t_type == task_type_neutrino_weight) {
       if (cell_is_active_gravity(t->ci, e)) {
         scheduler_activate(s, t);
       }
