@@ -55,7 +55,7 @@ INLINE static double neutrino_momentum(float v[3], double m_eV, double fac) {
  * @param c The cell.
  * @param timer Are we timing this ?
  */
-void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
+void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
 
   const struct engine *e = r->e;
   const int with_cosmology = (e->policy & engine_policy_cosmology);
@@ -84,7 +84,8 @@ void runner_do_weighting(struct runner *r, struct cell *c, int timer) {
   /* Recurse? */
   if (c->split) {
     for (int k = 0; k < 8; k++)
-      if (c->progeny[k] != NULL) runner_do_weighting(r, c->progeny[k], 0);
+      if (c->progeny[k] != NULL)
+        runner_do_neutrino_weighting(r, c->progeny[k], 0);
   } else {
     /* Loop over the gparts in this cell. */
     for (int k = 0; k < gcount; k++) {
