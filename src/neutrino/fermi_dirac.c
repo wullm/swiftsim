@@ -309,7 +309,7 @@ double neutrino_seed_to_fermi_dirac(uint64_t seed) {
  *
  * @param seed Random seed to be transformed
  */
-void neutrino_seed_to_direction(uint64_t seed, double *n) {
+void neutrino_seed_to_direction(uint64_t seed, double n[3]) {
   /* Skip the first draw, which is used for the magnitude */
   seed += 0x9E3779B97f4A7C15;
 

@@ -39,7 +39,7 @@
  * @param m_eV The neutrino mass in electron-volts
  * @param fac Conversion factor = 1. / (speed_of_light * T_nu_eV)
  */
-INLINE static double neutrino_momentum(float *v, double m_eV, double fac) {
+INLINE static double neutrino_momentum(float v[3], double m_eV, double fac) {
 
   float v2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
   float vmag = sqrtf(v2);

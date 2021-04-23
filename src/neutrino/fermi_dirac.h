@@ -38,6 +38,6 @@ INLINE static float fermi_dirac_density(float z) {
 }
 
 double neutrino_seed_to_fermi_dirac(uint64_t seed);
-void neutrino_seed_to_direction(uint64_t seed, double *n);
+void neutrino_seed_to_direction(uint64_t seed, double n[3]);
 
 #endif /* SWIFT_DEFAULT_FERMI_DIRAC_H */
