@@ -34,7 +34,7 @@
  * @param z Argument of the FD function: z = p/kbT
  */
 INLINE static float fermi_dirac_density(float z) {
-  return 1.0 / (optimized_expf(z) + 1.0);
+  return 1.f / (optimized_expf(z) + 1.f);
 }
 
 double neutrino_seed_to_fermi_dirac(uint64_t seed);
