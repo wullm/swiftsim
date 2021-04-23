@@ -334,8 +334,9 @@ void neutrino_seed_to_direction(uint64_t seed, double n[3]) {
   /* Normalize the vector */
   const double nmag = sqrtf(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
   if (nmag > 0) {
-    n[0] /= nmag;
-    n[1] /= nmag;
-    n[2] /= nmag;
+    const double inv_nmag = 1.0 / nmag;
+    n[0] *= inv_nmag;
+    n[1] *= inv_nmag;
+    n[2] *= inv_nmag;
   }
 }
