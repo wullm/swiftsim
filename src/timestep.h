@@ -109,7 +109,7 @@ __attribute__((always_inline)) INLINE static integertime_t get_gpart_timestep(
 
 #ifdef WITH_RELATIVISTIC_KICK
   /* Perform a relativistic correction, using dt ~ 1/sqrt(three-accel) */
-  double accel_correction = relat_corr_3accel(e, gp->v_full, gp->v_i);
+  double accel_correction = relat_corr_3accel(e, gp->v_full, 0.);
   new_dt /= sqrtf(accel_correction);
 #endif
 

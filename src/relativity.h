@@ -85,8 +85,8 @@ __attribute__((always_inline)) INLINE static double relat_corr_3accel(
   float vv = (V[0] * V[0] + V[1] * V[1] + V[2] * V[2]) / (a * a * c * c);
   (void) vv;
 
-  float v_i = V_i / (a * c);
-  float vv_i = v_i * v_i;
+  //float v_i = V_i / (a * c);
+  //float vv_i = v_i * v_i;
 
   /* When this is enabled, the internal velocity variable is
    * the spatial component of the 4-velocity U^i, multiplied by a^2,
@@ -95,7 +95,7 @@ __attribute__((always_inline)) INLINE static double relat_corr_3accel(
    */
 
   /* Derivative of v / sqrt(v^2 + 1), using v' = (2v^2 + 1)a / sqrt(v^2 + 1) */
-  return (2 * vv_i + 1.) / ((vv_i + 1.0) * (vv_i + 1.0));
+  return (2 * vv + 1.) / ((vv + 1.0) * (vv + 1.0));
 }
 
 #endif /* SWIFT_RELATIVITY_H */
