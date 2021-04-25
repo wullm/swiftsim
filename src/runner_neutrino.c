@@ -48,6 +48,78 @@ INLINE static double neutrino_momentum(float v[3], double m_eV, double fac) {
 }
 
 /**
+ * @brief Generate random Fermi-Dirac momenta for neutrino particles and
+ * prepare them for delta-f weighting updates
+ *
+ * @param r The runner thread.
+ * @param c The cell.
+ * @param timer Are we timing this ?
+ */
+void runner_do_neutrino_init(struct runner *r, struct cell *c, int timer) {
+
+  const struct engine *e = r->e;
+  const int with_cosmology = (e->policy & engine_policy_cosmology);
+  struct gpart *restrict gparts = c->grav.parts;
+  const int gcount = c->grav.count;
+
+  TIMER_TIC;
+
+  /* Anything to do here? */
+  if (c->grav.count == 0) return;
+  if (!cell_is_starting_gravity(c, e) && !cell_is_active_gravity(c, e)) return;
+  if (!with_cosmology)
+    error("Phase space weighting without cosmology not implemented.");
+
+  /* Retrieve physical and cosmological constants */
+  const struct phys_const *physical_constants = e->physical_constants;
+  const double c_vel = physical_constants->const_speed_light_c;
+  const double *m_eV_array = e->cosmology->M_nu_eV;
+  const int N_nu = e->cosmology->N_nu;
+  const double T_eV = e->cosmology->T_nu_0_eV;
+  const double inv_fac = c_vel * T_eV;
+  const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
+
+  /* Recurse? */
+  if (c->split) {
+    for (int k = 0; k < 8; k++)
+      if (c->progeny[k] != NULL) runner_do_neutrino_init(r, c->progeny[k], 0);
+  } else {
+    /* Loop over the gparts in this cell. */
+    for (int k = 0; k < gcount; k++) {
+      /* Get a handle on the part. */
+      struct gpart *restrict gp = &gparts[k];
+
+      /* Only act on neutrinos */
+      if (gp->type != swift_type_neutrino) continue;
+
+      /* Use a particle id dependent seed */
+      const long long seed = gp->id_or_neg_offset + neutrino_seed;
+
+      /* Compute the initial dimensionless momentum from the seed */
+      const double pi = neutrino_seed_to_fermi_dirac(seed);
+
+      /* The neutrino mass (we cycle based on the neutrino seed) */
+      const double m_eV = m_eV_array[(int)(seed % N_nu)];
+
+      /* Compute the initial direction of the momentum vector from the seed */
+      double n[3];
+      neutrino_seed_to_direction(seed, n);
+
+      /* Set the initial velocity */
+      const double vi = pi * inv_fac / m_eV;
+      gp->v_full[0] = n[0] * vi;
+      gp->v_full[1] = n[1] * vi;
+      gp->v_full[2] = n[2] * vi;
+
+      /* Set the initial mass to (almost) zero */
+      gp->mass = FLT_MIN;
+    }
+  }
+
+  if (timer) TIMER_TOC(timer_neutrino_init);
+}
+
+/**
  * @brief Weight the active neutrino particles in a cell using the delta-f
  * method.
  *
@@ -77,7 +149,6 @@ void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
   const int N_nu = e->cosmology->N_nu;
   const double T_eV = e->cosmology->T_nu_0_eV;
   const double fac = 1.0 / (c_vel * T_eV);
-  const double inv_fac = 1. / fac;
   const double inv_mass_factor = 1. / e->neutrino_mass_conversion_factor;
   const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
 
@@ -105,41 +176,23 @@ void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
       const double m_eV = m_eV_array[(int)(seed % N_nu)];
       const double mass = m_eV * inv_mass_factor;
 
-      /* Generate random Fermi-Dirac momentum in the first step if needed */
-      if (e->step == 0 && e->neutrino_properties->generate_ics) {
-        /* Compute the initial direction of the momentum vector from the seed */
-        double n[3];
-        neutrino_seed_to_direction(seed, n);
+      /* Compute the current dimensionless momentum */
+      double p = neutrino_momentum(gp->v_full, m_eV, fac);
 
-        /* Set the initial velocity */
-        const double vi = pi * inv_fac / m_eV;
-        gp->v_full[0] = n[0] * vi;
-        gp->v_full[1] = n[1] * vi;
-        gp->v_full[2] = n[2] * vi;
+      /* Compute the initial and current background phase-space density */
+      double fi = fermi_dirac_density(pi);
+      double f = fermi_dirac_density(p);
+      double weight = 1.0 - f / fi;
 
-        /* Set the initial mass to (almost) zero */
+      /* Set the statistically weighted mass */
+      gp->mass = mass * weight;
+
+      /* Prevent degeneracies */
+      if (gp->mass == 0.) {
         gp->mass = FLT_MIN;
-      }
-      /* Update the statistically weighted mass based on the current velocity */
-      else {
-        /* Compute the current dimensionless momentum */
-        double p = neutrino_momentum(gp->v_full, m_eV, fac);
-
-        /* Compute the initial and current background phase-space density */
-        double fi = fermi_dirac_density(pi);
-        double f = fermi_dirac_density(p);
-        double weight = 1.0 - f / fi;
-
-        /* Set the statistically weighted mass */
-        gp->mass = mass * weight;
-
-        /* Prevent degeneracies */
-        if (gp->mass == 0.) {
-          gp->mass = FLT_MIN;
-        }
       }
     }
   }
 
-  if (timer) TIMER_TOC(timer_weight);
+  if (timer) TIMER_TOC(timer_neutrino_weight);
 }

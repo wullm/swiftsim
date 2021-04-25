@@ -1005,8 +1005,15 @@ void engine_make_hierarchical_tasks_common(struct engine *e, struct cell *c) {
       c->kick2 = scheduler_addtask(s, task_type_kick2, task_subtype_none, 0, 0,
                                    c, NULL);
 
+      /* Initialize neutrino particles */
+      if (e->step == 0 && e->neutrino_properties->generate_ics) {
+        c->grav.neutrino_init = scheduler_addtask(
+            s, task_type_neutrino_init, task_subtype_none, 0, 0, c, NULL);
+        scheduler_addunlock(s, c->kick1, c->grav.neutrino_init);
+      }
+
       /* Weighting task for neutrinos after the last kick */
-      if (e->neutrino_properties->use_delta_f) {
+      else if (e->neutrino_properties->use_delta_f) {
         c->grav.neutrino_weight = scheduler_addtask(
             s, task_type_neutrino_weight, task_subtype_none, 0, 0, c, NULL);
         scheduler_addunlock(s, c->kick1, c->grav.neutrino_weight);

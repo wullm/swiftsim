@@ -100,6 +100,7 @@ enum task_types {
   task_type_bh_swallow_ghost3, /* Implicit */
   task_type_fof_self,
   task_type_fof_pair,
+  task_type_neutrino_init,
   task_type_neutrino_weight,
   task_type_sink_in,    /* Implicit */
   task_type_sink_ghost, /* Implicit */
