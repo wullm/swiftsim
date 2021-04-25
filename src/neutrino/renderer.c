@@ -925,7 +925,7 @@ void rend_add_gr_potential_mesh(struct renderer *rend, const struct engine *e) {
   tic = getticks();
 
   /* Export the potentials if necessary */
-  if (e->nodeID == 0) {
+  if (false && e->nodeID == 0) {
     /* Are we also exporting snapshots? */
     if (e->step % 50 == 0) {
       char one[40];
