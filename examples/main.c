@@ -1702,7 +1702,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* Write final output. */
-  if (!force_stop) {  // && nsteps == -2) {
+  if (!force_stop && nsteps == -2) {
 
     /* Move forward in time */
     e.ti_old = e.ti_current;
