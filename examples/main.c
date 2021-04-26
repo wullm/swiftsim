@@ -1512,7 +1512,8 @@ int main(int argc, char *argv[]) {
 
       /* Run FoF first, if we're adding FoF info to the snapshot */
       if (with_fof && e.snapshot_invoke_fof) {
-        engine_fof(&e, /*dump_results=*/0, /*seed_black_holes=*/0);
+        engine_fof(&e, /*dump_results=*/1, /*dump_debug=*/0,
+                   /*seed_black_holes=*/0);
       }
 
       engine_dump_snapshot(&e);
@@ -1701,7 +1702,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* Write final output. */
-  if (!force_stop && nsteps == -2) {
+  if (!force_stop) {  // && nsteps == -2) {
 
     /* Move forward in time */
     e.ti_old = e.ti_current;
@@ -1742,7 +1743,8 @@ int main(int argc, char *argv[]) {
         !e.output_list_snapshots) {
 
       if (with_fof && e.snapshot_invoke_fof) {
-        engine_fof(&e, /*dump_results=*/0, /*seed_black_holes=*/0);
+        engine_fof(&e, /*dump_results=*/1, /*dump_debug=*/0,
+                   /*seed_black_holes=*/0);
       }
 
 #ifdef HAVE_VELOCIRAPTOR
