@@ -77,9 +77,6 @@ struct cell_grav {
   /*! The task to end the force calculation */
   struct task *end_force;
 
-  /*! Task for initializing neutrino particles */
-  struct task *neutrino_init;
-
   /*! Task for weighting neutrino particles */
   struct task *neutrino_weight;
 

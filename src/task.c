@@ -107,7 +107,6 @@ const char *taskID_names[task_type_count] = {
     "bh_swallow_ghost3",
     "fof_self",
     "fof_pair",
-    "neutrino_init",
     "neutrino_weight",
     "sink_in",
     "sink_ghost",
@@ -1766,7 +1765,6 @@ enum task_categories task_get_category(const struct task *t) {
     case task_type_rt_out:
       return task_category_rt;
 
-    case task_type_neutrino_init:
     case task_type_neutrino_weight:
       return task_category_neutrino;
 
