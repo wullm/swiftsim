@@ -80,7 +80,7 @@ INLINE static double neutrino_mass_factor(
  * and after IDs have been remapped (if used) by space_remap_ids().
  *
  * @param gp The particle to act upon
- * @param nu_props The global properties of the neutrino model.
+ * @param engine The engine of the run
  */
 __attribute__((always_inline)) INLINE static void gravity_first_init_neutrino(
     struct gpart *gp, const struct engine *e) {
