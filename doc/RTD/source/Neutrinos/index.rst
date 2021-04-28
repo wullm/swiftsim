@@ -50,10 +50,10 @@ Generating Fermi-Dirac momenta
 
 The implementation of the :math:`\delta f` method in SWIFT assumes that
 neutrinos were initially assigned a Fermi-Dirac momentum using the following
-method. Each particle has a unique 64-bit unsigned integer :math:`\ell` given
-by the particle ID (plus an optional seed: ``Neutrino:neutrino_seed``). This
-number is transformed into a floating point number :math:`u\in(0,1)`, using the
-following pseudo-code based on splitmix64:
+method. Each particle has a fixed 64-bit unsigned integer :math:`\ell` given
+by the particle ID [#f1]_. (plus an optional seed: ``Neutrino:neutrino_seed``).
+This number is transformed into a floating point number :math:`u\in(0,1)`,
+using the following pseudo-code based on splitmix64:
 
 .. code-block:: none
 
@@ -73,3 +73,5 @@ When using the :math:`\delta f` method, SWIFT also assumes that ``PartType6``
 particles are assigned to all :math:`N_\nu` massive species present in the
 cosmology, such that the particle with unique integer :math:`\ell` corresponds
 to species :math:`i = \ell\; \% \;N_\nu\in[0,N_\nu-1]`.
+
+.. [#f1] Currently, it is not guaranteed that a particle ID is unique.
