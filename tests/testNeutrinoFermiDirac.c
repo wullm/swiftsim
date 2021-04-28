@@ -23,7 +23,7 @@
 
 /* Includes. */
 #include "../config.h"
-#include "neutrino/fermi_dirac.h"
+#include "neutrino/Default/fermi_dirac.h"
 #include "swift.h"
 
 /* Riemann function zeta(3) and zeta(5) */
