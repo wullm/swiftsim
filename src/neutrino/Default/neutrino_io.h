@@ -29,25 +29,40 @@
 INLINE static void convert_gpart_pi(const struct engine* e,
                                     const struct gpart* gp, float* ret) {
 
-  /* Use a particle id dependent seed (sum of global seed and ID) */
-  const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
-  const long long seed = gp->id_or_neg_offset + neutrino_seed;
+  /* When we are running with the delta-f method, resample the momentum */
+  if (e->neutrino_properties->use_delta_f) {
+    /* Use a particle id dependent seed (sum of global seed and ID) */
+    const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
+    const long long seed = gp->id_or_neg_offset + neutrino_seed;
 
-  ret[0] = neutrino_seed_to_fermi_dirac(seed);
+    ret[0] = neutrino_seed_to_fermi_dirac(seed);  // eV
+  } else {
+    /* We don't know what the initial momentum was and we don't need it */
+    ret[0] = 0.f;
+  }
 }
 
 INLINE static void convert_gpart_mnu(const struct engine* e,
                                      const struct gpart* gp, float* ret) {
 
-  /* Use a particle id dependent seed (sum of global seed and ID) */
-  const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
-  const long long seed = gp->id_or_neg_offset + neutrino_seed;
+  /* When we are running with the delta-f method, resample the mass */
+  if (e->neutrino_properties->use_delta_f) {
 
-  /* Fetch neutrino masses defined in the cosmology */
-  const int N_nu = e->cosmology->N_nu;
-  const double* m_eV_array = e->cosmology->M_nu_eV;
+    /* Use a particle id dependent seed (sum of global seed and ID) */
+    const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
+    const long long seed = gp->id_or_neg_offset + neutrino_seed;
 
-  ret[0] = neutrino_seed_to_mass(N_nu, m_eV_array, seed);
+    /* Fetch neutrino masses defined in the cosmology */
+    const int N_nu = e->cosmology->N_nu;
+    const double* m_eV_array = e->cosmology->M_nu_eV;
+
+    ret[0] = neutrino_seed_to_mass(N_nu, m_eV_array, seed);  // eV
+  } else {
+    /* Otherwise, simply use the mass implied by the conversion factor */
+    const double mass_factor = e->neutrino_mass_conversion_factor;
+
+    ret[0] = gp->mass * mass_factor;  // eV
+  }
 }
 
 /**

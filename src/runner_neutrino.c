@@ -100,7 +100,7 @@ void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
       const double pi = neutrino_seed_to_fermi_dirac(seed);
 
       /* The neutrino mass (we cycle based on the neutrino seed) */
-      const double m_eV = m_eV_array[(int)(seed % N_nu)];
+      const double m_eV = neutrino_seed_to_mass(N_nu, m_eV_array, seed);
       const double mass = m_eV * inv_mass_factor;
 
       /* Compute the current dimensionless momentum */

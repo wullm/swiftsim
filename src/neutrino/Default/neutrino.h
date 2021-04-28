@@ -115,8 +115,10 @@ __attribute__((always_inline)) INLINE static void gravity_first_init_neutrino(
   gp->v_full[1] = n[1] * vi;
   gp->v_full[2] = n[2] * vi;
 
-  /* Set the initial mass to (almost) zero */
-  gp->mass = FLT_MIN;
+  /* If running with the delta-f method, set the weight to (almost) zero */
+  if (e->neutrino_properties->use_delta_f) {
+    gp->mass = FLT_MIN;
+  }
 }
 
 #endif /* SWIFT_DEFAULT_NEUTRINO_H */
