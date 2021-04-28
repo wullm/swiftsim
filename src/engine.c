@@ -77,7 +77,7 @@
 #include "minmax.h"
 #include "mpiuse.h"
 #include "multipole_struct.h"
-#include "neutrino/neutrino.h"
+#include "neutrino.h"
 #include "neutrino_properties.h"
 #include "output_list.h"
 #include "output_options.h"

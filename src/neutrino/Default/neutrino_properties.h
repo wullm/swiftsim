@@ -19,7 +19,7 @@
 #ifndef SWIFT_DEFAULT_NEUTRINO_PROPERTIES_H
 #define SWIFT_DEFAULT_NEUTRINO_PROPERTIES_H
 
-#include "../restart.h"
+#include "../../restart.h"
 
 /**
  * @brief Properties of neutrinos

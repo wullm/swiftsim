@@ -33,7 +33,7 @@
 #include <math.h>
 
 /* Fast optimized logarithm */
-#include "../log.h"
+#include "../../log.h"
 
 /* Cubic spline coefficients */
 struct spline {

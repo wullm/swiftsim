@@ -24,7 +24,7 @@
 #include "runner.h"
 
 /* Phase space density functions needed */
-#include "neutrino/fermi_dirac.h"
+#include "neutrino.h"
 #include "neutrino_properties.h"
 
 /* Local headers. */
@@ -71,13 +71,11 @@ void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
     error("Phase space weighting without cosmology not implemented.");
 
   /* Retrieve physical and cosmological constants */
-  const struct phys_const *physical_constants = e->physical_constants;
-  const double c_vel = physical_constants->const_speed_light_c;
+  const double c_vel = e->physical_constants->const_speed_light_c;
   const double *m_eV_array = e->cosmology->M_nu_eV;
   const int N_nu = e->cosmology->N_nu;
   const double T_eV = e->cosmology->T_nu_0_eV;
   const double fac = 1.0 / (c_vel * T_eV);
-  const double inv_fac = 1. / fac;
   const double inv_mass_factor = 1. / e->neutrino_mass_conversion_factor;
   const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
 
@@ -105,38 +103,20 @@ void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
       const double m_eV = m_eV_array[(int)(seed % N_nu)];
       const double mass = m_eV * inv_mass_factor;
 
-      /* Generate random Fermi-Dirac momentum in the first step if needed */
-      if (e->step == 0 && e->neutrino_properties->generate_ics) {
-        /* Compute the initial direction of the momentum vector from the seed */
-        double n[3];
-        neutrino_seed_to_direction(seed, n);
+      /* Compute the current dimensionless momentum */
+      double p = neutrino_momentum(gp->v_full, m_eV, fac);
 
-        /* Set the initial velocity */
-        const double vi = pi * inv_fac / m_eV;
-        gp->v_full[0] = n[0] * vi;
-        gp->v_full[1] = n[1] * vi;
-        gp->v_full[2] = n[2] * vi;
+      /* Compute the initial and current background phase-space density */
+      double fi = fermi_dirac_density(pi);
+      double f = fermi_dirac_density(p);
+      double weight = 1.0 - f / fi;
 
-        /* Set the initial mass to (almost) zero */
+      /* Set the statistically weighted mass */
+      gp->mass = mass * weight;
+
+      /* Prevent degeneracies */
+      if (gp->mass == 0.) {
         gp->mass = FLT_MIN;
-      }
-      /* Update the statistically weighted mass based on the current velocity */
-      else {
-        /* Compute the current dimensionless momentum */
-        double p = neutrino_momentum(gp->v_full, m_eV, fac);
-
-        /* Compute the initial and current background phase-space density */
-        double fi = fermi_dirac_density(pi);
-        double f = fermi_dirac_density(p);
-        double weight = 1.0 - f / fi;
-
-        /* Set the statistically weighted mass */
-        gp->mass = mass * weight;
-
-        /* Prevent degeneracies */
-        if (gp->mass == 0.) {
-          gp->mass = FLT_MIN;
-        }
       }
     }
   }
