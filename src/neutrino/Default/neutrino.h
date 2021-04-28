@@ -103,7 +103,7 @@ __attribute__((always_inline)) INLINE static void gravity_first_init_neutrino(
   const double pi = neutrino_seed_to_fermi_dirac(seed);
 
   /* The neutrino mass (we cycle based on the neutrino seed) */
-  const double m_eV = m_eV_array[(int)(seed % N_nu)];
+  const double m_eV = neutrino_seed_to_mass(N_nu, m_eV_array, seed);
 
   /* Compute the initial direction of the momentum vector from the seed */
   double n[3];
