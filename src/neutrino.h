@@ -1,6 +1,6 @@
 /*******************************************************************************
  * This file is part of SWIFT.
- * Copyright (c) 2021 Willem Elbers (whe@willemelbers.com)
+ * Coypright (c) 2021 Willem Elbers (whe@willemelbers.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ******************************************************************************/
-#ifndef SWIFT_NEUTRINO_PROPERTIES_H
-#define SWIFT_NEUTRINO_PROPERTIES_H
+#ifndef SWIFT_NEUTRINO_H
+#define SWIFT_NEUTRINO_H
 
 /* Config parameters. */
 #include "../config.h"
 
 /* Select the correct neutrino model */
-#include "./neutrino/Default/neutrino_properties.h"
+#include "./neutrino/Default/neutrino.h"
 
-#endif /* SWIFT_NEUTRINO_PROPERTIES_H */
+#endif

@@ -63,4 +63,20 @@ INLINE static double neutrino_mass_factor(
   return mass_factor_eV;
 }
 
+/**
+ * @brief Initialises the neutrino g-particles for the first time. This is done
+ * in addition to gravity_first_init_gpart().
+ *
+ * This function is called only once just after the ICs have been
+ * read in to do some conversions.
+ *
+ * @param gp The particle to act upon
+ * @param grav_props The global properties of the gravity calculation.
+ */
+__attribute__((always_inline)) INLINE static void gravity_first_init_neutrino(
+    struct gpart* gp, const struct gravity_props* grav_props) {
+
+  message("Ja hallo");
+}
+
 #endif /* SWIFT_DEFAULT_NEUTRINO_H */
