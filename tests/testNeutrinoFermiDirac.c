@@ -44,6 +44,11 @@ int main(int argc, char *argv[]) {
   double sigma3 = sigma2 * sigma;
   double skewns = (integral5 / integral2 - 3 * mu * sigma2 - mu2 * mu) / sigma3;
 
+  /* Print FermiDirac(n) for n = 1, 2, 3 for external testing */
+  message("fermi_dirac(1) = %e", neutrino_seed_to_fermi_dirac(1));
+  message("fermi_dirac(2) = %e", neutrino_seed_to_fermi_dirac(2));
+  message("fermi_dirac(3) = %e\n", neutrino_seed_to_fermi_dirac(3));
+
   /* Generate Fermi-Dirac numbers and compute the sum, min, and max */
   int N = 1e7;
   double sum = 0;

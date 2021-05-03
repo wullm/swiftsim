@@ -41,9 +41,7 @@ internal velocity variable (see theory/Cosmology) is
 :math:`v^i=a^2u^i=a^2\dot{x}^i\gamma^{-1}`, where :math:`u^i` is the
 spatial part of the 4-velocity, :math:`a` the scale factor, and
 :math:`x^i` a comoving position vector. The conversion factor to the
-coordinate 3-velocity is :math:`\gamma=ac/\sqrt{a^2c^2+v^2}`. This
-correction is applied until the relative error is less than 1% for any
-particle with momentum :math:`p\leq 20 k_b T`.
+coordinate 3-velocity is :math:`\gamma=ac/\sqrt{a^2c^2+v^2}`.
 
 Generating Fermi-Dirac momenta
 ------------------------------

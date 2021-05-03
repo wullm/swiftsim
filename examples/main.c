@@ -1084,10 +1084,7 @@ int main(int argc, char *argv[]) {
     } else
       bzero(&sink_properties, sizeof(struct sink_props));
 
-    /* Initialise the neutrino properties */
-    neutrino_props_init(&neutrino_properties, &prog_const, &us, params, &cosmo);
-
-    /* Initialise the cooling function properties */
+      /* Initialise the cooling function properties */
 #ifdef COOLING_NONE
     if (with_cooling) {
       error(
@@ -1271,6 +1268,12 @@ int main(int argc, char *argv[]) {
 
     /* Do we have neutrino DM particles? */
     const int with_neutrinos = N_total[swift_type_neutrino] > 0;
+
+    /* Initialise the neutrino properties if we have neutrino particles */
+    bzero(&neutrino_properties, sizeof(struct neutrino_props));
+    if (with_neutrinos)
+      neutrino_props_init(&neutrino_properties, &prog_const, &us, params,
+                          &cosmo);
 
     /* Initialize the space with these data. */
     if (myrank == 0) clocks_gettime(&tic);
