@@ -34,7 +34,7 @@
  * @param gp The neutrino gpart in question
  * @param ret Output
  */
-INLINE static void convert_gpart_pi(const struct engine* e,
+INLINE static void convert_gpart_vi(const struct engine* e,
                                     const struct gpart* gp, float* ret) {
 
   /* When we are running with the delta-f method, resample the momentum */
@@ -76,9 +76,9 @@ __attribute__((always_inline)) INLINE static int neutrino_write_particles(
 
   list[0] = io_make_output_field_convert_gpart(
       "SampledSpeeds", FLOAT, 1, UNIT_CONV_MOMENTUM, 0.f, gparts,
-      convert_gpart_pi,
-      "Initial Fermi-Dirac speed sampled at infinity. This "
-      "is a * |dx/dt| where x is the co-moving position of the particles.");
+      convert_gpart_vi,
+      "Initial Fermi-Dirac speed sampled at infinity. This is a * |dx/dt| "
+      "where x is the co-moving position of the particles.");
 
   return 1;
 }
