@@ -1491,7 +1491,7 @@ been specified in the ``Cosmology`` section described above. Random
 Fermi-Dirac momenta will be generated if ``generate_ics`` is used. The
 :math:`\delta f` method for shot noise reduction can be activated with
 ``use_delta_f``. Finally, a random seed for the Fermi-Dirac momenta can
-be set with ``neutrino seed``.
+be set with ``neutrino_seed``.
 
 For mode details on the neutrino implementation, refer to :ref:`Neutrinos`. 
 A complete specification of the model looks like
