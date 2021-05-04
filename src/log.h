@@ -67,10 +67,10 @@ __attribute__((always_inline, const)) INLINE static float optimized_logf(
  */
 __attribute__((always_inline, const)) INLINE static float optimized_log10f(
     float val) {
-  /* Compute the base-2 log */
-  float log_2 = optimized_logf(val);
+  /* Compute the natural log */
+  float log_e = optimized_logf(val);
   /* Return the base-10 log */
-  return log_2 * 0.434294482f;
+  return log_e * 0.434294482f;
 }
 
 #endif /* SWIFT_OPTIMIZED_LOG_H */
