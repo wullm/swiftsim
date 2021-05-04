@@ -115,8 +115,7 @@ __attribute__((always_inline)) INLINE static int neutrino_write_particles(
     const struct gpart* gparts, struct io_props* list) {
 
   list[0] = io_make_output_field_convert_gpart(
-      "SampledSpeeds", FLOAT, 1, UNIT_CONV_MOMENTUM, 0.f, gparts,
-      convert_gpart_vi,
+      "SampledSpeeds", FLOAT, 1, UNIT_CONV_SPEED, 0.f, gparts, convert_gpart_vi,
       "Initial Fermi-Dirac speed sampled at infinity. This is a * |dx/dt| "
       "where x is the co-moving position of the particles.");
 
