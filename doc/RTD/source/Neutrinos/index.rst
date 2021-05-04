@@ -41,7 +41,8 @@ internal velocity variable (see theory/Cosmology) is
 :math:`v^i=a^2u^i=a^2\dot{x}^i\gamma^{-1}`, where :math:`u^i` is the
 spatial part of the 4-velocity, :math:`a` the scale factor, and
 :math:`x^i` a comoving position vector. The conversion factor to the
-coordinate 3-velocity is :math:`\gamma=ac/\sqrt{a^2c^2+v^2}`.
+coordinate 3-velocity is :math:`\gamma=ac/\sqrt{a^2c^2+v^2}`. This
+factor is applied to the neutrino particles throughout the simulation.
 
 Generating Fermi-Dirac momenta
 ------------------------------
@@ -49,7 +50,7 @@ Generating Fermi-Dirac momenta
 The implementation of the :math:`\delta f` method in SWIFT assumes that
 neutrinos were initially assigned a Fermi-Dirac momentum using the following
 method. Each particle has a fixed 64-bit unsigned integer :math:`\ell` given
-by the particle ID [#f1]_. (plus an optional seed: ``Neutrino:neutrino_seed``).
+by the particle ID [#f1]_ (plus an optional seed: ``Neutrino:neutrino_seed``).
 This number is transformed into a floating point number :math:`u\in(0,1)`,
 using the following pseudo-code based on splitmix64:
 
@@ -69,7 +70,10 @@ and then applies perturbations in any suitable manner.
 
 When using the :math:`\delta f` method, SWIFT also assumes that ``PartType6``
 particles are assigned to all :math:`N_\nu` massive species present in the
-cosmology, such that the particle with unique integer :math:`\ell` corresponds
+cosmology, such that the particle with fixed integer :math:`\ell` corresponds
 to species :math:`i = \ell\; \% \;N_\nu\in[0,N_\nu-1]`.
+
+The sampled Fermi-Dirac speeds and neutrino masses are written into the
+snapshot files as ``SampledSpeeds`` and ``MicroscopicMasses``.
 
 .. [#f1] Currently, it is not guaranteed that a particle ID is unique.
