@@ -339,8 +339,8 @@ dark matter and baryons. The last parameter controls whether neutrinos
 contribute to the maximum and minimum velocity difference of groups of particles
 with respect to the centre of mass velocity. These vectors are used when multipoles
 are drifted forward in time to conservatively estimate the maximum radius around
-the centre of mass containing the particles. Excluding neutrinos can speed up the
-calculation by limiting the size of multipoles.
+the centre of mass of the region containing the particles. Excluding neutrinos can
+speed up the calculation by limiting the size of multipoles.
 
 .. _Parameters_SPH:
 
