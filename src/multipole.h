@@ -1063,6 +1063,8 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
 #error "Missing implementation for order >5"
 #endif
 
+  int exclude_neutrinos_delta_vel = grav_props->exclude_neutrinos_delta_vel;
+
   /* Construce the higher order terms */
   for (int k = 0; k < gcount; k++) {
 
@@ -1072,7 +1074,9 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
     /* Maximal distance CoM<->gpart */
     r_max2 = max(r_max2, dx[0] * dx[0] + dx[1] * dx[1] + dx[2] * dx[2]);
 
-    if (gparts[k].type != swift_type_neutrino) {
+    /* Are we including neutrinos in the max/min velocity difference? */
+    if (!exclude_neutrinos_delta_vel || gparts[k].type != swift_type_neutrino) {
+
       /* Store the vector of the maximal vel difference */
       max_delta_vel[0] = max(gparts[k].v_full[0], max_delta_vel[0]);
       max_delta_vel[1] = max(gparts[k].v_full[1], max_delta_vel[1]);
