@@ -605,6 +605,10 @@ void space_split_recursive(struct space *s, struct cell *c,
         gravity_P2M(c->grav.multipole, c->grav.parts, c->grav.count,
                     e->gravity_properties);
 
+        /* Truncate the multipole at first order if CoM is far outside cell */
+        if (!cell_centre_of_mass_nearby(c))
+          gravity_truncate_higher_order_terms(&c->grav.multipole->m_pole);
+
         /* Compute the multipole power */
         gravity_multipole_compute_power(&c->grav.multipole->m_pole);
 

@@ -1391,4 +1391,37 @@ __attribute__((always_inline)) INLINE void cell_assign_cell_index(
 #endif
 }
 
+/**
+ * @brief Verify that the centre of mass of particles in a cell is inside or
+ * close the cell in question.
+ *
+ * @param c The #cell
+ */
+__attribute__((nonnull)) INLINE static int cell_centre_of_mass_nearby(
+    const struct cell *c) {
+
+  /* Compute distance vector from CoM to geometric centre of the cell */
+  float dx = c->grav.multipole->CoM[0] - (c->loc[0] + 0.5 * c->width[0]);
+  float dy = c->grav.multipole->CoM[1] - (c->loc[1] + 0.5 * c->width[1]);
+  float dz = c->grav.multipole->CoM[2] - (c->loc[2] + 0.5 * c->width[2]);
+
+  /* Compute squared distance */
+  float r2 = dx * dx + dy * dy + dz * dz;
+
+  /* Compute the maximum squared distance from one corner to another */
+  float wmax = max3(c->width[0], c->width[1], c->width[2]);
+  float w2 = 3 * wmax * wmax;
+
+  if (r2 > w2) {
+    message(
+        "Centre of mass lies outside the cell! CoM = (%g, %g, %g), c.loc = "
+        "(%g, %g, %g), c.width = (%g, %g, %g), tot_mass = %g",
+        c->grav.multipole->CoM[0], c->grav.multipole->CoM[1],
+        c->grav.multipole->CoM[2], c->loc[0], c->loc[1], c->loc[2], c->width[0],
+        c->width[1], c->width[2], c->grav.multipole->m_pole.M_000);
+  }
+
+  return (r2 <= w2);
+}
+
 #endif /* SWIFT_CELL_H */

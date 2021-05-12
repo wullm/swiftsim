@@ -86,6 +86,27 @@ if order > 0:
 print("")
 print("-------------------------------------------------")
 
+print("gravity_truncate_higher_order_terms:")
+print("-------------------------------------------------\n")
+
+if order > 0:
+    print("#if SELF_GRAVITY_MULTIPOLE_ORDER > %d\n" % (order - 1))
+
+print("/* %s order terms */" % ordinal(order))
+
+# Create all the terms relevent for this order
+for i in range(order + 1):
+    for j in range(order + 1):
+        for k in range(order + 1):
+            if i + j + k == order:
+                print("m->M_%d%d%d = 0;" % (i, j, k))
+
+if order > 0:
+    print("#endif")
+
+print("")
+print("-------------------------------------------------")
+
 print("gravity_multipole_add():")
 print("-------------------------------------------------\n")
 

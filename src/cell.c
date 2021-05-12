@@ -900,10 +900,18 @@ void cell_make_multipoles(struct cell *c, integertime_t ti_current,
     /* Compute the multipole power */
     gravity_multipole_compute_power(&c->grav.multipole->m_pole);
 
+    /* Truncate the multipole at first order if CoM is far outside cell */
+    if (!cell_centre_of_mass_nearby(c))
+      gravity_truncate_higher_order_terms(&c->grav.multipole->m_pole);
+
   } else {
     if (c->grav.count > 0) {
 
       gravity_P2M(c->grav.multipole, c->grav.parts, c->grav.count, grav_props);
+
+      /* Truncate the multipole at first order if CoM is far outside cell */
+      if (!cell_centre_of_mass_nearby(c))
+        gravity_truncate_higher_order_terms(&c->grav.multipole->m_pole);
 
       /* Compute the multipole power */
       gravity_multipole_compute_power(&c->grav.multipole->m_pole);

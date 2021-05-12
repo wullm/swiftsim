@@ -290,6 +290,83 @@ __attribute__((nonnull)) INLINE static void gravity_multipole_init(
 }
 
 /**
+ * @brief Zero out all the order p > 1 terms of a multipole.
+ *
+ * @param m The multipole
+ */
+__attribute__((nonnull)) INLINE static void gravity_truncate_higher_order_terms(
+    struct multipole *m) {
+
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 1
+  /* 2nd order terms */
+  m->M_002 = 0;
+  m->M_011 = 0;
+  m->M_020 = 0;
+  m->M_101 = 0;
+  m->M_110 = 0;
+  m->M_200 = 0;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 2
+  /* 3rd order terms */
+  m->M_003 = 0;
+  m->M_012 = 0;
+  m->M_021 = 0;
+  m->M_030 = 0;
+  m->M_102 = 0;
+  m->M_111 = 0;
+  m->M_120 = 0;
+  m->M_201 = 0;
+  m->M_210 = 0;
+  m->M_300 = 0;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 3
+  /* 4th order terms */
+  m->M_004 = 0;
+  m->M_013 = 0;
+  m->M_022 = 0;
+  m->M_031 = 0;
+  m->M_040 = 0;
+  m->M_103 = 0;
+  m->M_112 = 0;
+  m->M_121 = 0;
+  m->M_130 = 0;
+  m->M_202 = 0;
+  m->M_211 = 0;
+  m->M_220 = 0;
+  m->M_301 = 0;
+  m->M_310 = 0;
+  m->M_400 = 0;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 4
+  /* 5th order terms */
+  m->M_005 = 0;
+  m->M_014 = 0;
+  m->M_023 = 0;
+  m->M_032 = 0;
+  m->M_041 = 0;
+  m->M_050 = 0;
+  m->M_104 = 0;
+  m->M_113 = 0;
+  m->M_122 = 0;
+  m->M_131 = 0;
+  m->M_140 = 0;
+  m->M_203 = 0;
+  m->M_212 = 0;
+  m->M_221 = 0;
+  m->M_230 = 0;
+  m->M_302 = 0;
+  m->M_311 = 0;
+  m->M_320 = 0;
+  m->M_401 = 0;
+  m->M_410 = 0;
+  m->M_500 = 0;
+#endif
+#if SELF_GRAVITY_MULTIPOLE_ORDER > 5
+#error "Missing implementation for order >5"
+#endif
+}
+
+/**
  * @brief Prints the content of a #multipole to stdout.
  *
  * Note: Uses directly printf(), not a call to message().
