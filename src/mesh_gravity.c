@@ -137,8 +137,8 @@ __attribute__((always_inline)) INLINE static void CIC_set(
  */
 struct neutrino_data {
   int apply_delta_f;
-  const double* M_nu_eV;
   int N_nu;
+  const double* M_nu_eV;
   long long neutrino_seed;
   double T_fac;
   double inv_mass_fac;
@@ -723,7 +723,7 @@ void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
   /* Zero everything */
   bzero(rho, N * N * N * sizeof(double));
 
-  /* Gather data for the neutrinos when using the "mesh only" delta-f method */
+  /* Gather neutrino data when using the delta-f method for the mesh only */
   struct neutrino_data nudata;
   bzero(&nudata, sizeof(struct neutrino_data));
   if (s->e->neutrino_properties->use_delta_f_mesh_only) {
@@ -732,8 +732,8 @@ void pm_mesh_compute_potential(struct pm_mesh* mesh, const struct space* s,
     const double T_eV = s->e->cosmology->T_nu_0_eV;
     /* Store the data needed for the delta-f method */
     nudata.apply_delta_f = 1;
-    nudata.M_nu_eV = s->e->cosmology->M_nu_eV;
     nudata.N_nu = s->e->cosmology->N_nu;
+    nudata.M_nu_eV = s->e->cosmology->M_nu_eV;
     nudata.neutrino_seed = s->e->neutrino_properties->neutrino_seed;
     nudata.T_fac = 1. / (c_vel * T_eV);
     nudata.inv_mass_fac = 1. / s->e->neutrino_mass_conversion_factor;
