@@ -29,6 +29,9 @@ struct neutrino_props {
   /* Whether to run with the delta-f method for neutrino weighting */
   char use_delta_f;
 
+  /* Whether to run with the delta-f method, but only for the mesh gravity */
+  char use_delta_f_mesh_only;
+
   /* Whether to generate random neutrino velocities in the initial conditions */
   char generate_ics;
 
@@ -52,9 +55,16 @@ INLINE static void neutrino_props_init(struct neutrino_props *np,
                                        const struct cosmology *cosmo) {
 
   np->use_delta_f = parser_get_param_int(params, "Neutrino:use_delta_f");
+  np->use_delta_f_mesh_only =
+      parser_get_param_int(params, "Neutrino:use_delta_f_mesh_only");
   np->generate_ics = parser_get_param_int(params, "Neutrino:generate_ics");
   np->neutrino_seed =
       parser_get_opt_param_longlong(params, "Neutrino:neutrino_seed", 0);
+
+  /* Check that the model choice is valid */
+  if (np->use_delta_f && np->use_delta_f_mesh_only) {
+    error("Specify either use_delta_f = 1 or use_delta_f_mesh_only = 1.");
+  }
 }
 
 /**

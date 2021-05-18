@@ -31,6 +31,21 @@
 /* Riemann function zeta(3) */
 #define M_ZETA_3 1.2020569031595942853997
 
+/* Compute the dimensionless neutrino momentum (units of kb*T).
+ *
+ * @param v The internal 3-velocity
+ * @param m_eV The neutrino mass in electron-volts
+ * @param fac Conversion factor = 1. / (speed_of_light * T_nu_eV)
+ */
+INLINE static double neutrino_momentum(const float v[3], double m_eV,
+                                       double fac) {
+
+  float v2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+  float vmag = sqrtf(v2);
+  double p = vmag * fac * m_eV;
+  return p;
+}
+
 /* Compute the ratio of macro particle mass in internal mass units to
  * the mass of one microscopic neutrino in eV.
  *
