@@ -145,6 +145,41 @@ struct neutrino_data {
 };
 
 /**
+ * @brief Apply delta-f weighting to a neutrino #gpart mass
+ *
+ * @param gp The #gpart.
+ * @param nudata Extra data for neutrino weighting.
+ * @param mass Output the weighted mass
+ */
+INLINE static void neutrino_apply_delta_f(const struct gpart* gp,
+                                          const struct neutrino_data* nudata,
+                                          double* mass) {
+
+  /* Use a particle id dependent seed */
+  const long long seed = gp->id_or_neg_offset + nudata->neutrino_seed;
+
+  /* Compute the initial dimensionless momentum from the seed */
+  const double pi = neutrino_seed_to_fermi_dirac(seed);
+
+  /* The neutrino mass (we cycle based on the neutrino seed) */
+  const int N_nu = nudata->N_nu;
+  const double* M_nu_eV_array = nudata->M_nu_eV;
+  const double m_eV = neutrino_seed_to_mass(N_nu, M_nu_eV_array, seed);
+  const double base_mass = m_eV * nudata->inv_mass_fac;
+
+  /* Compute the current dimensionless momentum */
+  const double p = neutrino_momentum(gp->v_full, m_eV, nudata->T_fac);
+
+  /* Compute the initial and current background phase-space density */
+  const double fi = fermi_dirac_density(pi);
+  const double f = fermi_dirac_density(p);
+  const double weight = 1.0 - f / fi;
+
+  /* Set the statistically weighted mass */
+  *mass = base_mass * weight;
+}
+
+/**
  * @brief Assigns a given #gpart to a density mesh using the CIC method.
  *
  * @param gp The #gpart.
@@ -192,31 +227,8 @@ INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho,
   double mass = gp->mass;
 
   /* Do we need to apply the delta-f method to the neutrino particles here? */
-  if (nudata->apply_delta_f && gp->type == swift_type_neutrino) {
-      
-    /* Use a particle id dependent seed */
-    const long long seed = gp->id_or_neg_offset + nudata->neutrino_seed;
-
-    /* Compute the initial dimensionless momentum from the seed */
-    const double pi = neutrino_seed_to_fermi_dirac(seed);
-
-    /* The neutrino mass (we cycle based on the neutrino seed) */
-    const int N_nu = nudata->N_nu;
-    const double* M_nu_eV_array = nudata->M_nu_eV;
-    const double m_eV = neutrino_seed_to_mass(N_nu, M_nu_eV_array, seed);
-    const double base_mass = m_eV * nudata->inv_mass_fac;
-
-    /* Compute the current dimensionless momentum */
-    const double p = neutrino_momentum(gp->v_full, m_eV, nudata->T_fac);
-
-    /* Compute the initial and current background phase-space density */
-    const double fi = fermi_dirac_density(pi);
-    const double f = fermi_dirac_density(p);
-    const double weight = 1.0 - f / fi;
-
-    /* Set the statistically weighted mass */
-    mass = base_mass * weight;
-  }
+  if (nudata->apply_delta_f && gp->type == swift_type_neutrino)
+    neutrino_apply_delta_f(gp, nudata, &mass);
 
   /* CIC ! */
   CIC_set(rho, N, i, j, k, tx, ty, tz, dx, dy, dz, mass);
