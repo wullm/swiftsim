@@ -133,55 +133,6 @@ __attribute__((always_inline)) INLINE static void CIC_set(
 }
 
 /**
- * @brief Assigns a given #gpart to a density mesh using the CIC method.
- *
- * @param gp The #gpart.
- * @param rho The density mesh.
- * @param N the size of the mesh along one axis.
- * @param fac The width of a mesh cell.
- * @param dim The dimensions of the simulation box.
- */
-INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho,
-                                     const int N, const double fac,
-                                     const double dim[3]) {
-
-  /* Box wrap the multipole's position */
-  const double pos_x = box_wrap(gp->x[0], 0., dim[0]);
-  const double pos_y = box_wrap(gp->x[1], 0., dim[1]);
-  const double pos_z = box_wrap(gp->x[2], 0., dim[2]);
-
-  /* Workout the CIC coefficients */
-  int i = (int)(fac * pos_x);
-  if (i >= N) i = N - 1;
-  const double dx = fac * pos_x - i;
-  const double tx = 1. - dx;
-
-  int j = (int)(fac * pos_y);
-  if (j >= N) j = N - 1;
-  const double dy = fac * pos_y - j;
-  const double ty = 1. - dy;
-
-  int k = (int)(fac * pos_z);
-  if (k >= N) k = N - 1;
-  const double dz = fac * pos_z - k;
-  const double tz = 1. - dz;
-
-#ifdef SWIFT_DEBUG_CHECKS
-  if (gp->time_bin == time_bin_not_created)
-    error("Found an extra particle in mesh CIC.");
-
-  if (i < 0 || i >= N) error("Invalid gpart position in x");
-  if (j < 0 || j >= N) error("Invalid gpart position in y");
-  if (k < 0 || k >= N) error("Invalid gpart position in z");
-#endif
-
-  const double mass = gp->mass;
-
-  /* CIC ! */
-  CIC_set(rho, N, i, j, k, tx, ty, tz, dx, dy, dz, mass);
-}
-
-/**
  * @brief Shared information related to neutrinos
  */
 struct neutrino_data {
@@ -194,19 +145,19 @@ struct neutrino_data {
 };
 
 /**
- * @brief Assigns a given neutrino #gpart to a density mesh using the CIC
- * method, after weighting the particle using the delta-f method.
+ * @brief Assigns a given #gpart to a density mesh using the CIC method.
  *
  * @param gp The #gpart.
  * @param rho The density mesh.
  * @param N the size of the mesh along one axis.
  * @param fac The width of a mesh cell.
  * @param dim The dimensions of the simulation box.
- * @param neutrino_data Extra data for the delta-f method
+ * @param nudata Extra data for neutrino weighting.
  */
-INLINE static void neutrino_gpart_to_mesh_CIC(
-    const struct gpart* gp, double* rho, const int N, const double fac,
-    const double dim[3], const struct neutrino_data* nudata) {
+INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho,
+                                     const int N, const double fac,
+                                     const double dim[3],
+                                     const struct neutrino_data* nudata) {
 
   /* Box wrap the multipole's position */
   const double pos_x = box_wrap(gp->x[0], 0., dim[0]);
@@ -238,30 +189,37 @@ INLINE static void neutrino_gpart_to_mesh_CIC(
   if (k < 0 || k >= N) error("Invalid gpart position in z");
 #endif
 
-  /* Use a particle id dependent seed */
-  const long long seed = gp->id_or_neg_offset + nudata->neutrino_seed;
+  double mass = gp->mass;
 
-  /* Compute the initial dimensionless momentum from the seed */
-  const double pi = neutrino_seed_to_fermi_dirac(seed);
+  /* Do we need to apply the delta-f method to the neutrino particles here? */
+  if (nudata->apply_delta_f && gp->type == swift_type_neutrino) {
+      
+    /* Use a particle id dependent seed */
+    const long long seed = gp->id_or_neg_offset + nudata->neutrino_seed;
 
-  /* The neutrino mass (we cycle based on the neutrino seed) */
-  const double m_eV =
-      neutrino_seed_to_mass(nudata->N_nu, nudata->M_nu_eV, seed);
-  const double mass = m_eV * nudata->inv_mass_fac;
+    /* Compute the initial dimensionless momentum from the seed */
+    const double pi = neutrino_seed_to_fermi_dirac(seed);
 
-  /* Compute the current dimensionless momentum */
-  double p = neutrino_momentum(gp->v_full, m_eV, nudata->T_fac);
+    /* The neutrino mass (we cycle based on the neutrino seed) */
+    const int N_nu = nudata->N_nu;
+    const double* M_nu_eV_array = nudata->M_nu_eV;
+    const double m_eV = neutrino_seed_to_mass(N_nu, M_nu_eV_array, seed);
+    const double base_mass = m_eV * nudata->inv_mass_fac;
 
-  /* Compute the initial and current background phase-space density */
-  double fi = fermi_dirac_density(pi);
-  double f = fermi_dirac_density(p);
-  double weight = 1.0 - f / fi;
+    /* Compute the current dimensionless momentum */
+    const double p = neutrino_momentum(gp->v_full, m_eV, nudata->T_fac);
 
-  /* Set the statistically weighted mass */
-  double weighted_mass = weight * mass;
+    /* Compute the initial and current background phase-space density */
+    const double fi = fermi_dirac_density(pi);
+    const double f = fermi_dirac_density(p);
+    const double weight = 1.0 - f / fi;
+
+    /* Set the statistically weighted mass */
+    mass = base_mass * weight;
+  }
 
   /* CIC ! */
-  CIC_set(rho, N, i, j, k, tx, ty, tz, dx, dy, dz, weighted_mass);
+  CIC_set(rho, N, i, j, k, tx, ty, tz, dx, dy, dz, mass);
 }
 
 /**
@@ -284,11 +242,7 @@ void cell_gpart_to_mesh_CIC(const struct cell* c, double* rho, const int N,
   /* Assign all the gpart of that cell to the mesh */
   for (int i = 0; i < gcount; ++i) {
     if (gparts[i].time_bin == time_bin_inhibited) continue;
-    if (nudata->apply_delta_f && gparts[i].type == swift_type_neutrino) {
-      neutrino_gpart_to_mesh_CIC(&gparts[i], rho, N, fac, dim, nudata);
-    } else {
-      gpart_to_mesh_CIC(&gparts[i], rho, N, fac, dim);
-    }
+    gpart_to_mesh_CIC(&gparts[i], rho, N, fac, dim, nudata);
   }
 }
 
@@ -323,11 +277,7 @@ void gpart_to_mesh_CIC_mapper(void* map_data, int num, void* extra) {
 
   for (int i = 0; i < num; ++i) {
     if (gparts[i].time_bin == time_bin_inhibited) continue;
-    if (nudata->apply_delta_f && gparts[i].type == swift_type_neutrino) {
-      neutrino_gpart_to_mesh_CIC(&gparts[i], rho, N, fac, dim, nudata);
-    } else {
-      gpart_to_mesh_CIC(&gparts[i], rho, N, fac, dim);
-    }
+    gpart_to_mesh_CIC(&gparts[i], rho, N, fac, dim, nudata);
   }
 }
 
