@@ -61,6 +61,9 @@ void gravity_props_init(struct gravity_props *p, struct swift_params *params,
 
   /* Tree-PM parameters */
   if (periodic) {
+    p->rebuild_on_mesh_steps =
+        parser_get_opt_param_int(params, "Gravity:rebuild_on_mesh_steps", 0);
+
     p->mesh_size = parser_get_param_int(params, "Gravity:mesh_side_length");
     p->a_smooth = parser_get_opt_param_float(params, "Gravity:a_smooth",
                                              gravity_props_default_a_smooth);
