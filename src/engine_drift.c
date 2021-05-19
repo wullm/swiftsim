@@ -323,7 +323,7 @@ void engine_drift_all(struct engine *e, const int drift_mpoles) {
 
   const ticks tic = getticks();
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   if (e->nodeID == 0) {
     if (e->policy & engine_policy_cosmology)
       message("Drifting all to a=%e",
@@ -332,7 +332,7 @@ void engine_drift_all(struct engine *e, const int drift_mpoles) {
       message("Drifting all to t=%e",
               e->ti_current * e->time_base + e->time_begin);
   }
-#endif
+// #endif
 
   if (!e->restarting) {
 
@@ -410,7 +410,7 @@ void engine_drift_all(struct engine *e, const int drift_mpoles) {
   /* Synchronize particle positions */
   space_synchronize_particle_positions(e->s);
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that all cells have been drifted to the current time. */
   space_check_drift_point(
       e->s, e->ti_current,
@@ -419,7 +419,7 @@ void engine_drift_all(struct engine *e, const int drift_mpoles) {
                     e->s->bparts, e->s->nr_parts, e->s->nr_gparts,
                     e->s->nr_sinks, e->s->nr_sparts, e->s->nr_bparts,
                     e->verbose);
-#endif
+// #endif
 
   if (e->verbose)
     message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
@@ -463,10 +463,10 @@ void engine_drift_top_multipoles(struct engine *e) {
                  e->s->cells_top, e->s->nr_cells, sizeof(struct cell),
                  threadpool_auto_chunk_size, e);
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that all cells have been drifted to the current time. */
   space_check_top_multipoles_drift_point(e->s, e->ti_current);
-#endif
+// #endif
 
   if (e->verbose)
     message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
