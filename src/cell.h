@@ -1391,4 +1391,18 @@ __attribute__((always_inline)) INLINE void cell_assign_cell_index(
 #endif
 }
 
+/**
+ * @brief Checks that the centre of mass of a multipole is inside a cell
+ *
+ * @param c The #cell in question
+ * @param m The #multipole
+ */
+__attribute__((always_inline)) INLINE int cell_contains_com(
+    struct cell *c, const struct gravity_tensors *m) {
+
+  return (m->CoM[0] >= c->loc[0] && m->CoM[0] <= c->loc[0] + c->width[0] &&
+          m->CoM[1] >= c->loc[1] && m->CoM[1] <= c->loc[1] + c->width[1] &&
+          m->CoM[2] >= c->loc[2] && m->CoM[2] <= c->loc[2] + c->width[2]);
+}
+
 #endif /* SWIFT_CELL_H */

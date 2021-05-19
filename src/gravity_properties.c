@@ -56,6 +56,9 @@ void gravity_props_init(struct gravity_props *p, struct swift_params *params,
   if (p->rebuild_frequency < 0.f || p->rebuild_frequency > 1.f)
     error("Invalid tree rebuild frequency. Must be in [0., 1.]");
 
+  p->fix_degenerate_multipoles =
+      parser_get_opt_param_int(params, "Gravity:fix_degenerate_multipoles", 0);
+
   /* Tree-PM parameters */
   if (periodic) {
     p->mesh_size = parser_get_param_int(params, "Gravity:mesh_side_length");

@@ -121,4 +121,29 @@ __attribute__((always_inline)) INLINE static void gravity_first_init_neutrino(
   }
 }
 
+/**
+ * @brief Reset the particle mass to its base value without delta-f weighting.
+ *
+ * @param gp The particle to act upon
+ * @param engine The engine of the run
+ */
+__attribute__((always_inline)) INLINE static void neutrino_reset_mass(
+    struct gpart *gp, const struct engine *e) {
+
+  /* Retrieve physical and cosmological constants */
+  const double inv_mass_factor = 1. / e->neutrino_mass_conversion_factor;
+  const double *m_eV_array = e->cosmology->M_nu_eV;
+  const int N_nu = e->cosmology->N_nu;
+
+  /* Use a particle id dependent seed */
+  const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
+  const long long seed = gp->id_or_neg_offset + neutrino_seed;
+
+  /* Resample the mass */
+  const double m_eV = neutrino_seed_to_mass(N_nu, m_eV_array, seed);
+  const double mass = m_eV * inv_mass_factor;
+
+  gp->mass = mass;
+}
+
 #endif /* SWIFT_DEFAULT_NEUTRINO_H */

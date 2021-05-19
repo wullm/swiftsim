@@ -78,6 +78,9 @@ struct gravity_props {
   /*! Are we applying long-range truncation to the forces in the MAC? */
   int consider_truncation_in_MAC;
 
+  /*! Fix multipoles with degenerate centres of mass? */
+  int fix_degenerate_multipoles;
+
   /* ------------- Properties of the softened gravity ------------------ */
 
   /*! Co-moving softening length for for high-res. DM particles */

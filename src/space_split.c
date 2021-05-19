@@ -31,6 +31,7 @@
 #include "debug.h"
 #include "engine.h"
 #include "multipole.h"
+#include "neutrino.h"
 #include "star_formation_logger.h"
 #include "threadpool.h"
 
@@ -604,6 +605,37 @@ void space_split_recursive(struct space *s, struct cell *c,
 
         gravity_P2M(c->grav.multipole, c->grav.parts, c->grav.count,
                     e->gravity_properties);
+
+        /* Check CoM in case we are running with the neutrino delta-f method */
+        if (s->e->neutrino_properties->use_delta_f &&
+            !cell_contains_com(c, c->grav.multipole)) {
+          const struct gravity_tensors *m = c->grav.multipole;
+          message(
+              "Distant CoM! CoM=[%e %e %e] c=[%e %e %e] w=[%e %e %e] m=%e c=%d",
+              m->CoM[0], m->CoM[1], m->CoM[2], c->loc[0], c->loc[1], c->loc[2],
+              c->width[0], c->width[1], c->width[2], m->m_pole.M_000,
+              c->grav.count);
+
+          /* How should we proceed? */
+          if (e->gravity_properties->fix_degenerate_multipoles) {
+            /* Reset the masses of the neutrino particles */
+            for (int k = 0; k < gcount; k++) {
+              if (gparts[k].type != swift_type_neutrino) continue;
+              neutrino_reset_mass(&gparts[k], s->e);
+            }
+
+            /* And recompute the CoM & multipoles */
+            gravity_P2M(c->grav.multipole, c->grav.parts, c->grav.count,
+                        e->gravity_properties);
+
+            message(
+                "Fixed CoM=[%e %e %e] c=[%e %e %e] w=[%e %e %e] m=%e c=%d (%d)",
+                m->CoM[0], m->CoM[1], m->CoM[2], c->loc[0], c->loc[1],
+                c->loc[2], c->width[0], c->width[1], c->width[2],
+                m->m_pole.M_000, c->grav.count,
+                cell_contains_com(c, c->grav.multipole));
+          }
+        }
 
         /* Compute the multipole power */
         gravity_multipole_compute_power(&c->grav.multipole->m_pole);
