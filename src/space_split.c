@@ -380,6 +380,101 @@ void space_split_recursive(struct space *s, struct cell *c,
       c->grav.multipole->m_pole.min_delta_vel[1] = min_delta_vel[1];
       c->grav.multipole->m_pole.min_delta_vel[2] = min_delta_vel[2];
 
+      /* Check CoM in case we are running with the neutrino delta-f method */
+      if (s->e->neutrino_properties->use_delta_f &&
+          !cell_contains_com(c, c->grav.multipole)) {
+
+        const struct gravity_tensors *M = c->grav.multipole;
+        message(
+            "Higher level distant CoM! CoM=[%e %e %e] c=[%e %e %e] w=[%e %e "
+            "%e] m=%e c=%d",
+            M->CoM[0], M->CoM[1], M->CoM[2], c->loc[0], c->loc[1], c->loc[2],
+            c->width[0], c->width[1], c->width[2], mass, c->grav.count);
+
+        /* How should we proceed? */
+        if (e->gravity_properties->fix_degenerate_multipoles) {
+
+          /* For each of the progeny */
+          for (int k = 0; k < 8; ++k) {
+            if (c->progeny[k] != NULL) {
+              /* Get the progenitor */
+              struct cell *cp = c->progeny[k];
+
+              /* Reset the masses of the neutrino particles */
+              for (int l = 0; l < gcount; k++) {
+                if (cp->grav.parts[l].type != swift_type_neutrino) continue;
+                neutrino_reset_mass(&cp->grav.parts[l], s->e);
+              }
+
+              /* And recompute the CoM & multipoles of the progeny */
+              gravity_P2M(cp->grav.multipole, cp->grav.parts, cp->grav.count,
+                          e->gravity_properties);
+            }
+          }
+
+          /* Then recompute CoM and bulk velocity from all progenies */
+          double CoM_new[3] = {0., 0., 0.};
+          double vel_new[3] = {0., 0., 0.};
+          float max_delta_vel_new[3] = {0.f, 0.f, 0.f};
+          float min_delta_vel_new[3] = {0.f, 0.f, 0.f};
+          double mass_new = 0.;
+
+          for (int k = 0; k < 8; ++k) {
+            if (c->progeny[k] != NULL) {
+              const struct gravity_tensors *m = c->progeny[k]->grav.multipole;
+
+              mass_new += m->m_pole.M_000;
+
+              CoM_new[0] += m->CoM[0] * m->m_pole.M_000;
+              CoM_new[1] += m->CoM[1] * m->m_pole.M_000;
+              CoM_new[2] += m->CoM[2] * m->m_pole.M_000;
+
+              vel_new[0] += m->m_pole.vel[0] * m->m_pole.M_000;
+              vel_new[1] += m->m_pole.vel[1] * m->m_pole.M_000;
+              vel_new[2] += m->m_pole.vel[2] * m->m_pole.M_000;
+
+              max_delta_vel_new[0] =
+                  max(m->m_pole.max_delta_vel[0], max_delta_vel_new[0]);
+              max_delta_vel_new[1] =
+                  max(m->m_pole.max_delta_vel[1], max_delta_vel_new[1]);
+              max_delta_vel_new[2] =
+                  max(m->m_pole.max_delta_vel[2], max_delta_vel_new[2]);
+
+              min_delta_vel_new[0] =
+                  min(m->m_pole.min_delta_vel[0], min_delta_vel_new[0]);
+              min_delta_vel_new[1] =
+                  min(m->m_pole.min_delta_vel[1], min_delta_vel_new[1]);
+              min_delta_vel_new[2] =
+                  min(m->m_pole.min_delta_vel[2], min_delta_vel_new[2]);
+            }
+          }
+
+          /* Final operation on the CoM and bulk velocity */
+          const double inv_mass_new = 1. / mass_new;
+          c->grav.multipole->CoM[0] = CoM_new[0] * inv_mass_new;
+          c->grav.multipole->CoM[1] = CoM_new[1] * inv_mass_new;
+          c->grav.multipole->CoM[2] = CoM_new[2] * inv_mass_new;
+          c->grav.multipole->m_pole.vel[0] = vel_new[0] * inv_mass_new;
+          c->grav.multipole->m_pole.vel[1] = vel_new[1] * inv_mass_new;
+          c->grav.multipole->m_pole.vel[2] = vel_new[2] * inv_mass_new;
+          
+          /* Min max velocity along each axis */
+          c->grav.multipole->m_pole.max_delta_vel[0] = max_delta_vel_new[0];
+          c->grav.multipole->m_pole.max_delta_vel[1] = max_delta_vel_new[1];
+          c->grav.multipole->m_pole.max_delta_vel[2] = max_delta_vel_new[2];
+          c->grav.multipole->m_pole.min_delta_vel[0] = min_delta_vel_new[0];
+          c->grav.multipole->m_pole.min_delta_vel[1] = min_delta_vel_new[1];
+          c->grav.multipole->m_pole.min_delta_vel[2] = min_delta_vel_new[2];
+
+          message(
+              "Higher level fixed CoM=[%e %e %e] c=[%e %e %e] w=[%e %e %e] "
+              "m=%e c=%d (%d)",
+              M->CoM[0], M->CoM[1], M->CoM[2], c->loc[0], c->loc[1], c->loc[2],
+              c->width[0], c->width[1], c->width[2], mass, c->grav.count,
+              cell_contains_com(c, c->grav.multipole));
+        }
+      }
+
       /* Now shift progeny multipoles and add them up */
       struct multipole temp;
       double r_max = 0.;
