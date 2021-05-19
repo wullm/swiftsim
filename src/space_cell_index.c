@@ -226,7 +226,7 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
     double old_pos_y = gp->x[1];
     double old_pos_z = gp->x[2];
 
-// #ifdef SWIFT_DEBUG_CHECKS
+    // #ifdef SWIFT_DEBUG_CHECKS
     if (!s->periodic && gp->time_bin != time_bin_inhibited) {
       if (old_pos_x < 0. || old_pos_x > dim_x)
         error("Particle outside of volume along X.");
@@ -235,7 +235,7 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
       if (old_pos_z < 0. || old_pos_z > dim_z)
         error("Particle outside of volume along Z.");
     }
-// #endif
+    // #endif
 
     /* Put it back into the simulation volume */
     double pos_x = box_wrap(old_pos_x, 0.0, dim_x);
@@ -253,16 +253,21 @@ void space_gparts_get_cell_index_mapper(void *map_data, int nr_gparts,
     const int index =
         cell_getid(cdim, pos_x * ih_x, pos_y * ih_y, pos_z * ih_z);
 
-// #ifdef SWIFT_DEBUG_CHECKS
+    // #ifdef SWIFT_DEBUG_CHECKS
     if (index < 0 || index >= cdim[0] * cdim[1] * cdim[2])
-      error("Invalid index=%d cdim=[%d %d %d] p->x=[%e %e %e]", index, cdim[0],
-            cdim[1], cdim[2], pos_x, pos_y, pos_z);
+      error(
+          "Invalid index=%d cdim=[%d %d %d] p->x=[%e %e %e], ptype=%d, "
+          "v_full=[%e %e %e], a=[%e %e %e], a_mesh=[%e %e %e], a_old_norm=%e",
+          index, cdim[0], cdim[1], cdim[2], pos_x, pos_y, pos_z, gp->type,
+          gp->v_full[0], gp->v_full[1], gp->v_full[2], gp->a_grav[0],
+          gp->a_grav[1], gp->a_grav[2], gp->a_grav_mesh[0], gp->a_grav_mesh[1],
+          gp->a_grav_mesh[2], gp->old_a_grav_norm);
 
     if (pos_x >= dim_x || pos_y >= dim_y || pos_z >= dim_z || pos_x < 0. ||
         pos_y < 0. || pos_z < 0.)
       error("Particle outside of simulation box. p->x=[%e %e %e]", pos_x, pos_y,
             pos_z);
-// #endif
+    // #endif
 
     if (gp->time_bin == time_bin_inhibited) {
       /* Is this particle to be removed? */
