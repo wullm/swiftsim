@@ -462,7 +462,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     message("Moving non-local particles took %.3f %s.",
             clocks_from_ticks(getticks() - tic2), clocks_getunit());
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that all gparts are in the correct place. */
   size_t check_count_inhibited_gpart = 0;
   for (size_t k = 0; k < nr_gparts; k++) {
@@ -478,7 +478,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
   }
   if (check_count_inhibited_gpart != count_inhibited_gparts)
     error("Counts of inhibited g-particles do not match!");
-#endif /* SWIFT_DEBUG_CHECKS */
+// #endif /* SWIFT_DEBUG_CHECKS */
 
 #ifdef WITH_MPI
 
@@ -504,14 +504,14 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     s->nr_bparts = nr_bparts + nr_bparts_exchanged;
 
   } else {
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
     if (s->nr_parts != nr_parts)
       error("Number of parts changing after repartition");
     if (s->nr_sparts != nr_sparts)
       error("Number of sparts changing after repartition");
     if (s->nr_gparts != nr_gparts)
       error("Number of gparts changing after repartition");
-#endif
+// #endif
   }
 
   /* Clear non-local cell counts. */
@@ -813,11 +813,11 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     g_index[k] =
         cell_getid(cdim, p->x[0] * ih[0], p->x[1] * ih[1], p->x[2] * ih[2]);
     cell_gpart_counts[g_index[k]]++;
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
     if (cells_top[g_index[k]].nodeID != s->e->nodeID)
       error("Received g-part that does not belong to me (nodeID=%i).",
             cells_top[g_index[k]].nodeID);
-#endif
+// #endif
   }
   nr_gparts = s->nr_gparts;
 
@@ -840,7 +840,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     space_gparts_sort(s->gparts, s->parts, s->sinks, s->sparts, s->bparts,
                       g_index, cell_gpart_counts, s->nr_cells);
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Verify that the gpart have been sorted correctly. */
   for (size_t k = 0; k < nr_gparts; k++) {
     const struct gpart *gp = &s->gparts[k];
@@ -864,7 +864,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
         gp->x[2] < c->loc[2] || gp->x[2] > c->loc[2] + c->width[2])
       error("gpart not sorted into the right top-level cell!");
   }
-#endif /* SWIFT_DEBUG_CHECKS */
+// #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Extract the cell counts from the sorted indices. Deduct the extra
    * particles. */
@@ -882,14 +882,14 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
   swift_free("g_index", g_index);
   swift_free("cell_gpart_counts", cell_gpart_counts);
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Verify that the links are correct */
   if ((nr_gparts > 0 && nr_parts > 0) || (nr_gparts > 0 && nr_sparts > 0) ||
       (nr_gparts > 0 && nr_bparts > 0) || (nr_gparts > 0 && nr_sinks > 0))
     part_verify_links(s->parts, s->gparts, s->sinks, s->sparts, s->bparts,
                       nr_parts, nr_gparts, nr_sinks, nr_sparts, nr_bparts,
                       verbose);
-#endif
+// #endif
 
   /* Hook the cells up to the parts. Make list of local and non-empty cells */
   const ticks tic3 = getticks();
@@ -911,9 +911,9 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     c->sinks.ti_old_part = ti_current;
     c->black_holes.ti_old_part = ti_current;
 
-#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_CELL_GRAPH)
+// #if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_CELL_GRAPH)
     cell_assign_top_level_cell_index(c, s->cdim, s->dim, s->iwidth);
-#endif
+// #endif
 
     const int is_local = (c->nodeID == engine_rank);
     const int has_particles =
@@ -974,12 +974,12 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
      cell to get the full AMR grid. */
   space_split(s, verbose);
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that the multipole construction went OK */
   if (s->with_self_gravity)
     for (int k = 0; k < s->nr_cells; k++)
       cell_check_multipole(&s->cells_top[k], s->e->gravity_properties);
-#endif
+// #endif
 
   /* Clean up any stray sort indices in the cell buffer. */
   space_free_buff_sort_indices(s);
