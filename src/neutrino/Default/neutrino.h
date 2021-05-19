@@ -96,7 +96,7 @@ __attribute__((always_inline)) INLINE static void gravity_first_init_neutrino(
   const double inv_fac = c_vel * T_eV;
   const double inv_mass_factor = 1. / e->neutrino_mass_conversion_factor;
   const long long neutrino_seed = e->neutrino_properties->neutrino_seed;
-  
+
   /* Use a particle id dependent seed */
   const long long seed = gp->id_or_neg_offset + neutrino_seed;
 
@@ -115,7 +115,7 @@ __attribute__((always_inline)) INLINE static void gravity_first_init_neutrino(
   gp->v_full[0] = n[0] * vi;
   gp->v_full[1] = n[1] * vi;
   gp->v_full[2] = n[2] * vi;
-  
+
   /* If running with the delta-f method, set the weight to (almost) zero */
   if (e->neutrino_properties->use_delta_f) {
     gp->mass = FLT_MIN;

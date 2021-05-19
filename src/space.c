@@ -2024,27 +2024,27 @@ void space_link_cleanup(struct space *s) {
  */
 void space_check_drift_point(struct space *s, integertime_t ti_drift,
                              int multipole) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
   /* Recursively check all cells */
   space_map_cells_pre(s, 1, cell_check_part_drift_point, &ti_drift);
   space_map_cells_pre(s, 1, cell_check_gpart_drift_point, &ti_drift);
   space_map_cells_pre(s, 1, cell_check_spart_drift_point, &ti_drift);
   if (multipole)
     space_map_cells_pre(s, 1, cell_check_multipole_drift_point, &ti_drift);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #else
+  //   error("Calling debugging code without debugging flag activated.");
+  // #endif
 }
 
 void space_check_top_multipoles_drift_point(struct space *s,
                                             integertime_t ti_drift) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
   for (int i = 0; i < s->nr_cells; ++i) {
     cell_check_multipole_drift_point(&s->cells_top[i], &ti_drift);
   }
-// #else
+  // #else
   // error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #endif
 }
 
 /**
@@ -2055,16 +2055,16 @@ void space_check_top_multipoles_drift_point(struct space *s,
  * @param s The #space to check.
  */
 void space_check_timesteps(const struct space *s) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
   for (int i = 0; i < s->nr_cells; ++i) {
     if (s->cells_top[i].nodeID == engine_rank) {
       cell_check_timesteps(&s->cells_top[i], s->e->ti_current,
                            s->e->max_active_bin);
     }
   }
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #else
+  //   error("Calling debugging code without debugging flag activated.");
+  // #endif
 }
 
 /**
@@ -2072,7 +2072,7 @@ void space_check_timesteps(const struct space *s) {
  */
 void space_check_limiter_mapper(void *map_data, int nr_parts,
                                 void *extra_data) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
   /* Unpack the data */
   struct part *restrict parts = (struct part *)map_data;
   const struct space *s = (struct space *)extra_data;
@@ -2103,9 +2103,9 @@ void space_check_limiter_mapper(void *map_data, int nr_parts,
       }
     }
   }
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #else
+  //   error("Calling debugging code without debugging flag activated.");
+  // #endif
 }
 
 /**
@@ -2116,13 +2116,13 @@ void space_check_limiter_mapper(void *map_data, int nr_parts,
  * @param s The #space to check.
  */
 void space_check_limiter(struct space *s) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
 
   threadpool_map(&s->e->threadpool, space_check_limiter_mapper, s->parts,
                  s->nr_parts, sizeof(struct part), 1000, s);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #else
+  //   error("Calling debugging code without debugging flag activated.");
+  // #endif
 }
 
 /**
@@ -2130,7 +2130,7 @@ void space_check_limiter(struct space *s) {
  */
 void space_check_part_swallow_mapper(void *map_data, int nr_parts,
                                      void *extra_data) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
   /* Unpack the data */
   struct part *restrict parts = (struct part *)map_data;
 
@@ -2145,9 +2145,9 @@ void space_check_part_swallow_mapper(void *map_data, int nr_parts,
     if (swallow_id != -1)
       error("Particle has not been swallowed! id=%lld", parts[k].id);
   }
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #else
+  //   error("Calling debugging code without debugging flag activated.");
+  // #endif
 }
 
 /**
@@ -2155,7 +2155,7 @@ void space_check_part_swallow_mapper(void *map_data, int nr_parts,
  */
 void space_check_bpart_swallow_mapper(void *map_data, int nr_bparts,
                                       void *extra_data) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
   /* Unpack the data */
   struct bpart *restrict bparts = (struct bpart *)map_data;
 
@@ -2170,9 +2170,9 @@ void space_check_bpart_swallow_mapper(void *map_data, int nr_bparts,
     if (swallow_id != -1)
       error("BH particle has not been swallowed! id=%lld", bparts[k].id);
   }
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #else
+  //   error("Calling debugging code without debugging flag activated.");
+  // #endif
 }
 
 /**
@@ -2184,7 +2184,7 @@ void space_check_bpart_swallow_mapper(void *map_data, int nr_bparts,
  * @param s The #space to check.
  */
 void space_check_swallow(struct space *s) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
 
   threadpool_map(&s->e->threadpool, space_check_part_swallow_mapper, s->parts,
                  s->nr_parts, sizeof(struct part), threadpool_auto_chunk_size,
@@ -2193,15 +2193,15 @@ void space_check_swallow(struct space *s) {
   threadpool_map(&s->e->threadpool, space_check_bpart_swallow_mapper, s->bparts,
                  s->nr_bparts, sizeof(struct bpart), threadpool_auto_chunk_size,
                  /*extra_data=*/NULL);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #else
+  //   error("Calling debugging code without debugging flag activated.");
+  // #endif
 }
 
 void space_check_sort_flags_mapper(void *map_data, int nr_cells,
                                    void *extra_data) {
 
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
 
   const struct space *s = (struct space *)extra_data;
   int *local_cells_top = map_data;
@@ -2212,7 +2212,7 @@ void space_check_sort_flags_mapper(void *map_data, int nr_cells,
     cell_check_sort_flags(c);
   }
 
-// #endif
+  // #endif
 }
 
 /**
@@ -2223,14 +2223,14 @@ void space_check_sort_flags_mapper(void *map_data, int nr_cells,
  * @param s The #space to check.
  */
 void space_check_sort_flags(struct space *s) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
 
   threadpool_map(&s->e->threadpool, space_check_sort_flags_mapper,
                  s->local_cells_with_tasks_top, s->nr_local_cells_with_tasks,
                  sizeof(int), 1, s);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #else
+  //   error("Calling debugging code without debugging flag activated.");
+  // #endif
 }
 
 /**
@@ -2241,13 +2241,13 @@ void space_check_sort_flags(struct space *s) {
  * @param s The #space to reset.
  */
 void space_reset_task_counters(struct space *s) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
   for (int i = 0; i < s->nr_cells; ++i) {
     cell_reset_task_counters(&s->cells_top[i]);
   }
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  // #else
+  //   error("Calling debugging code without debugging flag activated.");
+  // #endif
 }
 
 /**
@@ -2640,13 +2640,14 @@ void space_recurse_check_unskip_flag(const struct cell *c) {
  * @param s The #space
  */
 void space_check_unskip_flags(const struct space *s) {
-// #ifdef SWIFT_DEBUG_CHECKS
+  // #ifdef SWIFT_DEBUG_CHECKS
 
   for (int i = 0; i < s->nr_cells; i++) {
     const struct cell *c = &s->cells_top[i];
     space_recurse_check_unskip_flag(c);
   }
-// #else
-//   error("This function should not be called without the debugging checks.");
-// #endif
+  // #else
+  //   error("This function should not be called without the debugging
+  //   checks.");
+  // #endif
 }
