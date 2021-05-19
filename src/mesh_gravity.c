@@ -165,14 +165,14 @@ INLINE static void gpart_to_mesh_CIC(const struct gpart* gp, double* rho,
   const double dz = fac * pos_z - k;
   const double tz = 1. - dz;
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   if (gp->time_bin == time_bin_not_created)
     error("Found an extra particle in mesh CIC.");
 
   if (i < 0 || i >= N) error("Invalid gpart position in x");
   if (j < 0 || j >= N) error("Invalid gpart position in y");
   if (k < 0 || k >= N) error("Invalid gpart position in z");
-#endif
+// #endif
 
   const double mass = gp->mass;
 
@@ -305,14 +305,14 @@ void mesh_to_gpart_CIC(struct gpart* gp, const double* pot, const int N,
   const double dz = fac * pos_z - k;
   const double tz = 1. - dz;
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   if (gp->time_bin == time_bin_not_created)
     error("Found an extra particle when computing gravity from mesh.");
 
   if (i < 0 || i >= N) error("Invalid gpart position in x");
   if (j < 0 || j >= N) error("Invalid gpart position in y");
   if (k < 0 || k >= N) error("Invalid gpart position in z");
-#endif
+// #endif
 
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   if (gp->a_grav_mesh[0] != 0.) error("Particle with non-initalised stuff");
