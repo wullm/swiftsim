@@ -319,10 +319,10 @@ void engine_do_unskip_mapper(void *map_data, int num_elements,
     const ptrdiff_t delta = &local_cells[ind] - list_base;
     const int type = delta / num_active_cells;
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
     if (type >= data->multiplier) error("Invalid broad task type!");
     if (c == NULL) error("Got an invalid cell index!");
-// #endif
+#endif
 
     /* What broad type of tasks are we unskipping? */
     switch (task_types[type]) {

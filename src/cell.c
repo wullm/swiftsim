@@ -608,28 +608,28 @@ void cell_clean_links(struct cell *c, void *data) {
  * @param data The current time on the integer time-line
  */
 void cell_check_part_drift_point(struct cell *c, void *data) {
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
 
-  // const integertime_t ti_drift = *(integertime_t *)data;
-  // 
-  // /* Only check local cells */
-  // if (c->nodeID != engine_rank) return;
-  // 
-  // /* Only check cells with content */
-  // if (c->hydro.count == 0) return;
-  // 
-  // if (c->hydro.ti_old_part != ti_drift)
-  //   error("Cell in an incorrect time-zone! c->hydro.ti_old=%lld ti_drift=%lld",
-  //         c->hydro.ti_old_part, ti_drift);
-  // 
-  // for (int i = 0; i < c->hydro.count; ++i)
-  //   if (c->hydro.parts[i].ti_drift != ti_drift &&
-  //       c->hydro.parts[i].time_bin != time_bin_inhibited)
-  //     error("part in an incorrect time-zone! p->ti_drift=%lld ti_drift=%lld",
-  //           c->hydro.parts[i].ti_drift, ti_drift);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  const integertime_t ti_drift = *(integertime_t *)data;
+
+  /* Only check local cells */
+  if (c->nodeID != engine_rank) return;
+
+  /* Only check cells with content */
+  if (c->hydro.count == 0) return;
+
+  if (c->hydro.ti_old_part != ti_drift)
+    error("Cell in an incorrect time-zone! c->hydro.ti_old=%lld ti_drift=%lld",
+          c->hydro.ti_old_part, ti_drift);
+
+  for (int i = 0; i < c->hydro.count; ++i)
+    if (c->hydro.parts[i].ti_drift != ti_drift &&
+        c->hydro.parts[i].time_bin != time_bin_inhibited)
+      error("part in an incorrect time-zone! p->ti_drift=%lld ti_drift=%lld",
+            c->hydro.parts[i].ti_drift, ti_drift);
+#else
+  error("Calling debugging code without debugging flag activated.");
+#endif
 }
 
 /**
@@ -663,8 +663,8 @@ void cell_check_gpart_drift_point(struct cell *c, void *data) {
         c->grav.parts[i].time_bin != time_bin_inhibited)
       error("g-part in an incorrect time-zone! gp->ti_drift=%lld ti_drift=%lld",
             c->grav.parts[i].ti_drift, ti_drift);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
+#else
+  error("Calling debugging code without debugging flag activated.");
 #endif
 }
 
@@ -678,32 +678,32 @@ void cell_check_gpart_drift_point(struct cell *c, void *data) {
  * @param data The current time on the integer time-line
  */
 void cell_check_sink_drift_point(struct cell *c, void *data) {
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
 
-  // const integertime_t ti_drift = *(integertime_t *)data;
-  // 
-  // /* Only check local cells */
-  // if (c->nodeID != engine_rank) return;
-  // 
-  // /* Only check cells with content */
-  // if (c->sinks.count == 0) return;
-  // 
-  // if (c->sinks.ti_old_part != ti_drift)
-  //   error(
-  //       "Cell in an incorrect time-zone! c->sinks.ti_old_part=%lld "
-  //       "ti_drift=%lld",
-  //       c->sinks.ti_old_part, ti_drift);
-  // 
-  // for (int i = 0; i < c->sinks.count; ++i)
-  //   if (c->sinks.parts[i].ti_drift != ti_drift &&
-  //       c->sinks.parts[i].time_bin != time_bin_inhibited)
-  //     error(
-  //         "sink-part in an incorrect time-zone! sink->ti_drift=%lld "
-  //         "ti_drift=%lld",
-  //         c->sinks.parts[i].ti_drift, ti_drift);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  const integertime_t ti_drift = *(integertime_t *)data;
+
+  /* Only check local cells */
+  if (c->nodeID != engine_rank) return;
+
+  /* Only check cells with content */
+  if (c->sinks.count == 0) return;
+
+  if (c->sinks.ti_old_part != ti_drift)
+    error(
+        "Cell in an incorrect time-zone! c->sinks.ti_old_part=%lld "
+        "ti_drift=%lld",
+        c->sinks.ti_old_part, ti_drift);
+
+  for (int i = 0; i < c->sinks.count; ++i)
+    if (c->sinks.parts[i].ti_drift != ti_drift &&
+        c->sinks.parts[i].time_bin != time_bin_inhibited)
+      error(
+          "sink-part in an incorrect time-zone! sink->ti_drift=%lld "
+          "ti_drift=%lld",
+          c->sinks.parts[i].ti_drift, ti_drift);
+#else
+  error("Calling debugging code without debugging flag activated.");
+#endif
 }
 
 /**
@@ -716,30 +716,30 @@ void cell_check_sink_drift_point(struct cell *c, void *data) {
  * @param data The current time on the integer time-line
  */
 void cell_check_spart_drift_point(struct cell *c, void *data) {
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
 
-  // const integertime_t ti_drift = *(integertime_t *)data;
-  // 
-  // /* Only check local cells */
-  // if (c->nodeID != engine_rank) return;
-  // 
-  // /* Only check cells with content */
-  // if (c->stars.count == 0) return;
-  // 
-  // if (c->stars.ti_old_part != ti_drift)
-  //   error(
-  //       "Cell in an incorrect time-zone! c->stars.ti_old_part=%lld "
-  //       "ti_drift=%lld",
-  //       c->stars.ti_old_part, ti_drift);
-  // 
-  // for (int i = 0; i < c->stars.count; ++i)
-  //   if (c->stars.parts[i].ti_drift != ti_drift &&
-  //       c->stars.parts[i].time_bin != time_bin_inhibited)
-  //     error("g-part in an incorrect time-zone! gp->ti_drift=%lld ti_drift=%lld",
-  //           c->stars.parts[i].ti_drift, ti_drift);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+  const integertime_t ti_drift = *(integertime_t *)data;
+
+  /* Only check local cells */
+  if (c->nodeID != engine_rank) return;
+
+  /* Only check cells with content */
+  if (c->stars.count == 0) return;
+
+  if (c->stars.ti_old_part != ti_drift)
+    error(
+        "Cell in an incorrect time-zone! c->stars.ti_old_part=%lld "
+        "ti_drift=%lld",
+        c->stars.ti_old_part, ti_drift);
+
+  for (int i = 0; i < c->stars.count; ++i)
+    if (c->stars.parts[i].ti_drift != ti_drift &&
+        c->stars.parts[i].time_bin != time_bin_inhibited)
+      error("g-part in an incorrect time-zone! gp->ti_drift=%lld ti_drift=%lld",
+            c->stars.parts[i].ti_drift, ti_drift);
+#else
+  error("Calling debugging code without debugging flag activated.");
+#endif
 }
 
 /**
@@ -751,7 +751,7 @@ void cell_check_spart_drift_point(struct cell *c, void *data) {
  * @param data The current time on the integer time-line
  */
 void cell_check_multipole_drift_point(struct cell *c, void *data) {
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
 
   const integertime_t ti_drift = *(integertime_t *)data;
 
@@ -768,9 +768,9 @@ void cell_check_multipole_drift_point(struct cell *c, void *data) {
         "ti_drift=%lld (depth=%d, node=%d)",
         c->grav.ti_old_multipole, ti_drift, c->depth, c->nodeID);
 
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+#else
+  error("Calling debugging code without debugging flag activated.");
+#endif
 }
 
 /**
@@ -786,8 +786,8 @@ void cell_reset_task_counters(struct cell *c) {
   for (int t = 0; t < task_subtype_count; ++t) c->subtasks_executed[t] = 0;
   for (int k = 0; k < 8; ++k)
     if (c->progeny[k] != NULL) cell_reset_task_counters(c->progeny[k]);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
+#else
+  error("Calling debugging code without debugging flag activated.");
 #endif
 }
 
@@ -939,11 +939,11 @@ void cell_make_multipoles(struct cell *c, integertime_t ti_current,
  * @param c The #cell to recursively search and verify.
  */
 void cell_check_foreign_multipole(const struct cell *c) {
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
 
   if (c->split) {
     double M_000 = 0.;
-    // long long num_gpart = 0;
+    long long num_gpart = 0;
 
     for (int k = 0; k < 8; k++) {
       const struct cell *cp = c->progeny[k];
@@ -953,20 +953,20 @@ void cell_check_foreign_multipole(const struct cell *c) {
         M_000 += cp->grav.multipole->m_pole.M_000;
 
         /* Check the number of particles */
-        // num_gpart += cp->grav.multipole->m_pole.num_gpart;
+        num_gpart += cp->grav.multipole->m_pole.num_gpart;
 
         /* Now recurse */
         cell_check_foreign_multipole(cp);
       }
     }
 
-    // if (num_gpart != c->grav.multipole->m_pole.num_gpart)
-    //   error("Sum of particles in progenies does not match");
+    if (num_gpart != c->grav.multipole->m_pole.num_gpart)
+      error("Sum of particles in progenies does not match");
   }
 
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+#else
+  error("Calling debugging code without debugging flag activated.");
+#endif
 }
 
 /**
@@ -979,7 +979,7 @@ void cell_check_foreign_multipole(const struct cell *c) {
 void cell_check_multipole(struct cell *c,
                           const struct gravity_props *const grav_props) {
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   struct gravity_tensors ma;
   const double tolerance = 1e-3; /* Relative */
 
@@ -1015,9 +1015,9 @@ void cell_check_multipole(struct cell *c,
             sqrt(3. * c->width[0] * c->width[0]));
     }
   }
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+#else
+  error("Calling debugging code without debugging flag activated.");
+#endif
 }
 
 /**
@@ -1259,7 +1259,7 @@ void cell_clear_hydro_sort_flags(struct cell *c, const int clear_unused_flags) {
  */
 void cell_check_timesteps(const struct cell *c, const integertime_t ti_current,
                           const timebin_t max_bin) {
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
 
   if (c->hydro.ti_end_min == 0 && c->grav.ti_end_min == 0 &&
       c->stars.ti_end_min == 0 && c->black_holes.ti_end_min == 0 &&
@@ -1337,9 +1337,9 @@ void cell_check_timesteps(const struct cell *c, const integertime_t ti_current,
           c->hydro.ti_beg_max, ti_beg_max, ti_current, c->depth);
   }
 
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+#else
+  error("Calling debugging code without debugging flag activated.");
+#endif
 }
 
 void cell_check_spart_pos(const struct cell *c,

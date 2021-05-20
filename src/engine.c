@@ -175,14 +175,14 @@ void engine_repartition(struct engine *e) {
 
   ticks tic = getticks();
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   /* Be verbose about this. */
   if (e->nodeID == 0 || e->verbose) message("repartitioning space");
   fflush(stdout);
 
   /* Check that all cells have been drifted to the current time */
   space_check_drift_point(e->s, e->ti_current, /*check_multipoles=*/0);
-// #endif
+#endif
 
   /* Clear the repartition flag. */
   e->forcerepart = 0;
@@ -481,7 +481,7 @@ void engine_exchange_top_multipoles(struct engine *e) {
 
   ticks tic = getticks();
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   for (int i = 0; i < e->s->nr_cells; ++i) {
     const struct gravity_tensors *m = &e->s->multipoles_top[i];
     if (e->s->cells_top[i].nodeID == engine_rank) {
@@ -498,11 +498,11 @@ void engine_exchange_top_multipoles(struct engine *e) {
       if (m->CoM[0] != 0.) error("Non-zero position in X for foreign m-pole");
       if (m->CoM[1] != 0.) error("Non-zero position in Y for foreign m-pole");
       if (m->CoM[2] != 0.) error("Non-zero position in Z for foreign m-pole");
-      // if (m->m_pole.num_gpart != 0)
-      //   error("Non-zero gpart count in foreign m-pole");
+      if (m->m_pole.num_gpart != 0)
+        error("Non-zero gpart count in foreign m-pole");
     }
   }
-// #endif
+#endif
 
   /* Each node (space) has constructed its own top-level multipoles.
    * We now need to make sure every other node has a copy of everything.
@@ -518,16 +518,16 @@ void engine_exchange_top_multipoles(struct engine *e) {
   if (err != MPI_SUCCESS)
     mpi_error(err, "Failed to all-reduce the top-level multipoles.");
 
-// #ifdef SWIFT_DEBUG_CHECKS
-  // long long counter = 0;
+#ifdef SWIFT_DEBUG_CHECKS
+  long long counter = 0;
 
   /* Let's check that what we received makes sense */
   for (int i = 0; i < e->s->nr_cells; ++i) {
     const struct gravity_tensors *m = &e->s->multipoles_top[i];
-    // counter += m->m_pole.num_gpart;
-    // if (m->m_pole.num_gpart < 0) {
-    //   error("m->m_pole.num_gpart is negative: %lld", m->m_pole.num_gpart);
-    // }
+    counter += m->m_pole.num_gpart;
+    if (m->m_pole.num_gpart < 0) {
+      error("m->m_pole.num_gpart is negative: %lld", m->m_pole.num_gpart);
+    }
     if (m->m_pole.M_000 > 0.) {
       if (m->CoM[0] < 0. || m->CoM[0] > e->s->dim[0])
         error("Invalid multipole position in X");
@@ -537,12 +537,12 @@ void engine_exchange_top_multipoles(struct engine *e) {
         error("Invalid multipole position in Z");
     }
   }
-  // if (counter != e->total_nr_gparts)
-  //   error(
-  //       "Total particles in multipoles inconsistent with engine.\n "
-  //       "  counter = %lld, nr_gparts = %lld",
-  //       counter, e->total_nr_gparts);
-// #endif
+  if (counter != e->total_nr_gparts)
+    error(
+        "Total particles in multipoles inconsistent with engine.\n "
+        "  counter = %lld, nr_gparts = %lld",
+        counter, e->total_nr_gparts);
+#endif
 
   if (e->verbose)
     message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
@@ -1298,7 +1298,7 @@ void engine_rebuild(struct engine *e, const int repartitioned,
   /* Make the list of top-level cells that have tasks */
   space_list_useful_top_level_cells(e->s);
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   /* Check that all cells have been drifted to the current time.
    * That can include cells that have not
    * previously been active on this rank. */
@@ -1314,7 +1314,7 @@ void engine_rebuild(struct engine *e, const int repartitioned,
 
   /* Check whether all the unskip recursion flags are not set */
   space_check_unskip_flags(e->s);
-// #endif
+#endif
 
   /* Run through the tasks and mark as skip or not. */
   if (engine_marktasks(e))
@@ -1425,7 +1425,7 @@ int engine_prepare(struct engine *e) {
     engine_rebuild(e, repartitioned, 0);
   }
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   if (e->forcerepart || e->forcerebuild) {
     /* Check that all cells have been drifted to the current time.
      * That can include cells that have not previously been active on this
@@ -1434,7 +1434,7 @@ int engine_prepare(struct engine *e) {
       space_check_drift_point(e->s, e->ti_current,
                               e->policy & engine_policy_self_gravity);
   }
-// #endif
+#endif
 
   /* Re-rank the tasks every now and then. XXX this never executes. */
   if (e->tasks_age % engine_tasksreweight == 1) {
@@ -1474,7 +1474,7 @@ void engine_print_stats(struct engine *e) {
 
   const ticks tic = getticks();
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   /* Check that all cells have been drifted to the current time.
    * That can include cells that have not
    * previously been active on this rank. */
@@ -1489,16 +1489,16 @@ void engine_print_stats(struct engine *e) {
       message("Saving statistics at t=%e",
               e->ti_current * e->time_base + e->time_begin);
   }
-// #else
-//   if (e->verbose) {
-//     if (e->policy & engine_policy_cosmology)
-//       message("Saving statistics at a=%e",
-//               exp(e->ti_current * e->time_base) * e->cosmology->a_begin);
-//     else
-//       message("Saving statistics at t=%e",
-//               e->ti_current * e->time_base + e->time_begin);
-//   }
-// #endif
+#else
+  if (e->verbose) {
+    if (e->policy & engine_policy_cosmology)
+      message("Saving statistics at a=%e",
+              exp(e->ti_current * e->time_base) * e->cosmology->a_begin);
+    else
+      message("Saving statistics at t=%e",
+              e->ti_current * e->time_base + e->time_begin);
+  }
+#endif
 
   struct statistics stats;
   stats_init(&stats);
@@ -1644,10 +1644,10 @@ void engine_skip_drift(struct engine *e) {
 void engine_launch(struct engine *e, const char *call) {
   const ticks tic = getticks();
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   /* Re-set all the cell task counters to 0 */
   space_reset_task_counters(e->s);
-// #endif
+#endif
 
   /* Prepare the scheduler. */
   atomic_inc(&e->sched.waiting);
@@ -2032,13 +2032,13 @@ void engine_init_particles(struct engine *e, int flag_entropy_ICs,
 
   clocks_gettime(&time2);
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   space_check_timesteps(e->s);
-  // part_verify_links(e->s->parts, e->s->gparts, e->s->sinks, e->s->sparts,
-  //                   e->s->bparts, e->s->nr_parts, e->s->nr_gparts,
-  //                   e->s->nr_sinks, e->s->nr_sparts, e->s->nr_bparts,
-  //                   e->verbose);
-// #endif
+  part_verify_links(e->s->parts, e->s->gparts, e->s->sinks, e->s->sparts,
+                    e->s->bparts, e->s->nr_parts, e->s->nr_gparts,
+                    e->s->nr_sinks, e->s->nr_sparts, e->s->nr_bparts,
+                    e->verbose);
+#endif
 
   /* Gather the max IDs at this stage */
   engine_get_max_ids(e);
@@ -2229,10 +2229,10 @@ void engine_step(struct engine *e) {
   /* Prepare the tasks to be launched, rebuild or repartition if needed. */
   const int drifted_all = engine_prepare(e);
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   /* Print the number of active tasks */
   if (e->verbose) engine_print_task_counts(e);
-// #endif
+#endif
 
     /* Dump local cells and active particle counts. */
     // dumpCells("cells", 1, 0, 0, 0, e->s, e->nodeID, e->step);
@@ -2383,7 +2383,7 @@ void engine_step(struct engine *e) {
   }
 #endif
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   /* Make sure all woken-up particles have been processed */
   space_check_limiter(e->s);
   space_check_sort_flags(e->s);
@@ -2391,7 +2391,7 @@ void engine_step(struct engine *e) {
 
   /* Verify that all the unskip flags for the gravity have been cleaned */
   space_check_unskip_flags(e->s);
-// #endif
+#endif
 
 #if defined(SWIFT_DEBUG_CHECKS) && defined RT_DEBUG
   /* if we're running the debug RT scheme, do some checks after every step */
@@ -2408,13 +2408,13 @@ void engine_step(struct engine *e) {
   e->sink_updates_since_rebuild += e->collect_group1.sink_updated;
   e->b_updates_since_rebuild += e->collect_group1.b_updated;
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   /* Verify that all cells have correct time-step information */
   space_check_timesteps(e->s);
 
   if (e->ti_end_min == e->ti_current && e->ti_end_min < max_nr_timesteps)
     error("Obtained a time-step of size 0");
-// #endif
+#endif
 
   /********************************************************/
   /* OK, we are done with the regular stuff. Time for i/o */
@@ -2466,7 +2466,7 @@ void engine_reconstruct_multipoles(struct engine *e) {
 
   const ticks tic = getticks();
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   if (e->nodeID == 0) {
     if (e->policy & engine_policy_cosmology)
       message("Reconstructing multipoles at a=%e",
@@ -2475,7 +2475,7 @@ void engine_reconstruct_multipoles(struct engine *e) {
       message("Reconstructing multipoles at t=%e",
               e->ti_current * e->time_base + e->time_begin);
   }
-// #endif
+#endif
 
   threadpool_map(&e->threadpool, engine_do_reconstruct_multipoles_mapper,
                  e->s->cells_top, e->s->nr_cells, sizeof(struct cell),
@@ -3067,7 +3067,7 @@ void engine_recompute_displacement_constraint(struct engine *e) {
                   MPI_COMM_WORLD);
 #endif
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
     /* Check that the minimal mass collection worked */
     float min_part_mass_check = FLT_MAX;
     for (size_t i = 0; i < e->s->nr_parts; ++i) {
@@ -3077,7 +3077,7 @@ void engine_recompute_displacement_constraint(struct engine *e) {
     }
     if (min_part_mass_check < min_mass[swift_type_gas])
       error("Error collecting minimal mass of gas particles.");
-// #endif
+#endif
 
     /* Do the same for the velocity norm sum */
     float vel_norm[swift_type_count] = {e->s->sum_part_vel_norm,
@@ -3177,10 +3177,10 @@ void engine_recompute_displacement_constraint(struct engine *e) {
   const integertime_t old_dti =
       e->mesh->ti_end_mesh_last - e->mesh->ti_beg_mesh_last;
 
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   if (e->step > 1 && e->mesh->ti_end_mesh_last != e->ti_current)
     error("Weird time integration issue");
-// #endif
+#endif
 
   /* What is the allowed time-step size
    * Note: The cosmology factor is 1 in non-cosmo runs */
