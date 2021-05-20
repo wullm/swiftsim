@@ -88,6 +88,11 @@ __attribute__((always_inline)) INLINE static void drift_gpart(
   }
 #endif
 
+  /* Check the mass */
+  if (gp->mass == 0.) {
+    error("Particle with zero mass.");
+  }
+
   /* Drift... */
   gp->x[0] += gp->v_full[0] * dt_drift;
   gp->x[1] += gp->v_full[1] * dt_drift;

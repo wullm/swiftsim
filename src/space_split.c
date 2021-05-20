@@ -60,9 +60,13 @@ void space_fix_neutrinos_recursive(struct space *s, struct cell *c) {
     }
 
     /* And recompute the CoM & multipoles if needed */
-    if (nucount > 0)
+    if (nucount > 0) {
       gravity_P2M(c->grav.multipole, c->grav.parts, c->grav.count,
                   e->gravity_properties);
+
+      /* Compute the multipole power */
+      gravity_multipole_compute_power(&c->grav.multipole->m_pole);
+    }
 
   } else {
 
@@ -110,7 +114,7 @@ void space_fix_neutrinos_recursive(struct space *s, struct cell *c) {
     /* Final operation on the CoM and bulk velocity */
     const double inv_mass = 1. / mass;
     if (fabs(inv_mass) < 1e-6) {
-        error("Dividing by very small number (1).");
+      error("Dividing by very small number (1).");
     }
     c->grav.multipole->CoM[0] = CoM[0] * inv_mass;
     c->grav.multipole->CoM[1] = CoM[1] * inv_mass;
@@ -507,7 +511,7 @@ void space_split_recursive(struct space *s, struct cell *c,
       /* Final operation on the CoM and bulk velocity */
       const double inv_mass = 1. / mass;
       if (fabs(inv_mass) < 1e-6) {
-          error("Dividing by very small number (2).");
+        error("Dividing by very small number (2).");
       }
       c->grav.multipole->CoM[0] = CoM[0] * inv_mass;
       c->grav.multipole->CoM[1] = CoM[1] * inv_mass;
@@ -597,6 +601,16 @@ void space_split_recursive(struct space *s, struct cell *c,
             c->width[0], c->width[1], c->width[2], mass, c->grav.count,
             cell_contains_com(c, c->grav.multipole));
       }
+
+      /* Everything should be fine now */
+      if (!cell_contains_com(c, c->grav.multipole))
+        error("Centre of mass outside of cell after all");
+      if (c->grav.multipole->m_pole.M_000 == 0.)
+        error("Zero total mass for a multipole");
+      if (isnan(c->grav.multipole->CoM[0]) ||
+          isnan(c->grav.multipole->CoM[1]) || isnan(c->grav.multipole->CoM[2]))
+        error("NaN centre of mass!");
+      if (isnan(c->grav.multipole->m_pole.M_000)) error("NaN total mass!");
 
     } /* Deal with gravity */
   }   /* Split or let it be? */
@@ -796,6 +810,17 @@ void space_split_recursive(struct space *s, struct cell *c,
 
         /* Compute the multipole power */
         gravity_multipole_compute_power(&c->grav.multipole->m_pole);
+
+        /* Everything should be fine now */
+        if (!cell_contains_com(c, c->grav.multipole))
+          error("Centre of mass outside of cell after all");
+        if (c->grav.multipole->m_pole.M_000 == 0.)
+          error("Zero total mass for a multipole");
+        if (isnan(c->grav.multipole->CoM[0]) ||
+            isnan(c->grav.multipole->CoM[1]) ||
+            isnan(c->grav.multipole->CoM[2]))
+          error("NaN centre of mass!");
+        if (isnan(c->grav.multipole->m_pole.M_000)) error("NaN total mass!");
 
       } else {
 

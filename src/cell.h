@@ -1398,7 +1398,7 @@ __attribute__((always_inline)) INLINE void cell_assign_cell_index(
  * @param m The #multipole
  */
 __attribute__((always_inline)) INLINE int cell_contains_com(
-    struct cell *c, const struct gravity_tensors *m) {
+    const struct cell *c, const struct gravity_tensors *m) {
 
   return (m->CoM[0] >= c->loc[0] && m->CoM[0] <= c->loc[0] + c->width[0] &&
           m->CoM[1] >= c->loc[1] && m->CoM[1] <= c->loc[1] + c->width[1] &&
