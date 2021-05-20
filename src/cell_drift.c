@@ -285,13 +285,13 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
   /* Drift irrespective of cell flags? */
   force = (force || cell_get_flag(c, cell_flag_do_grav_drift));
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that we only drift local cells. */
   if (c->nodeID != engine_rank) error("Drifting a foreign cell is nope.");
 
   /* Check that we are actually going to move forward. */
   if (ti_current < ti_old_gpart) error("Attempt to drift to the past");
-#endif
+// #endif
 
   /* Early abort? */
   if (c->grav.count == 0) {
@@ -350,7 +350,7 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
       /* Drift... */
       drift_gpart(gp, dt_drift_k, ti_old_gpart, ti_current, grav_props, e);
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
       /* Make sure the particle does not drift by more than a box length. */
       if (fabs(gp->v_full[0] * dt_drift_k) > e->s->dim[0] ||
           fabs(gp->v_full[1] * dt_drift_k) > e->s->dim[1] ||
@@ -360,7 +360,7 @@ void cell_drift_gpart(struct cell *c, const struct engine *e, int force) {
             "%.5e",
             gp->v_full[0], gp->v_full[1], gp->v_full[2]);
       }
-#endif
+// #endif
 
       /* In non-periodic BC runs, remove particles that crossed the border */
       if (!periodic) {
@@ -958,10 +958,10 @@ void cell_drift_all_multipoles(struct cell *c, const struct engine *e) {
   const integertime_t ti_old_multipole = c->grav.ti_old_multipole;
   const integertime_t ti_current = e->ti_current;
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that we are actually going to move forward. */
   if (ti_current < ti_old_multipole) error("Attempt to drift to the past");
-#endif
+// #endif
 
   /* Drift from the last time the cell was drifted to the current time */
   double dt_drift;
@@ -998,10 +998,10 @@ void cell_drift_multipole(struct cell *c, const struct engine *e) {
   const integertime_t ti_old_multipole = c->grav.ti_old_multipole;
   const integertime_t ti_current = e->ti_current;
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that we are actually going to move forward. */
   if (ti_current < ti_old_multipole) error("Attempt to drift to the past");
-#endif
+// #endif
 
   /* Drift from the last time the cell was drifted to the current time */
   double dt_drift;

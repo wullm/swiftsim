@@ -109,6 +109,9 @@ void space_fix_neutrinos_recursive(struct space *s, struct cell *c) {
 
     /* Final operation on the CoM and bulk velocity */
     const double inv_mass = 1. / mass;
+    if (fabs(inv_mass) < 1e-10) {
+      error("Dividing by a very small number (1)");
+    }
     c->grav.multipole->CoM[0] = CoM[0] * inv_mass;
     c->grav.multipole->CoM[1] = CoM[1] * inv_mass;
     c->grav.multipole->CoM[2] = CoM[2] * inv_mass;
@@ -503,6 +506,9 @@ void space_split_recursive(struct space *s, struct cell *c,
 
       /* Final operation on the CoM and bulk velocity */
       const double inv_mass = 1. / mass;
+      if (fabs(inv_mass) < 1e-10) {
+        error("Dividing by a very small number (2)");
+      }
       c->grav.multipole->CoM[0] = CoM[0] * inv_mass;
       c->grav.multipole->CoM[1] = CoM[1] * inv_mass;
       c->grav.multipole->CoM[2] = CoM[2] * inv_mass;
@@ -887,14 +893,14 @@ void space_split_mapper(void *map_data, int num_cells, void *extra_data) {
     space_split_recursive(s, c, NULL, NULL, NULL, NULL, NULL);
   }
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* All cells and particles should have consistent h_max values. */
   for (int ind = 0; ind < num_cells; ind++) {
     int depth = 0;
     const struct cell *c = &cells_top[local_cells_with_particles[ind]];
     if (!checkCellhdxmax(c, &depth)) message("    at cell depth %d", depth);
   }
-#endif
+// #endif
 }
 
 /**

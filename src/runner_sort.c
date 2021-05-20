@@ -160,7 +160,7 @@ void runner_do_sort_ascending(struct sort_entry *sort, int N) {
   }
 }
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
 /**
  * @brief Recursively checks that the flags are consistent in a cell hierarchy.
  *
@@ -175,12 +175,12 @@ void runner_do_sort_ascending(struct sort_entry *sort, int N) {
         if (c->progeny[k] != NULL && c->progeny[k]->TYPE.count > 0)            \
           runner_check_sorts_##TYPE(c->progeny[k], c->TYPE.sorted);            \
   }
-#else
-#define RUNNER_CHECK_SORTS(TYPE)                                       \
-  void runner_check_sorts_##TYPE(struct cell *c, int flags) {          \
-    error("Calling debugging code without debugging flag activated."); \
-  }
-#endif
+/* #else
+// #define RUNNER_CHECK_SORTS(TYPE)                                       \
+//   void runner_check_sorts_##TYPE(struct cell *c, int flags) {          \
+//     error("Calling debugging code without debugging flag activated."); \
+//   }
+//  #endif */
 
 RUNNER_CHECK_SORTS(hydro)
 RUNNER_CHECK_SORTS(stars)

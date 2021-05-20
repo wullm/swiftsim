@@ -34,10 +34,10 @@
 extern int space_expected_max_nr_strays;
 
 /*! Counter for cell IDs (when debugging) */
-#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_CELL_GRAPH)
+// #if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_CELL_GRAPH)
 extern unsigned long long last_cell_id;
 extern unsigned long long last_leaf_cell_id;
-#endif
+// #endif
 
 /**
  * @brief Re-build the top-level cells as well as the whole hierarchy.
@@ -51,15 +51,15 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
   const ticks tic = getticks();
 
 /* Be verbose about this. */
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   if (s->e->nodeID == 0 || verbose) message("(re)building space");
   fflush(stdout);
-#endif
-#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_CELL_GRAPH)
+// #endif
+// #if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_CELL_GRAPH)
   /* Reset the cell counter */
   last_cell_id = 1ULL;
   last_leaf_cell_id = 1ULL;
-#endif
+// #endif
 
   /* Re-grid if necessary, or just re-set the cell data. */
   space_regrid(s, verbose);
@@ -167,7 +167,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
                                &count_inhibited_sinks, &count_extra_sinks,
                                verbose);
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Some safety checks */
   if (repartitioned && count_inhibited_parts)
     error("We just repartitioned but still found inhibited parts.");
@@ -200,7 +200,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     error(
         "Number of extra sinks in the sink array not matching the space "
         "counter.");
-#endif
+// #endif
 
   const ticks tic2 = getticks();
 
@@ -238,7 +238,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     }
   }
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that all parts are in the correct places. */
   size_t check_count_inhibited_part = 0;
   for (size_t k = 0; k < nr_parts; k++) {
@@ -254,7 +254,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
   }
   if (check_count_inhibited_part != count_inhibited_parts)
     error("Counts of inhibited particles do not match!");
-#endif /* SWIFT_DEBUG_CHECKS */
+// #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Move non-local sparts and inhibited sparts to the end of the list. */
   if (!repartitioned && (s->e->nr_nodes > 1 || count_inhibited_sparts > 0)) {
@@ -288,7 +288,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     }
   }
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that all sparts are in the correct place. */
   size_t check_count_inhibited_spart = 0;
   for (size_t k = 0; k < nr_sparts; k++) {
@@ -304,7 +304,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
   }
   if (check_count_inhibited_spart != count_inhibited_sparts)
     error("Counts of inhibited s-particles do not match!");
-#endif /* SWIFT_DEBUG_CHECKS */
+// #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Move non-local bparts and inhibited bparts to the end of the list. */
   if (!repartitioned && (s->e->nr_nodes > 1 || count_inhibited_bparts > 0)) {
@@ -338,7 +338,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     }
   }
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that all bparts are in the correct place. */
   size_t check_count_inhibited_bpart = 0;
   for (size_t k = 0; k < nr_bparts; k++) {
@@ -354,7 +354,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
   }
   if (check_count_inhibited_bpart != count_inhibited_bparts)
     error("Counts of inhibited b-particles do not match!");
-#endif /* SWIFT_DEBUG_CHECKS */
+// #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Move non-local sinks and inhibited sinks to the end of the list. */
   if (!repartitioned && (s->e->nr_nodes > 1 || count_inhibited_sinks > 0)) {
@@ -389,7 +389,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     }
   }
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that all sinks are in the correct place. */
   size_t check_count_inhibited_sinks = 0;
   for (size_t k = 0; k < nr_sinks; k++) {
@@ -407,7 +407,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
   }
   if (check_count_inhibited_sinks != count_inhibited_sinks)
     error("Counts of inhibited sink-particles do not match!");
-#endif /* SWIFT_DEBUG_CHECKS */
+// #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Move non-local gparts and inhibited parts to the end of the list. */
   if (!repartitioned && (s->e->nr_nodes > 1 || count_inhibited_gparts > 0)) {
@@ -462,7 +462,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     message("Moving non-local particles took %.3f %s.",
             clocks_from_ticks(getticks() - tic2), clocks_getunit());
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that all gparts are in the correct place. */
   size_t check_count_inhibited_gpart = 0;
   for (size_t k = 0; k < nr_gparts; k++) {
@@ -478,7 +478,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
   }
   if (check_count_inhibited_gpart != count_inhibited_gparts)
     error("Counts of inhibited g-particles do not match!");
-#endif /* SWIFT_DEBUG_CHECKS */
+// #endif /* SWIFT_DEBUG_CHECKS */
 
 #ifdef WITH_MPI
 
@@ -504,14 +504,14 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     s->nr_bparts = nr_bparts + nr_bparts_exchanged;
 
   } else {
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
     if (s->nr_parts != nr_parts)
       error("Number of parts changing after repartition");
     if (s->nr_sparts != nr_sparts)
       error("Number of sparts changing after repartition");
     if (s->nr_gparts != nr_gparts)
       error("Number of gparts changing after repartition");
-#endif
+// #endif
   }
 
   /* Clear non-local cell counts. */
@@ -566,11 +566,11 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     h_index[k] =
         cell_getid(cdim, p->x[0] * ih[0], p->x[1] * ih[1], p->x[2] * ih[2]);
     cell_part_counts[h_index[k]]++;
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
     if (cells_top[h_index[k]].nodeID != local_nodeID)
       error("Received part that does not belong to me (nodeID=%i).",
             cells_top[h_index[k]].nodeID);
-#endif
+// #endif
   }
   nr_parts = s->nr_parts;
 
@@ -813,11 +813,11 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     g_index[k] =
         cell_getid(cdim, p->x[0] * ih[0], p->x[1] * ih[1], p->x[2] * ih[2]);
     cell_gpart_counts[g_index[k]]++;
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
     if (cells_top[g_index[k]].nodeID != s->e->nodeID)
       error("Received g-part that does not belong to me (nodeID=%i).",
             cells_top[g_index[k]].nodeID);
-#endif
+// #endif
   }
   nr_gparts = s->nr_gparts;
 
@@ -840,7 +840,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     space_gparts_sort(s->gparts, s->parts, s->sinks, s->sparts, s->bparts,
                       g_index, cell_gpart_counts, s->nr_cells);
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Verify that the gpart have been sorted correctly. */
   for (size_t k = 0; k < nr_gparts; k++) {
     const struct gpart *gp = &s->gparts[k];
@@ -864,7 +864,7 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
         gp->x[2] < c->loc[2] || gp->x[2] > c->loc[2] + c->width[2])
       error("gpart not sorted into the right top-level cell!");
   }
-#endif /* SWIFT_DEBUG_CHECKS */
+// #endif /* SWIFT_DEBUG_CHECKS */
 
   /* Extract the cell counts from the sorted indices. Deduct the extra
    * particles. */
@@ -911,9 +911,9 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
     c->sinks.ti_old_part = ti_current;
     c->black_holes.ti_old_part = ti_current;
 
-#if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_CELL_GRAPH)
+// #if defined(SWIFT_DEBUG_CHECKS) || defined(SWIFT_CELL_GRAPH)
     cell_assign_top_level_cell_index(c, s->cdim, s->dim, s->iwidth);
-#endif
+// #endif
 
     const int is_local = (c->nodeID == engine_rank);
     const int has_particles =
@@ -974,12 +974,12 @@ void space_rebuild(struct space *s, int repartitioned, int verbose) {
      cell to get the full AMR grid. */
   space_split(s, verbose);
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   /* Check that the multipole construction went OK */
   if (s->with_self_gravity)
     for (int k = 0; k < s->nr_cells; k++)
       cell_check_multipole(&s->cells_top[k], s->e->gravity_properties);
-#endif
+// #endif
 
   /* Clean up any stray sort indices in the cell buffer. */
   space_free_buff_sort_indices(s);
