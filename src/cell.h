@@ -1399,10 +1399,20 @@ __attribute__((always_inline)) INLINE void cell_assign_cell_index(
  */
 __attribute__((always_inline)) INLINE int cell_contains_com(
     const struct cell *c, const struct gravity_tensors *m) {
+        
+int contains = (m->CoM[0] >= c->loc[0] && m->CoM[0] <= c->loc[0] + c->width[0] &&
+                m->CoM[1] >= c->loc[1] && m->CoM[1] <= c->loc[1] + c->width[1] &&
+                m->CoM[2] >= c->loc[2] && m->CoM[2] <= c->loc[2] + c->width[2]);
+    
+    if (!contains) {
+        message("Does not contain, CoM = [%e %e %e] c = [%e %e %e] w = [%e %e %e]", m->CoM[0], m->CoM[1], m->CoM[2], c->loc[0], c->loc[1], c->loc[2], c->width[0], c->width[1], c->width[2]);
+    }
+    
+  return contains;
 
-  return (m->CoM[0] >= c->loc[0] && m->CoM[0] <= c->loc[0] + c->width[0] &&
-          m->CoM[1] >= c->loc[1] && m->CoM[1] <= c->loc[1] + c->width[1] &&
-          m->CoM[2] >= c->loc[2] && m->CoM[2] <= c->loc[2] + c->width[2]);
+  // return (m->CoM[0] >= c->loc[0] && m->CoM[0] <= c->loc[0] + c->width[0] &&
+  //         m->CoM[1] >= c->loc[1] && m->CoM[1] <= c->loc[1] + c->width[1] &&
+  //         m->CoM[2] >= c->loc[2] && m->CoM[2] <= c->loc[2] + c->width[2]);
 }
 
 #endif /* SWIFT_CELL_H */
