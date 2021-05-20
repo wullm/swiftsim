@@ -608,7 +608,7 @@ void cell_clean_links(struct cell *c, void *data) {
  * @param data The current time on the integer time-line
  */
 void cell_check_part_drift_point(struct cell *c, void *data) {
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
 
   const integertime_t ti_drift = *(integertime_t *)data;
 
@@ -627,9 +627,9 @@ void cell_check_part_drift_point(struct cell *c, void *data) {
         c->hydro.parts[i].time_bin != time_bin_inhibited)
       error("part in an incorrect time-zone! p->ti_drift=%lld ti_drift=%lld",
             c->hydro.parts[i].ti_drift, ti_drift);
-// #else
-//   error("Calling debugging code without debugging flag activated.");
-// #endif
+#else
+  error("Calling debugging code without debugging flag activated.");
+#endif
 }
 
 /**
@@ -642,7 +642,7 @@ void cell_check_part_drift_point(struct cell *c, void *data) {
  * @param data The current time on the integer time-line
  */
 void cell_check_gpart_drift_point(struct cell *c, void *data) {
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
 
   const integertime_t ti_drift = *(integertime_t *)data;
 
@@ -665,7 +665,7 @@ void cell_check_gpart_drift_point(struct cell *c, void *data) {
             c->grav.parts[i].ti_drift, ti_drift);
 // #else
 //   error("Calling debugging code without debugging flag activated.");
-// #endif
+#endif
 }
 
 /**
@@ -781,14 +781,14 @@ void cell_check_multipole_drift_point(struct cell *c, void *data) {
  * @param c The #cell to reset.
  */
 void cell_reset_task_counters(struct cell *c) {
-// #ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
   for (int t = 0; t < task_type_count; ++t) c->tasks_executed[t] = 0;
   for (int t = 0; t < task_subtype_count; ++t) c->subtasks_executed[t] = 0;
   for (int k = 0; k < 8; ++k)
     if (c->progeny[k] != NULL) cell_reset_task_counters(c->progeny[k]);
 // #else
 //   error("Calling debugging code without debugging flag activated.");
-// #endif
+#endif
 }
 
 /**
