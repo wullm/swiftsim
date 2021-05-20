@@ -2640,13 +2640,13 @@ void space_recurse_check_unskip_flag(const struct cell *c) {
  * @param s The #space
  */
 void space_check_unskip_flags(const struct space *s) {
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
 
   for (int i = 0; i < s->nr_cells; i++) {
     const struct cell *c = &s->cells_top[i];
     space_recurse_check_unskip_flag(c);
   }
-#else
-  error("This function should not be called without the debugging checks.");
-#endif
+// #else
+//   error("This function should not be called without the debugging checks.");
+// #endif
 }
