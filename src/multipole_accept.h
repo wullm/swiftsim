@@ -105,8 +105,6 @@ __attribute__((nonnull, pure)) INLINE static int gravity_M2L_accept(
     E_BA_term *= max(rho_A, rho_B);
     E_BA_term /= (rho_A + rho_B);
   }
-  
-  if (isnan(E_BA_term)) error("Invalid E_BA_term %e", E_BA_term);
 
   /* Compute r^p */
 #if SELF_GRAVITY_MULTIPOLE_ORDER % 2 == 1
@@ -225,8 +223,6 @@ __attribute__((nonnull, pure)) INLINE static int gravity_M2P_accept(
 
   /* Compute the error estimator (without the 1/M_B term that cancels out) */
   const float E_BA_term = 8.f * B->m_pole.power[p];
-  
-  if (isnan(E_BA_term)) error("Invalid E_BA_term %e", E_BA_term);
 
   /* Compute r^p */
 #if SELF_GRAVITY_MULTIPOLE_ORDER % 2 == 1
