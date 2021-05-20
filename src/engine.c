@@ -481,7 +481,7 @@ void engine_exchange_top_multipoles(struct engine *e) {
 
   ticks tic = getticks();
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   for (int i = 0; i < e->s->nr_cells; ++i) {
     const struct gravity_tensors *m = &e->s->multipoles_top[i];
     if (e->s->cells_top[i].nodeID == engine_rank) {
@@ -498,11 +498,11 @@ void engine_exchange_top_multipoles(struct engine *e) {
       if (m->CoM[0] != 0.) error("Non-zero position in X for foreign m-pole");
       if (m->CoM[1] != 0.) error("Non-zero position in Y for foreign m-pole");
       if (m->CoM[2] != 0.) error("Non-zero position in Z for foreign m-pole");
-      if (m->m_pole.num_gpart != 0)
-        error("Non-zero gpart count in foreign m-pole");
+      // if (m->m_pole.num_gpart != 0)
+      //   error("Non-zero gpart count in foreign m-pole");
     }
   }
-#endif
+// #endif
 
   /* Each node (space) has constructed its own top-level multipoles.
    * We now need to make sure every other node has a copy of everything.
@@ -518,16 +518,16 @@ void engine_exchange_top_multipoles(struct engine *e) {
   if (err != MPI_SUCCESS)
     mpi_error(err, "Failed to all-reduce the top-level multipoles.");
 
-#ifdef SWIFT_DEBUG_CHECKS
-  long long counter = 0;
+// #ifdef SWIFT_DEBUG_CHECKS
+  // long long counter = 0;
 
   /* Let's check that what we received makes sense */
   for (int i = 0; i < e->s->nr_cells; ++i) {
     const struct gravity_tensors *m = &e->s->multipoles_top[i];
-    counter += m->m_pole.num_gpart;
-    if (m->m_pole.num_gpart < 0) {
-      error("m->m_pole.num_gpart is negative: %lld", m->m_pole.num_gpart);
-    }
+    // counter += m->m_pole.num_gpart;
+    // if (m->m_pole.num_gpart < 0) {
+    //   error("m->m_pole.num_gpart is negative: %lld", m->m_pole.num_gpart);
+    // }
     if (m->m_pole.M_000 > 0.) {
       if (m->CoM[0] < 0. || m->CoM[0] > e->s->dim[0])
         error("Invalid multipole position in X");
@@ -537,12 +537,12 @@ void engine_exchange_top_multipoles(struct engine *e) {
         error("Invalid multipole position in Z");
     }
   }
-  if (counter != e->total_nr_gparts)
-    error(
-        "Total particles in multipoles inconsistent with engine.\n "
-        "  counter = %lld, nr_gparts = %lld",
-        counter, e->total_nr_gparts);
-#endif
+  // if (counter != e->total_nr_gparts)
+  //   error(
+  //       "Total particles in multipoles inconsistent with engine.\n "
+  //       "  counter = %lld, nr_gparts = %lld",
+  //       counter, e->total_nr_gparts);
+// #endif
 
   if (e->verbose)
     message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
