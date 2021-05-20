@@ -979,7 +979,7 @@ void cell_check_foreign_multipole(const struct cell *c) {
 void cell_check_multipole(struct cell *c,
                           const struct gravity_props *const grav_props) {
 
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
   struct gravity_tensors ma;
   const double tolerance = 1e-3; /* Relative */
 
@@ -1015,9 +1015,9 @@ void cell_check_multipole(struct cell *c,
             sqrt(3. * c->width[0] * c->width[0]));
     }
   }
-#else
-  error("Calling debugging code without debugging flag activated.");
-#endif
+// #else
+//   error("Calling debugging code without debugging flag activated.");
+// #endif
 }
 
 /**
@@ -1259,7 +1259,7 @@ void cell_clear_hydro_sort_flags(struct cell *c, const int clear_unused_flags) {
  */
 void cell_check_timesteps(const struct cell *c, const integertime_t ti_current,
                           const timebin_t max_bin) {
-#ifdef SWIFT_DEBUG_CHECKS
+// #ifdef SWIFT_DEBUG_CHECKS
 
   if (c->hydro.ti_end_min == 0 && c->grav.ti_end_min == 0 &&
       c->stars.ti_end_min == 0 && c->black_holes.ti_end_min == 0 &&
@@ -1337,9 +1337,9 @@ void cell_check_timesteps(const struct cell *c, const integertime_t ti_current,
           c->hydro.ti_beg_max, ti_beg_max, ti_current, c->depth);
   }
 
-#else
-  error("Calling debugging code without debugging flag activated.");
-#endif
+// #else
+//   error("Calling debugging code without debugging flag activated.");
+// #endif
 }
 
 void cell_check_spart_pos(const struct cell *c,
