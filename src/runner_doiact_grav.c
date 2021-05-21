@@ -133,8 +133,8 @@ void runner_do_grav_down(struct runner *r, struct cell *c, int timer) {
                            c->grav.multipole->CoM[2]};
 
     /* Everything should be fine */
-    if (!cell_contains_com(c, c->grav.multipole))
-      error("Centre of mass outside of cell after all");
+    // if (!cell_contains_com(c, c->grav.multipole))
+    //   error("Centre of mass outside of cell after all");
     if (c->grav.multipole->m_pole.M_000 == 0.)
       error("Zero total mass for a multipole");
     if (isnan(c->grav.multipole->CoM[0]) || isnan(c->grav.multipole->CoM[1]) ||
@@ -1482,8 +1482,8 @@ void runner_dopair_grav_pp_no_cache(struct runner *r, struct cell *restrict ci,
     } else {
 
       /* Everything should be fine */
-      if (!cell_contains_com(ci, ci->grav.multipole))
-        error("Centre of mass outside of cell after all");
+      // if (!cell_contains_com(ci, ci->grav.multipole))
+      //   error("Centre of mass outside of cell after all");
       if (ci->grav.multipole->m_pole.M_000 == 0.)
         error("Zero total mass for a multipole");
       if (isnan(ci->grav.multipole->CoM[0]) ||
@@ -1493,8 +1493,8 @@ void runner_dopair_grav_pp_no_cache(struct runner *r, struct cell *restrict ci,
       if (isnan(ci->grav.multipole->m_pole.M_000)) error("NaN total mass!");
 
       /* Everything should be fine */
-      if (!cell_contains_com(cj, cj->grav.multipole))
-        error("Centre of mass outside of cell after all");
+      // if (!cell_contains_com(cj, cj->grav.multipole))
+      //   error("Centre of mass outside of cell after all");
       if (cj->grav.multipole->m_pole.M_000 == 0.)
         error("Zero total mass for a multipole");
       if (isnan(cj->grav.multipole->CoM[0]) ||
@@ -1924,8 +1924,8 @@ static INLINE void runner_dopair_grav_mm_symmetric(struct runner *r,
     error("Invalid state in symmetric M-M calculation!");
 
   /* Everything should be fine */
-  if (!cell_contains_com(ci, ci->grav.multipole))
-    error("Centre of mass outside of cell after all");
+  // if (!cell_contains_com(ci, ci->grav.multipole))
+  //   error("Centre of mass outside of cell after all");
   if (ci->grav.multipole->m_pole.M_000 == 0.)
     error("Zero total mass for a multipole");
   if (isnan(ci->grav.multipole->CoM[0]) || isnan(ci->grav.multipole->CoM[1]) ||
@@ -1934,8 +1934,8 @@ static INLINE void runner_dopair_grav_mm_symmetric(struct runner *r,
   if (isnan(ci->grav.multipole->m_pole.M_000)) error("NaN total mass!");
 
   /* Everything should be fine */
-  if (!cell_contains_com(cj, cj->grav.multipole))
-    error("Centre of mass outside of cell after all");
+  // if (!cell_contains_com(cj, cj->grav.multipole))
+  //   error("Centre of mass outside of cell after all");
   if (cj->grav.multipole->m_pole.M_000 == 0.)
     error("Zero total mass for a multipole");
   if (isnan(cj->grav.multipole->CoM[0]) || isnan(cj->grav.multipole->CoM[1]) ||
@@ -2026,8 +2026,8 @@ static INLINE void runner_dopair_grav_mm_nonsym(struct runner *r,
   if (!cell_is_active_gravity_mm(ci, e) || ci->nodeID != engine_rank) return;
 
   /* Everything should be fine */
-  if (!cell_contains_com(ci, ci->grav.multipole))
-    error("Centre of mass outside of cell after all");
+  // if (!cell_contains_com(ci, ci->grav.multipole))
+  //   error("Centre of mass outside of cell after all");
   if (ci->grav.multipole->m_pole.M_000 == 0.)
     error("Zero total mass for a multipole");
   if (isnan(ci->grav.multipole->CoM[0]) || isnan(ci->grav.multipole->CoM[1]) ||
@@ -2036,8 +2036,8 @@ static INLINE void runner_dopair_grav_mm_nonsym(struct runner *r,
   if (isnan(ci->grav.multipole->m_pole.M_000)) error("NaN total mass!");
 
   /* Everything should be fine */
-  if (!cell_contains_com(cj, cj->grav.multipole))
-    error("Centre of mass outside of cell after all");
+  // if (!cell_contains_com(cj, cj->grav.multipole))
+  //   error("Centre of mass outside of cell after all");
   if (cj->grav.multipole->m_pole.M_000 == 0.)
     error("Zero total mass for a multipole");
   if (isnan(cj->grav.multipole->CoM[0]) || isnan(cj->grav.multipole->CoM[1]) ||
@@ -2113,8 +2113,8 @@ static INLINE void runner_dopair_grav_mm(struct runner *r,
   if (cj->grav.ti_old_multipole < e->ti_current) cell_drift_multipole(cj, e);
 
   /* Everything should be fine */
-  if (!cell_contains_com(ci, ci->grav.multipole))
-    error("Centre of mass outside of cell after all");
+  // if (!cell_contains_com(ci, ci->grav.multipole))
+  //   error("Centre of mass outside of cell after all");
   if (ci->grav.multipole->m_pole.M_000 == 0.)
     error("Zero total mass for a multipole");
   if (isnan(ci->grav.multipole->CoM[0]) || isnan(ci->grav.multipole->CoM[1]) ||
@@ -2123,8 +2123,8 @@ static INLINE void runner_dopair_grav_mm(struct runner *r,
   if (isnan(ci->grav.multipole->m_pole.M_000)) error("NaN total mass!");
 
   /* Everything should be fine */
-  if (!cell_contains_com(cj, cj->grav.multipole))
-    error("Centre of mass outside of cell after all");
+  // if (!cell_contains_com(cj, cj->grav.multipole))
+  //   error("Centre of mass outside of cell after all");
   if (cj->grav.multipole->m_pole.M_000 == 0.)
     error("Zero total mass for a multipole");
   if (isnan(cj->grav.multipole->CoM[0]) || isnan(cj->grav.multipole->CoM[1]) ||
