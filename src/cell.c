@@ -848,7 +848,7 @@ void cell_make_multipoles(struct cell *c, integertime_t ti_current,
     /* Final operation on the CoM and bulk velocity */
     const double mass_inv = 1. / mass;
     if (fabs(mass) < 1e-6) {
-      error("Dividing by very small number (4).");
+      message("Dividing by very small number (4).");
     }
     c->grav.multipole->CoM[0] = CoM[0] * mass_inv;
     c->grav.multipole->CoM[1] = CoM[1] * mass_inv;

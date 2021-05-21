@@ -1019,7 +1019,7 @@ __attribute__((nonnull)) INLINE static void gravity_P2M(
   /* Final operation on CoM */
   const double imass = 1.0 / mass;
   if (fabs(mass) < 1e-6) {
-    error("Dividing by very small number (3).");
+    message("Dividing by very small number (3).");
   }
   com[0] *= imass;
   com[1] *= imass;
