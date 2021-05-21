@@ -66,7 +66,7 @@ void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
 
   /* Anything to do here? */
   if (c->grav.count == 0) return;
-  if (!cell_is_starting_gravity(c, e) && !cell_is_active_gravity(c, e)) return;
+  if (!cell_is_starting_gravity(c, e)) return;
   if (!with_cosmology)
     error("Phase space weighting without cosmology not implemented.");
 
@@ -92,6 +92,9 @@ void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
 
       /* Only act on neutrinos */
       if (gp->type != swift_type_neutrino) continue;
+      
+      /* Only act on starting particles */
+      if (!gpart_is_starting(gp, e)) continue;
 
       /* Use a particle id dependent seed */
       const long long seed = gp->id_or_neg_offset + neutrino_seed;
@@ -113,6 +116,10 @@ void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
 
       /* Set the statistically weighted mass */
       gp->mass = mass * weight;
+      
+      if (isnan(gp->mass) || isinf(gp->mass)) error("Invalid mass %f", gp->mass);
+      
+      message("This still happens though!");
 
       /* Prevent degeneracies */
       if (gp->mass == 0.) {
