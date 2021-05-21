@@ -113,7 +113,7 @@ void space_fix_neutrinos_recursive(struct space *s, struct cell *c) {
 
     /* Final operation on the CoM and bulk velocity */
     const double inv_mass = 1. / mass;
-    if (fabs(inv_mass) < 1e-6) {
+    if (fabs(mass) < 1e-6) {
       error("Dividing by very small number (1).");
     }
     c->grav.multipole->CoM[0] = CoM[0] * inv_mass;
@@ -510,7 +510,7 @@ void space_split_recursive(struct space *s, struct cell *c,
 
       /* Final operation on the CoM and bulk velocity */
       const double inv_mass = 1. / mass;
-      if (fabs(inv_mass) < 1e-6) {
+      if (fabs(mass) < 1e-6) {
         error("Dividing by very small number (2).");
       }
       c->grav.multipole->CoM[0] = CoM[0] * inv_mass;
