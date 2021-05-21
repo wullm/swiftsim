@@ -611,6 +611,10 @@ void space_split_recursive(struct space *s, struct cell *c,
           isnan(c->grav.multipole->CoM[1]) || isnan(c->grav.multipole->CoM[2]))
         error("NaN centre of mass!");
       if (isnan(c->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+      if (isinf(c->grav.multipole->CoM[0]) ||
+          isinf(c->grav.multipole->CoM[1]) || isinf(c->grav.multipole->CoM[2]))
+        error("inf centre of mass!");
+      if (isinf(c->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
     } /* Deal with gravity */
   }   /* Split or let it be? */
@@ -821,6 +825,10 @@ void space_split_recursive(struct space *s, struct cell *c,
             isnan(c->grav.multipole->CoM[2]))
           error("NaN centre of mass!");
         if (isnan(c->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+        if (isinf(c->grav.multipole->CoM[0]) ||
+            isinf(c->grav.multipole->CoM[1]) || isinf(c->grav.multipole->CoM[2]))
+          error("inf centre of mass!");
+        if (isinf(c->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
       } else {
 

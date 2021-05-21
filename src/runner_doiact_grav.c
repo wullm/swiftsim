@@ -141,6 +141,10 @@ void runner_do_grav_down(struct runner *r, struct cell *c, int timer) {
         isnan(c->grav.multipole->CoM[2]))
       error("NaN centre of mass!");
     if (isnan(c->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+    if (isinf(c->grav.multipole->CoM[0]) ||
+        isinf(c->grav.multipole->CoM[1]) || isinf(c->grav.multipole->CoM[2]))
+        error("inf centre of mass!");
+    if (isinf(c->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
     /* Apply accelerations to the particles */
     for (int i = 0; i < gcount; ++i) {
@@ -1491,6 +1495,10 @@ void runner_dopair_grav_pp_no_cache(struct runner *r, struct cell *restrict ci,
           isnan(ci->grav.multipole->CoM[2]))
         error("NaN centre of mass!");
       if (isnan(ci->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+      if (isinf(ci->grav.multipole->CoM[0]) ||
+          isinf(ci->grav.multipole->CoM[1]) || isinf(ci->grav.multipole->CoM[2]))
+          error("inf centre of mass!");
+      if (isinf(ci->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
       /* Everything should be fine */
       // if (!cell_contains_com(cj, cj->grav.multipole))
@@ -1502,6 +1510,10 @@ void runner_dopair_grav_pp_no_cache(struct runner *r, struct cell *restrict ci,
           isnan(cj->grav.multipole->CoM[2]))
         error("NaN centre of mass!");
       if (isnan(cj->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+      if (isinf(cj->grav.multipole->CoM[0]) ||
+          isinf(cj->grav.multipole->CoM[1]) || isinf(cj->grav.multipole->CoM[2]))
+          error("inf centre of mass!");
+      if (isinf(cj->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
       runner_dopair_grav_pp_truncated_no_cache(
           ci->grav.parts, ci->grav.count, cj->grav.parts, cj->grav.count, dim,
@@ -1932,6 +1944,10 @@ static INLINE void runner_dopair_grav_mm_symmetric(struct runner *r,
       isnan(ci->grav.multipole->CoM[2]))
     error("NaN centre of mass!");
   if (isnan(ci->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+  if (isinf(ci->grav.multipole->CoM[0]) ||
+      isinf(ci->grav.multipole->CoM[1]) || isinf(ci->grav.multipole->CoM[2]))
+      error("inf centre of mass!");
+  if (isinf(ci->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
   /* Everything should be fine */
   // if (!cell_contains_com(cj, cj->grav.multipole))
@@ -1942,6 +1958,10 @@ static INLINE void runner_dopair_grav_mm_symmetric(struct runner *r,
       isnan(cj->grav.multipole->CoM[2]))
     error("NaN centre of mass!");
   if (isnan(cj->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+  if (isinf(cj->grav.multipole->CoM[0]) ||
+      isinf(cj->grav.multipole->CoM[1]) || isinf(cj->grav.multipole->CoM[2]))
+      error("inf centre of mass!");
+  if (isinf(cj->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
   /* Short-cut to the multipole */
   const struct multipole *multi_i = &ci->grav.multipole->m_pole;
@@ -2034,6 +2054,10 @@ static INLINE void runner_dopair_grav_mm_nonsym(struct runner *r,
       isnan(ci->grav.multipole->CoM[2]))
     error("NaN centre of mass!");
   if (isnan(ci->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+  if (isinf(ci->grav.multipole->CoM[0]) ||
+      isinf(ci->grav.multipole->CoM[1]) || isinf(ci->grav.multipole->CoM[2]))
+      error("inf centre of mass!");
+  if (isinf(ci->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
   /* Everything should be fine */
   // if (!cell_contains_com(cj, cj->grav.multipole))
@@ -2044,6 +2068,10 @@ static INLINE void runner_dopair_grav_mm_nonsym(struct runner *r,
       isnan(cj->grav.multipole->CoM[2]))
     error("NaN centre of mass!");
   if (isnan(cj->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+  if (isinf(cj->grav.multipole->CoM[0]) ||
+      isinf(cj->grav.multipole->CoM[1]) || isinf(cj->grav.multipole->CoM[2]))
+      error("inf centre of mass!");
+  if (isinf(cj->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
   /* Short-cut to the multipole */
   const struct multipole *multi_j = &cj->grav.multipole->m_pole;
@@ -2121,6 +2149,10 @@ static INLINE void runner_dopair_grav_mm(struct runner *r,
       isnan(ci->grav.multipole->CoM[2]))
     error("NaN centre of mass!");
   if (isnan(ci->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+  if (isinf(ci->grav.multipole->CoM[0]) ||
+      isinf(ci->grav.multipole->CoM[1]) || isinf(ci->grav.multipole->CoM[2]))
+      error("inf centre of mass!");
+  if (isinf(ci->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
   /* Everything should be fine */
   // if (!cell_contains_com(cj, cj->grav.multipole))
@@ -2131,6 +2163,10 @@ static INLINE void runner_dopair_grav_mm(struct runner *r,
       isnan(cj->grav.multipole->CoM[2]))
     error("NaN centre of mass!");
   if (isnan(cj->grav.multipole->m_pole.M_000)) error("NaN total mass!");
+  if (isinf(cj->grav.multipole->CoM[0]) ||
+      isinf(cj->grav.multipole->CoM[1]) || isinf(cj->grav.multipole->CoM[2]))
+      error("inf centre of mass!");
+  if (isinf(cj->grav.multipole->m_pole.M_000)) error("inf total mass!");
 
   /* Interact! */
   if (do_i && do_j)
