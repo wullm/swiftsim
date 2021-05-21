@@ -119,8 +119,6 @@ void runner_do_neutrino_weighting(struct runner *r, struct cell *c, int timer) {
       
       if (isnan(gp->mass) || isinf(gp->mass)) error("Invalid mass %f", gp->mass);
       
-      message("This still happens though!");
-
       /* Prevent degeneracies */
       if (gp->mass == 0.) {
         gp->mass = FLT_MIN;
