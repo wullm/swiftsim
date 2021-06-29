@@ -1264,9 +1264,17 @@ int main(int argc, char *argv[]) {
 
     /* Initialise the neutrino properties if we have neutrino particles */
     bzero(&neutrino_properties, sizeof(struct neutrino_props));
-    if (with_neutrinos)
+    if (with_neutrinos) {
       neutrino_props_init(&neutrino_properties, &prog_const, &us, params,
                           &cosmo);
+    } else {
+      /* Check if we should expect neutrinos */
+      char use_df = parser_get_param_int(params, "Neutrino:use_delta_f");
+      char gen_ics = parser_get_param_int(params, "Neutrino:generate_ics");
+
+      if (use_df || gen_ics)
+        error("Running without neutrinos, but specified neutrino model.");
+    }
 
     /* Initialize the space with these data. */
     if (myrank == 0) clocks_gettime(&tic);
