@@ -1269,10 +1269,10 @@ int main(int argc, char *argv[]) {
                           &cosmo);
     } else {
       /* Check if we should expect neutrinos */
-      char use_df = parser_get_param_int(params, "Neutrino:use_delta_f");
-      char gen_ics = parser_get_param_int(params, "Neutrino:generate_ics");
+      char use_df = parser_get_opt_param_int(params, "Neutrino:use_delta_f", 0);
+      char genic = parser_get_opt_param_int(params, "Neutrino:generate_ics", 0);
 
-      if (use_df || gen_ics)
+      if (use_df || genic)
         error("Running without neutrinos, but specified neutrino model.");
     }
 
