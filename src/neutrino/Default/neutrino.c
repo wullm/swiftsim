@@ -32,18 +32,18 @@
  * @param physical_constants The #phys_const used for this run.
  * @param neutrino_props The #neutrino_props used for this run.
  * @param rank The MPI rank of this #space.
- * @param r Output: correlation coefficient between initial and sampled momenta
+ * @param r Output: correlation coefficient between current and sampled momenta
  * @param I_df Output: half the mean squared weight
  * @param mass_tot Output: the total mass in neutrino particles
  */
 void compute_neutrino_diagnostics(
     const struct space *s, const struct cosmology *cosmo,
     const struct phys_const *physical_constants,
-    const struct neutrino_props *neutrino_properties, const int rank,
-    double *r, double *I_df, double *mass_tot) {
+    const struct neutrino_props *neutrino_properties, const int rank, double *r,
+    double *I_df, double *mass_tot) {
 
   if (!neutrino_properties->use_delta_f) {
-      error("Neutrino diagnostics only defined when using the delta-f method.");
+    error("Neutrino diagnostics only defined when using the delta-f method.");
   }
 
   struct gpart *gparts = s->gparts;
@@ -63,9 +63,9 @@ void compute_neutrino_diagnostics(
   /* Sum up the masses, weights, and momenta for the neutrinos in this space */
   double mass_sum = 0;
   double weight2_sum = 0;
-  double p_sum = 0; //current momenta
+  double p_sum = 0;  // current momenta
   double p2_sum = 0;
-  double pi_sum = 0; //sampled momenta
+  double pi_sum = 0;  // sampled momenta
   double pi2_sum = 0;
   double ppi_sum = 0;
   for (size_t i = 0; i < nr_gparts; ++i) {
@@ -105,30 +105,30 @@ void compute_neutrino_diagnostics(
     weight2_sum += weight * weight;
   }
 
-  /* Reduce the total mass, weights, and momenta */
-  #ifdef WITH_MPI
-    double sums[7] = {p_sum, p2_sum, pi_sum, pi2_sum, ppi_sum, mass_sum,
-                      weight2_sum};
-    double total_sums[7];
+/* Reduce the total mass, weights, and momenta */
+#ifdef WITH_MPI
+  double sums[7] = {p_sum,   p2_sum,   pi_sum,     pi2_sum,
+                    ppi_sum, mass_sum, weight2_sum};
+  double total_sums[7];
 
-    MPI_Reduce(&sums, &total_sums, 7, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&sums, &total_sums, 7, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-    double total_p = total_sums[0];
-    double total_p2 = total_sums[1];
-    double total_pi = total_sums[2];
-    double total_pi2 = total_sums[3];
-    double total_ppi = total_sums[4];
-    double total_mass = total_sums[5];
-    double total_weight2 = total_sums[6];
-  #else
-    double total_p = p_sum;
-    double total_p2 = p2_sum;
-    double total_pi = pi_sum;
-    double total_pi2 = pi2_sum;
-    double total_ppi = ppi_sum;
-    double total_mass = mass_sum;
-    double total_weight2 = weight2_sum;
-  #endif
+  double total_p = total_sums[0];
+  double total_p2 = total_sums[1];
+  double total_pi = total_sums[2];
+  double total_pi2 = total_sums[3];
+  double total_ppi = total_sums[4];
+  double total_mass = total_sums[5];
+  double total_weight2 = total_sums[6];
+#else
+  double total_p = p_sum;
+  double total_p2 = p2_sum;
+  double total_pi = pi_sum;
+  double total_pi2 = pi2_sum;
+  double total_ppi = ppi_sum;
+  double total_mass = mass_sum;
+  double total_weight2 = weight2_sum;
+#endif
 
   if (rank == 0) {
     /* Compute the correlation coefficient */
@@ -158,19 +158,21 @@ void compute_neutrino_diagnostics(
  * @param with_neutrinos Are we running with neutrino particles?
  * @param verbose Are we verbose?
  */
-void neutrino_check_cosmology(
-    const struct space *s, const struct cosmology *cosmo,
-    const struct phys_const *physical_constants, struct swift_params *params,
-    const struct neutrino_props *neutrino_props, const int rank,
-    const int verbose) {
+void neutrino_check_cosmology(const struct space *s,
+                              const struct cosmology *cosmo,
+                              const struct phys_const *physical_constants,
+                              struct swift_params *params,
+                              const struct neutrino_props *neutrino_props,
+                              const int rank, const int verbose) {
 
   /* Check that we are not missing any neutrino particles */
   if (!s->with_neutrinos) {
-      int use_df = parser_get_opt_param_int(params, "Neutrino:use_delta_f", 0);
-      int genics = parser_get_opt_param_int(params, "Neutrino:generate_ics", 0);
-      if (use_df || genics)
-        error("Running without neutrino particles, but specified a neutrino "
-              "model in the parameter file.");
+    int use_df = parser_get_opt_param_int(params, "Neutrino:use_delta_f", 0);
+    int genics = parser_get_opt_param_int(params, "Neutrino:generate_ics", 0);
+    if (use_df || genics)
+      error(
+          "Running without neutrino particles, but specified a neutrino "
+          "model in the parameter file.");
   }
 
   /* We are done if the delta-f method is not used, since in that case the
@@ -186,7 +188,7 @@ void neutrino_check_cosmology(
     /* Check the correlation coefficient */
     if (r < 0.1)
       error(
-          "There is no correlation between initial and sampled neutrino "
+          "There is no correlation between current and sampled neutrino "
           "momenta (r = %e, I = %e). Most likely, the neutrino seed is "
           "incorrect or the particle IDs have been scrambled.",
           r, I_df);
@@ -198,8 +200,7 @@ void neutrino_check_cosmology(
           "Most likely, the particle velocities are incorrectly normalised.",
           r, I_df);
 
-    if (verbose)
-      message("Neutrino delta-f diagnostic: I = %e", I_df);
+    if (verbose) message("Neutrino delta-f diagnostic: I = %e", I_df);
 
     /* Check the neutrino mass */
     const double volume = s->dim[0] * s->dim[1] * s->dim[2];
